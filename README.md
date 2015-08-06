@@ -7,6 +7,7 @@
 
   
  Copyright (c) 2012 Felix Geisendörfer (felix@debuggable.com) and contributors
+ 
  Copyright (c) 2015, brezza27  and contributors 
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
