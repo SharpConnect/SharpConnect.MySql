@@ -1,5 +1,6 @@
 # SharpConnect.MySql
  Just another MySqlConnector .Net 
+ 
  ported from node-mysql (https://github.com/felixge/node-mysql)
   
  LICENSE: MIT
