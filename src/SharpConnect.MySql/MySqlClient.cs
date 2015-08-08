@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.IO;
+﻿//MIT 2015, brezza27 and contributors
 
 using MySqlPacket;
 namespace SharpConnect.MySql

@@ -1,4 +1,6 @@
-﻿using System;
+﻿//MIT 2015, brezza27 and contributors
+
+using System;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Reflection;
