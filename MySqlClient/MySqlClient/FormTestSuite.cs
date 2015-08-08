@@ -40,7 +40,10 @@ namespace MySqlClient
             TestCase testCase = listboxTestCases.SelectedItem as TestCase;
             if (testCase != null)
             {
+                GC.Collect();
+                Report.Clear();
                 testCase.Run();
+                this.textBox1.Text = Report.GetReportText();
             }
         }
 

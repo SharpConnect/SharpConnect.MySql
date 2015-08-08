@@ -1,4 +1,6 @@
-﻿using System;
+﻿
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
@@ -411,6 +413,16 @@ namespace MySqlPacket
         }
     }
 
+    static class dbugConsole
+    {
+        [System.Diagnostics.Conditional("DEBUG")]
+        public static void WriteLine(string str)
+        {
+            Console.WriteLine(str);
+        }
+
+    }
+
     class Connection
     {
         public ConnectionConfig config;
@@ -508,12 +520,14 @@ namespace MySqlPacket
             query = CreateQuery("SELECT @@global.max_allowed_packet", null);
             query.ExecuteQuery();
             if (query.loadError != null)
-            {
-                Console.WriteLine("Error Message : " + query.loadError.message);
+            {   
+                dbugConsole.WriteLine("Error Message : " + query.loadError.message); 
             }
             else if (query.okPacket != null)
             {
-                Console.WriteLine("OkPacket : " + query.okPacket.affectedRows);
+
+                dbugConsole.WriteLine("OkPacket : " + query.okPacket.affectedRows);
+
             }
             else
             {
@@ -521,7 +535,7 @@ namespace MySqlPacket
                 while (query.ReadRow())
                 {
                     MAX_ALLOWED_PACKET = query.resultSet.rows[0].GetDataInField("@@global.max_allowed_packet").myLong;
-                    Console.WriteLine("Rows Data " + i + " : " + query.resultSet.rows[i++]);
+                    dbugConsole.WriteLine("Rows Data " + i + " : " + query.resultSet.rows[i++]);
                 }
             }
         }
@@ -1027,15 +1041,20 @@ namespace MySqlPacket
                     }
                 default:
                     {
-                        Console.WriteLine("Before parse [Position] : " + parser.Position);
+                        dbugConsole.WriteLine("Before parse [Position] : " + parser.Position);
+
                         RowDataPacket rowData = new RowDataPacket(fieldList, typeCast, nestTables, config);
                         rowData.ParsePacketHeader(parser);
-                        Console.WriteLine("After parse header [Position] : " + parser.Position);
+
+                        dbugConsole.WriteLine("After parse header [Position] : " + parser.Position);
+
                         receiveBuffer = CheckLimit(rowData.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                         rowData.ParsePacket(parser);
                         resultSet.Add(rowData);
                         receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
-                        Console.WriteLine("After parse Row [Position] : " + parser.Position);
+
+                        dbugConsole.WriteLine("After parse Row [Position] : " + parser.Position);
+
                         lastRow = rowData;
                         return true;
                     }
@@ -1081,7 +1100,8 @@ namespace MySqlPacket
                 Console.WriteLine("i : " + i + ", lastReceive : " + lastReceive);
                 Thread.Sleep(100);
             }
-            Console.WriteLine("All Receive bytes : " + allReceive);
+
+            dbugConsole.WriteLine("All Receive bytes : " + allReceive);
             //socket = null;
             ////TODO :test
             //int test = 44;
@@ -1216,7 +1236,7 @@ namespace MySqlPacket
                 //buffer = remainBuff.Concat(receiveBuff).ToArray();
                 parser.LoadNewBuffer(buffer, newReceive + remainLength);
 
-                Console.WriteLine("CheckBeforeParseHeader : LoadNewBuffer");
+                dbugConsole.WriteLine("CheckBeforeParseHeader : LoadNewBuffer");
             }
             return buffer;
         }
@@ -2104,7 +2124,9 @@ namespace MySqlPacket
                 MAX = (int)MAX_ALLOWED_PACKET - 4;//-4 bytes for header
             }
             long curPacketLength = CurrentPacketLength();
-            Console.WriteLine("Current Packet Length = " + curPacketLength);
+
+            dbugConsole.WriteLine("Current Packet Length = " + curPacketLength);
+
             int packets = (int)Math.Floor((decimal)(curPacketLength / MAX)) + 1;
             if (packets > 1)
             {
