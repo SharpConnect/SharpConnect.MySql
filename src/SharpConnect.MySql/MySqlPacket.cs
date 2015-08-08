@@ -550,11 +550,19 @@ namespace MySqlPacket
             else
             {
                 int i = 0;
-                while (query.ReadRow())
+                if (query.ReadRow())
                 {
-                    MAX_ALLOWED_PACKET = query.resultSet.rows[0].GetDataInField("@@global.max_allowed_packet").myLong;
-                    dbugConsole.WriteLine("Rows Data " + i + " : " + query.resultSet.rows[i++]);
+                    MAX_ALLOWED_PACKET = query.GetFieldData(0).myLong;
+                    //MAX_ALLOWED_PACKET = query.resultSet.rows[0].GetDataInField("@@global.max_allowed_packet").myLong;
+                    //dbugConsole.WriteLine("Rows Data " + i + " : " + query.resultSet.rows[i++]);
                 }
+
+                //while (query.ReadRow())
+                //{
+
+                //    MAX_ALLOWED_PACKET = query.resultSet.rows[0].GetDataInField("@@global.max_allowed_packet").myLong;
+                //    dbugConsole.WriteLine("Rows Data " + i + " : " + query.resultSet.rows[i++]);
+                //}
             }
         }
 
@@ -798,7 +806,8 @@ namespace MySqlPacket
         public PrepareStatement values;
         public bool typeCast;
         public bool nestTables;
-        public ResultSet resultSet;
+        //public ResultSet resultSet;
+        TableHeader tableHeader;
         public ErrPacket loadError;
         public OkPacket okPacket;
         public int index;
@@ -842,7 +851,7 @@ namespace MySqlPacket
             this.values = values;
             typeCast = true;
             nestTables = false;
-            resultSet = null;
+            //resultSet = null;
             //this._results   = [];
             //this._fields    = [];
             index = 0;
@@ -860,7 +869,7 @@ namespace MySqlPacket
             this.values = values;
             typeCast = config.typeCast;
             nestTables = false;
-            resultSet = null;
+            //resultSet = null;
             //this._results   = [];
             //this._fields    = [];
             index = 0;
@@ -1010,35 +1019,38 @@ namespace MySqlPacket
         {
             ResultSetHeaderPacket resultPacket = new ResultSetHeaderPacket();
             resultPacket.ParsePacket(parser);
-            resultSet = new ResultSet(resultPacket);
+            //resultSet = new ResultSet(resultPacket);
+
+            List<FieldPacket> fields = new List<FieldPacket>();
             while (receiveBuffer[parser.Position + 4] != EOF_CODE)
             {
                 FieldPacket fieldPacket = new FieldPacket(protocol41);
                 fieldPacket.ParsePacketHeader(parser);
                 receiveBuffer = CheckLimit(fieldPacket.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                 fieldPacket.ParsePacket(parser);
-                resultSet.Add(fieldPacket);
+                fields.Add(fieldPacket);
                 receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
             }
 
+            this.tableHeader = new TableHeader(fields);
 
             EofPacket fieldEof = new EofPacket(protocol41);//if temp[4]=0xfe then eof packet
             fieldEof.ParsePacketHeader(parser);
             receiveBuffer = CheckLimit(fieldEof.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
             fieldEof.ParsePacket(parser);
-            resultSet.Add(fieldEof);
+            //resultSet.Add(fieldEof);
 
             receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
         }
 
         public bool ReadRow()
         {
-            if (resultSet == null)
+            if (tableHeader == null)
             {
                 return false;
             }
 
-            TableHeader tableHeader = resultSet.GetTableHeader();
+           
             switch (receiveBuffer[parser.Position + 4])
             {
                 case ERROR_CODE:
@@ -1053,7 +1065,8 @@ namespace MySqlPacket
                         rowDataEof.ParsePacketHeader(parser);
                         receiveBuffer = CheckLimit(rowDataEof.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                         rowDataEof.ParsePacket(parser);
-                        resultSet.Add(rowDataEof);
+                        
+                        //resultSet.Add(rowDataEof);
                         return false;
                     }
                 default:
@@ -1067,7 +1080,7 @@ namespace MySqlPacket
 
                         receiveBuffer = CheckLimit(rowData.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                         rowData.ParsePacket(parser);
-                        resultSet.Add(rowData);
+                        //resultSet.Add(rowData);
                         receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
 
                         dbugConsole.WriteLine("After parse Row [Position] : " + parser.Position);
@@ -1493,50 +1506,50 @@ namespace MySqlPacket
         }
     }
 
-    class ResultSet
-    {
-        TableHeader tableHeader;
-        ResultSetHeaderPacket resultSetHeaderPacket;
-        List<FieldPacket> fieldPackets;
-        public List<RowDataPacket> rows;
-        public ResultSet(ResultSetHeaderPacket resultHeader)
-        {
-            resultSetHeaderPacket = resultHeader;
-            fieldPackets = new List<FieldPacket>();
-            rows = new List<RowDataPacket>();
-        }
-        public void Add(FieldPacket packet)
-        {
-            fieldPackets.Add(packet);
-        }
-        public void Add(RowDataPacket packet)
-        {
-            rows.Add(packet);
-        }
-        public void Add(EofPacket packet)
-        {
+    //class ResultSet
+    //{
+    //    TableHeader tableHeader;
+    //    ResultSetHeaderPacket resultSetHeaderPacket;
+    //    List<FieldPacket> fieldPackets;
+    //    public List<RowDataPacket> rows;
+    //    public ResultSet(ResultSetHeaderPacket resultHeader)
+    //    {
+    //        resultSetHeaderPacket = resultHeader;
+    //        fieldPackets = new List<FieldPacket>();
+    //        rows = new List<RowDataPacket>();
+    //    }
+    //    public void Add(FieldPacket packet)
+    //    {
+    //        fieldPackets.Add(packet);
+    //    }
+    //    public void Add(RowDataPacket packet)
+    //    {
+    //        rows.Add(packet);
+    //    }
+    //    public void Add(EofPacket packet)
+    //    {
 
-        }
+    //    }
 
 
-        public TableHeader GetTableHeader()
-        {
-            if (tableHeader == null)
-            {
-                return tableHeader = new TableHeader(fieldPackets);
-            }
-            else
-            {
-                return tableHeader;
-            }
-        }
+    //    public TableHeader GetTableHeader()
+    //    {
+    //        if (tableHeader == null)
+    //        {
+    //            return tableHeader = new TableHeader(fieldPackets);
+    //        }
+    //        else
+    //        {
+    //            return tableHeader;
+    //        }
+    //    }
 
-    }
+    //}
 
-    class FieldInfo
-    {
+    //class FieldInfo
+    //{
 
-    }
+    //}
 
 
 
