@@ -8,21 +8,29 @@ namespace SharpConnect.MySql
     public class MySqlConnectionString
     {
 
-        public MySqlConnectionString()
-        {
-        }
+        string signature;
         public MySqlConnectionString(string h, string u, string p, string d)
         {
             Host = h;
             Username = u;
             Password = p;
             Database = d;
+
+            signature = string.Concat(h, u, p, d);
         }
 
-        public string Host { get; set; }
-        public string Username { get; set; }
-        public string Password { get; set; }
-        public string Database { get; set; }
+        public string Host { get; private set; }
+        public string Username { get; private set; }
+        public string Password { get; private set; }
+        public string Database { get; private set; }
+
+        internal string ConnSignature
+        {
+            get
+            {
+                return signature;
+            }
+        }
     }
 
     public class MySqlConnection
@@ -31,29 +39,50 @@ namespace SharpConnect.MySql
         Connection conn;
         public MySqlConnection(string host, string uid, string psw, string db)
         {
-            connStr = new MySqlConnectionString()
-            {
-                Host = host,
-                Username = uid,
-                Password = psw,
-                Database = db
-            };
-            conn = new Connection(new ConnectionConfig(host, uid, psw, db));
+            connStr = new MySqlConnectionString(host, uid, psw, db);
         }
         public MySqlConnection(MySqlConnectionString connStr)
         {
             this.connStr = connStr;
-            conn = new Connection(new ConnectionConfig(connStr.Host, connStr.Username, connStr.Password, connStr.Database));
-
         }
+        public bool UseConnectionPool
+        {
+            get; set;
+        }
+
         public void Open()
         {
-            conn.Connect();
+            //get connection from pool
+            if (UseConnectionPool)
+            {
+                conn = ConnectionPool.GetConnection(connStr);
+                if (conn == null)
+                {
+                    //create new 
+                    conn = new Connection(new ConnectionConfig(connStr.Host, connStr.Username, connStr.Password, connStr.Database));
+                    conn.Connect();
+                }
+            }
+            else
+            {
+                //new connection
+                conn = new Connection(new ConnectionConfig(connStr.Host, connStr.Username, connStr.Password, connStr.Database));
+                conn.Connect();
+            }
+
+           
 
         }
         public void Close()
         {
-            conn.Disconnect();
+            if (UseConnectionPool)
+            {
+                ConnectionPool.ReleaseConnection(connStr, conn);
+            }
+            else
+            {
+                conn.Disconnect();
+            }
         }
 
         internal Connection Conn

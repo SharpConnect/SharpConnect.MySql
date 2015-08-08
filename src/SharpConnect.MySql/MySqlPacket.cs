@@ -450,12 +450,15 @@ namespace MySqlPacket
         public string state;
         public uint threadId;
 
+
+
         HandshakePacket handshake;
         ClientAuthenticationPacket authPacket;
         Query query;
 
         PacketParser parser;
         PacketWriter writer;
+
 
         long MAX_ALLOWED_PACKET = 0;
         public Connection(ConnectionConfig userConfig)
@@ -600,6 +603,8 @@ namespace MySqlPacket
             int send = socket.Send(writer.ToArray());
             socket.Disconnect(true);
         }
+        public bool IsStoredInConnPool { get; set; }
+        public bool IsInUsed { get; set; }
 
         static byte[] GetScrollbleBuffer(byte[] part1, byte[] part2)
         {

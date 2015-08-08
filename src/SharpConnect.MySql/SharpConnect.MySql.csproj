@@ -33,6 +33,7 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConnectionPool.cs" />
     <Compile Include="debugTest1cs.cs" />
     <Compile Include="MySqlClient.cs" />
     <Compile Include="MySqlPacket.cs" />

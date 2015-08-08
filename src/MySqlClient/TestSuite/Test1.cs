@@ -1,7 +1,7 @@
 ﻿//MIT 2015, brezza27, EngineKit and contributors
 
-using System; 
-using System.Collections.Generic;  
+using System;
+using System.Collections.Generic;
 using SharpConnect.MySql;
 
 namespace MySqlTest
@@ -49,6 +49,25 @@ namespace MySqlTest
             }
             connList.Clear();
         }
+        [Test]
+        public static void T_OpenAndCloseWithConnectionPool()
+        {
+            int n = 100;
+            long total;
+            long avg;
+            var connStr = GetMySqlConnString();
+            Test(n, TimeUnit.Ticks, out total, out avg, () =>
+            {
+                var conn = new MySqlConnection(connStr);
+                conn.UseConnectionPool = true;
+                conn.Open();
+                conn.Close();
+            });
+
+            Report.WriteLine("avg:" + avg);
+        }
+
+
         [Test]
         public static void T_Select_sysdate()
         {
