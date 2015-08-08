@@ -832,10 +832,10 @@ namespace MySqlPacket
         PacketParser parser;
         PacketWriter writer;
 
-        Socket socket;
-        bool protocol41;
-        ConnectionConfig config;
-        uint threadId;
+        //Socket socket;
+        //bool protocol41;
+        //ConnectionConfig config;
+        //uint threadId;
 
         byte[] receiveBuffer;
         const int DEFAULT_BUFFER_SIZE = 512;
@@ -885,7 +885,7 @@ namespace MySqlPacket
             this.conn = conn;
             this.sql = sql;
             this.values = values;
-            typeCast = config.typeCast;
+            typeCast = conn.config.typeCast;
             nestTables = false;
             //resultSet = null;
             //this._results   = [];
@@ -893,11 +893,14 @@ namespace MySqlPacket
             index = 0;
             loadError = null;
 
-            this.parser = conn.PacketParser;
-            this.writer = conn.PacketWriter;
+            //*** query use conn resource such as parser,writer
+            //so 1 query 1 connection
+            parser = conn.PacketParser;
+            writer = conn.PacketWriter;
 
             this.sql = SqlFormat(sql, values);
             this.receiveBuffer = null;
+
         }
 
 
@@ -982,7 +985,7 @@ namespace MySqlPacket
             SendQuery(sql);
 
             receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
-
+            var socket = conn.socket;
             int receive = socket.Receive(receiveBuffer);
 
             parser.LoadNewBuffer(receiveBuffer, receive);
@@ -997,7 +1000,7 @@ namespace MySqlPacket
                     loadError.ParsePacket(parser);
                     break;
                 case OK_CODE:
-                    okPacket = new OkPacket(protocol41);
+                    okPacket = new OkPacket(conn.IsProtocol41);
                     okPacket.ParsePacket(parser);
                     break;
                 default:
@@ -1014,6 +1017,8 @@ namespace MySqlPacket
             byte[] qr = writer.ToArray();
             int sent = 0;
             //if send data more than max_allowed_packet in mysql server it will be close connection
+
+            var socket = conn.socket;
             if (MAX_ALLOWED_SEND > 0 && qr.Length > MAX_ALLOWED_SEND)
             {
                 int packs = (int)Math.Floor(qr.Length / (double)MAX_ALLOWED_SEND) + 1;
@@ -1037,7 +1042,9 @@ namespace MySqlPacket
             this.tableHeader = new TableHeader();
             tableHeader.TypeCast = typeCast;
             tableHeader.NestTables = nestTables;
-            tableHeader.ConnConfig = config;
+            tableHeader.ConnConfig = conn.config;
+
+            bool protocol41 = conn.IsProtocol41;
 
             while (receiveBuffer[parser.Position + 4] != EOF_CODE)
             {
@@ -1082,7 +1089,7 @@ namespace MySqlPacket
                     }
                 case EOF_CODE:
                     {
-                        EofPacket rowDataEof = new EofPacket(protocol41);
+                        EofPacket rowDataEof = new EofPacket(conn.IsProtocol41);
                         rowDataEof.ParsePacketHeader(parser);
                         receiveBuffer = CheckLimit(rowDataEof.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                         rowDataEof.ParsePacket(parser);
@@ -1142,10 +1149,13 @@ namespace MySqlPacket
             //Thread.Sleep(1000);
             //socket.Disconnect(false);
             //this.Disconnect();
+
+            //TODO: review here !
             int lastReceive = 0;
             long allReceive = 0;
             byte[] temp = new byte[65536];
             int i = 0;
+            var socket = conn.socket;
             while (socket.Available > 0)
             {
                 lastReceive = socket.Receive(temp);
@@ -1179,6 +1189,7 @@ namespace MySqlPacket
             writer.Rewrite();
             ComQuitPacket quitPacket = new ComQuitPacket();
             quitPacket.WritePacket(writer);
+            var socket = conn.socket;
             int send = socket.Send(writer.ToArray());
             //socket.Disconnect(true);
         }
@@ -1205,9 +1216,9 @@ namespace MySqlPacket
                     buffer = new byte[newBufferLength];
                 }
                 remainBuff.CopyTo(buffer, 0);
-
+                var socket = conn.socket;
                 int newReceive = socket.Receive(receiveBuff);
-                if (newReceive < newBufferLength)//รับมาได้ไม่หมด
+                if (newReceive < newBufferLength)//get some but not complete
                 {
                     int newIndex = 0;
                     byte[] temp = new byte[newReceive];
@@ -1216,6 +1227,10 @@ namespace MySqlPacket
                     newIndex = newReceive + remainLength;
                     while (newIndex < newBufferLength)
                     {
+
+                        //TODO: review here, 
+                        //use AsyncSocket
+
                         Thread.Sleep(100);
                         var s = socket.Available;
                         if (s == 0)
@@ -1277,6 +1292,7 @@ namespace MySqlPacket
             {
                 byte[] remainBuff = CopyBufferBlock(buffer, position, remainLength);
                 byte[] receiveBuff = new byte[limit];
+                var socket = conn.socket;
                 int newReceive = socket.Receive(receiveBuff);
                 int newBufferLength = newReceive + remainLength;
                 if (newBufferLength > buffer.Length)
