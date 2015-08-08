@@ -455,6 +455,9 @@ namespace MySqlPacket
         PacketParser parser;
         PacketWriter writer;
 
+        byte[] tmpForClearRecvBuffer; //for clear buffer 
+
+
         long MAX_ALLOWED_PACKET = 0;
         public Connection(ConnectionConfig userConfig)
         {
@@ -609,6 +612,32 @@ namespace MySqlPacket
         }
         internal bool IsProtocol41 { get { return handshake.protocol41; } }
 
+        internal void ClearRemainingInputBuffer()
+        {
+            //TODO: review here again
+
+            int lastReceive = 0;
+            long allReceive = 0;
+            int i = 0;
+            if (socket.Available > 0)
+            {
+                if (tmpForClearRecvBuffer == null)
+                {
+                    tmpForClearRecvBuffer = new byte[1024];
+                }
+
+                while (socket.Available > 0)
+                {
+                    lastReceive = socket.Receive(tmpForClearRecvBuffer);
+                    allReceive += lastReceive;
+                    i++;
+                    //TODO: review here again
+                    dbugConsole.WriteLine("i : " + i + ", lastReceive : " + lastReceive);
+                    Thread.Sleep(100);
+                }
+                dbugConsole.WriteLine("All Receive bytes : " + allReceive);
+            }
+        }
 
 
         static byte[] GetScrollbleBuffer(byte[] part1, byte[] part2)
@@ -827,6 +856,7 @@ namespace MySqlPacket
         public int index;
 
         RowDataPacket lastRow;
+        bool hasSomeRow;
         //public string results;//unknowed value type
         //public string fields;//unknowed value type
         PacketParser parser;
@@ -898,7 +928,7 @@ namespace MySqlPacket
             parser = conn.PacketParser;
             writer = conn.PacketWriter;
 
-            this.sql = SqlFormat(sql, values);
+            this.sql = BindValues(sql, values);
             this.receiveBuffer = null;
 
         }
@@ -987,12 +1017,13 @@ namespace MySqlPacket
             receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
             var socket = conn.socket;
             int receive = socket.Receive(receiveBuffer);
-
-            parser.LoadNewBuffer(receiveBuffer, receive);
             if (receive == 0)
             {
                 return;
             }
+
+            //---------------------------------------------------
+            parser.LoadNewBuffer(receiveBuffer, receive);
             switch (receiveBuffer[4])
             {
                 case ERROR_CODE:
@@ -1075,7 +1106,7 @@ namespace MySqlPacket
         {
             if (tableHeader == null)
             {
-                return false;
+                return hasSomeRow = false;
             }
 
 
@@ -1085,7 +1116,7 @@ namespace MySqlPacket
                     {
                         loadError = new ErrPacket();
                         loadError.ParsePacket(parser);
-                        return false;
+                        return hasSomeRow = false;
                     }
                 case EOF_CODE:
                     {
@@ -1095,7 +1126,7 @@ namespace MySqlPacket
                         rowDataEof.ParsePacket(parser);
 
                         //resultSet.Add(rowDataEof);
-                        return false;
+                        return hasSomeRow = false;
                     }
                 default:
                     {
@@ -1113,7 +1144,7 @@ namespace MySqlPacket
                         dbugConsole.WriteLine("After parse Row [Position] : " + parser.Position);
 
 
-                        return true;
+                        return hasSomeRow = true;
                     }
             }
         }
@@ -1148,23 +1179,14 @@ namespace MySqlPacket
             //Console.WriteLine("sql : '" + sql + "'");
             //Thread.Sleep(1000);
             //socket.Disconnect(false);
-            //this.Disconnect();
-
+            //this.Disconnect(); 
             //TODO: review here !
-            int lastReceive = 0;
-            long allReceive = 0;
-            byte[] temp = new byte[65536];
-            int i = 0;
-            var socket = conn.socket;
-            while (socket.Available > 0)
+
+            if (hasSomeRow)
             {
-                lastReceive = socket.Receive(temp);
-                allReceive += lastReceive;
-                i++;
-                dbugConsole.WriteLine("i : " + i + ", lastReceive : " + lastReceive);
-                Thread.Sleep(100);
+                conn.ClearRemainingInputBuffer();
             }
-            dbugConsole.WriteLine("All Receive bytes : " + allReceive);
+
             //socket = null;
             ////TODO :test
             //int test = 44;
@@ -1277,12 +1299,15 @@ namespace MySqlPacket
 
         byte[] CopyBufferBlock(byte[] inputBuffer, int start, int length)
         {
+
             byte[] outputBuff = new byte[length];
-            for (int index = 0; index < length; index++)
-            {
-                outputBuff[index] = inputBuffer[start + index];
-            }
+            Buffer.BlockCopy(inputBuffer, start, outputBuff, 0, length);
             return outputBuff;
+            //for (int index = 0; index < length; index++)
+            //{
+            //    outputBuff[index] = inputBuffer[start + index];
+            //}
+            //return outputBuff;
         }
 
         byte[] CheckBeforeParseHeader(byte[] buffer, int position, int limit)
@@ -1309,13 +1334,13 @@ namespace MySqlPacket
             return buffer;
         }
 
-        string SqlFormat(string sql, CommandParameters values)
+        static string BindValues(string sql, CommandParameters values)
         {
             if (values == null)
             {
                 return sql;
             }
-            return ParseSqlFormat(sql, values);
+            return ParseAndBindValues(sql, values);
         }
 
         enum ParseState
@@ -1324,7 +1349,7 @@ namespace MySqlPacket
             GET_KEY
         }
 
-        string ParseSqlFormat(string sql, CommandParameters prepare)
+        static string ParseAndBindValues(string sql, CommandParameters prepare)
         {
             int length = sql.Length;
             ParseState state = ParseState.FIND_MARKER;
@@ -1377,7 +1402,7 @@ namespace MySqlPacket
             return GetSql(list);
         }
 
-        string GetSql(List<string> list)
+        static string GetSql(List<string> list)
         {
             int length = list.Count;
             StringBuilder strBuilder = new StringBuilder();
