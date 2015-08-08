@@ -18,6 +18,7 @@ namespace MySqlClient
         }
         private void FormTestSuite_Load(object sender, EventArgs e)
         {
+            this.Text = "SharpConnect";
             listboxTestCases.DoubleClick += ListboxTestCases_DoubleClick;
             LoadTestCases();
         }
