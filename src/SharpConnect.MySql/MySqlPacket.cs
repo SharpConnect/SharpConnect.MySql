@@ -455,7 +455,6 @@ namespace MySqlPacket
         PacketParser parser;
         PacketWriter writer;
 
-
         long MAX_ALLOWED_PACKET = 0;
         public Connection(ConnectionConfig userConfig)
         {
@@ -570,12 +569,11 @@ namespace MySqlPacket
             //query = new Query(parser, writer, sql, values);
             //query.typeCast = config.typeCast;
             //query.Start(socket, handshake.protocol41, config);
-            if (socket == null)
-            {
-                CreateNewSocket();
-            }
-
-            query = new Query(parser, writer, sql, values, socket, handshake.protocol41, config, threadId);
+            //if (socket == null)
+            //{
+            //    CreateNewSocket();
+            //}
+            var query = new Query(this, sql, values);
             if (MAX_ALLOWED_PACKET > 0)
             {
                 query.SetMaxSend(MAX_ALLOWED_PACKET);
@@ -600,6 +598,18 @@ namespace MySqlPacket
         }
         public bool IsStoredInConnPool { get; set; }
         public bool IsInUsed { get; set; }
+
+        internal PacketParser PacketParser
+        {
+            get { return parser; }
+        }
+        internal PacketWriter PacketWriter
+        {
+            get { return writer; }
+        }
+        internal bool IsProtocol41 { get { return handshake.protocol41; } }
+
+
 
         static byte[] GetScrollbleBuffer(byte[] part1, byte[] part2)
         {
@@ -646,6 +656,8 @@ namespace MySqlPacket
             }
             return result;
         }
+
+
     }
 
 
@@ -804,6 +816,8 @@ namespace MySqlPacket
     {
         public string sql;
         CommandParameters values;
+        Connection conn;
+
         public bool typeCast;
         public bool nestTables;
         //public ResultSet resultSet;
@@ -831,40 +845,44 @@ namespace MySqlPacket
 
         long MAX_ALLOWED_SEND = 0;
 
-        public Query(PacketParser parser, PacketWriter writer, string sql, CommandParameters values)
+
+
+
+        //public Query(Connection conn, string sql, CommandParameters values)
+        //{
+        //    //Sequence.call(this, options, callback);
+        //    //this.sql = options.sql;
+        //    //this.values = options.values;
+        //    //this.typeCast = (options.typeCast === undefined)
+        //    //  ? true
+        //    //  : options.typeCast;
+        //    //this.nestTables = options.nestTables || false;
+
+        //    //this._resultSet = null;
+        //    //this._results   = [];
+        //    //this._fields    = [];
+        //    //this._index     = 0;
+        //    //this._loadError = null;
+
+        //    this.sql = sql;
+        //    this.values = values;
+        //    typeCast = true;
+        //    nestTables = false;
+        //    //resultSet = null;
+        //    //this._results   = [];
+        //    //this._fields    = [];
+        //    index = 0;
+        //    loadError = null;
+
+        //    this.parser = conn.PacketParser;
+        //    this.writer = conn.PacketWriter;
+
+        //    this.sql = SqlFormat(sql, values);
+        //}
+
+        public Query(Connection conn, string sql, CommandParameters values)
         {
-            //Sequence.call(this, options, callback);
-            //this.sql = options.sql;
-            //this.values = options.values;
-            //this.typeCast = (options.typeCast === undefined)
-            //  ? true
-            //  : options.typeCast;
-            //this.nestTables = options.nestTables || false;
-
-            //this._resultSet = null;
-            //this._results   = [];
-            //this._fields    = [];
-            //this._index     = 0;
-            //this._loadError = null;
-
-            this.sql = sql;
-            this.values = values;
-            typeCast = true;
-            nestTables = false;
-            //resultSet = null;
-            //this._results   = [];
-            //this._fields    = [];
-            index = 0;
-            loadError = null;
-
-            this.parser = parser;
-            this.writer = writer;
-
-            this.sql = SqlFormat(sql, values);
-        }
-
-        public Query(PacketParser parser, PacketWriter writer, string sql, CommandParameters values, Socket socket, bool protocol41, ConnectionConfig config, uint threadId)
-        {
+            this.conn = conn;
             this.sql = sql;
             this.values = values;
             typeCast = config.typeCast;
@@ -875,18 +893,13 @@ namespace MySqlPacket
             index = 0;
             loadError = null;
 
-            this.parser = parser;
-            this.writer = writer;
+            this.parser = conn.PacketParser;
+            this.writer = conn.PacketWriter;
 
             this.sql = SqlFormat(sql, values);
-
-            this.socket = socket;
-            this.protocol41 = protocol41;
-            this.config = config;
             this.receiveBuffer = null;
-
-            this.threadId = threadId;
         }
+
 
         public void SetMaxSend(long max)
         {
@@ -1138,10 +1151,9 @@ namespace MySqlPacket
                 lastReceive = socket.Receive(temp);
                 allReceive += lastReceive;
                 i++;
-                Console.WriteLine("i : " + i + ", lastReceive : " + lastReceive);
+                dbugConsole.WriteLine("i : " + i + ", lastReceive : " + lastReceive);
                 Thread.Sleep(100);
             }
-
             dbugConsole.WriteLine("All Receive bytes : " + allReceive);
             //socket = null;
             ////TODO :test
@@ -1167,7 +1179,6 @@ namespace MySqlPacket
             writer.Rewrite();
             ComQuitPacket quitPacket = new ComQuitPacket();
             quitPacket.WritePacket(writer);
-
             int send = socket.Send(writer.ToArray());
             //socket.Disconnect(true);
         }
