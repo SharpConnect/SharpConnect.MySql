@@ -94,6 +94,23 @@ namespace MySqlTest
             conn.Close();
         }
 
+        [Test]
+        public static void T_CreateTable()
+        {
+
+
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+            var cmd = new MySqlCommand("create table user_info2(uid int(10),u_name varchar(45));", conn);
+            cmd.ExecuteNonQuery();
+
+            Report.WriteLine("ok");
+
+            conn.Close();
+        }
+
+
 
         static MySqlConnectionString GetMySqlConnString()
         {

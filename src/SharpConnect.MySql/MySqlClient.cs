@@ -70,7 +70,7 @@ namespace SharpConnect.MySql
                 conn.Connect();
             }
 
-           
+
 
         }
         public void Close()
@@ -96,7 +96,7 @@ namespace SharpConnect.MySql
 
     public class MySqlCommand
     {
-
+        Query query;
         public MySqlCommand()
         {
         }
@@ -110,13 +110,19 @@ namespace SharpConnect.MySql
         public MySqlDataReader ExecuteReader()
         {
 
-            var prepareStatement = new PrepareStatement();
-            Query query = Connection.Conn.CreateQuery(this.CommandText, prepareStatement);
+            var parameters = new CommandParameters();
+            query = Connection.Conn.CreateQuery(this.CommandText, parameters);
             var reader = new MySqlDataReader(query);
             query.ExecuteQuery();
-
             return reader;
         }
+        public void ExecuteNonQuery()
+        {
+            var parameters = new CommandParameters();
+            query = Connection.Conn.CreateQuery(this.CommandText, parameters);
+            query.ExecuteQuery(); 
+        }
+
     }
 
     public class MySqlDataReader
@@ -125,26 +131,26 @@ namespace SharpConnect.MySql
         internal MySqlDataReader(Query query)
         {
             this.query = query;
-            if (query.loadError != null)
-            {
+            //if (query.loadError != null)
+            //{
 
-                //Console.WriteLine("Error : " + query.loadError.message);
-            }
-            else if (query.okPacket != null)
-            {
-                //Console.WriteLine("i : " + i + ", OkPacket : [affectedRow] >> " + query.okPacket.affectedRows);
-                //Console.WriteLine("i : " + i + ", OkPacket : [insertId] >> " + query.okPacket.insertId);
-            }
-            else
-            {
-                //while (query.ReadRow())
-                //{
-                //    //Console.WriteLine(query.GetFieldData("idsaveImage"));
-                //    //Console.WriteLine(query.GetFieldData("saveImagecol"));
-                //    //Console.WriteLine(query.GetFieldData("myusercol1"));
-                //    //j++;
-                //}
-            }
+            //    //Console.WriteLine("Error : " + query.loadError.message);
+            //}
+            //else if (query.okPacket != null)
+            //{
+            //    //Console.WriteLine("i : " + i + ", OkPacket : [affectedRow] >> " + query.okPacket.affectedRows);
+            //    //Console.WriteLine("i : " + i + ", OkPacket : [insertId] >> " + query.okPacket.insertId);
+            //}
+            //else
+            //{
+            //    //while (query.ReadRow())
+            //    //{
+            //    //    //Console.WriteLine(query.GetFieldData("idsaveImage"));
+            //    //    //Console.WriteLine(query.GetFieldData("saveImagecol"));
+            //    //    //Console.WriteLine(query.GetFieldData("myusercol1"));
+            //    //    //j++;
+            //    //}
+            //}
 
         }
         public bool Read()

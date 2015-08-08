@@ -569,7 +569,7 @@ namespace MySqlPacket
             }
         }
 
-        public Query CreateQuery(string sql, PrepareStatement values)
+        public Query CreateQuery(string sql, CommandParameters values)
         {
             //var query = Connection.createQuery(sql, values, cb);
             //query = new Query(parser, writer, sql, values);
@@ -808,7 +808,7 @@ namespace MySqlPacket
     class Query
     {
         public string sql;
-        public PrepareStatement values;
+        public CommandParameters values;
         public bool typeCast;
         public bool nestTables;
         //public ResultSet resultSet;
@@ -836,7 +836,7 @@ namespace MySqlPacket
 
         long MAX_ALLOWED_SEND = 0;
 
-        public Query(PacketParser parser, PacketWriter writer, string sql, PrepareStatement values)
+        public Query(PacketParser parser, PacketWriter writer, string sql, CommandParameters values)
         {
             //Sequence.call(this, options, callback);
             //this.sql = options.sql;
@@ -868,7 +868,7 @@ namespace MySqlPacket
             this.sql = SqlFormat(sql, values);
         }
 
-        public Query(PacketParser parser, PacketWriter writer, string sql, PrepareStatement values, Socket socket, bool protocol41, ConnectionConfig config, uint threadId)
+        public Query(PacketParser parser, PacketWriter writer, string sql, CommandParameters values, Socket socket, bool protocol41, ConnectionConfig config, uint threadId)
         {
             this.sql = sql;
             this.values = values;
@@ -1287,7 +1287,7 @@ namespace MySqlPacket
             return buffer;
         }
 
-        string SqlFormat(string sql, PrepareStatement values)
+        string SqlFormat(string sql, CommandParameters values)
         {
             if (values == null)
             {
@@ -1302,7 +1302,7 @@ namespace MySqlPacket
             GET_KEY
         }
 
-        string ParseSqlFormat(string sql, PrepareStatement prepare)
+        string ParseSqlFormat(string sql, CommandParameters prepare)
         {
             int length = sql.Length;
             ParseState state = ParseState.FIND_MARKER;
@@ -1367,11 +1367,11 @@ namespace MySqlPacket
         }
     }
 
-    class PrepareStatement
+    class CommandParameters
     {
         Dictionary<string, string> prepareValues;
 
-        public PrepareStatement()
+        public CommandParameters()
         {
             prepareValues = new Dictionary<string, string>();
         }
@@ -1487,9 +1487,7 @@ namespace MySqlPacket
     {
         List<FieldPacket> fields;
         Dictionary<string, int> fieldNamePosMap;
-        bool typeCast;
-        bool nestTables;
-
+       
         public TableHeader()
         {
             this.fields = new List<FieldPacket>();
@@ -1534,52 +1532,7 @@ namespace MySqlPacket
         public ConnectionConfig ConnConfig { get; set; }
     }
 
-    //class ResultSet
-    //{
-    //    TableHeader tableHeader;
-    //    ResultSetHeaderPacket resultSetHeaderPacket;
-    //    List<FieldPacket> fieldPackets;
-    //    public List<RowDataPacket> rows;
-    //    public ResultSet(ResultSetHeaderPacket resultHeader)
-    //    {
-    //        resultSetHeaderPacket = resultHeader;
-    //        fieldPackets = new List<FieldPacket>();
-    //        rows = new List<RowDataPacket>();
-    //    }
-    //    public void Add(FieldPacket packet)
-    //    {
-    //        fieldPackets.Add(packet);
-    //    }
-    //    public void Add(RowDataPacket packet)
-    //    {
-    //        rows.Add(packet);
-    //    }
-    //    public void Add(EofPacket packet)
-    //    {
-
-    //    }
-
-
-    //    public TableHeader GetTableHeader()
-    //    {
-    //        if (tableHeader == null)
-    //        {
-    //            return tableHeader = new TableHeader(fieldPackets);
-    //        }
-    //        else
-    //        {
-    //            return tableHeader;
-    //        }
-    //    }
-
-    //}
-
-    //class FieldInfo
-    //{
-
-    //}
-
-
+    
 
     class PacketParser
     {

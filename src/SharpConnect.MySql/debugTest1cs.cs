@@ -32,11 +32,11 @@ namespace SharpConnect.MySql
             var ss = new System.Diagnostics.Stopwatch();
             ss.Start();
 
-            PrepareStatement prepare = new PrepareStatement();
-            prepare.AddTable("t1", "saveimage");
+            CommandParameters cmdValues = new CommandParameters();
+            cmdValues.AddTable("t1", "saveimage");
             //prepare.AddTable("t1", "saveimageTest");
-            prepare.AddField("c1", "idsaveImage");
-            prepare.AddField("c2", "saveImagecol");
+            cmdValues.AddField("c1", "idsaveImage");
+            cmdValues.AddField("c2", "saveImagecol");
 
             //prepare.AddTable("t1", "myuser");
             //prepare.AddField("c1", "idmyuser");
@@ -48,13 +48,13 @@ namespace SharpConnect.MySql
             //prepare.AddField("c2", "stringtestcol");
             //prepare.AddField("c3", "stringtestcol1");
 
-            prepare.AddValue("n1", 4537);
-            prepare.AddValue("n2", 4540);
-            prepare.AddValue("n3", 22);
+            cmdValues.AddValue("n1", 4537);
+            cmdValues.AddValue("n2", 4540);
+            cmdValues.AddValue("n3", 22);
 
-            prepare.AddValue("s1", "test update");
-            prepare.AddValue("s2", "psw21");
-            prepare.AddValue("buffer1", buffer);
+            cmdValues.AddValue("s1", "test update");
+            cmdValues.AddValue("s2", "psw21");
+            cmdValues.AddValue("buffer1", buffer);
             string sql;
             string sql2;
             //sql = "INSERT INTO ?t1 (?c1, ?c2) VALUES (?n1 , ?buffer1)";
@@ -70,7 +70,7 @@ namespace SharpConnect.MySql
             for (int i = 0; i < count; i++)
             {
                 int j = 0;
-                query = connection.CreateQuery(sql, prepare);
+                query = connection.CreateQuery(sql, cmdValues);
                 query.ExecuteQuery();
                 if (query.loadError != null)
                 {
