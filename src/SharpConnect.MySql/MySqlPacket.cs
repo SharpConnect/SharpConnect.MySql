@@ -1474,7 +1474,7 @@ namespace MySqlPacket
 
             for (int i = 0; i < j; i++)
             {
-                var val = lookup32[bytes[i]];
+                uint val = lookup32[bytes[i]];
                 result[m] = (char)val;
                 result[m + 1] = (char)(val >> 16);
                 m <<= 1;// m *=2;
@@ -1541,21 +1541,11 @@ namespace MySqlPacket
         BinaryReader reader;
         MemoryStream stream;
         int myLength;
-        public long Position
-        {
-            get { return stream.Position; }
-
-        }
-        public long Length
-        {
-            get
-            {
-                return myLength;
-            }
-        }
         long startPosition;
         long packetLength;
         Encoding encoding = Encoding.UTF8;
+
+
 
         public PacketParser(Encoding encoding)
         {
@@ -1568,6 +1558,18 @@ namespace MySqlPacket
         ~PacketParser()
         {
             Dispose();
+        }
+        public long Position
+        {
+            get { return stream.Position; }
+
+        }
+        public long Length
+        {
+            get
+            {
+                return myLength;
+            }
         }
 
         public void Dispose()
@@ -1805,7 +1807,7 @@ namespace MySqlPacket
             long distance = Length - Position;
             if (distance > 0)
             {
-                return string.Concat(reader.ReadChars((int)distance));
+                return new string(reader.ReadChars((int)distance));
             }
             else
             {
@@ -2445,7 +2447,7 @@ namespace MySqlPacket
         }
     }
 
-    class PacketHeader
+    struct PacketHeader
     {
         public readonly uint Length;
         public readonly byte PacketNumber;
@@ -2455,6 +2457,11 @@ namespace MySqlPacket
             Length = length;
             PacketNumber = number;
         }
+        public bool IsEmpty()
+        {
+            return PacketNumber == 0 && Length == 0;
+        }
+        public static readonly PacketHeader Empty = new PacketHeader();
     }
 
     abstract class Packet
@@ -2465,7 +2472,7 @@ namespace MySqlPacket
 
         public virtual void ParsePacketHeader(PacketParser parser)
         {
-            if (header == null)
+            if (header.IsEmpty())
             {
                 header = parser.ParsePacketHeader();
             }
@@ -2873,7 +2880,6 @@ namespace MySqlPacket
         uint serverStatus;
         uint warningCount;
         string message;
-        uint changedRows;
         bool protocol41;
 
         public OkPacket(bool protocol41)
@@ -2905,7 +2911,6 @@ namespace MySqlPacket
                 warningCount = parser.ParseUnsignedNumber(2);
             }
             message = parser.ParsePacketTerminatedString();
-            changedRows = 0;
             //var m = this.message.match(/\schanged:\s * (\d +) / i);
 
             //if (m !== null)
@@ -2973,7 +2978,7 @@ namespace MySqlPacket
         public void ReuseSlots()
         {
             //this is reuseable row packet
-            this.header = null;
+            this.header = PacketHeader.Empty;
             Array.Clear(myDataList, 0, myDataList.Length);
 
         }
