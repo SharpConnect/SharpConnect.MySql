@@ -1412,30 +1412,75 @@ namespace MySqlPacket
 
         public void AddValue(string key, byte[] value)
         {
-            prepareValues[key] = string.Concat("0x", ByteArrayToString(value));
+            prepareValues[key] = ConvertByteArrayToHexWithMySqlPrefix(value);
+            // string.Concat("0x", ByteArrayToHexViaLookup32(value));
         }
 
-        public string ByteArrayToString(byte[] ba)
-        {
-            StringBuilder hex = new StringBuilder(ba.Length * 2);
-            int j = ba.Length;
-            for (int i = 0; i < j; ++i)
-            {
-                hex.AppendFormat("{0:x2}", ba[i]);
-            }
-            return hex.ToString();
-        }
+        //static string ByteArrayToString(byte[] ba)
+        //{
+        //    return ByteArrayToHexViaLookup32(ba);
+
+        //    //StringBuilder hex = new StringBuilder(ba.Length * 2);
+        //    //int j = ba.Length;
+        //    //for (int i = 0; i < j; ++i)
+        //    //{
+        //    //    hex.AppendFormat("{0:x2}", ba[i]);
+        //    //}
+        //    //return hex.ToString();
+        //}
 
         public void AddValue(string key, DateTime value)
         {
             prepareValues[key] = value.ToString();
         }
-
         public string GetValue(string key)
         {
             string value;
             prepareValues.TryGetValue(key, out value);
             return value;
+        }
+
+
+
+        //-------------------------------------------------------
+        //convert byte array to binary
+        //from http://stackoverflow.com/questions/311165/how-do-you-convert-byte-array-to-hexadecimal-string-and-vice-versa/24343727#24343727
+        static readonly uint[] _lookup32 = CreateLookup32();
+
+        static uint[] CreateLookup32()
+        {
+            var result = new uint[256];
+            for (int i = 0; i < 256; i++)
+            {
+                string s = i.ToString("X2");
+                result[i] = ((uint)s[0]) + ((uint)s[1] << 16);
+            }
+            return result;
+        }
+
+        static string ConvertByteArrayToHexWithMySqlPrefix(byte[] bytes)
+        {
+            //for mysql only !, 
+            //we prefix with 0x
+
+            var lookup32 = _lookup32;
+            int j = bytes.Length;
+            var result = new char[(j * 2) + 2];
+
+            int m = 0;
+            result[0] = '0';
+            result[1] = 'x';
+            m = 2;
+
+            for (int i = 0; i < j; i++)
+            {
+                var val = lookup32[bytes[i]];
+                result[m] = (char)val;
+                result[m + 1] = (char)(val >> 16);
+                m <<= 1;// m *=2;
+            }
+
+            return new string(result);
         }
     }
 
