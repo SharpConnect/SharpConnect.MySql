@@ -1,6 +1,6 @@
 ﻿//LICENSE: MIT
 //Copyright(c) 2012 Felix Geisendörfer(felix @debuggable.com) and contributors 
-//Copyright(c) 2015 brezza27 and contributors
+//Copyright(c) 2015 brezza27, EngineKit and contributors
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy
 //of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@ using System.IO;
 
 using System.Threading;
 using System.Net;
-using System.Net.Sockets; 
+using System.Net.Sockets;
 
 
 namespace MySqlPacket
@@ -1082,6 +1082,10 @@ namespace MySqlPacket
         public MyStructData GetFieldData(string fieldName)
         {
             return lastRow.GetDataInField(fieldName);
+        }
+        public MyStructData GetFieldData(int fieldIndex)
+        {
+            return lastRow.GetDataInField(fieldIndex);
         }
 
         public void Close()
@@ -3178,6 +3182,21 @@ namespace MySqlPacket
             return strBuilder.ToString();
         }
 
+        //-----------------------------------------------------
+        public MyStructData GetDataInField(int fieldIndex)
+        {
+            if (fieldIndex < fieldPackets.Count)
+            {
+                return myDataList[fieldIndex];
+            }
+            else
+            {
+                MyStructData data = new MyStructData();
+                data.myString = "index out of range!";
+                data.type = Types.STRING;
+                return data;
+            }
+        }
         public MyStructData GetDataInField(string fieldName)
         {
             int index = 0;
