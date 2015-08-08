@@ -1,14 +1,14 @@
-﻿
-
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
- 
+
 using System.Threading;
 using System.Net;
 using System.Net.Sockets;
+
+
+
 
 namespace MySqlPacket
 {
@@ -607,6 +607,7 @@ namespace MySqlPacket
             return result;
         }
     }
+
 
     class ConnectionConfig
     {

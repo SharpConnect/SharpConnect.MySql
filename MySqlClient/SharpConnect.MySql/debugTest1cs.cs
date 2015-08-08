@@ -1,70 +1,19 @@
 ﻿using System;
-using System.Windows.Forms;
+using System.Collections.Generic;
+using System.Text;
 using System.IO;
-using System.Diagnostics;
 using MySqlPacket;
 
-namespace MySqlClient
+namespace SharpConnect.MySql
 {
-    public partial class Form1 : Form
+
+
+#if DEBUG 
+    public static class dbugInternal
     {
-        public Form1()
+        public static void Test1()
         {
-            InitializeComponent();
-        }
 
-        public void TempHandshakeParse()
-        {
-            //MemoryStream ms = new MemoryStream(buffer);
-            //BinaryReader reader = new BinaryReader(ms, Encoding.ASCII);
-            //ms.Position = 4;
-            //byte version = reader.ReadByte();
-            //string serverVersion = reader.ReadNullTerminatedString();
-            //uint thdId = reader.ReadUInt32();
-            //byte[] scrambleBuffer1 = reader.ReadBytes(8);
-            //byte filler1 = reader.ReadByte();
-            //ushort serverCapabilities1 = reader.ReadUInt16();
-            //byte serverLanguage = reader.ReadByte();
-            //ushort serverStatus = reader.ReadUInt16();
-            //bool protocal41 = (serverCapabilities1 & (1 << 9)) > 0;
-            //byte[] scrambleBuff2 = null;
-            //if (protocal41)
-            //{
-            //    ushort serverCapabilities2 = reader.ReadUInt16();
-            //    byte scrambleLength = reader.ReadByte();
-            //    byte[] filler2 = reader.ReadBytes(10);
-            //    scrambleBuff2 = reader.ReadBytes(12);
-            //    byte filler3 = reader.ReadByte();
-            //}
-            //else
-            //{
-            //    byte[] filer2 = reader.ReadBytes(13);
-            //}
-            ////----------------------------------------------------------------------
-            ////then connect to the server
-            //if (reader.BaseStream.Position == reader.BaseStream.Length)
-            //{
-            //    reader.Close();
-            //    ms.Close();
-            //    ms.Dispose();
-            //    //end of the stream here
-            //    return;
-            //}
-            ////-------------------------- 
-            //string pluginData;// = reader.ReadNullTerminatedString();
-            //if (reader.BaseStream.Position < count)
-            //{
-            //    pluginData = reader.ReadNullTerminatedString();
-            //}
-
-            ////-------------------------- 
-            //reader.Close();
-            //ms.Close();
-            //ms.Dispose();
-        }
-
-        private void button1_Click(object sender, EventArgs e)
-        {
             string filename;
             //filename = "TestMe.png";//216,362 bytes
             filename = "Colorful.jpg";//885,264 bytes
@@ -168,9 +117,62 @@ namespace MySqlClient
             Console.WriteLine("Counting : " + count + " rounds. \r\nAverage Time : " + avg + " ms");
 
             connection.Disconnect();
+
         }
 
-        private void TempRawCode()
+
+
+
+        static void TempHandshakeParse()
+        {
+            //MemoryStream ms = new MemoryStream(buffer);
+            //BinaryReader reader = new BinaryReader(ms, Encoding.ASCII);
+            //ms.Position = 4;
+            //byte version = reader.ReadByte();
+            //string serverVersion = reader.ReadNullTerminatedString();
+            //uint thdId = reader.ReadUInt32();
+            //byte[] scrambleBuffer1 = reader.ReadBytes(8);
+            //byte filler1 = reader.ReadByte();
+            //ushort serverCapabilities1 = reader.ReadUInt16();
+            //byte serverLanguage = reader.ReadByte();
+            //ushort serverStatus = reader.ReadUInt16();
+            //bool protocal41 = (serverCapabilities1 & (1 << 9)) > 0;
+            //byte[] scrambleBuff2 = null;
+            //if (protocal41)
+            //{
+            //    ushort serverCapabilities2 = reader.ReadUInt16();
+            //    byte scrambleLength = reader.ReadByte();
+            //    byte[] filler2 = reader.ReadBytes(10);
+            //    scrambleBuff2 = reader.ReadBytes(12);
+            //    byte filler3 = reader.ReadByte();
+            //}
+            //else
+            //{
+            //    byte[] filer2 = reader.ReadBytes(13);
+            //}
+            ////----------------------------------------------------------------------
+            ////then connect to the server
+            //if (reader.BaseStream.Position == reader.BaseStream.Length)
+            //{
+            //    reader.Close();
+            //    ms.Close();
+            //    ms.Dispose();
+            //    //end of the stream here
+            //    return;
+            //}
+            ////-------------------------- 
+            //string pluginData;// = reader.ReadNullTerminatedString();
+            //if (reader.BaseStream.Position < count)
+            //{
+            //    pluginData = reader.ReadNullTerminatedString();
+            //}
+
+            ////-------------------------- 
+            //reader.Close();
+            //ms.Close();
+            //ms.Dispose();
+        }
+        static void TempRawCode()
         {
             ////var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             //var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
@@ -262,39 +264,7 @@ namespace MySqlClient
             //}
         }
 
-        private void button2_Click(object sender, EventArgs e)
-        {
-            //test connection 
-            var config = new ConnectionConfig("127.0.0.1", "root", "root", "test"); 
-            long total, avg;
-            Test(100, TimeUnit.Ticks, out total, out avg, () =>
-               {
-                   var connection = new Connection(config);
-                   connection.Connect();
-
-                   connection.Disconnect();
-               });
-
-        }
-        static void Test(int n, TimeUnit timeUnit, out long total, out long avg, Action ac)
-        {
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
-
-            for (int i = n; i > 0; --i)
-            {
-                ac();
-            }
-            sw.Stop();
-            total = sw.ElapsedTicks;
-            avg = total / n;
-
-        }
-        enum TimeUnit
-        {
-            Ticks,
-            Millisec
-        }
-
     }
+#endif
+
 }
