@@ -1375,110 +1375,67 @@ namespace MySqlPacket
         {
             prepareValues = new Dictionary<string, string>();
         }
-
-        void AddOrChangeValue(string key, string value)
-        {
-            string temp;
-            if (prepareValues.TryGetValue(key, out temp))
-            {
-                prepareValues[key] = value;
-            }
-            else
-            {
-                prepareValues.Add(key, value);
-            }
-        }
-
         public void AddTable(string key, string value)
         {
-            StringBuilder strBuilder = new StringBuilder();
-            strBuilder.Append("`");
-            strBuilder.Append(value);
-            strBuilder.Append("`");
-            //prepareValues.Add(key, strBuilder.ToString());
-            AddOrChangeValue(key, strBuilder.ToString());
+            prepareValues[key] = string.Concat("`", value, "`");
         }
 
         public void AddField(string key, string value)
         {
-            StringBuilder strBuilder = new StringBuilder();
-            strBuilder.Append("`");
-            strBuilder.Append(value);
-            strBuilder.Append("`");
-            //prepareValues.Add(key, strBuilder.ToString());
-            AddOrChangeValue(key, strBuilder.ToString());
+            prepareValues[key] = string.Concat("`", value, "`");
         }
 
         public void AddValue(string key, string value)
         {
-            StringBuilder strBuilder = new StringBuilder();
-            strBuilder.Append("'");
-            strBuilder.Append(value);
-            strBuilder.Append("'");
-            //prepareValues.Add(key, strBuilder.ToString());
-            AddOrChangeValue(key, strBuilder.ToString());
+            prepareValues[key] = string.Concat("`", value, "`");
         }
 
         public void AddValue(string key, decimal value)
         {
-            //prepareValues.Add(key, value.ToString());
-            AddOrChangeValue(key, value.ToString());
+            prepareValues[key] = value.ToString();
         }
-
         public void AddValue(string key, int value)
         {
-            //prepareValues.Add(key, value.ToString());
-            AddOrChangeValue(key, value.ToString());
+
+            prepareValues[key] = value.ToString();
         }
 
         public void AddValue(string key, long value)
         {
-            //prepareValues.Add(key, value.ToString());
-            AddOrChangeValue(key, value.ToString());
+            prepareValues[key] = value.ToString();
         }
 
         public void AddValue(string key, byte value)
         {
-            string str = Encoding.ASCII.GetString(new byte[] { value });
-            //prepareValues.Add(key, str);
-            AddOrChangeValue(key, str);
+            prepareValues[key] = Encoding.ASCII.GetString(new byte[] { value });
         }
 
         public void AddValue(string key, byte[] value)
         {
-            StringBuilder strBuilder = new StringBuilder();
-            strBuilder.Append("0x");
-            strBuilder.Append(ByteArrayToString(value));
-            string str = strBuilder.ToString();
-            //prepareValues.Add(key, str);
-            AddOrChangeValue(key, str);
+            prepareValues[key] = string.Concat("0x", ByteArrayToString(value));
         }
 
         public string ByteArrayToString(byte[] ba)
         {
             StringBuilder hex = new StringBuilder(ba.Length * 2);
-            foreach (byte b in ba)
-                hex.AppendFormat("{0:x2}", b);
+            int j = ba.Length;
+            for (int i = 0; i < j; ++i)
+            {
+                hex.AppendFormat("{0:x2}", ba[i]);
+            }
             return hex.ToString();
         }
 
         public void AddValue(string key, DateTime value)
         {
-            //prepareValues.Add(key, value.ToString());
-            AddOrChangeValue(key, value.ToString());
+            prepareValues[key] = value.ToString();
         }
 
         public string GetValue(string key)
         {
-            string value = "";
-            if (prepareValues.TryGetValue(key, out value))
-            {
-                return value;
-            }
-            else
-            {
-                return null;
-            }
+            string value;
+            prepareValues.TryGetValue(key, out value);
+            return value;
         }
     }
 
@@ -1487,7 +1444,7 @@ namespace MySqlPacket
     {
         List<FieldPacket> fields;
         Dictionary<string, int> fieldNamePosMap;
-       
+
         public TableHeader()
         {
             this.fields = new List<FieldPacket>();
@@ -1532,7 +1489,7 @@ namespace MySqlPacket
         public ConnectionConfig ConnConfig { get; set; }
     }
 
-    
+
 
     class PacketParser
     {
