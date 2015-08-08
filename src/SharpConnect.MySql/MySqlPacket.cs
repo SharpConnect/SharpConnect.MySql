@@ -438,7 +438,6 @@ namespace MySqlPacket
         {
             Console.WriteLine(str);
         }
-
     }
 
     class Connection
@@ -449,9 +448,6 @@ namespace MySqlPacket
         public bool connectionCall;
         public string state;
         public uint threadId;
-
-
-
         HandshakePacket handshake;
         ClientAuthenticationPacket authPacket;
         Query query;
@@ -469,7 +465,6 @@ namespace MySqlPacket
             connectionCall = false;
             state = "disconnected";
             //this.config = options.config;
-
             //this._socket        = options.socket;
             //this._protocol      = new Protocol({config: this.config, connection: this});
             //this._connectCalled = false;
@@ -773,42 +768,42 @@ namespace MySqlPacket
         }
     }
 
-    class MySqlProtocol
-    {
-        //Stream.call(this);
+    //class MySqlProtocol
+    //{
+    //    //Stream.call(this);
 
-        //options = options || {};
+    //    //options = options || {};
 
-        //this.readable = true;
-        //this.writable = true;
-        bool readable;
-        bool writable;
-        ConnectionConfig config;
-        Connection connection;
-        //this._config                        = options.config || {};
-        //this._connection                    = options.connection;
-        //this._callback                      = null;
-        //this._fatalError                    = null;
-        //this._quitSequence                  = null;
-        //this._handshakeSequence             = null;
-        //this._handshaked                    = false;
-        //this._ended                         = false;
-        //this._destroyed                     = false;
-        //this._queue                         = [];
-        //this._handshakeInitializationPacket = null;
+    //    //this.readable = true;
+    //    //this.writable = true;
+    //    bool readable;
+    //    bool writable;
+    //    ConnectionConfig config;
+    //    Connection connection;
+    //    //this._config                        = options.config || {};
+    //    //this._connection                    = options.connection;
+    //    //this._callback                      = null;
+    //    //this._fatalError                    = null;
+    //    //this._quitSequence                  = null;
+    //    //this._handshakeSequence             = null;
+    //    //this._handshaked                    = false;
+    //    //this._ended                         = false;
+    //    //this._destroyed                     = false;
+    //    //this._queue                         = [];
+    //    //this._handshakeInitializationPacket = null;
 
-        //this._parser = new Parser({
-        //  onError  : this.handleParserError.bind(this),
-        //  onPacket : this._parsePacket.bind(this),
-        //  config   : this._config
-        //});
+    //    //this._parser = new Parser({
+    //    //  onError  : this.handleParserError.bind(this),
+    //    //  onPacket : this._parsePacket.bind(this),
+    //    //  config   : this._config
+    //    //});
 
-    }
+    //}
 
     class Query
     {
         public string sql;
-        public CommandParameters values;
+        CommandParameters values;
         public bool typeCast;
         public bool nestTables;
         //public ResultSet resultSet;
@@ -1949,7 +1944,7 @@ namespace MySqlPacket
             }
         }
 
-        int ReadInt32LE(byte[] buffer, int start)//หลังขึ้นก่อน
+        int ReadInt32LE(byte[] buffer, int start)
         {
             //byte[] temp = new byte[n];
             //uint value = 0;
@@ -1968,7 +1963,7 @@ namespace MySqlPacket
             return 0;
         }
 
-        int ReadInt32BE(byte[] buffer, int start)//ตามลำดับ
+        int ReadInt32BE(byte[] buffer, int start)
         {
             return 0;
         }
@@ -2545,7 +2540,6 @@ namespace MySqlPacket
                 this.maxPacketSize = parser.ParseUnsignedNumber(3);
                 this.user = parser.ParseNullTerminatedString();
                 this.scrambleBuff = parser.ParseBuffer(8);
-                //this.database = parser.ParseLengthCodedBuffer();
                 this.database = parser.ParseLengthCodedString();
             }
         }
