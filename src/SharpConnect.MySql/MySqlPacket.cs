@@ -884,76 +884,76 @@ namespace MySqlPacket
             MAX_ALLOWED_SEND = max;
         }
 
-        public void Start(Socket socket, bool protocol41, ConnectionConfig config)
-        {
-            this.socket = socket;
-            this.config = config;
-            this.protocol41 = protocol41;
-            writer.Rewrite();
-            ComQueryPacket queryPacket = new ComQueryPacket(sql);
-            queryPacket.WritePacket(writer);
+        //public void Start(Socket socket, bool protocol41, ConnectionConfig config)
+        //{
+        //    this.socket = socket;
+        //    this.config = config;
+        //    this.protocol41 = protocol41;
+        //    writer.Rewrite();
+        //    ComQueryPacket queryPacket = new ComQueryPacket(sql);
+        //    queryPacket.WritePacket(writer);
 
-            byte[] qr = writer.ToArray();
-            int sent = socket.Send(qr);
+        //    byte[] qr = writer.ToArray();
+        //    int sent = socket.Send(qr);
 
-            byte[] receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
-            int receive = socket.Receive(receiveBuffer);
+        //    byte[] receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
+        //    int receive = socket.Receive(receiveBuffer);
 
-            parser.LoadNewBuffer(receiveBuffer, receive);
-            if (receiveBuffer[4] == ERROR_CODE)
-            {
-                loadError = new ErrPacket();
-                loadError.ParsePacket(parser);
-            }
-            else if (receiveBuffer[4] == OK_CODE)
-            {
-                okPacket = new OkPacket(protocol41);
-                okPacket.ParsePacket(parser);
-            }
-            else
-            {
-                ResultSetHeaderPacket resultPacket = new ResultSetHeaderPacket();
-                resultPacket.ParsePacket(parser);
-                resultSet = new ResultSet(resultPacket);
+        //    parser.LoadNewBuffer(receiveBuffer, receive);
+        //    if (receiveBuffer[4] == ERROR_CODE)
+        //    {
+        //        loadError = new ErrPacket();
+        //        loadError.ParsePacket(parser);
+        //    }
+        //    else if (receiveBuffer[4] == OK_CODE)
+        //    {
+        //        okPacket = new OkPacket(protocol41);
+        //        okPacket.ParsePacket(parser);
+        //    }
+        //    else
+        //    {
+        //        ResultSetHeaderPacket resultPacket = new ResultSetHeaderPacket();
+        //        resultPacket.ParsePacket(parser);
+        //        resultSet = new ResultSet(resultPacket);
 
-                while (receiveBuffer[parser.Position + 4] != EOF_CODE)
-                {
-                    FieldPacket fieldPacket = new FieldPacket(protocol41);
-                    fieldPacket.ParsePacketHeader(parser);
-                    receiveBuffer = CheckLimit(fieldPacket.GetPacketLength(), receiveBuffer, (int)parser.Length);
-                    fieldPacket.ParsePacket(parser);
-                    resultSet.Add(fieldPacket);
+        //        while (receiveBuffer[parser.Position + 4] != EOF_CODE)
+        //        {
+        //            FieldPacket fieldPacket = new FieldPacket(protocol41);
+        //            fieldPacket.ParsePacketHeader(parser);
+        //            receiveBuffer = CheckLimit(fieldPacket.GetPacketLength(), receiveBuffer, (int)parser.Length);
+        //            fieldPacket.ParsePacket(parser);
+        //            resultSet.Add(fieldPacket);
 
-                    receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, (int)parser.Length);
-                }
+        //            receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, (int)parser.Length);
+        //        }
 
-                EofPacket fieldEof = new EofPacket(protocol41);//if temp[4]=0xfe then eof packet
-                fieldEof.ParsePacketHeader(parser);
-                receiveBuffer = CheckLimit(fieldEof.GetPacketLength(), receiveBuffer, (int)parser.Length);
-                fieldEof.ParsePacket(parser);
-                resultSet.Add(fieldEof);
+        //        EofPacket fieldEof = new EofPacket(protocol41);//if temp[4]=0xfe then eof packet
+        //        fieldEof.ParsePacketHeader(parser);
+        //        receiveBuffer = CheckLimit(fieldEof.GetPacketLength(), receiveBuffer, (int)parser.Length);
+        //        fieldEof.ParsePacket(parser);
+        //        resultSet.Add(fieldEof);
 
-                receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, (int)parser.Length);
+        //        receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, (int)parser.Length);
 
-                var fieldList = resultSet.GetFields();
-                while (receiveBuffer[parser.Position + 4] != EOF_CODE)
-                {
-                    RowDataPacket rowData = new RowDataPacket(fieldList, typeCast, nestTables, config);
-                    rowData.ParsePacketHeader(parser);
-                    receiveBuffer = CheckLimit(rowData.GetPacketLength(), receiveBuffer, (int)parser.Length);
-                    rowData.ParsePacket(parser);
-                    resultSet.Add(rowData);
+        //        var fieldList = resultSet.GetFields();
+        //        while (receiveBuffer[parser.Position + 4] != EOF_CODE)
+        //        {
+        //            RowDataPacket rowData = new RowDataPacket(fieldList, typeCast, nestTables, config);
+        //            rowData.ParsePacketHeader(parser);
+        //            receiveBuffer = CheckLimit(rowData.GetPacketLength(), receiveBuffer, (int)parser.Length);
+        //            rowData.ParsePacket(parser);
+        //            resultSet.Add(rowData);
 
-                    receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, (int)parser.Length);
-                }
+        //            receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, (int)parser.Length);
+        //        }
 
-                EofPacket rowDataEof = new EofPacket(protocol41);
-                rowDataEof.ParsePacketHeader(parser);
-                receiveBuffer = CheckLimit(rowDataEof.GetPacketLength(), receiveBuffer, (int)parser.Length);
-                rowDataEof.ParsePacket(parser);
-                resultSet.Add(rowDataEof);
-            }
-        }
+        //        EofPacket rowDataEof = new EofPacket(protocol41);
+        //        rowDataEof.ParsePacketHeader(parser);
+        //        receiveBuffer = CheckLimit(rowDataEof.GetPacketLength(), receiveBuffer, (int)parser.Length);
+        //        rowDataEof.ParsePacket(parser);
+        //        resultSet.Add(rowDataEof);
+        //    }
+        //}
 
         public void ExecuteQuery()
         {
@@ -1006,12 +1006,11 @@ namespace MySqlPacket
             }
         }
 
-        private void ParseResultSet()
+        void ParseResultSet()
         {
             ResultSetHeaderPacket resultPacket = new ResultSetHeaderPacket();
             resultPacket.ParsePacket(parser);
             resultSet = new ResultSet(resultPacket);
-
             while (receiveBuffer[parser.Position + 4] != EOF_CODE)
             {
                 FieldPacket fieldPacket = new FieldPacket(protocol41);
@@ -1019,9 +1018,9 @@ namespace MySqlPacket
                 receiveBuffer = CheckLimit(fieldPacket.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                 fieldPacket.ParsePacket(parser);
                 resultSet.Add(fieldPacket);
-
                 receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
             }
+
 
             EofPacket fieldEof = new EofPacket(protocol41);//if temp[4]=0xfe then eof packet
             fieldEof.ParsePacketHeader(parser);
@@ -1039,7 +1038,7 @@ namespace MySqlPacket
                 return false;
             }
 
-            var fieldList = resultSet.GetFields();
+            TableHeader tableHeader = resultSet.GetTableHeader();
             switch (receiveBuffer[parser.Position + 4])
             {
                 case ERROR_CODE:
@@ -1061,7 +1060,7 @@ namespace MySqlPacket
                     {
                         dbugConsole.WriteLine("Before parse [Position] : " + parser.Position);
 
-                        RowDataPacket rowData = new RowDataPacket(fieldList, typeCast, nestTables, config);
+                        RowDataPacket rowData = new RowDataPacket(tableHeader, typeCast, nestTables, config);
                         rowData.ParsePacketHeader(parser);
 
                         dbugConsole.WriteLine("After parse header [Position] : " + parser.Position);
@@ -1458,41 +1457,88 @@ namespace MySqlPacket
         }
     }
 
+
+    class TableHeader
+    {
+        List<FieldPacket> fields;
+        Dictionary<string, int> fieldNamePosMap;
+
+        public TableHeader(List<FieldPacket> fields)
+        {
+            this.fields = fields;
+            int j = fields.Count;
+            fieldNamePosMap = new Dictionary<string, int>(j);
+            for (int i = 0; i < j; ++i)
+            {
+                fieldNamePosMap.Add(fields[i].name, i);
+            }
+
+        }
+        public List<FieldPacket> GetFields()
+        {
+            return fields;
+        }
+        public int ColumnCount
+        {
+            get { return this.fields.Count; }
+        }
+        public int GetFieldIndex(string fieldName)
+        {
+            int found;
+            if (!fieldNamePosMap.TryGetValue(fieldName, out found))
+            {
+                return -1;
+            }
+            return found;
+        }
+    }
+
     class ResultSet
     {
-        public ResultSetHeaderPacket resultSetHeaderPacket;
+        TableHeader tableHeader;
+        ResultSetHeaderPacket resultSetHeaderPacket;
         List<FieldPacket> fieldPackets;
-        List<EofPacket> eofPackets;
         public List<RowDataPacket> rows;
-
         public ResultSet(ResultSetHeaderPacket resultHeader)
         {
             resultSetHeaderPacket = resultHeader;
             fieldPackets = new List<FieldPacket>();
-            eofPackets = new List<EofPacket>();
             rows = new List<RowDataPacket>();
         }
-
         public void Add(FieldPacket packet)
         {
             fieldPackets.Add(packet);
         }
-
-        public void Add(EofPacket packet)
-        {
-            eofPackets.Add(packet);
-        }
-
         public void Add(RowDataPacket packet)
         {
             rows.Add(packet);
         }
-
-        public List<FieldPacket> GetFields()
+        public void Add(EofPacket packet)
         {
-            return fieldPackets;
+
         }
+
+
+        public TableHeader GetTableHeader()
+        {
+            if (tableHeader == null)
+            {
+                return tableHeader = new TableHeader(fieldPackets);
+            }
+            else
+            {
+                return tableHeader;
+            }
+        }
+
     }
+
+    class FieldInfo
+    {
+
+    }
+
+
 
     class PacketParser
     {
@@ -2919,19 +2965,17 @@ namespace MySqlPacket
         bool typeCast;
         bool nestTables;
         ConnectionConfig config;
-        List<FieldPacket> fieldPackets;
-        //public List<MyStructData> myDataList;
         MyStructData[] myDataList;
-
+        TableHeader tableHeader;
         const long IEEE_754_BINARY_64_PRECISION = (long)1 << 53;
 
-        public RowDataPacket(List<FieldPacket> fieldPackets, bool typeCast, bool nestTables, ConnectionConfig config)
+        public RowDataPacket(TableHeader tableHeader, bool typeCast, bool nestTables, ConnectionConfig config)
         {
-            this.fieldPackets = fieldPackets;
+            this.tableHeader = tableHeader;
             this.typeCast = typeCast;
             this.nestTables = nestTables;
             this.config = config;
-            myDataList = new MyStructData[fieldPackets.Count];
+            myDataList = new MyStructData[tableHeader.ColumnCount];
         }
 
         public override void ParsePacket(PacketParser parser)
@@ -2946,25 +2990,32 @@ namespace MySqlPacket
             //    var fieldPacket = fieldPackets[i];
             //    var value;
             ParsePacketHeader(parser);
-            for (int i = 0; i < fieldPackets.Count; i++)
+            var fieldInfos = tableHeader.GetFields();
+            int j = tableHeader.ColumnCount;
+            for (int i = 0; i < j; i++)
             {
 
                 MyStructData value;
                 if (typeCast)
                 {
-                    value = TypeCast(parser, fieldPackets[i], config.timezone, config.supportBigNumbers, config.bigNumberStrings, config.dateStrings);
+                    value = TypeCast(parser,
+                        fieldInfos[i],
+                        config.timezone,
+                        config.supportBigNumbers,
+                        config.bigNumberStrings,
+                        config.dateStrings);
                 }
-                else if (fieldPackets[i].charsetNr == (int)CharSets.BINARY)
+                else if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
                 {
                     value = new MyStructData();
                     value.myBuffer = parser.ParseLengthCodedBuffer();
-                    value.type = (Types)fieldPackets[i].type;
+                    value.type = (Types)fieldInfos[i].type;
                 }
                 else
                 {
                     value = new MyStructData();
                     value.myString = parser.ParseLengthCodedString();
-                    value.type = (Types)fieldPackets[i].type;
+                    value.type = (Types)fieldInfos[i].type;
                 }
                 //    if (typeof typeCast == "function") {
                 //      value = typeCast.apply(connection, [ new Field({ packet: fieldPacket, parser: parser }), next ]);
@@ -3185,7 +3236,7 @@ namespace MySqlPacket
         //-----------------------------------------------------
         public MyStructData GetDataInField(int fieldIndex)
         {
-            if (fieldIndex < fieldPackets.Count)
+            if (fieldIndex < tableHeader.ColumnCount)
             {
                 return myDataList[fieldIndex];
             }
@@ -3199,24 +3250,17 @@ namespace MySqlPacket
         }
         public MyStructData GetDataInField(string fieldName)
         {
-            int index = 0;
-            for (index = 0; index < fieldPackets.Count; index++)
-            {
-                if (fieldPackets[index].name.Equals(fieldName))
-                {
-                    break;
-                }
-            }
-            if (index < fieldPackets.Count)
-            {
-                return myDataList[index];
-            }
-            else
+            int index = tableHeader.GetFieldIndex(fieldName);
+            if (index < 0)
             {
                 MyStructData data = new MyStructData();
                 data.myString = "Not found field name '" + fieldName + "'";
                 data.type = Types.STRING;
                 return data;
+            }
+            else
+            {
+                return myDataList[index];
             }
 
         }

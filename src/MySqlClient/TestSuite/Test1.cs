@@ -1,11 +1,7 @@
 ﻿//MIT 2015, brezza27, EngineKit and contributors
 
-using System;
-using System.Diagnostics;
-using System.Collections.Generic;
-using System.Text;
-using System.Reflection;
-
+using System; 
+using System.Collections.Generic;  
 using SharpConnect.MySql;
 
 namespace MySqlTest
