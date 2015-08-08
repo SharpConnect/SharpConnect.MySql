@@ -1,4 +1,4 @@
-﻿//MIT 2015, brezza27 and contributors
+﻿//MIT 2015, brezza27, EngineKit and contributors
 
 using System;
 using System.Diagnostics;

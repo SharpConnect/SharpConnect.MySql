@@ -1,9 +1,7 @@
-﻿using System;
-using System.Diagnostics;
-using System.Collections.Generic;
-using System.Text;
-using System.Reflection;
+﻿//MIT 2015, brezza27, EngineKit and contributors
 
+using System;
+using System.Collections.Generic;
 using SharpConnect.MySql;
 
 namespace MySqlTest
@@ -51,6 +49,52 @@ namespace MySqlTest
             }
             connList.Clear();
         }
+        [Test]
+        public static void T_OpenAndCloseWithConnectionPool()
+        {
+            int n = 100;
+            long total;
+            long avg;
+            var connStr = GetMySqlConnString();
+            Test(n, TimeUnit.Ticks, out total, out avg, () =>
+            {
+                var conn = new MySqlConnection(connStr);
+                conn.UseConnectionPool = true;
+                conn.Open();
+                conn.Close();
+            });
+
+            Report.WriteLine("avg:" + avg);
+        }
+
+
+        [Test]
+        public static void T_Select_sysdate()
+        {
+            int n = 100;
+            long total;
+            long avg;
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+
+            Test(n, TimeUnit.Ticks, out total, out avg, () =>
+            {
+                var cmd = new MySqlCommand("select sysdate()", conn);
+                var reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    var dtm = reader.GetDateTime(0);
+                }
+                reader.Close();
+            });
+
+            Report.WriteLine("avg:" + avg);
+
+            conn.Close();
+        }
+
+
         static MySqlConnectionString GetMySqlConnString()
         {
             string h = "127.0.0.1";

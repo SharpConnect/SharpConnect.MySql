@@ -21,6 +21,8 @@ namespace MySqlClient
             this.Text = "SharpConnect";
             listboxTestCases.DoubleClick += ListboxTestCases_DoubleClick;
             LoadTestCases();
+
+          
         }
         void LoadTestCases()
         {
