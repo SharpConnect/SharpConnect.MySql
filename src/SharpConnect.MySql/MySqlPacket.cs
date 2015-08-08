@@ -1021,18 +1021,22 @@ namespace MySqlPacket
             resultPacket.ParsePacket(parser);
             //resultSet = new ResultSet(resultPacket);
 
-            List<FieldPacket> fields = new List<FieldPacket>();
+            this.tableHeader = new TableHeader();
+            tableHeader.TypeCast = typeCast;
+            tableHeader.NestTables = nestTables;
+            tableHeader.ConnConfig = config;
+
             while (receiveBuffer[parser.Position + 4] != EOF_CODE)
             {
                 FieldPacket fieldPacket = new FieldPacket(protocol41);
                 fieldPacket.ParsePacketHeader(parser);
                 receiveBuffer = CheckLimit(fieldPacket.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                 fieldPacket.ParsePacket(parser);
-                fields.Add(fieldPacket);
+                tableHeader.AddField(fieldPacket);
                 receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
             }
 
-            this.tableHeader = new TableHeader(fields);
+
 
             EofPacket fieldEof = new EofPacket(protocol41);//if temp[4]=0xfe then eof packet
             fieldEof.ParsePacketHeader(parser);
@@ -1041,6 +1045,10 @@ namespace MySqlPacket
             //resultSet.Add(fieldEof);
 
             receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
+
+            //-----
+            lastRow = new RowDataPacket(tableHeader);
+
         }
 
         public bool ReadRow()
@@ -1050,7 +1058,7 @@ namespace MySqlPacket
                 return false;
             }
 
-           
+
             switch (receiveBuffer[parser.Position + 4])
             {
                 case ERROR_CODE:
@@ -1065,7 +1073,7 @@ namespace MySqlPacket
                         rowDataEof.ParsePacketHeader(parser);
                         receiveBuffer = CheckLimit(rowDataEof.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                         rowDataEof.ParsePacket(parser);
-                        
+
                         //resultSet.Add(rowDataEof);
                         return false;
                     }
@@ -1073,19 +1081,18 @@ namespace MySqlPacket
                     {
                         dbugConsole.WriteLine("Before parse [Position] : " + parser.Position);
 
-                        RowDataPacket rowData = new RowDataPacket(tableHeader, typeCast, nestTables, config);
-                        rowData.ParsePacketHeader(parser);
+                        lastRow.ReuseSlots();
+                        lastRow.ParsePacketHeader(parser);
 
                         dbugConsole.WriteLine("After parse header [Position] : " + parser.Position);
 
-                        receiveBuffer = CheckLimit(rowData.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
-                        rowData.ParsePacket(parser);
+                        receiveBuffer = CheckLimit(lastRow.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
+                        lastRow.ParsePacket(parser);
                         //resultSet.Add(rowData);
                         receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
-
                         dbugConsole.WriteLine("After parse Row [Position] : " + parser.Position);
 
-                        lastRow = rowData;
+
                         return true;
                     }
             }
@@ -1475,17 +1482,17 @@ namespace MySqlPacket
     {
         List<FieldPacket> fields;
         Dictionary<string, int> fieldNamePosMap;
+        bool typeCast;
+        bool nestTables;
 
-        public TableHeader(List<FieldPacket> fields)
+        public TableHeader()
         {
-            this.fields = fields;
-            int j = fields.Count;
-            fieldNamePosMap = new Dictionary<string, int>(j);
-            for (int i = 0; i < j; ++i)
-            {
-                fieldNamePosMap.Add(fields[i].name, i);
-            }
+            this.fields = new List<FieldPacket>();
+        }
 
+        public void AddField(FieldPacket field)
+        {
+            fields.Add(field);
         }
         public List<FieldPacket> GetFields()
         {
@@ -1497,6 +1504,18 @@ namespace MySqlPacket
         }
         public int GetFieldIndex(string fieldName)
         {
+            if (fieldNamePosMap == null)
+            {
+                ///build map index
+                int j = fields.Count;
+                fieldNamePosMap = new Dictionary<string, int>(j);
+                for (int i = 0; i < j; ++i)
+                {
+                    fieldNamePosMap.Add(fields[i].name, i);
+                }
+            }
+
+
             int found;
             if (!fieldNamePosMap.TryGetValue(fieldName, out found))
             {
@@ -1504,6 +1523,10 @@ namespace MySqlPacket
             }
             return found;
         }
+
+        public bool TypeCast { get; set; }
+        public bool NestTables { get; set; }
+        public ConnectionConfig ConnConfig { get; set; }
     }
 
     //class ResultSet
@@ -2975,22 +2998,25 @@ namespace MySqlPacket
 
     class RowDataPacket : Packet
     {
-        bool typeCast;
-        bool nestTables;
-        ConnectionConfig config;
+
+
         MyStructData[] myDataList;
         TableHeader tableHeader;
         const long IEEE_754_BINARY_64_PRECISION = (long)1 << 53;
 
-        public RowDataPacket(TableHeader tableHeader, bool typeCast, bool nestTables, ConnectionConfig config)
+        public RowDataPacket(TableHeader tableHeader)
         {
             this.tableHeader = tableHeader;
-            this.typeCast = typeCast;
-            this.nestTables = nestTables;
-            this.config = config;
             myDataList = new MyStructData[tableHeader.ColumnCount];
-        }
 
+        }
+        public void ReuseSlots()
+        {
+            //this is reuseable row packet
+            this.header = null;
+            Array.Clear(myDataList, 0, myDataList.Length);
+
+        }
         public override void ParsePacket(PacketParser parser)
         {
             //function parse(parser, fieldPackets, typeCast, nestTables, connection) {
@@ -3005,12 +3031,16 @@ namespace MySqlPacket
             ParsePacketHeader(parser);
             var fieldInfos = tableHeader.GetFields();
             int j = tableHeader.ColumnCount;
+            bool typeCast = tableHeader.TypeCast;
+            bool nestTables = tableHeader.NestTables;
+
             for (int i = 0; i < j; i++)
             {
 
                 MyStructData value;
                 if (typeCast)
                 {
+                    ConnectionConfig config = tableHeader.ConnConfig;
                     value = TypeCast(parser,
                         fieldInfos[i],
                         config.timezone,
