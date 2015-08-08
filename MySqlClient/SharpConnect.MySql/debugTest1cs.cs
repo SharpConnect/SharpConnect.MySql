@@ -11,6 +11,7 @@ namespace SharpConnect.MySql
 #if DEBUG 
     public static class dbugInternal
     {
+
         public static void Test1()
         {
 
@@ -73,6 +74,7 @@ namespace SharpConnect.MySql
                 query.ExecuteQuery();
                 if (query.loadError != null)
                 {
+
                     Console.WriteLine("Error : " + query.loadError.message);
                 }
                 else if (query.okPacket != null)
