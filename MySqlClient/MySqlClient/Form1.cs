@@ -1,13 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
 using System.IO;
-
-using System.Net;
-using System.Net.Sockets;
+using System.Diagnostics;
 using MySqlPacket;
 
 namespace MySqlClient
@@ -139,7 +133,7 @@ namespace MySqlClient
                 }
                 else
                 {
-                    
+
                     while (query.ReadRow() && j < 3)
                     {
                         Console.WriteLine(query.GetFieldData("idsaveImage"));
@@ -270,11 +264,37 @@ namespace MySqlClient
 
         private void button2_Click(object sender, EventArgs e)
         {
-            //unsafe
-            //{
-            //    var dd = sizeof(MyStructData);
-            //}
-            //var a = sizeof(decimal);
+            //test connection 
+            var config = new ConnectionConfig("127.0.0.1", "root", "root", "test"); 
+            long total, avg;
+            Test(100, TimeUnit.Ticks, out total, out avg, () =>
+               {
+                   var connection = new Connection(config);
+                   connection.Connect();
+
+                   connection.Disconnect();
+               });
+
         }
+        static void Test(int n, TimeUnit timeUnit, out long total, out long avg, Action ac)
+        {
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+
+            for (int i = n; i > 0; --i)
+            {
+                ac();
+            }
+            sw.Stop();
+            total = sw.ElapsedTicks;
+            avg = total / n;
+
+        }
+        enum TimeUnit
+        {
+            Ticks,
+            Millisec
+        }
+
     }
 }

@@ -1,8 +1,11 @@
-﻿using System;
+﻿
+
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
-using MySqlClient;
+ 
 using System.Threading;
 using System.Net;
 using System.Net.Sockets;
@@ -514,11 +517,11 @@ namespace MySqlPacket
             }
             else
             {
-                int i=0;
+                int i = 0;
                 while (query.ReadRow())
                 {
                     MAX_ALLOWED_PACKET = query.resultSet.rows[0].GetDataInField("@@global.max_allowed_packet").myLong;
-                    Console.WriteLine("Rows Data "+i+" : " + query.resultSet.rows[i++]);
+                    Console.WriteLine("Rows Data " + i + " : " + query.resultSet.rows[i++]);
                 }
             }
         }
@@ -533,7 +536,7 @@ namespace MySqlPacket
             {
                 CreateNewSocket();
             }
-            
+
             query = new Query(parser, writer, sql, values, socket, handshake.protocol41, config, threadId);
             if (MAX_ALLOWED_PACKET > 0)
             {
@@ -645,7 +648,14 @@ namespace MySqlPacket
             this.user = username;
             this.password = password;
         }
-
+        public ConnectionConfig(string host, string username, string password, string database)
+        {
+            SetDefault();
+            this.user = username;
+            this.password = password;
+            this.host = host;
+            this.database = database;
+        }
         void SetDefault()
         {
             //if (typeof options === 'string') {
@@ -951,7 +961,7 @@ namespace MySqlPacket
             //if send data more than max_allowed_packet in mysql server it will be close connection
             if (MAX_ALLOWED_SEND > 0 && qr.Length > MAX_ALLOWED_SEND)
             {
-                int packs = (int)Math.Floor(qr.Length / (double)MAX_ALLOWED_SEND)+1;
+                int packs = (int)Math.Floor(qr.Length / (double)MAX_ALLOWED_SEND) + 1;
                 for (int pack = 0; pack < packs; pack++)
                 {
                     sent = socket.Send(qr, (int)MAX_ALLOWED_SEND, SocketFlags.None);
@@ -1122,7 +1132,7 @@ namespace MySqlPacket
                     buffer = new byte[newBufferLength];
                 }
                 remainBuff.CopyTo(buffer, 0);
-                
+
                 int newReceive = socket.Receive(receiveBuff);
                 if (newReceive < newBufferLength)//รับมาได้ไม่หมด
                 {
@@ -1848,7 +1858,7 @@ namespace MySqlPacket
                     //        result.push(parseGeometry());
                     //      }
                     break;
-                //return reult;
+                    //return reult;
             }
         }
 
@@ -3004,7 +3014,7 @@ namespace MySqlPacket
                 case Types.INT24:
                 case Types.YEAR:
                     numberString = parser.ParseLengthCodedString();
-                    if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0') || numberString.Length==0)
+                    if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0') || numberString.Length == 0)
                     {
                         //return new FieldData<string>(type, numberString);
                         data.myString = numberString;
