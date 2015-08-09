@@ -34,6 +34,8 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Internal\PacketParser.cs" />
+    <Compile Include="Internal\PacketWriter.cs" />
     <Compile Include="SharpConnect.Sockets\ConnectionAsync.cs" />
     <Compile Include="SharpConnect.Sockets\BufferManager.cs" />
     <Compile Include="SharpConnect.Sockets\ForNet20.cs" />

@@ -25,6 +25,22 @@ using System.Text;
 
 namespace MySqlPacket
 {
+    struct PacketHeader
+    {
+        public readonly uint Length;
+        public readonly byte PacketNumber;
+
+        public PacketHeader(uint length, byte number)
+        {
+            Length = length;
+            PacketNumber = number;
+        }
+        public bool IsEmpty()
+        {
+            return PacketNumber == 0 && Length == 0;
+        }
+        public static readonly PacketHeader Empty = new PacketHeader();
+    }
 
     abstract class Packet
     {
@@ -96,7 +112,7 @@ namespace MySqlPacket
                 this.clientFlags = parser.ParseUnsignedNumber(4);
                 this.maxPacketSize = parser.ParseUnsignedNumber(4);
                 this.charsetNumber = parser.ParseByte();
-                
+
                 parser.ParseFiller(23);
                 this.user = parser.ParseNullTerminatedString();
                 this.scrambleBuff = parser.ParseLengthCodedBuffer();
@@ -175,18 +191,20 @@ namespace MySqlPacket
 
     class ComQuitPacket : Packet
     {
-        byte command = 0x01;
+        const byte QUIT_CMD = 0x01;
+
 
         public override void ParsePacket(PacketParser parser)
         {
-            ParsePacketHeader(parser);
-            this.command = parser.ParseByte();
+            throw new NotImplementedException();
+            //ParsePacketHeader(parser);
+            //this.command = parser.ParseByte();
         }
 
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-            writer.WriteUnsignedNumber(1, this.command);
+            writer.WriteUnsignedNumber(1, QUIT_CMD);
             header = new PacketHeader((uint)writer.Length, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
         }
