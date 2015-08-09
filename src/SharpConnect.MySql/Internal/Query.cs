@@ -126,7 +126,7 @@ namespace MySqlPacket
 
         void SendQuery(string sql)
         {
-            writer.Rewrite();
+            writer.Reset();
             ComQueryPacket queryPacket = new ComQueryPacket(sql);
             queryPacket.WritePacket(writer);
             byte[] qr = writer.ToArray();
@@ -292,7 +292,7 @@ namespace MySqlPacket
 
         void Disconnect()
         {
-            writer.Rewrite();
+            writer.Reset();
             ComQuitPacket quitPacket = new ComQuitPacket();
             quitPacket.WritePacket(writer);
             var socket = conn.socket;

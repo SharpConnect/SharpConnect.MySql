@@ -70,7 +70,7 @@ namespace MySqlPacket
                 byte[] token = MakeToken(config.password,
                     GetScrollbleBuffer(handshake.scrambleBuff1, handshake.scrambleBuff2));
 
-                writer.Rewrite();
+                writer.Reset();
                 writer.IncrementPacketNumber();
                 //------------------------------------------
                 authPacket = new ClientAuthenticationPacket();
@@ -102,7 +102,7 @@ namespace MySqlPacket
                         OkPacket okPacket = new OkPacket(handshake.protocol41);
                         okPacket.ParsePacket(parser);
                     }
-                    writer.Rewrite();
+                    writer.Reset();
                     GetMaxAllowedPacket();
                     if (MAX_ALLOWED_PACKET > 0)
                     {

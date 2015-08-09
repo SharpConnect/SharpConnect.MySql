@@ -106,7 +106,7 @@ namespace MySqlPacket
             int count = socket.Receive(buffer);
             if (count < 512)
             {
-                writer.Rewrite();
+                writer.Reset();
                 parser.LoadNewBuffer(buffer, count);
                 handshake = new HandshakePacket();
                 handshake.ParsePacket(parser);
@@ -141,7 +141,7 @@ namespace MySqlPacket
                     OkPacket okPacket = new OkPacket(handshake.protocol41);
                     okPacket.ParsePacket(parser);
                 }
-                writer.Rewrite();
+                writer.Reset();
                 GetMaxAllowedPacket();
                 if (MAX_ALLOWED_PACKET > 0)
                 {
@@ -210,7 +210,7 @@ namespace MySqlPacket
 
         public void Disconnect()
         {
-            writer.Rewrite();
+            writer.Reset();
             ComQuitPacket quitPacket = new ComQuitPacket();
             quitPacket.WritePacket(writer);
 

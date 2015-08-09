@@ -27,6 +27,8 @@ using System.IO;
 
 namespace MySqlPacket
 {
+    //packet reader
+
     class PacketParser
     {
         BinaryReader reader;

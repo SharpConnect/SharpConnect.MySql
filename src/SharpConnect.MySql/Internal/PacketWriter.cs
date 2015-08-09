@@ -40,7 +40,9 @@ namespace MySqlPacket
         const int MAX_PACKET_LENGTH = (int)(1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
 
         long maxAllowedLength = MAX_PACKET_LENGTH;
-        Encoding encoding = Encoding.UTF8;
+        Encoding encoding;
+
+        byte[] headerBuffer = new byte[4];//reuseable header buffer
 
         public PacketWriter(Encoding encoding)
         {
@@ -68,7 +70,7 @@ namespace MySqlPacket
             maxAllowedLength = max;
         }
 
-        public void Rewrite()
+        public void Reset()
         {
             packetNumber = 0;
             startPacketPosition = 0;
@@ -108,10 +110,10 @@ namespace MySqlPacket
             int packets = (int)(curPacketLength / maxPacketLength) + 1;
             if (packets == 1)
             {
-                byte[] encodeData = new byte[4];
-                EncodeUnsignedNumber(encodeData, 0, 3, header.Length);
-                encodeData[3] = header.PacketNumber;
-                writer.RewindWriteAtOffset(encodeData, (int)startPacketPosition);
+                //byte[] encodeData = new byte[4];
+                EncodeUnsignedNumber0_3(headerBuffer, header.Length);
+                headerBuffer[3] = header.PacketNumber;
+                writer.RewindAndWriteAt(headerBuffer, (int)startPacketPosition);
             }
             else
             {
@@ -146,11 +148,12 @@ namespace MySqlPacket
                     //    this.writeBuffer(buffer.slice(start, end));
                     var start = packet * (maxPacketLength + 4);
 
-                    byte[] encodeData = new byte[4];
-                    EncodeUnsignedNumber(encodeData, 0, 3, (uint)packetLength);
-                    encodeData[3] = startPacketNum;
-                    encodeData.CopyTo(allBuffer, start);
-                    writer.RewindWriteAtOffset(encodeData, (int)start);
+                    //byte[] encodeData = new byte[4];
+                    EncodeUnsignedNumber0_3(headerBuffer, (uint)packetLength);
+                    headerBuffer[3] = startPacketNum;
+
+                    headerBuffer.CopyTo(allBuffer, start);
+                    writer.RewindAndWriteAt(headerBuffer, (int)start);
                     startPacketNum = 0;
                     if (packetLength < currentPacketBuff.Length)
                     {
@@ -159,25 +162,16 @@ namespace MySqlPacket
                     writer.Read(currentPacketBuff, offset, packetLength);
                     currentPacketBuff.CopyTo(allBuffer, start + 4);
                 }
-                writer.RewindWriteAtOffset(allBuffer, (int)startPacketPosition);
+                writer.RewindAndWriteAt(allBuffer, (int)startPacketPosition);
             }
-
         }
-
         public long CurrentPacketLength()
         {
             return writer.OriginalStreamPosition - startPacketPosition;
         }
-
-        byte[] CurrentPacketToArray(int length)
-        {
-            byte[] buffer = new byte[length];
-            writer.Read(buffer, (int)startPacketPosition, length);
-            return buffer;
-        }
-
         public void WriteNullTerminatedString(string str)
         {
+
             byte[] buff = encoding.GetBytes(str.ToCharArray());
             writer.Write(buff);
             writer.Write((byte)0);
@@ -191,15 +185,47 @@ namespace MySqlPacket
 
         public void WriteUnsignedNumber(int length, uint value)
         {
-            byte[] tempBuff = new byte[length];
-            for (var i = 0; i < length; i++)
+            switch (length)
             {
-                tempBuff[i] = (byte)((value >> (i * 8)) & 0xff);
+                case 0: break;
+                case 1:
+
+                    writer.Write((byte)(value & 0xff));
+                    break;
+                case 2:
+
+                    writer.Write((byte)(value & 0xff));
+                    writer.Write((byte)((value >> 8) & 0xff));
+                    break;
+                case 3:
+
+                    writer.Write((byte)(value & 0xff));
+                    writer.Write((byte)((value >> 8) & 0xff));
+                    writer.Write((byte)((value >> 16) & 0xff));
+                    break;
+                case 4:
+
+                    writer.Write((byte)(value & 0xff));
+                    writer.Write((byte)((value >> 8) & 0xff));
+                    writer.Write((byte)((value >> 16) & 0xff));
+                    writer.Write((byte)((value >> 24) & 0xff));
+                    break;
+                case 5:
+
+                    //?  not possible?
+                    byte[] tempBuff = new byte[length];
+                    for (var i = 0; i < length; i++)
+                    {
+                        tempBuff[i] = (byte)((value >> (i * 8)) & 0xff);
+                    }
+                    writer.Write(tempBuff);
+                    break;
+
             }
-            writer.Write(tempBuff);
+
         }
 
-        void EncodeUnsignedNumber(byte[] outputBuffer, int start, int length, uint value)
+        static void EncodeUnsignedNumber(byte[] outputBuffer, int start, int length, uint value)
         {
             int lim = start + length;
             for (var i = start; i < lim; i++)
@@ -207,7 +233,14 @@ namespace MySqlPacket
                 outputBuffer[i] = (byte)((value >> (i * 8)) & 0xff);
             }
         }
-
+        static void EncodeUnsignedNumber0_3(byte[] outputBuffer, uint value)
+        {
+            //start at 0
+            //length= 3
+            outputBuffer[0] = (byte)(value & 0xff);
+            outputBuffer[1] = (byte)((value >> 8) & 0xff);
+            outputBuffer[2] = (byte)((value >> 24) & 0xff);
+        }
         public void WriteByte(byte value)
         {
             writer.Write(value);
@@ -216,8 +249,29 @@ namespace MySqlPacket
 
         public void WriteFiller(int length)
         {
-            byte[] filler = new byte[length];
-            writer.Write(filler);
+            switch (length)
+            {
+                case 0:
+                    break;
+                case 1:
+                    writer.Write((byte)0);//1
+                    break;
+                case 2:
+                    writer.WriteInt16(0);//2
+                    break;
+                case 3:
+                    writer.WriteInt16(0);//2
+                    writer.Write((byte)0);//1
+                    break;
+                case 4:
+                    writer.WriteInt32(0);//4
+                    break;
+                default:
+                    //else
+                    byte[] filler = new byte[length];
+                    writer.Write(filler);
+                    break;
+            }
         }
 
         public void WriteBuffer(byte[] value)
@@ -225,22 +279,18 @@ namespace MySqlPacket
             writer.Write(value);
         }
 
-        public void WriteLengthCodedNumber(long? value)
+        public void WriteLengthCodedNull()
         {
-            if (value == null)
-            {
-                writer.Write((byte)251);
-
-                return;
-            }
+            writer.Write((byte)251);
+        }
+        public void WriteLengthCodedNumber(long value)
+        {
 
             if (value <= 250)
             {
                 writer.Write((byte)value);
-
                 return;
             }
-
             if (value > IEEE_754_BINARY_64_PRECISION)
             {
                 throw new Exception("writeLengthCodedNumber: JS precision range exceeded, your" +
@@ -249,62 +299,45 @@ namespace MySqlPacket
 
             if (value <= BIT_16)
             {
-                //this._allocate(3)
-                //this._buffer[this._offset++] = 252;
-                writer.Write((byte)252);
 
+                writer.Write((byte)252); //endcode
+
+                //// 16 Bit
+                //this._buffer[this._offset++] = value & 0xff;
+                //this._buffer[this._offset++] = (value >> 8) & 0xff;
+                writer.Write((byte)(value & 0xff));
+                writer.Write((byte)((value >> 8) & 0xff));
             }
             else if (value <= BIT_24)
             {
-                //this._allocate(4)
-                //this._buffer[this._offset++] = 253;
-                writer.Write((byte)253);
+                writer.Write((byte)253); //encode
 
+                writer.Write((byte)(value & 0xff));
+                writer.Write((byte)((value >> 8) & 0xff));
+                writer.Write((byte)((value >> 16) & 0xff));
             }
             else
             {
-                //this._allocate(9);
-                //this._buffer[this._offset++] = 254;
-                writer.Write((byte)254);
+                writer.Write((byte)254); //encode 
 
+                writer.Write((byte)(value & 0xff));
+                writer.Write((byte)((value >> 8) & 0xff));
+                writer.Write((byte)((value >> 16) & 0xff));
+                writer.Write((byte)((value >> 24) & 0xff));
+
+                //// Hack: Get the most significant 32 bit (JS bitwise operators are 32 bit)
+                //value = value.toString(2);
+                //value = value.substr(0, value.length - 32);
+                //value = parseInt(value, 2); 
+                writer.Write((byte)((value >> 32) & 0xff));
+                writer.Write((byte)((value >> 40) & 0xff));
+                writer.Write((byte)((value >> 48) & 0xff));
+
+                //// Set last byte to 0, as we can only support 53 bits in JS (see above)
+                //this._buffer[this._offset++] = 0;
+                writer.Write((byte)0);
             }
 
-            //// 16 Bit
-            //this._buffer[this._offset++] = value & 0xff;
-            //this._buffer[this._offset++] = (value >> 8) & 0xff;
-            writer.Write((byte)(value & 0xff));
-
-            writer.Write((byte)((value >> 8) & 0xff));
-
-
-            if (value <= BIT_16) return;
-
-            //// 24 Bit
-            //this._buffer[this._offset++] = (value >> 16) & 0xff;
-            writer.Write((byte)((value >> 16) & 0xff));
-
-
-            if (value <= BIT_24) return;
-
-            //this._buffer[this._offset++] = (value >> 24) & 0xff;
-            writer.Write((byte)((value >> 24) & 0xff));
-
-
-            //// Hack: Get the most significant 32 bit (JS bitwise operators are 32 bit)
-            //value = value.toString(2);
-            //value = value.substr(0, value.length - 32);
-            //value = parseInt(value, 2);
-
-            //this._buffer[this._offset++] = value & 0xff;
-            //this._buffer[this._offset++] = (value >> 8) & 0xff;
-            //this._buffer[this._offset++] = (value >> 16) & 0xff;
-            writer.Write((byte)((value >> 32) & 0xff));
-            writer.Write((byte)((value >> 40) & 0xff));
-            writer.Write((byte)((value >> 48) & 0xff));
-
-            //// Set last byte to 0, as we can only support 53 bits in JS (see above)
-            //this._buffer[this._offset++] = 0;
-            writer.Write((byte)0);
         }
 
         public void WriteLengthCodedBuffer(byte[] value)
@@ -322,7 +355,7 @@ namespace MySqlPacket
             //}
             if (value == null)
             {
-                WriteLengthCodedNumber(null);
+                WriteLengthCodedNull();
                 return;
             }
             //value = (value === undefined)
@@ -391,6 +424,16 @@ namespace MySqlPacket
             writer.Write(bytes);
             offset += bytes.Length;
         }
+        public void WriteInt32(int value)
+        {
+            writer.Write(value);
+            offset += 4;
+        }
+        public void WriteInt16(short value)
+        {
+            writer.Write(value);
+            offset += 2;
+        }
         public void Write(char[] chars)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(chars);
@@ -401,7 +444,7 @@ namespace MySqlPacket
             writer.BaseStream.Position = 0;
             offset = 0;
         }
-        public void RewindWriteAtOffset(byte[] buffer, int offset)
+        public void RewindAndWriteAt(byte[] buffer, int offset)
         {
             var pos = writer.BaseStream.Position;
             writer.BaseStream.Position = offset;
