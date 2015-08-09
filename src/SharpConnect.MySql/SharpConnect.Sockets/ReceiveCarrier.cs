@@ -1,11 +1,9 @@
 ﻿//2010, CPOL, Stan Kirk  
 using System;
-using System.Collections.Generic;
 using System.Net.Sockets;
-using System.Threading;
 
 namespace SharpConnect.Sockets
-{   
+{
     class ReceiveCarrier
     {
 

@@ -26,8 +26,7 @@ using System.Net;
 using System.Net.Sockets;
 
 using SharpConnect;
-using SharpConnect.Sockets;
-
+using SharpConnect.Sockets; 
 
 namespace MySqlPacket
 {
