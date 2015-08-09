@@ -92,7 +92,7 @@ namespace MySqlPacket
             MAX_ALLOWED_SEND = max;
         }
 
-   
+
         public void ExecuteQuery()
         {
             //send query
@@ -770,7 +770,7 @@ namespace MySqlPacket
             stream.Dispose();
         }
 
-        public void Reparse()
+        void Reset()
         {
             stream.Position = 0;
             myLength = 0;
@@ -778,7 +778,7 @@ namespace MySqlPacket
 
         public void LoadNewBuffer(byte[] newBuffer, int count)
         {
-            Reparse();
+            Reset();
             stream.Write(newBuffer, 0, count);
             stream.Position = 0;
             startPosition = 0;
@@ -855,9 +855,10 @@ namespace MySqlPacket
             //  return this.parseBuffer(length);
         }
 
-        public byte[] ParseFiller(int length)
+
+        public void ParseFiller(int length)
         {
-            return ParseBuffer(length);
+            this.stream.Position += length;
         }
 
         public uint ParseLengthCodedNumber()
@@ -1192,7 +1193,7 @@ namespace MySqlPacket
 
 
 
-    
+
 
 
     class PacketWriter

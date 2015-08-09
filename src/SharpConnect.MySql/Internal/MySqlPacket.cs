@@ -53,7 +53,7 @@ namespace MySqlPacket
         public uint clientFlags;
         public uint maxPacketSize;
         public byte charsetNumber;
-        public byte[] filler;
+
         public string user;
         public byte[] scrambleBuff;
         public string database;
@@ -69,7 +69,7 @@ namespace MySqlPacket
             clientFlags = 455631;
             maxPacketSize = 0;
             charsetNumber = 33;
-            filler = new byte[23];
+
             user = "";
             scrambleBuff = new byte[20];
             database = "";
@@ -81,7 +81,7 @@ namespace MySqlPacket
             clientFlags = 455631;
             maxPacketSize = 0;
             charsetNumber = 33;
-            filler = new byte[23];
+
             this.user = username;
             this.scrambleBuff = scrambleBuff;
             this.database = databaseName;
@@ -96,7 +96,8 @@ namespace MySqlPacket
                 this.clientFlags = parser.ParseUnsignedNumber(4);
                 this.maxPacketSize = parser.ParseUnsignedNumber(4);
                 this.charsetNumber = parser.ParseByte();
-                this.filler = parser.ParseFiller(23);
+                
+                parser.ParseFiller(23);
                 this.user = parser.ParseNullTerminatedString();
                 this.scrambleBuff = parser.ParseLengthCodedBuffer();
                 this.database = parser.ParseNullTerminatedString();

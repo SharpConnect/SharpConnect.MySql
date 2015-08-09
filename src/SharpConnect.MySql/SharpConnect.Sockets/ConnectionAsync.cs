@@ -36,7 +36,7 @@ namespace MySqlPacket
         byte[] sockBuffer = new byte[1024 * 2];
         SocketAsyncEventArgs saea = new SocketAsyncEventArgs();
         MySqlConnectionSession connSession;
-        
+
         public void ConnectAsync(Action connHandler)
         {
 
@@ -55,12 +55,13 @@ namespace MySqlPacket
             connSession.StartReceive(recv =>
             {
 
-                //parse input
-                writer.Rewrite();
+
+                //TODO: review here, don't copy, 
+                //we should use shared sockBuffer 
+
                 byte[] buffer = new byte[512];
                 int count = recv.BytesTransferred;
                 recv.CopyTo(0, buffer, 0, recv.BytesTransferred);
-
                 parser.LoadNewBuffer(buffer, count);
                 handshake = new HandshakePacket();
                 handshake.ParsePacket(parser);
@@ -69,6 +70,7 @@ namespace MySqlPacket
                 byte[] token = MakeToken(config.password,
                     GetScrollbleBuffer(handshake.scrambleBuff1, handshake.scrambleBuff2));
 
+                writer.Rewrite();
                 writer.IncrementPacketNumber();
                 //------------------------------------------
                 authPacket = new ClientAuthenticationPacket();
