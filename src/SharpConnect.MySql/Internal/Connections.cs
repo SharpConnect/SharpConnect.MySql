@@ -291,7 +291,7 @@ namespace MySqlPacket
 
 
     }
-
+     
 
     class ConnectionConfig
     {
@@ -411,8 +411,6 @@ namespace MySqlPacket
             this.database = database;
         }
     }
-
-
 
 
 }
