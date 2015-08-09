@@ -225,16 +225,17 @@ namespace MySqlPacket
 
         }
 
-        static void EncodeUnsignedNumber(byte[] outputBuffer, int start, int length, uint value)
-        {
-            int lim = start + length;
-            for (var i = start; i < lim; i++)
-            {
-                outputBuffer[i] = (byte)((value >> (i * 8)) & 0xff);
-            }
-        }
+        //static void EncodeUnsignedNumber(byte[] outputBuffer, int start, int length, uint value)
+        //{
+        //    int lim = start + length;
+        //    for (var i = start; i < lim; i++)
+        //    {
+        //        outputBuffer[i] = (byte)((value >> (i * 8)) & 0xff);
+        //    }
+        //}
         static void EncodeUnsignedNumber0_3(byte[] outputBuffer, uint value)
         {
+
             //start at 0
             //length= 3
             outputBuffer[0] = (byte)(value & 0xff);
