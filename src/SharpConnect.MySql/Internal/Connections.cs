@@ -43,13 +43,18 @@ namespace MySqlPacket
         }
     }
 
+    enum ConnectionState
+    {
+        Disconnected,
+        Connected
+    }
     partial class Connection
     {
         public ConnectionConfig config;
 
-        public Object protocol;
+        //public Object protocol;
         public bool connectionCall;
-        public string state;
+        public ConnectionState state;
         public uint threadId;
 
         public Socket socket;
@@ -68,9 +73,10 @@ namespace MySqlPacket
         {
             this.config = userConfig;
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            protocol = null;
+            //protocol = null;
             connectionCall = false;
-            state = "disconnected";
+            state = ConnectionState.Disconnected;
+
             //this.config = options.config;
             //this._socket        = options.socket;
             //this._protocol      = new Protocol({config: this.config, connection: this});
