@@ -95,6 +95,7 @@ namespace MySqlPacket
    
         public void ExecuteQuery()
         {
+            //send query
             SendQuery(sql);
 
             receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
