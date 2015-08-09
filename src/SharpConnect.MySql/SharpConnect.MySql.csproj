@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>SharpConnect.MySql</RootNamespace>
     <AssemblyName>SharpConnect.MySql</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -33,14 +34,20 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="SharpConnect.Sockets\ConnectionAsync.cs" />
+    <Compile Include="SharpConnect.Sockets\BufferManager.cs" />
+    <Compile Include="SharpConnect.Sockets\ForNet20.cs" />
+    <Compile Include="SharpConnect.Sockets\ReceiveCarrier.cs" />
+    <Compile Include="SharpConnect.Sockets\SocketAsyncEventArgsPool.cs" />
     <Compile Include="Internal\ConnectionPool.cs" />
-    <Compile Include="debugTest1cs.cs" />
+    <Compile Include="debugTest1.cs" />
     <Compile Include="Internal\Connections.cs" />
     <Compile Include="Internal\DataModel.cs" />
     <Compile Include="Internal\Query.cs" />
     <Compile Include="MySqlClient.cs" />
     <Compile Include="Internal\MySqlPacket.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SharpConnect.Sockets\ClientConnectionSession.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

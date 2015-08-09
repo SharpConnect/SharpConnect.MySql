@@ -95,6 +95,7 @@ namespace MySqlPacket
    
         public void ExecuteQuery()
         {
+            //send query
             SendQuery(sql);
 
             receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
@@ -450,7 +451,7 @@ namespace MySqlPacket
                         if (ch == '?')
                         {
                             list.Add(strBuilder.ToString());
-                            strBuilder.Clear();
+                            strBuilder.Length = 0;
 
                             state = ParseState.GET_KEY;
                         }
@@ -468,7 +469,7 @@ namespace MySqlPacket
                         {
                             temp = prepare.GetValue(strBuilder.ToString());
                             list.Add(temp);
-                            strBuilder.Clear();
+                            strBuilder.Length = 0;//clear
                             state = ParseState.FIND_MARKER;
                             strBuilder.Append(ch);
                         }

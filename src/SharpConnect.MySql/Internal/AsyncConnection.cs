@@ -32,27 +32,64 @@ using System.Net.Sockets;
 
 namespace MySqlPacket
 {
+    //test async socket
+    //see async socket event args (ASEA) on msdn ...
+    //https://msdn.microsoft.com/en-us/library/system.net.sockets.socketasynceventargs.socketasynceventargs%28v=vs.110%29.aspx
 
-
-    static class dbugConsole
+    // Represents a collection of reusable SocketAsyncEventArgs objects.   
+    class SocketAsyncEventArgsPool
     {
-        [System.Diagnostics.Conditional("DEBUG")]
-        public static void WriteLine(string str)
+        Stack<SocketAsyncEventArgs> m_pool;
+
+        // Initializes the object pool to the specified size 
+        // 
+        // The "capacity" parameter is the maximum number of 
+        // SocketAsyncEventArgs objects the pool can hold 
+        public SocketAsyncEventArgsPool(int capacity)
         {
-            Console.WriteLine(str);
+            m_pool = new Stack<SocketAsyncEventArgs>(capacity);
         }
+
+        // Add a SocketAsyncEventArg instance to the pool 
+        // 
+        //The "item" parameter is the SocketAsyncEventArgs instance 
+        // to add to the pool 
+        public void Push(SocketAsyncEventArgs item)
+        {
+            if (item == null) { throw new ArgumentNullException("Items added to a SocketAsyncEventArgsPool cannot be null"); }
+            lock (m_pool)
+            {
+                m_pool.Push(item);
+            }
+        }
+
+        // Removes a SocketAsyncEventArgs instance from the pool 
+        // and returns the object removed from the pool 
+        public SocketAsyncEventArgs Pop()
+        {
+            lock (m_pool)
+            {
+                return m_pool.Pop();
+            }
+        }
+
+        // The number of SocketAsyncEventArgs instances in the pool 
+        public int Count
+        {
+            get { return m_pool.Count; }
+        }
+
     }
 
-    partial class Connection
+
+    class AsyncConnection
     {
         public ConnectionConfig config;
-
+        public Socket socket;
         public Object protocol;
         public bool connectionCall;
         public string state;
         public uint threadId;
-
-        public Socket socket;
         HandshakePacket handshake;
         ClientAuthenticationPacket authPacket;
         Query query;
@@ -63,8 +100,8 @@ namespace MySqlPacket
         byte[] tmpForClearRecvBuffer; //for clear buffer 
 
 
-        long MAX_ALLOWED_PACKET = 0; //TODO: rename 
-        public Connection(ConnectionConfig userConfig)
+        long MAX_ALLOWED_PACKET = 0;
+        public AsyncConnection(ConnectionConfig userConfig)
         {
             this.config = userConfig;
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -93,7 +130,6 @@ namespace MySqlPacket
         public void Connect()
         {
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
-
             socket.Connect(endpoint);
 
             byte[] buffer = new byte[512];
@@ -105,10 +141,7 @@ namespace MySqlPacket
                 handshake = new HandshakePacket();
                 handshake.ParsePacket(parser);
                 this.threadId = handshake.threadId;
-
-                byte[] token = MakeToken(config.password,
-                    GetScrollbleBuffer(handshake.scrambleBuff1, handshake.scrambleBuff2));
-
+                byte[] token = MakeToken(config.password, GetScrollbleBuffer(handshake.scrambleBuff1, handshake.scrambleBuff2));
                 writer.IncrementPacketNumber();
 
                 //------------------------------------------
@@ -118,8 +151,6 @@ namespace MySqlPacket
 
                 byte[] sendBuff = writer.ToArray();
                 byte[] receiveBuff = new byte[512];
-                //-------------------------------------------
-                //send data
                 int sendNum = socket.Send(sendBuff);
                 int receiveNum = socket.Receive(receiveBuff);
 
@@ -141,7 +172,6 @@ namespace MySqlPacket
                 {
                     writer.SetMaxAllowedPacket(MAX_ALLOWED_PACKET);
                 }
-
             }
         }
 
@@ -180,6 +210,7 @@ namespace MySqlPacket
 
         public Query CreateQuery(string sql, CommandParameters values)
         {
+            throw new NotSupportedException();
             //var query = Connection.createQuery(sql, values, cb);
             //query = new Query(parser, writer, sql, values);
             //query.typeCast = config.typeCast;
@@ -188,12 +219,12 @@ namespace MySqlPacket
             //{
             //    CreateNewSocket();
             //}
-            var query = new Query(this, sql, values);
-            if (MAX_ALLOWED_PACKET > 0)
-            {
-                query.SetMaxSend(MAX_ALLOWED_PACKET);
-            }
-            return query;
+            //var query = new Query(this, sql, values);
+            //if (MAX_ALLOWED_PACKET > 0)
+            //{
+            //    query.SetMaxSend(MAX_ALLOWED_PACKET);
+            //}
+            //return query;
         }
 
         void CreateNewSocket()
@@ -251,6 +282,7 @@ namespace MySqlPacket
             }
         }
 
+
         static byte[] GetScrollbleBuffer(byte[] part1, byte[] part2)
         {
             return ConcatBuffer(part1, part2);
@@ -298,127 +330,9 @@ namespace MySqlPacket
         }
 
 
+
     }
 
-
-    class ConnectionConfig
-    {
-        public string host;
-        public int port;
-        public string localAddress;//unknowed type
-        public string socketPath;//unknowed type
-        public string user;
-        public string password;
-        public string database;
-        public int connectionTimeout;
-        public bool insecureAuth;
-        public bool supportBigNumbers;
-        public bool bigNumberStrings;
-        public bool dateStrings;
-        public bool debug;
-        public bool trace;
-        public bool stringifyObjects;
-        public string timezone;
-        public string flags;
-        public string queryFormat;
-        public string pool;//unknowed type
-        public string ssl;//string or bool
-        public bool multipleStatements;
-        public bool typeCast;
-        public long maxPacketSize;
-        public int charsetNumber;
-        public int defaultFlags;
-        public int clientFlags;
-
-        public ConnectionConfig()
-        {
-            SetDefault();
-        }
-
-        public ConnectionConfig(string username, string password)
-        {
-            SetDefault();
-            this.user = username;
-            this.password = password;
-        }
-        public ConnectionConfig(string host, string username, string password, string database)
-        {
-            SetDefault();
-            this.user = username;
-            this.password = password;
-            this.host = host;
-            this.database = database;
-        }
-        void SetDefault()
-        {
-            //if (typeof options === 'string') {
-            //  options = ConnectionConfig.parseUrl(options);
-            //}
-            host = "127.0.0.1";//this.host = options.host || 'localhost';
-            port = 3306;//this.port = options.port || 3306;
-            //this.localAddress       = options.localAddress;
-            //this.socketPath         = options.socketPath;
-            //this.user               = options.user || undefined;
-            //this.password           = options.password || undefined;
-            //this.database           = options.database;
-            database = "";
-            connectionTimeout = 10 * 1000;
-            //this.connectTimeout     = (options.connectTimeout === undefined)
-            //  ? (10 * 1000)
-            //  : options.connectTimeout;
-            insecureAuth = false;//this.insecureAuth = options.insecureAuth || false;
-            supportBigNumbers = false;//this.supportBigNumbers = options.supportBigNumbers || false;
-            bigNumberStrings = false;//this.bigNumberStrings = options.bigNumberStrings || false;
-            dateStrings = false;//this.dateStrings = options.dateStrings || false;
-            debug = false;//this.debug = options.debug || true;
-            trace = false;//this.trace = options.trace !== false;
-            stringifyObjects = false;//this.stringifyObjects = options.stringifyObjects || false;
-            timezone = "local";//this.timezone = options.timezone || 'local';
-            flags = "";//this.flags = options.flags || '';
-            //this.queryFormat        = options.queryFormat;
-            //this.pool               = options.pool || undefined;
-
-            //this.ssl                = (typeof options.ssl === 'string')
-            //  ? ConnectionConfig.getSSLProfile(options.ssl)
-            //  : (options.ssl || false);
-            multipleStatements = false;//this.multipleStatements = options.multipleStatements || false; 
-            typeCast = true;
-            //this.typeCast = (options.typeCast === undefined)
-            //  ? true
-            //  : options.typeCast;
-
-            //if (this.timezone[0] == " ") {
-            //  // "+" is a url encoded char for space so it
-            //  // gets translated to space when giving a
-            //  // connection string..
-            //  this.timezone = "+" + this.timezone.substr(1);
-            //}
-
-            //if (this.ssl) {
-            //  // Default rejectUnauthorized to true
-            //  this.ssl.rejectUnauthorized = this.ssl.rejectUnauthorized !== false;
-            //}
-
-            maxPacketSize = 0;//this.maxPacketSize = 0;
-            charsetNumber = (int)CharSets.UTF8_GENERAL_CI;
-            //this.charsetNumber = (options.charset)
-            //  ? ConnectionConfig.getCharsetNumber(options.charset)
-            //  : options.charsetNumber||Charsets.UTF8_GENERAL_CI;
-
-            //// Set the client flags
-            //var defaultFlags = ConnectionConfig.getDefaultFlags(options);
-            //this.clientFlags = ConnectionConfig.mergeFlags(defaultFlags, options.flags)
-        }
-
-        public void SetConfig(string host, int port, string username, string password, string database)
-        {
-            this.host = host;
-            this.port = port;
-            this.user = username;
-            this.password = password;
-            this.database = database;
-        }
-    }
 
 
 }
