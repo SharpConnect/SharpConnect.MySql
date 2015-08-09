@@ -25,6 +25,22 @@ using System.Text;
 
 namespace MySqlPacket
 {
+    struct PacketHeader
+    {
+        public readonly uint Length;
+        public readonly byte PacketNumber;
+
+        public PacketHeader(uint length, byte number)
+        {
+            Length = length;
+            PacketNumber = number;
+        }
+        public bool IsEmpty()
+        {
+            return PacketNumber == 0 && Length == 0;
+        }
+        public static readonly PacketHeader Empty = new PacketHeader();
+    }
 
     abstract class Packet
     {
@@ -53,7 +69,7 @@ namespace MySqlPacket
         public uint clientFlags;
         public uint maxPacketSize;
         public byte charsetNumber;
-        public byte[] filler;
+
         public string user;
         public byte[] scrambleBuff;
         public string database;
@@ -69,7 +85,7 @@ namespace MySqlPacket
             clientFlags = 455631;
             maxPacketSize = 0;
             charsetNumber = 33;
-            filler = new byte[23];
+
             user = "";
             scrambleBuff = new byte[20];
             database = "";
@@ -81,7 +97,7 @@ namespace MySqlPacket
             clientFlags = 455631;
             maxPacketSize = 0;
             charsetNumber = 33;
-            filler = new byte[23];
+
             this.user = username;
             this.scrambleBuff = scrambleBuff;
             this.database = databaseName;
@@ -96,7 +112,8 @@ namespace MySqlPacket
                 this.clientFlags = parser.ParseUnsignedNumber(4);
                 this.maxPacketSize = parser.ParseUnsignedNumber(4);
                 this.charsetNumber = parser.ParseByte();
-                this.filler = parser.ParseFiller(23);
+
+                parser.ParseFiller(23);
                 this.user = parser.ParseNullTerminatedString();
                 this.scrambleBuff = parser.ParseLengthCodedBuffer();
                 this.database = parser.ParseNullTerminatedString();
@@ -174,18 +191,20 @@ namespace MySqlPacket
 
     class ComQuitPacket : Packet
     {
-        byte command = 0x01;
+        const byte QUIT_CMD = 0x01;
+
 
         public override void ParsePacket(PacketParser parser)
         {
-            ParsePacketHeader(parser);
-            this.command = parser.ParseByte();
+            throw new NotImplementedException();
+            //ParsePacketHeader(parser);
+            //this.command = parser.ParseByte();
         }
 
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-            writer.WriteUnsignedNumber(1, this.command);
+            writer.WriteUnsignedNumber(1, QUIT_CMD);
             header = new PacketHeader((uint)writer.Length, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
         }
