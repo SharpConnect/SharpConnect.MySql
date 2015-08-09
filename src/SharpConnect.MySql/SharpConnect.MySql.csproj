@@ -33,10 +33,13 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConnectionPool.cs" />
+    <Compile Include="Internal\ConnectionPool.cs" />
     <Compile Include="debugTest1cs.cs" />
+    <Compile Include="Internal\Connections.cs" />
+    <Compile Include="Internal\DataModel.cs" />
+    <Compile Include="Internal\Query.cs" />
     <Compile Include="MySqlClient.cs" />
-    <Compile Include="MySqlPacket.cs" />
+    <Compile Include="Internal\MySqlPacket.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
