@@ -1,16 +1,42 @@
-﻿//2010, CPOL, Stan Kirk 
-
+﻿//2010, CPOL, Stan Kirk  
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
-using System.Net;
-using System.Text;
-using System.Diagnostics;
 
 namespace SharpConnect.Sockets
 {
 
+    //--------------------------------------------------
+    ////from http://www.codeproject.com/Articles/83102/C-SocketAsyncEventArgs-High-Performance-Socket-Cod
+    //and from
+    //https://msdn.microsoft.com/en-us/library/system.net.sockets.socketasynceventargs%28v=vs.90%29.aspx
+    //--------------------------------------------------
+
+    enum EndReceiveState
+    {
+        Error,
+        NoMoreData,
+        ContinueRead,
+        Complete
+    }
+    enum EndSendState
+    {
+        Error,
+        Continue,
+        Complete
+    }
+
+    
+
+    static class GlobalSessionNumber
+    {
+
+        internal static int mainTransMissionId = 10000;
+        internal static int mainSessionId = 1000000000;
+        internal static int maxSimultaneousClientsThatWereConnected;
+
+    }
 
     abstract class ClientConnectionSession
     {

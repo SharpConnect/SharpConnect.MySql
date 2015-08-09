@@ -1,22 +1,11 @@
-﻿//2010, CPOL, Stan Kirk 
+﻿//2010, CPOL, Stan Kirk  
 using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
-namespace SharpConnect.Sockets
-{
-    enum EndReceiveState
-    {
-        Error,
-        NoMoreData,
-        ContinueRead,
-        Complete
-    }
-    enum EndSendState
-    {
-        Error,
-        Continue,
-        Complete
-    }
+using System.Threading;
 
+namespace SharpConnect.Sockets
+{   
     class ReceiveCarrier
     {
 
@@ -68,16 +57,4 @@ namespace SharpConnect.Sockets
                  output, 0, count);
         }
     }
-
-    static class GlobalSessionNumber
-    {
-
-        internal static int mainTransMissionId = 10000;
-        internal static int mainSessionId = 1000000000;
-        internal static int maxSimultaneousClientsThatWereConnected;
-
-    }
-
-
-
 }

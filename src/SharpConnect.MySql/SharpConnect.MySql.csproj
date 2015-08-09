@@ -36,8 +36,8 @@
   <ItemGroup>
     <Compile Include="SharpConnect.Sockets2\ConnectionAsync.cs" />
     <Compile Include="SharpConnect.Sockets2\BufferManager.cs" />
-    <Compile Include="SharpConnect.Sockets2\ConnectionSession.cs" />
     <Compile Include="SharpConnect.Sockets2\ForNet20.cs" />
+    <Compile Include="SharpConnect.Sockets2\ReceiveCarrier.cs" />
     <Compile Include="SharpConnect.Sockets2\SocketAsyncEventArgsPool.cs" />
     <Compile Include="Internal\ConnectionPool.cs" />
     <Compile Include="debugTest1.cs" />
