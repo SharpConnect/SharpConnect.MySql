@@ -25,7 +25,7 @@ using System.Net;
 using System.Net.Sockets;
 
 using SharpConnect;
-using SharpConnect.Sockets; 
+using SharpConnect.Sockets;
 
 namespace MySqlPacket
 {
@@ -33,19 +33,21 @@ namespace MySqlPacket
     partial class Connection
     {
 
+        byte[] sockBuffer = new byte[1024 * 2];
+        SocketAsyncEventArgs saea = new SocketAsyncEventArgs();
         MySqlConnectionSession connSession;
+        
         public void ConnectAsync(Action connHandler)
         {
-            SocketAsyncEventArgs args = new SocketAsyncEventArgs();
+
             //1. socket
             this.socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            saea.SetBuffer(sockBuffer, 0, sockBuffer.Length);
 
-            //2. buffer
-            byte[] sockBuffer = new byte[1024 * 2];
-            args.SetBuffer(sockBuffer, 0, 1024 * 2);
-            connSession = new MySqlConnectionSession(args, 1024, 1024);
-            args.UserToken = connSession;
-            args.AcceptSocket = socket;
+            //2. buffer 
+            connSession = new MySqlConnectionSession(saea, 1024, 1024);
+            saea.UserToken = connSession;
+            saea.AcceptSocket = socket;
 
             var endPoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             //first connect 

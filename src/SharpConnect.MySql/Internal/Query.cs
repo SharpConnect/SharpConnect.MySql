@@ -738,8 +738,6 @@ namespace MySqlPacket
         long packetLength;
         Encoding encoding = Encoding.UTF8;
 
-
-
         public PacketParser(Encoding encoding)
         {
             this.encoding = encoding;
