@@ -64,8 +64,11 @@ namespace MySqlPacket
         public abstract void WritePacket(PacketWriter writer);
     }
 
+
     class ClientAuthenticationPacket : Packet
     {
+
+
         public uint clientFlags;
         public uint maxPacketSize;
         public byte charsetNumber;
