@@ -264,10 +264,10 @@ namespace MySqlPacket
             //socket.Disconnect(false);
             //this.Disconnect(); 
             //TODO: review here !
-            sql = "KILL " + conn.threadId;
-            SendQuery(sql);
             if (hasSomeRow)
             {
+                sql = "KILL " + conn.threadId;
+                SendQuery(sql);
                 conn.ClearRemainingInputBuffer();
             }
 
