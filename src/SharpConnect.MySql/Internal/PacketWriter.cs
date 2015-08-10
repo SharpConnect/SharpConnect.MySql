@@ -42,7 +42,7 @@ namespace MySqlPacket
         long maxAllowedLength = MAX_PACKET_LENGTH;
         Encoding encoding;
 
-        byte[] headerBuffer = new byte[4];//reuseable header buffer
+        byte[] headerBuffer = new byte[4];//reusable header buffer
 
         public PacketWriter(Encoding encoding)
         {
@@ -117,6 +117,8 @@ namespace MySqlPacket
             }
             else
             {
+                //TODO: review here***
+
                 //>1 
                 //  this._buffer = new Buffer(this._buffer.length + packets * 4);
                 //  for (var packet = 0; packet < packets; packet++) { 
@@ -126,6 +128,7 @@ namespace MySqlPacket
                 byte startPacketNum = header.PacketNumber;
                 byte[] currentPacketBuff = new byte[maxPacketLength];
                 byte[] allBuffer = new byte[(curPacketLength - 4) + (packets * 4)];
+
                 for (int packet = 0; packet < packets; packet++)
                 {
                     //    this._offset = packet * (MAX_PACKET_LENGTH + 4);
@@ -182,7 +185,28 @@ namespace MySqlPacket
             WriteBuffer(value);
             WriteFiller(1);
         }
-
+        public void WriteUnsigned1(uint value)
+        {
+            writer.Write((byte)(value & 0xff));
+        }
+        public void WriteUnsigned2(uint value)
+        {
+            writer.Write((byte)(value & 0xff));
+            writer.Write((byte)((value >> 8) & 0xff));
+        }
+        public void WriteUnsigned3(uint value)
+        {
+            writer.Write((byte)(value & 0xff));
+            writer.Write((byte)((value >> 8) & 0xff));
+            writer.Write((byte)((value >> 16) & 0xff));
+        }
+        public void WriteUnsigned4(uint value)
+        {
+            writer.Write((byte)(value & 0xff));
+            writer.Write((byte)((value >> 8) & 0xff));
+            writer.Write((byte)((value >> 16) & 0xff));
+            writer.Write((byte)((value >> 24) & 0xff));
+        }
         public void WriteUnsignedNumber(int length, uint value)
         {
             switch (length)
@@ -211,30 +235,29 @@ namespace MySqlPacket
                     writer.Write((byte)((value >> 24) & 0xff));
                     break;
                 case 5:
-
-                    //?  not possible?
-                    byte[] tempBuff = new byte[length];
-                    for (var i = 0; i < length; i++)
-                    {
-                        tempBuff[i] = (byte)((value >> (i * 8)) & 0xff);
-                    }
-                    writer.Write(tempBuff);
-                    break;
-
-            }
-
-        }
-
-        static void EncodeUnsignedNumber(byte[] outputBuffer, int start, int length, uint value)
-        {
-            int lim = start + length;
-            for (var i = start; i < lim; i++)
-            {
-                outputBuffer[i] = (byte)((value >> (i * 8)) & 0xff);
+                    throw new NotSupportedException();
+                    ////?  not possible?
+                    //byte[] tempBuff = new byte[length];
+                    //for (var i = 0; i < length; i++)
+                    //{
+                    //    tempBuff[i] = (byte)((value >> (i * 8)) & 0xff);
+                    //}
+                    //writer.Write(tempBuff);
+                    //break;
             }
         }
+
+        //static void EncodeUnsignedNumber(byte[] outputBuffer, int start, int length, uint value)
+        //{
+        //    int lim = start + length;
+        //    for (var i = start; i < lim; i++)
+        //    {
+        //        outputBuffer[i] = (byte)((value >> (i * 8)) & 0xff);
+        //    }
+        //}
         static void EncodeUnsignedNumber0_3(byte[] outputBuffer, uint value)
         {
+
             //start at 0
             //length= 3
             outputBuffer[0] = (byte)(value & 0xff);
@@ -364,8 +387,11 @@ namespace MySqlPacket
 
             //var bytes = Buffer.byteLength(value, 'utf-8');
             //this.writeLengthCodedNumber(bytes);
+
+            //TODO: review here , always UTF8 ?
             byte[] buff = Encoding.UTF8.GetBytes(value);
             WriteLengthCodedNumber(buff.Length);
+
             //if (!bytes) {
             //  return;
             //}
@@ -434,11 +460,7 @@ namespace MySqlPacket
             writer.Write(value);
             offset += 2;
         }
-        public void Write(char[] chars)
-        {
-            byte[] bytes = Encoding.UTF8.GetBytes(chars);
-            Write(bytes);
-        }
+
         public void Reset()
         {
             writer.BaseStream.Position = 0;

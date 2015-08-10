@@ -104,9 +104,9 @@ namespace MySqlPacket
                     }
                     writer.Reset();
                     GetMaxAllowedPacket();
-                    if (MAX_ALLOWED_PACKET > 0)
+                    if (maxPacketSize > 0)
                     {
-                        writer.SetMaxAllowedPacket(MAX_ALLOWED_PACKET);
+                        writer.SetMaxAllowedPacket(maxPacketSize);
                     }
 
                     if (connHandler != null)

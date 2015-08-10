@@ -109,8 +109,8 @@ namespace MySqlPacket
             ParsePacketHeader(parser);
             if (this.protocol41)
             {
-                this.clientFlags = parser.ParseUnsignedNumber(4);
-                this.maxPacketSize = parser.ParseUnsignedNumber(4);
+                this.clientFlags = parser.ParseUnsigned4(); //4
+                this.maxPacketSize = parser.ParseUnsigned4(); //4 
                 this.charsetNumber = parser.ParseByte();
 
                 parser.ParseFiller(23);
@@ -120,8 +120,8 @@ namespace MySqlPacket
             }
             else
             {
-                this.clientFlags = parser.ParseUnsignedNumber(2);
-                this.maxPacketSize = parser.ParseUnsignedNumber(3);
+                this.clientFlags = parser.ParseUnsigned2();//2
+                this.maxPacketSize = parser.ParseUnsigned3();//3
                 this.user = parser.ParseNullTerminatedString();
                 this.scrambleBuff = parser.ParseBuffer(8);
                 this.database = parser.ParseLengthCodedString();
@@ -133,9 +133,9 @@ namespace MySqlPacket
             writer.ReserveHeader();//allocate header
             if (protocol41)
             {
-                writer.WriteUnsignedNumber(4, this.clientFlags);
-                writer.WriteUnsignedNumber(4, this.maxPacketSize);
-                writer.WriteUnsignedNumber(1, this.charsetNumber);
+                writer.WriteUnsigned4(this.clientFlags);
+                writer.WriteUnsigned4(this.maxPacketSize);
+                writer.WriteUnsigned1(this.charsetNumber);
                 writer.WriteFiller(23);
                 writer.WriteNullTerminatedString(this.user);
                 writer.WriteLengthCodedBuffer(this.scrambleBuff);
@@ -143,8 +143,8 @@ namespace MySqlPacket
             }
             else
             {
-                writer.WriteUnsignedNumber(2, this.clientFlags);
-                writer.WriteUnsignedNumber(3, this.maxPacketSize);
+                writer.WriteUnsigned2(this.clientFlags);
+                writer.WriteUnsigned3(this.maxPacketSize);
                 writer.WriteNullTerminatedString(this.user);
                 writer.WriteBuffer(this.scrambleBuff);
                 if (this.database != null && this.database.Length > 0)
@@ -173,7 +173,7 @@ namespace MySqlPacket
         {
             //parser = new PacketParser(stream);
             ParsePacketHeader(parser);
-            this.command = parser.ParseUnsignedNumber(1);
+            this.command = parser.ParseUnsigned1();//1
             this.sql = parser.ParsePacketTerminatedString();
         }
 
@@ -204,7 +204,7 @@ namespace MySqlPacket
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-            writer.WriteUnsignedNumber(1, QUIT_CMD);
+            writer.WriteUnsigned1(QUIT_CMD);
             header = new PacketHeader((uint)writer.Length, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
         }
@@ -228,8 +228,8 @@ namespace MySqlPacket
             this.fieldCount = parser.ParseByte();
             if (this.protocol41)
             {
-                this.warningCount = parser.ParseUnsignedNumber(2);
-                this.serverStatus = parser.ParseUnsignedNumber(2);
+                this.warningCount = parser.ParseUnsigned2();//2
+                this.serverStatus = parser.ParseUnsigned2();//2
             }
         }
 
@@ -237,11 +237,11 @@ namespace MySqlPacket
         {
             writer.ReserveHeader();//allocate packet header
 
-            writer.WriteUnsignedNumber(1, 0xfe);
+            writer.WriteUnsigned1(0xfe);
             if (this.protocol41)
             {
-                writer.WriteUnsignedNumber(2, this.warningCount);
-                writer.WriteUnsignedNumber(2, this.serverStatus);
+                writer.WriteUnsigned2(this.warningCount);
+                writer.WriteUnsigned2(this.serverStatus);
             }
 
             header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
@@ -262,7 +262,7 @@ namespace MySqlPacket
             ParsePacketHeader(parser);
 
             fieldCount = parser.ParseByte();
-            errno = parser.ParseUnsignedNumber(2);
+            errno = parser.ParseUnsigned2();//2
 
             if (parser.Peak() == 0x23)
             {
@@ -322,10 +322,10 @@ namespace MySqlPacket
                     throw new Exception("Received invalid field length");
                 }
 
-                this.charsetNr = parser.ParseUnsignedNumber(2);
-                this.length = parser.ParseUnsignedNumber(4);
+                this.charsetNr = parser.ParseUnsigned2();//2
+                this.length = parser.ParseUnsigned4();//4
                 this.type = parser.ParseByte();
-                this.flags = parser.ParseUnsignedNumber(2);
+                this.flags = parser.ParseUnsigned2();//2
                 this.decimals = parser.ParseByte();
 
                 this.filler = parser.ParseBuffer(2);
@@ -392,19 +392,19 @@ namespace MySqlPacket
         {
             ParsePacketHeader(parser);
 
-            protocolVersion = parser.ParseUnsignedNumber(1);
+            protocolVersion = parser.ParseUnsigned1();//1
             serverVertion = parser.ParseNullTerminatedString();
-            threadId = parser.ParseUnsignedNumber(4);
+            threadId = parser.ParseUnsigned4();//4
             scrambleBuff1 = parser.ParseBuffer(8);
             filler1 = parser.ParseByte();
-            serverCapabilities1 = parser.ParseUnsignedNumber(2);
+            serverCapabilities1 = parser.ParseUnsigned2();//2
             serverLanguage = parser.ParseByte();
-            serverStatus = parser.ParseUnsignedNumber(2);
+            serverStatus = parser.ParseUnsigned2();//2
 
             protocol41 = (serverCapabilities1 & (1 << 9)) > 0;
             if (protocol41)
             {
-                serverCapabilities2 = parser.ParseUnsignedNumber(2);
+                serverCapabilities2 = parser.ParseUnsigned2();
                 scrambleLength = parser.ParseByte();
                 filler2 = parser.ParseBuffer(10);
 
@@ -471,7 +471,7 @@ namespace MySqlPacket
         {
             ParsePacketHeader(parser);
 
-            fieldCount = parser.ParseUnsignedNumber(1);
+            fieldCount = parser.ParseUnsigned1();
             affectedRows = parser.ParseLengthCodedNumber();
             insertId = parser.ParseLengthCodedNumber();
 
@@ -487,8 +487,8 @@ namespace MySqlPacket
             //this.changedRows = 0;
             if (protocol41)
             {
-                serverStatus = parser.ParseUnsignedNumber(2);
-                warningCount = parser.ParseUnsignedNumber(2);
+                serverStatus = parser.ParseUnsigned2();
+                warningCount = parser.ParseUnsigned2();
             }
             message = parser.ParsePacketTerminatedString();
             //var m = this.message.match(/\schanged:\s * (\d +) / i);

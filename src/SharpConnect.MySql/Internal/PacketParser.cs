@@ -37,6 +37,7 @@ namespace MySqlPacket
         long startPosition;
         long packetLength;
         Encoding encoding = Encoding.UTF8;
+        List<byte> bList = new List<byte>();
 
         public PacketParser(Encoding encoding)
         {
@@ -87,7 +88,7 @@ namespace MySqlPacket
 
         public string ParseNullTerminatedString()
         {
-            List<byte> bList = new List<byte>();
+            bList.Clear();
             byte temp = reader.ReadByte();
             bList.Add(temp);
             while (temp != 0)
@@ -101,15 +102,15 @@ namespace MySqlPacket
 
         public byte[] ParseNullTerminatedBuffer()
         {
-            List<byte> list = new List<byte>();
+            bList.Clear();
             var temp = reader.ReadByte();
-            list.Add(temp);
+            bList.Add(temp);
             while (temp != 0x00)
             {
                 temp = reader.ReadByte();
-                list.Add(temp);
+                bList.Add(temp);
             }
-            return list.ToArray();
+            return bList.ToArray();
         }
 
         public byte ParseByte()
@@ -128,7 +129,7 @@ namespace MySqlPacket
         public PacketHeader ParsePacketHeader()
         {
             startPosition = stream.Position;
-            PacketHeader header = new PacketHeader(ParseUnsignedNumber(3), ParseByte());
+            PacketHeader header = new PacketHeader(ParseUnsigned3(), ParseByte());
             packetLength = header.Length + 4;
             return header;
         }
@@ -207,16 +208,16 @@ namespace MySqlPacket
             switch (bits)
             {
                 case 251: return 0;
-                case 252: return this.ParseUnsignedNumber(2);
-                case 253: return this.ParseUnsignedNumber(3);
+                case 252: return this.ParseUnsigned2();
+                case 253: return this.ParseUnsigned3();
                 case 254: break;
                 default: throw new Exception("Unexpected first byte");
             }
             //    var low = this.parseUnsignedNumber(4);
             //    var high = this.parseUnsignedNumber(4);
             //    var value;
-            uint low = this.ParseUnsignedNumber(4);
-            uint high = this.ParseUnsignedNumber(4);
+            uint low = this.ParseUnsigned4();
+            uint high = this.ParseUnsigned4();
             return 0;
             //    if (high >>> 21)
             //    {
@@ -241,16 +242,73 @@ namespace MySqlPacket
             //    return value;
         }
 
+        public byte ParseUnsigned1()
+        {
+            return reader.ReadByte();
+        }
+        public uint ParseUnsigned2()
+        {
+
+            uint b0 = reader.ReadByte(); //low bit
+            uint b1 = reader.ReadByte(); //high bit
+
+            return (b1 << 8) | (b0);
+        }
+        public uint ParseUnsigned3()
+        {
+            uint b0 = reader.ReadByte(); //low bit
+            uint b1 = reader.ReadByte();
+            uint b2 = reader.ReadByte(); //high bit
+
+
+            return (b2 << 16) | (b1 << 8) | (b0);
+        }
+        public uint ParseUnsigned4()
+        {
+            uint b0 = reader.ReadByte(); //low bit
+            uint b1 = reader.ReadByte();
+            uint b2 = reader.ReadByte();
+            uint b3 = reader.ReadByte(); //high bit
+
+            return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
+        }
         public uint ParseUnsignedNumber(int n)
         {
+            switch (n)
+            {
+                case 0: throw new NotSupportedException();
+                case 1: return reader.ReadByte();
+                case 2:
+                    {
+                        uint b0 = reader.ReadByte(); //low bit
+                        uint b1 = reader.ReadByte(); //high bit
+                        return (b1 << 8) | (b0);
+                    }
+                case 3:
+                    {
+                        uint b0 = reader.ReadByte(); //low bit
+                        uint b1 = reader.ReadByte();
+                        uint b2 = reader.ReadByte(); //high bit
+
+                        return (b2 << 16) | (b1 << 8) | (b0);
+                    }
+                case 4:
+                    {
+                        uint b0 = reader.ReadByte(); //low bit
+                        uint b1 = reader.ReadByte();
+                        uint b2 = reader.ReadByte();
+                        uint b3 = reader.ReadByte(); //high bit
+                        return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
+                    }
+                default:
+                    throw new Exception("parseUnsignedNumber: Supports only up to 4 bytes");
+
+            }
             //if (bytes === 1)
             //{
             //    return this._buffer[this._offset++];
             //}
-            if (n == 1)
-            {
-                return reader.ReadByte();
-            }
+
             //var buffer = this._buffer;
             //var offset = this._offset + bytes - 1;
             //var value = 0;
@@ -262,36 +320,21 @@ namespace MySqlPacket
             //    err.code = 'PARSER_UNSIGNED_TOO_LONG';
             //    throw err;
             //}
-            if (n > 4)
-            {
-                throw new Exception("parseUnsignedNumber: Supports only up to 4 bytes");
-            }
 
-            long start = Position;
-            long end = start + n - 1;
+
+            //long start = Position;
+            //long end = start + n - 1;
 
             //while (offset >= this._offset)
             //{
             //    value = ((value << 8) | buffer[offset]) >>> 0;
             //    offset--;
             //}
-            byte[] temp = new byte[n];
-            uint value = 0;
-            for (int i = n - 1; i >= 0; i--)
-            {
-                temp[i] = reader.ReadByte();
-                value = temp[i];
-            }
-            for (int i = 0; i < n; i++)
-            {
-                value = value | temp[i];
-                if (i < n - 1)
-                    value = value << 8;
-            }
+
 
             //this._offset += bytes;
             //return value;
-            return value;
+            //return value;
         }
 
         public string ParsePacketTerminatedString()
