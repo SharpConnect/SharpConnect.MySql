@@ -53,8 +53,7 @@ namespace MySqlPacket
             //first connect 
             socket.Connect(endPoint);
             connSession.StartReceive(recv =>
-            {
-
+            {  
 
                 //TODO: review here, don't copy, 
                 //we should use shared sockBuffer 
@@ -64,7 +63,7 @@ namespace MySqlPacket
                 recv.CopyTo(0, buffer, 0, recv.BytesTransferred);
                 parser.LoadNewBuffer(buffer, count);
                 handshake = new HandshakePacket();
-                handshake.ParsePacket(parser);
+                handshake.ParsePacket(parser); 
                 this.threadId = handshake.threadId;
 
                 byte[] token = MakeToken(config.password,
@@ -73,7 +72,7 @@ namespace MySqlPacket
                 writer.Reset();
                 writer.IncrementPacketNumber();
                 //------------------------------------------
-                authPacket = new ClientAuthenticationPacket();
+                var authPacket = new ClientAuthenticationPacket();
                 authPacket.SetValues(config.user, token, config.database, handshake.protocol41);
                 authPacket.WritePacket(writer);
 

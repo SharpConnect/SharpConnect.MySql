@@ -52,14 +52,15 @@ namespace MySqlPacket
     {
         public ConnectionConfig config;
 
-        //public Object protocol;
+
         public bool connectionCall;
         public ConnectionState state;
         public uint threadId;
+        HandshakePacket handshake;
 
         public Socket socket;
-        HandshakePacket handshake;
-        ClientAuthenticationPacket authPacket;
+
+
         Query query;
 
         PacketParser parser;
@@ -97,23 +98,30 @@ namespace MySqlPacket
                     parser = new PacketParser(Encoding.ASCII);
                     writer = new PacketWriter(Encoding.ASCII);
                     break;
+                default:
+                    throw new NotImplementedException();
             }
         }
 
         public void Connect()
         {
-            var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
+            if (state == ConnectionState.Connected)
+            {
+                throw new NotSupportedException("already connected");
+            }
 
+            var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             socket.Connect(endpoint);
+            state = ConnectionState.Connected;
 
             byte[] buffer = new byte[512];
             int count = socket.Receive(buffer);
-            if (count < 512)
+            if (count > 0)
             {
                 writer.Reset();
                 parser.LoadNewBuffer(buffer, count);
                 handshake = new HandshakePacket();
-                handshake.ParsePacket(parser);
+                handshake.ParsePacket(parser); 
                 this.threadId = handshake.threadId;
 
                 byte[] token = MakeToken(config.password,
@@ -122,7 +130,7 @@ namespace MySqlPacket
                 writer.IncrementPacketNumber();
 
                 //------------------------------------------
-                authPacket = new ClientAuthenticationPacket();
+                var authPacket = new ClientAuthenticationPacket();
                 authPacket.SetValues(config.user, token, config.database, handshake.protocol41);
                 authPacket.WritePacket(writer);
 
@@ -284,8 +292,7 @@ namespace MySqlPacket
             byte[] combineFor3 = ConcatBuffer(scramble, stage2);
             byte[] stage3 = sha.ComputeHash(combineFor3);
 
-            var final = xor(stage3, stage1);
-            return final;
+            return xor(stage3, stage1);
         }
 
         static byte[] ConcatBuffer(byte[] a, byte[] b)
@@ -298,8 +305,8 @@ namespace MySqlPacket
 
         static byte[] xor(byte[] a, byte[] b)
         {
-            var result = new byte[a.Length];
             int j = a.Length;
+            var result = new byte[j];
             for (int i = 0; i < j; ++i)
             {
                 result[i] = (byte)(a[i] ^ b[i]);
