@@ -65,10 +65,14 @@ namespace MySqlPacket
         PacketParser parser;
         PacketWriter writer;
 
+        //TODO: review how to clear remaining buffer again
         byte[] tmpForClearRecvBuffer; //for clear buffer 
 
+        /// <summary>
+        /// max allowed packet size
+        /// </summary>
+        long maxPacketSize = 0;
 
-        long MAX_ALLOWED_PACKET = 0; //TODO: rename 
         public Connection(ConnectionConfig userConfig)
         {
             this.config = userConfig;
@@ -143,9 +147,9 @@ namespace MySqlPacket
                 }
                 writer.Reset();
                 GetMaxAllowedPacket();
-                if (MAX_ALLOWED_PACKET > 0)
+                if (maxPacketSize > 0)
                 {
-                    writer.SetMaxAllowedPacket(MAX_ALLOWED_PACKET);
+                    writer.SetMaxAllowedPacket(maxPacketSize);
                 }
 
             }
@@ -170,7 +174,7 @@ namespace MySqlPacket
                 int i = 0;
                 if (query.ReadRow())
                 {
-                    MAX_ALLOWED_PACKET = query.GetFieldData(0).myLong;
+                    maxPacketSize = query.GetFieldData(0).myLong;
                     //MAX_ALLOWED_PACKET = query.resultSet.rows[0].GetDataInField("@@global.max_allowed_packet").myLong;
                     //dbugConsole.WriteLine("Rows Data " + i + " : " + query.resultSet.rows[i++]);
                 }
@@ -195,9 +199,9 @@ namespace MySqlPacket
             //    CreateNewSocket();
             //}
             var query = new Query(this, sql, values);
-            if (MAX_ALLOWED_PACKET > 0)
+            if (maxPacketSize > 0)
             {
-                query.SetMaxSend(MAX_ALLOWED_PACKET);
+                query.SetMaxSend(maxPacketSize);
             }
             return query;
         }

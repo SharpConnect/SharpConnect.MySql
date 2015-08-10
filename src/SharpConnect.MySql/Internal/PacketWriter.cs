@@ -117,6 +117,8 @@ namespace MySqlPacket
             }
             else
             {
+                //TODO: review here***
+
                 //>1 
                 //  this._buffer = new Buffer(this._buffer.length + packets * 4);
                 //  for (var packet = 0; packet < packets; packet++) { 
@@ -126,6 +128,7 @@ namespace MySqlPacket
                 byte startPacketNum = header.PacketNumber;
                 byte[] currentPacketBuff = new byte[maxPacketLength];
                 byte[] allBuffer = new byte[(curPacketLength - 4) + (packets * 4)];
+
                 for (int packet = 0; packet < packets; packet++)
                 {
                     //    this._offset = packet * (MAX_PACKET_LENGTH + 4);
