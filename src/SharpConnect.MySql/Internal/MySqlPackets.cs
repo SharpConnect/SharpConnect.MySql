@@ -747,6 +747,7 @@ namespace MySqlPacket
                 case Types.LONG:
                 case Types.INT24:
                 case Types.YEAR:
+
                     //TODO: review here,                    
                     data.myString = numberString = parser.ParseLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0') || numberString.Length == 0)
@@ -784,7 +785,7 @@ namespace MySqlPacket
                     //        ? numberString
                     //        : Number(numberString));
                     data.myString = numberString = parser.ParseLengthCodedString();
-                    long tmpInt64 = 0;
+
 
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
@@ -823,7 +824,7 @@ namespace MySqlPacket
                 case Types.MEDIUM_BLOB:
                 case Types.LONG_BLOB:
                 case Types.BLOB:
-                    if (fieldPacket.charsetNr == CharSets.BINARY)
+                    if (fieldPacket.charsetNr == (int)CharSets.BINARY)
                     {
                         data.myBuffer = parser.ParseLengthCodedBuffer(); //CodedBuffer
                         data.type = type;

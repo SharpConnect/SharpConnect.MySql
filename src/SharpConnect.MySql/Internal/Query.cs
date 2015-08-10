@@ -305,6 +305,7 @@ namespace MySqlPacket
             int send = socket.Send(writer.ToArray());
         }
 
+
         byte[] CheckLimit(uint packetLength, byte[] buffer, int limit)
         {
             int remainLength = (int)(parser.Length - parser.Position);
@@ -354,6 +355,7 @@ namespace MySqlPacket
                         {
                             if (newReceive + newIndex + remainLength > newBufferLength)
                             {
+                                //TODO: review here again about alloc byte buffer and copy buffer
                                 temp = new byte[newReceive];
                                 temp = CopyBufferBlock(receiveBuff, 0, newReceive);
                                 byte[] bytes;// = new byte[newReceive + newIndex];
@@ -365,6 +367,7 @@ namespace MySqlPacket
                             }
                             else
                             {
+                                //TODO: review here again about alloc byte buffer and copy buffer
                                 temp = new byte[newReceive];
                                 temp = CopyBufferBlock(receiveBuff, 0, newReceive);
                                 temp.CopyTo(buffer, remainLength + newIndex);
@@ -387,7 +390,8 @@ namespace MySqlPacket
             return buffer;
         }
 
-        byte[] CopyBufferBlock(byte[] inputBuffer, int start, int length)
+
+        static byte[] CopyBufferBlock(byte[] inputBuffer, int start, int length)
         {
 
             byte[] outputBuff = new byte[length];
@@ -402,6 +406,7 @@ namespace MySqlPacket
 
         byte[] CheckBeforeParseHeader(byte[] buffer, int position, int limit)
         {
+            //todo: check memory mx again
             int remainLength = (int)parser.Length - position;
             if (remainLength < 5)//5 bytes --> 4 bytes from header and 1 byte for find packet type
             {
