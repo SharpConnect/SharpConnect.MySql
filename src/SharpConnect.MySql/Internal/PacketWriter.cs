@@ -232,15 +232,15 @@ namespace MySqlPacket
                     writer.Write((byte)((value >> 24) & 0xff));
                     break;
                 case 5:
-
-                    //?  not possible?
-                    byte[] tempBuff = new byte[length];
-                    for (var i = 0; i < length; i++)
-                    {
-                        tempBuff[i] = (byte)((value >> (i * 8)) & 0xff);
-                    }
-                    writer.Write(tempBuff);
-                    break;
+                    throw new NotSupportedException();
+                    ////?  not possible?
+                    //byte[] tempBuff = new byte[length];
+                    //for (var i = 0; i < length; i++)
+                    //{
+                    //    tempBuff[i] = (byte)((value >> (i * 8)) & 0xff);
+                    //}
+                    //writer.Write(tempBuff);
+                    //break;
             }
         }
 
@@ -384,8 +384,11 @@ namespace MySqlPacket
 
             //var bytes = Buffer.byteLength(value, 'utf-8');
             //this.writeLengthCodedNumber(bytes);
+
+            //TODO: review here , always UTF8 ?
             byte[] buff = Encoding.UTF8.GetBytes(value);
             WriteLengthCodedNumber(buff.Length);
+
             //if (!bytes) {
             //  return;
             //}
@@ -454,7 +457,7 @@ namespace MySqlPacket
             writer.Write(value);
             offset += 2;
         }
-        
+
         public void Reset()
         {
             writer.BaseStream.Position = 0;
