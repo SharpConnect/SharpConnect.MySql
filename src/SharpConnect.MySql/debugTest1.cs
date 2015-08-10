@@ -85,10 +85,17 @@ namespace SharpConnect.MySql
                 else
                 {
 
+                    int col_idsaveImage = query.GetColumnIndex("idsaveImage");
+                    int col_saveImageCol = query.GetColumnIndex("saveImagecol");
+                    if (col_idsaveImage < 0 || col_saveImageCol < 0)
+                    {
+                        throw new Exception();
+                    }
                     while (query.ReadRow() && j < 3)
                     {
-                        Console.WriteLine(query.GetFieldData("idsaveImage"));
-                        Console.WriteLine(query.GetFieldData("saveImagecol"));
+
+                        Console.WriteLine(query.Cells[col_idsaveImage]);
+                        Console.WriteLine(query.Cells[col_saveImageCol]);
                         //Console.WriteLine(query.GetFieldData("myusercol1"));
                         j++;
                     }

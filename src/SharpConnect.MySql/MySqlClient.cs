@@ -120,7 +120,7 @@ namespace SharpConnect.MySql
         {
             var parameters = new CommandParameters();
             query = Connection.Conn.CreateQuery(this.CommandText, parameters);
-            query.ExecuteQuery(); 
+            query.ExecuteQuery();
         }
 
     }
@@ -157,10 +157,70 @@ namespace SharpConnect.MySql
         {
             return query.ReadRow();
         }
+
+        public sbyte GetInt8(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return query.Cells[colIndex].mySByte;
+        }
+        public byte GetUInt8(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return query.Cells[colIndex].myByte;
+        }
+        public short GetInt16(int colIndex)
+        {   //TODO: check match type and check index here
+            return query.Cells[colIndex].myInt16;
+        }
+        public ushort GetUInt16(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return query.Cells[colIndex].myUInt16;
+        }
+
+        public int GetInt32(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return query.Cells[colIndex].myInt32;
+        }
+        public uint GetUInt32(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return query.Cells[colIndex].myUInt32;
+        }
+        public long GetLong(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return query.Cells[colIndex].myInt64;
+        }
+        public ulong GetULong(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return query.Cells[colIndex].myUInt64;
+        }
+        public decimal GetDecimal(int colIndex)
+        {
+            //TODO: check match type and index here
+            return query.Cells[colIndex].myDecimal;
+        }
+        public string GetString(int colIndex)
+        {
+            //TODO: check match type and index here
+            return query.Cells[colIndex].myString;
+        }
+        public byte[] GetBuffer(int colIndex)
+        {
+            //TODO: check match type and index here
+            return query.Cells[colIndex].myBuffer;
+        }
+
         public DateTime GetDateTime(int colIndex)
         {
-            return query.GetFieldData(colIndex).myDateTime;
+            //TODO: check match type and check index here
+            return query.Cells[colIndex].myDateTime;
         }
+
+
         public void Close()
         {
             query.Close();

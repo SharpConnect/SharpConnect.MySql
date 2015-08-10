@@ -233,15 +233,20 @@ namespace MySqlPacket
             }
         }
 
-        public MyStructData GetFieldData(string fieldName)
+
+
+        internal MyStructData[] Cells
         {
-            return lastRow.GetDataInField(fieldName);
-        }
-        public MyStructData GetFieldData(int fieldIndex)
-        {
-            return lastRow.GetDataInField(fieldIndex);
+            get
+            {
+                return lastRow.Cells;
+            }
         }
 
+        public int GetColumnIndex(string colName)
+        {
+            return this.tableHeader.GetFieldIndex(colName);
+        }
         public void Close()
         {
             //sql = "RESET QUERY CACHE";//not work
@@ -713,8 +718,6 @@ namespace MySqlPacket
                     fieldNamePosMap.Add(fields[i].name, i);
                 }
             }
-
-
             int found;
             if (!fieldNamePosMap.TryGetValue(fieldName, out found))
             {
@@ -730,9 +733,9 @@ namespace MySqlPacket
 
 
 
-  
 
-     
 
- 
+
+
+
 }

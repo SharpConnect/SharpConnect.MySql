@@ -551,7 +551,8 @@ namespace MySqlPacket
         MyStructData[] myDataList;
         TableHeader tableHeader;
         ConnectionConfig config;
-
+        StringBuilder stbuilder = new StringBuilder();
+        bool isLocalTimeZone;
         const long IEEE_754_BINARY_64_PRECISION = (long)1 << 53;
 
         public RowDataPacket(TableHeader tableHeader)
@@ -559,6 +560,8 @@ namespace MySqlPacket
             this.tableHeader = tableHeader;
             myDataList = new MyStructData[tableHeader.ColumnCount];
             config = tableHeader.ConnConfig;
+            isLocalTimeZone = config.timezone.Equals("local");
+
         }
         public void ReuseSlots()
         {
@@ -600,7 +603,7 @@ namespace MySqlPacket
             {
                 for (int i = 0; i < j; i++)
                 {
-                    TypeCast(parser, fieldInfos[i], ref myDataList[i]);
+                    ReadCellWithTypeCast(parser, fieldInfos[i], ref myDataList[i]);
                 }
             }
             else
@@ -614,7 +617,7 @@ namespace MySqlPacket
                     // MyStructData value;
                     if (typeCast)
                     {
-                        TypeCast(parser, fieldInfos[i], ref myDataList[i]);
+                        ReadCellWithTypeCast(parser, fieldInfos[i], ref myDataList[i]);
                     }
                     else if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
                     {
@@ -676,9 +679,15 @@ namespace MySqlPacket
 
         }
 
-        void TypeCast(PacketParser parser, FieldPacket fieldPacket, ref MyStructData data)
+        /// <summary>
+        /// read a data cell with type cast
+        /// </summary>
+        /// <param name="parser"></param>
+        /// <param name="fieldPacket"></param>
+        /// <param name="data"></param>
+        void ReadCellWithTypeCast(PacketParser parser, FieldPacket fieldPacket, ref MyStructData data)
         {
-            //var numberString;
+
             string numberString;
             Types type = (Types)fieldPacket.type;
             switch (type)
@@ -687,7 +696,8 @@ namespace MySqlPacket
                 case Types.DATE:
                 case Types.DATETIME:
                 case Types.NEWDATE:
-                    StringBuilder strBuilder = new StringBuilder();
+
+                    stbuilder.Length = 0;//clear
                     string dateString = parser.ParseLengthCodedString();
                     if (config.dateStrings)
                     {
@@ -707,28 +717,27 @@ namespace MySqlPacket
                     //    if (field.type === Types.DATE) {
                     //      dateString += ' 00:00:00';
                     //    }
-                    strBuilder.Append(dateString);
-                    string originalString = dateString;
+                    stbuilder.Append(dateString);
+                    //string originalString = dateString;
                     if (fieldPacket.type == (int)Types.DATE)
                     {
-                        strBuilder.Append(" 00:00:00");
+                        stbuilder.Append(" 00:00:00");
                     }
                     //    if (timeZone !== 'local') {
                     //      dateString += ' ' + timeZone;
                     //    }
-                    //TODO: review here
-                    if (!config.timezone.Equals("local"))
+
+                    if (!isLocalTimeZone)
                     {
-                        strBuilder.Append(' ' + config.timezone);
+                        stbuilder.Append(' ' + config.timezone);
                     }
                     //var dt;
                     //    dt = new Date(dateString);
                     //    if (isNaN(dt.getTime())) {
                     //      return originalString;
                     //    }
-                    DateTime dt = DateTime.Parse(strBuilder.ToString());
-                    //return new FieldData<DateTime>(type, dt);
-                    data.myDateTime = dt;
+
+                    data.myDateTime = DateTime.Parse(stbuilder.ToString());
                     data.type = type;
                     return;
                 case Types.TINY:
@@ -736,16 +745,15 @@ namespace MySqlPacket
                 case Types.LONG:
                 case Types.INT24:
                 case Types.YEAR:
+                    //TODO: review here,                    
                     numberString = parser.ParseLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0') || numberString.Length == 0)
                     {
-                        //return new FieldData<string>(type, numberString);
                         data.myString = numberString;
                         data.type = Types.NULL;
                     }
                     else
                     {
-                        //return new FieldData<int>(type, Convert.ToInt32(numberString));
                         data.myInt32 = Convert.ToInt32(numberString);
                         data.type = type;
                     }
@@ -755,13 +763,11 @@ namespace MySqlPacket
                     numberString = parser.ParseLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
-                        //return new FieldData<string>(type, numberString);
                         data.myString = numberString;
                         data.type = Types.NULL;
                     }
                     else
                     {
-                        //return new FieldData<double>(type, Convert.ToDouble(numberString));
                         data.myDouble = Convert.ToDouble(numberString);
                         data.type = type;
                     }
@@ -779,20 +785,19 @@ namespace MySqlPacket
                     numberString = parser.ParseLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
-                        //return new FieldData<string>(type, numberString);
+
                         data.myString = numberString;
                         data.type = Types.NULL;
                     }
                     else if (config.supportBigNumbers && (config.bigNumberStrings || (Convert.ToInt64(numberString) > IEEE_754_BINARY_64_PRECISION)))
                     {
-                        //return new FieldData<string>(type, numberString);
+
                         data.myString = numberString;
                         data.type = type;
                     }
                     else if (type == Types.LONGLONG)
                     {
-                        //return new FieldData<long>(type, Convert.ToInt64(numberString));
-                        data.myLong = Convert.ToInt64(numberString);
+                        data.myInt64 = Convert.ToInt64(numberString);
                         data.type = type;
                     }
                     else//decimal
@@ -802,7 +807,7 @@ namespace MySqlPacket
                     }
                     return;
                 case Types.BIT:
-                    //return new FieldData<byte[]>(type, parser.ParseLengthCodedBuffer());
+
                     data.myBuffer = parser.ParseLengthCodedBuffer();
                     data.type = type;
                     return;
@@ -815,14 +820,13 @@ namespace MySqlPacket
                 case Types.BLOB:
                     if (fieldPacket.charsetNr == (int)CharSets.BINARY)
                     {
-                        //return new FieldData<byte[]>(type, parser.ParseNullTerminatedBuffer());
-                        data.myBuffer = parser.ParseLengthCodedBuffer();
+                        data.myBuffer = parser.ParseLengthCodedBuffer(); //CodedBuffer
                         data.type = type;
                     }
                     else
                     {
-                        //return new FieldData<string>(type, parser.ParseLengthCodedString());
-                        data.myString = parser.ParseLengthCodedString();
+
+                        data.myString = parser.ParseLengthCodedString();//codeString
                         data.type = type;
                     }
                     return;
@@ -830,11 +834,9 @@ namespace MySqlPacket
                 //      ? parser.parseLengthCodedBuffer()
                 //      : parser.parseLengthCodedString();
                 case Types.GEOMETRY:
-                    //    return parser.parseGeometryValue();
                     data.type = Types.GEOMETRY;
                     return;
                 default:
-                    //return new FieldData<string>(type, parser.ParseLengthCodedString());
                     data.myString = parser.ParseLengthCodedString();
                     data.type = type;
                     return;
@@ -870,36 +872,11 @@ namespace MySqlPacket
 
         }
 
-        //-----------------------------------------------------
-        public MyStructData GetDataInField(int fieldIndex)
+        internal MyStructData[] Cells
         {
-            if (fieldIndex < tableHeader.ColumnCount)
-            {
-                return myDataList[fieldIndex];
-            }
-            else
-            {
-                MyStructData data = new MyStructData();
-                data.myString = "index out of range!";
-                data.type = Types.STRING;
-                return data;
-            }
+            get { return myDataList; }
         }
-        public MyStructData GetDataInField(string fieldName)
-        {
-            int index = tableHeader.GetFieldIndex(fieldName);
-            if (index < 0)
-            {
-                MyStructData data = new MyStructData();
-                data.myString = "Not found field name '" + fieldName + "'";
-                data.type = Types.STRING;
-                return data;
-            }
-            else
-            {
-                return myDataList[index];
-            }
 
-        }
+
     }
 }
