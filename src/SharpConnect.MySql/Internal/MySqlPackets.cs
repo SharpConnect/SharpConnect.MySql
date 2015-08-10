@@ -699,10 +699,12 @@ namespace MySqlPacket
 
                     stbuilder.Length = 0;//clear
                     string dateString = parser.ParseLengthCodedString();
+                    data.myString = dateString;
+
                     if (config.dateStrings)
                     {
                         //return new FieldData<string>(type, dateString);
-                        data.myString = dateString;
+                        //data.myString = dateString;
                         data.type = type;
                         return;
                     }
@@ -746,10 +748,9 @@ namespace MySqlPacket
                 case Types.INT24:
                 case Types.YEAR:
                     //TODO: review here,                    
-                    numberString = parser.ParseLengthCodedString();
+                    data.myString = numberString = parser.ParseLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0') || numberString.Length == 0)
                     {
-                        data.myString = numberString;
                         data.type = Types.NULL;
                     }
                     else
@@ -760,7 +761,7 @@ namespace MySqlPacket
                     return;
                 case Types.FLOAT:
                 case Types.DOUBLE:
-                    numberString = parser.ParseLengthCodedString();
+                    data.myString = numberString = parser.ParseLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
                         data.myString = numberString;
@@ -782,16 +783,19 @@ namespace MySqlPacket
                     //      : ((supportBigNumbers && (bigNumberStrings || (Number(numberString) > IEEE_754_BINARY_64_PRECISION)))
                     //        ? numberString
                     //        : Number(numberString));
-                    numberString = parser.ParseLengthCodedString();
+                    data.myString = numberString = parser.ParseLengthCodedString();
+                    long tmpInt64 = 0;
+
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
-
                         data.myString = numberString;
                         data.type = Types.NULL;
                     }
                     else if (config.supportBigNumbers && (config.bigNumberStrings || (Convert.ToInt64(numberString) > IEEE_754_BINARY_64_PRECISION)))
                     {
-
+                        //store as string ?
+                        //TODO: review here  again
+                        throw new NotSupportedException();
                         data.myString = numberString;
                         data.type = type;
                     }
@@ -802,6 +806,7 @@ namespace MySqlPacket
                     }
                     else//decimal
                     {
+
                         data.myDecimal = Convert.ToDecimal(numberString);
                         data.type = type;
                     }
@@ -818,7 +823,7 @@ namespace MySqlPacket
                 case Types.MEDIUM_BLOB:
                 case Types.LONG_BLOB:
                 case Types.BLOB:
-                    if (fieldPacket.charsetNr == (int)CharSets.BINARY)
+                    if (fieldPacket.charsetNr == CharSets.BINARY)
                     {
                         data.myBuffer = parser.ParseLengthCodedBuffer(); //CodedBuffer
                         data.type = type;
