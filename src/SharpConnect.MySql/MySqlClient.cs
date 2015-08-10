@@ -161,21 +161,21 @@ namespace SharpConnect.MySql
         public sbyte GetInt8(int colIndex)
         {
             //TODO: check match type and check index here
-            return query.Cells[colIndex].mySByte;
+            return (sbyte)query.Cells[colIndex].myInt32;
         }
         public byte GetUInt8(int colIndex)
         {
             //TODO: check match type and check index here
-            return query.Cells[colIndex].myByte;
+            return (byte)query.Cells[colIndex].myInt32;
         }
         public short GetInt16(int colIndex)
         {   //TODO: check match type and check index here
-            return query.Cells[colIndex].myInt16;
+            return (short)query.Cells[colIndex].myInt32;
         }
         public ushort GetUInt16(int colIndex)
         {
             //TODO: check match type and check index here
-            return query.Cells[colIndex].myUInt16;
+            return (ushort)query.Cells[colIndex].myInt32;
         }
 
         public int GetInt32(int colIndex)

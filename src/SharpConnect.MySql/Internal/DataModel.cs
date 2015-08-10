@@ -359,16 +359,7 @@ namespace MySqlPacket
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
     struct MyStructData
     {
-        [System.Runtime.InteropServices.FieldOffset(0)]
-        public byte myByte;
-        [System.Runtime.InteropServices.FieldOffset(0)]
-        public sbyte mySByte;
-        
-        [System.Runtime.InteropServices.FieldOffset(0)]
-        public short myInt16;
-        [System.Runtime.InteropServices.FieldOffset(0)]
-        public ushort myUInt16;
-
+      
         [System.Runtime.InteropServices.FieldOffset(0)]
         public int myInt32;
         [System.Runtime.InteropServices.FieldOffset(0)]

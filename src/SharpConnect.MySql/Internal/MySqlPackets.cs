@@ -689,6 +689,7 @@ namespace MySqlPacket
         {
 
             string numberString;
+            
             Types type = (Types)fieldPacket.type;
             switch (type)
             {
@@ -755,7 +756,7 @@ namespace MySqlPacket
                         data.type = Types.NULL;
                     }
                     else
-                    {
+                    {                        
                         data.myInt32 = Convert.ToInt32(numberString);
                         data.type = type;
                     }
