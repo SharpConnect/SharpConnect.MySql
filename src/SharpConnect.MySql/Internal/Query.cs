@@ -264,7 +264,8 @@ namespace MySqlPacket
             //socket.Disconnect(false);
             //this.Disconnect(); 
             //TODO: review here !
-
+            sql = "KILL " + conn.threadId;
+            SendQuery(sql);
             if (hasSomeRow)
             {
                 conn.ClearRemainingInputBuffer();
@@ -669,7 +670,7 @@ namespace MySqlPacket
                 uint val = lookup32[bytes[i]];
                 result[m] = (char)val;
                 result[m + 1] = (char)(val >> 16);
-                m <<= 1;// m *=2;
+                m += 2;
             }
 
             return new string(result);
