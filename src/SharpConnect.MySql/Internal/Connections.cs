@@ -253,7 +253,7 @@ namespace MySqlPacket
             {
                 if (tmpForClearRecvBuffer == null)
                 {
-                    tmpForClearRecvBuffer = new byte[1024];
+                    tmpForClearRecvBuffer = new byte[1048576];
                 }
 
                 while (socket.Available > 0)
