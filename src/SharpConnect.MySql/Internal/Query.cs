@@ -305,7 +305,6 @@ namespace MySqlPacket
             int send = socket.Send(writer.ToArray());
         }
 
-
         byte[] CheckLimit(uint packetLength, byte[] buffer, int limit)
         {
             int remainLength = (int)(parser.Length - parser.Position);
@@ -323,7 +322,8 @@ namespace MySqlPacket
                 {
                     receiveBuff = new byte[limit];
                 }
-                int newBufferLength = receiveBuff.Length + remainLength;
+                int receiveBuffLength = receiveBuff.Length;
+                int newBufferLength = receiveBuffLength + remainLength;
                 if (newBufferLength > buffer.Length)
                 {
                     buffer = new byte[newBufferLength];
@@ -331,65 +331,94 @@ namespace MySqlPacket
                 remainBuff.CopyTo(buffer, 0);
                 var socket = conn.socket;
                 int newReceive = socket.Receive(receiveBuff);
-                if (newReceive < newBufferLength)//get some but not complete
+                int timeoutCountdown = 10000;
+                while (newReceive < receiveBuffLength)
                 {
-                    int newIndex = 0;
-                    byte[] temp = new byte[newReceive];
-                    temp = CopyBufferBlock(receiveBuff, 0, newReceive);
-                    temp.CopyTo(buffer, remainLength);
-                    newIndex = newReceive + remainLength;
-                    while (newIndex < newBufferLength)
+                    int available = socket.Available;
+                    if (available > 0)
                     {
-
-                        //TODO: review here, 
-                        //use AsyncSocket
-
-                        Thread.Sleep(100);
-                        var s = socket.Available;
-                        if (s == 0)
+                        if (newReceive + available < receiveBuffLength)
                         {
-                            break;
-                        }
-                        newReceive = socket.Receive(receiveBuff);
-                        if (newReceive > 0)
-                        {
-                            if (newReceive + newIndex + remainLength > newBufferLength)
-                            {
-                                //TODO: review here again about alloc byte buffer and copy buffer
-                                temp = new byte[newReceive];
-                                temp = CopyBufferBlock(receiveBuff, 0, newReceive);
-                                byte[] bytes;// = new byte[newReceive + newIndex];
-                                bytes = CopyBufferBlock(buffer, 0, newIndex);
-                                buffer = new byte[newReceive + newIndex];
-                                bytes.CopyTo(buffer, 0);
-                                temp.CopyTo(buffer, newIndex);
-                                newIndex += newReceive;
-                            }
-                            else
-                            {
-                                //TODO: review here again about alloc byte buffer and copy buffer
-                                temp = new byte[newReceive];
-                                temp = CopyBufferBlock(receiveBuff, 0, newReceive);
-                                temp.CopyTo(buffer, remainLength + newIndex);
-                                newIndex += newReceive;
-                            }
+                            newReceive += socket.Receive(receiveBuff, newReceive, available, SocketFlags.None);
                         }
                         else
+                        {
+                            newReceive += socket.Receive(receiveBuff, newReceive, receiveBuffLength - newReceive, SocketFlags.None);
+                        }
+                        timeoutCountdown = 10000;//timeoutCountdown maybe < 10000 when socket receive faster than server send data
+                    }
+                    else
+                    {
+                        Thread.Sleep(100);//sometime socket maybe receive faster than server send data
+                        timeoutCountdown -= 100;
+                        if (socket.Available > 0)
+                        {
+                            continue;
+                        }
+                        if (timeoutCountdown <= 0)//sometime server maybe error
                         {
                             break;
                         }
                     }
-                    newBufferLength = newIndex;
                 }
-                else
-                {
-                    receiveBuff.CopyTo(buffer, remainLength);
-                }
+                receiveBuff.CopyTo(buffer, remainLength);
                 parser.LoadNewBuffer(buffer, newBufferLength);
+                //if (newReceive < newBufferLength)//get some but not complete
+                //{
+                //    int newIndex = 0;
+                //    byte[] temp = new byte[newReceive];
+                //    temp = CopyBufferBlock(receiveBuff, 0, newReceive);
+                //    temp.CopyTo(buffer, remainLength);
+                //    newIndex = newReceive + remainLength;
+                //while (newIndex < newBufferLength)
+                //{
+
+                //    //TODO: review here, 
+                //    //use AsyncSocket
+
+                //    Thread.Sleep(100);
+                //    var s = socket.Available;
+                //    if (s == 0)
+                //    {
+                //        break;
+                //    }
+                //    newReceive = socket.Receive(receiveBuff);
+                //    if (newReceive > 0)
+                //    {
+                //        if (newReceive + newIndex + remainLength > newBufferLength)
+                //        {
+                //            temp = new byte[newReceive];
+                //            temp = CopyBufferBlock(receiveBuff, 0, newReceive);
+                //            byte[] bytes;// = new byte[newReceive + newIndex];
+                //            bytes = CopyBufferBlock(buffer, 0, newIndex);
+                //            buffer = new byte[newReceive + newIndex];
+                //            bytes.CopyTo(buffer, 0);
+                //            temp.CopyTo(buffer, newIndex);
+                //            newIndex += newReceive;
+                //        }
+                //        else
+                //        {
+                //            temp = new byte[newReceive];
+                //            temp = CopyBufferBlock(receiveBuff, 0, newReceive);
+                //            temp.CopyTo(buffer, remainLength + newIndex);
+                //            newIndex += newReceive;
+                //        }
+                //    }
+                //    else
+                //    {
+                //        break;
+                //    }
+                //}
+                //newBufferLength = newIndex;
+                //}
+                //else
+                //{
+                //    receiveBuff.CopyTo(buffer, remainLength);
+                //}
+                //parser.LoadNewBuffer(buffer, newBufferLength);
             }
             return buffer;
         }
-
 
         static byte[] CopyBufferBlock(byte[] inputBuffer, int start, int length)
         {
