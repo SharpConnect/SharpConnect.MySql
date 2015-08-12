@@ -305,25 +305,28 @@ namespace MySqlPacket
             int remainLength = (int)(parser.Length - parser.Position);
             if (packetLength > remainLength)
             {
-                //TODO: review here, use buffer pool ?
-                byte[] remainBuff = CopyBufferBlock(buffer, (int)parser.Position, remainLength);
-                int newReceiveBuffLength;
+
+
                 int packetRemainLength = (int)packetLength - remainLength;
-                if (packetRemainLength > limit)
-                {
-                    newReceiveBuffLength = packetRemainLength;
-                }
-                else
-                {
-                    newReceiveBuffLength = limit;
-                }
-                
+
+                int newReceiveBuffLength = (packetLength > limit) ? packetRemainLength : limit;
+
                 int newBufferLength = newReceiveBuffLength + remainLength;
                 if (newBufferLength > buffer.Length)
                 {
+
+                    byte[] remainBuff = CopyBufferBlock(buffer, (int)parser.Position, remainLength);
                     buffer = new byte[newBufferLength];
+                    remainBuff.CopyTo(buffer, 0);
                 }
-                remainBuff.CopyTo(buffer, 0);
+                else
+                {
+                    //use same buffer
+                    //just move
+                    Buffer.BlockCopy(buffer, (int)parser.Position, buffer, 0, remainLength);
+                }
+
+
                 var socket = conn.socket;
                 int newReceive = remainLength + socket.Receive(buffer, remainLength, newReceiveBuffLength, SocketFlags.None);
                 int timeoutCountdown = 10000;
