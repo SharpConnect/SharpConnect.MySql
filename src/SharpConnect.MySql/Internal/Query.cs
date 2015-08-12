@@ -247,6 +247,7 @@ namespace MySqlPacket
         {
             return this.tableHeader.GetFieldIndex(colName);
         }
+
         public void Close()
         {
             //sql = "RESET QUERY CACHE";//not work
@@ -273,8 +274,11 @@ namespace MySqlPacket
             if (hasSomeRow)
             {
                 sql = "KILL " + conn.threadId;
-                SendQuery(sql);
+                Connection killConn = new Connection(conn.config);
+                killConn.Connect();
+                killConn.CreateQuery(sql, null).ExecuteQuery();
                 conn.ClearRemainingInputBuffer();
+                killConn.Disconnect();
             }
 
             //socket = null;
@@ -294,15 +298,6 @@ namespace MySqlPacket
             //Connection newConnect = new Connection(config);
             //newConnect.Connect();
             //socket = newConnect.socket;
-        }
-
-        void Disconnect()
-        {
-            writer.Reset();
-            ComQuitPacket quitPacket = new ComQuitPacket();
-            quitPacket.WritePacket(writer);
-            var socket = conn.socket;
-            int send = socket.Send(writer.ToArray());
         }
 
         byte[] CheckLimit(uint packetLength, byte[] buffer, int limit)
