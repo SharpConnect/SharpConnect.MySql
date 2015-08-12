@@ -308,16 +308,19 @@ namespace MySqlPacket
 
 
                 int packetRemainLength = (int)packetLength - remainLength;
-
                 int newReceiveBuffLength = (packetLength > limit) ? packetRemainLength : limit;
-
                 int newBufferLength = newReceiveBuffLength + remainLength;
+
                 if (newBufferLength > buffer.Length)
                 {
 
-                    byte[] remainBuff = CopyBufferBlock(buffer, (int)parser.Position, remainLength);
-                    buffer = new byte[newBufferLength];
-                    remainBuff.CopyTo(buffer, 0);
+                    //byte[] remainBuff = CopyBufferBlock(buffer, (int)parser.Position, remainLength);
+                    //buffer = new byte[newBufferLength];
+                    //remainBuff.CopyTo(buffer, 0);
+
+                    var tmpBuffer = new byte[newBufferLength];
+                    Buffer.BlockCopy(buffer, (int)parser.Position, tmpBuffer, 0, remainLength);
+                    buffer = tmpBuffer;
                 }
                 else
                 {
@@ -379,7 +382,7 @@ namespace MySqlPacket
 
         byte[] CheckBeforeParseHeader(byte[] buffer, int position, int limit)
         {
-            //todo: check memory mx again
+            //TODO: check memory mx again
             int remainLength = (int)parser.Length - position;
             if (remainLength < 5)//5 bytes --> 4 bytes from header and 1 byte for find packet type
             {
