@@ -75,8 +75,8 @@ namespace MySqlTest
                 //and static method only
                 if (m.IsStatic)
                 {
-                    Attribute found = m.GetCustomAttribute(testAttrType);
-                    if (found != null)
+                    object[] founds = m.GetCustomAttributes(testAttrType, false);
+                    if (founds.Length > 0)
                     {
                         output.Add(new TestCase(m.Name, m));
                     }
@@ -94,9 +94,10 @@ namespace MySqlTest
 
     }
 
+    public delegate void TestAction();
     public class MySqlTester
     {
-        public static void Test(int n, TimeUnit timeUnit, out long total, out long avg, Action ac)
+        public static void Test(int n, TimeUnit timeUnit, out long total, out long avg, TestAction ac)
         {
             Stopwatch sw = new Stopwatch();
             sw.Start();

@@ -32,56 +32,82 @@ using System.Net.Sockets;
 
 namespace MySqlPacket
 {
+    //test async socket
+    //see async socket event args (ASEA) on msdn ...
+    //https://msdn.microsoft.com/en-us/library/system.net.sockets.socketasynceventargs.socketasynceventargs%28v=vs.110%29.aspx
 
-
-    static class dbugConsole
+    // Represents a collection of reusable SocketAsyncEventArgs objects.   
+    class SocketAsyncEventArgsPool
     {
-        [System.Diagnostics.Conditional("DEBUG")]
-        public static void WriteLine(string str)
+        Stack<SocketAsyncEventArgs> m_pool;
+
+        // Initializes the object pool to the specified size 
+        // 
+        // The "capacity" parameter is the maximum number of 
+        // SocketAsyncEventArgs objects the pool can hold 
+        public SocketAsyncEventArgsPool(int capacity)
         {
-            Console.WriteLine(str);
+            m_pool = new Stack<SocketAsyncEventArgs>(capacity);
         }
+
+        // Add a SocketAsyncEventArg instance to the pool 
+        // 
+        //The "item" parameter is the SocketAsyncEventArgs instance 
+        // to add to the pool 
+        public void Push(SocketAsyncEventArgs item)
+        {
+            if (item == null) { throw new ArgumentNullException("Items added to a SocketAsyncEventArgsPool cannot be null"); }
+            lock (m_pool)
+            {
+                m_pool.Push(item);
+            }
+        }
+
+        // Removes a SocketAsyncEventArgs instance from the pool 
+        // and returns the object removed from the pool 
+        public SocketAsyncEventArgs Pop()
+        {
+            lock (m_pool)
+            {
+                return m_pool.Pop();
+            }
+        }
+
+        // The number of SocketAsyncEventArgs instances in the pool 
+        public int Count
+        {
+            get { return m_pool.Count; }
+        }
+
     }
 
-    enum ConnectionState
-    {
-        Disconnected,
-        Connected
-    }
-    partial class Connection
+
+    class AsyncConnection
     {
         public ConnectionConfig config;
-
-
+        public Socket socket;
+        public Object protocol;
         public bool connectionCall;
-        public ConnectionState state;
+        public string state;
         public uint threadId;
         HandshakePacket handshake;
-
-        public Socket socket;
-
-
+        ClientAuthenticationPacket authPacket;
         Query query;
 
         PacketParser parser;
         PacketWriter writer;
 
-        //TODO: review how to clear remaining buffer again
         byte[] tmpForClearRecvBuffer; //for clear buffer 
 
-        /// <summary>
-        /// max allowed packet size
-        /// </summary>
-        long maxPacketSize = 0;
 
-        public Connection(ConnectionConfig userConfig)
+        long MAX_ALLOWED_PACKET = 0;
+        public AsyncConnection(ConnectionConfig userConfig)
         {
             this.config = userConfig;
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            //protocol = null;
+            protocol = null;
             connectionCall = false;
-            state = ConnectionState.Disconnected;
-
+            state = "disconnected";
             //this.config = options.config;
             //this._socket        = options.socket;
             //this._protocol      = new Protocol({config: this.config, connection: this});
@@ -98,46 +124,33 @@ namespace MySqlPacket
                     parser = new PacketParser(Encoding.ASCII);
                     writer = new PacketWriter(Encoding.ASCII);
                     break;
-                default:
-                    throw new NotImplementedException();
             }
         }
 
         public void Connect()
         {
-            if (state == ConnectionState.Connected)
-            {
-                throw new NotSupportedException("already connected");
-            }
-
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             socket.Connect(endpoint);
-            state = ConnectionState.Connected;
 
             byte[] buffer = new byte[512];
             int count = socket.Receive(buffer);
-            if (count > 0)
+            if (count < 512)
             {
-                writer.Reset();
+                writer.Rewrite();
                 parser.LoadNewBuffer(buffer, count);
                 handshake = new HandshakePacket();
                 handshake.ParsePacket(parser);
                 this.threadId = handshake.threadId;
-
-                byte[] token = MakeToken(config.password,
-                    GetScrollbleBuffer(handshake.scrambleBuff1, handshake.scrambleBuff2));
-
+                byte[] token = MakeToken(config.password, GetScrollbleBuffer(handshake.scrambleBuff1, handshake.scrambleBuff2));
                 writer.IncrementPacketNumber();
 
                 //------------------------------------------
-                var authPacket = new ClientAuthenticationPacket();
+                authPacket = new ClientAuthenticationPacket();
                 authPacket.SetValues(config.user, token, config.database, handshake.protocol41);
                 authPacket.WritePacket(writer);
 
                 byte[] sendBuff = writer.ToArray();
                 byte[] receiveBuff = new byte[512];
-                //-------------------------------------------
-                //send data
                 int sendNum = socket.Send(sendBuff);
                 int receiveNum = socket.Receive(receiveBuff);
 
@@ -153,13 +166,12 @@ namespace MySqlPacket
                     OkPacket okPacket = new OkPacket(handshake.protocol41);
                     okPacket.ParsePacket(parser);
                 }
-                writer.Reset();
+                writer.Rewrite();
                 GetMaxAllowedPacket();
-                if (maxPacketSize > 0)
+                if (MAX_ALLOWED_PACKET > 0)
                 {
-                    writer.SetMaxAllowedPacket(maxPacketSize);
+                    writer.SetMaxAllowedPacket(MAX_ALLOWED_PACKET);
                 }
-
             }
         }
 
@@ -182,7 +194,7 @@ namespace MySqlPacket
                 int i = 0;
                 if (query.ReadRow())
                 {
-                    maxPacketSize = query.Cells[0].myInt64;
+                    MAX_ALLOWED_PACKET = query.GetFieldData(0).myLong;
                     //MAX_ALLOWED_PACKET = query.resultSet.rows[0].GetDataInField("@@global.max_allowed_packet").myLong;
                     //dbugConsole.WriteLine("Rows Data " + i + " : " + query.resultSet.rows[i++]);
                 }
@@ -198,6 +210,7 @@ namespace MySqlPacket
 
         public Query CreateQuery(string sql, CommandParameters values)
         {
+            throw new NotSupportedException();
             //var query = Connection.createQuery(sql, values, cb);
             //query = new Query(parser, writer, sql, values);
             //query.typeCast = config.typeCast;
@@ -206,12 +219,12 @@ namespace MySqlPacket
             //{
             //    CreateNewSocket();
             //}
-            var query = new Query(this, sql, values);
-            if (maxPacketSize > 0)
-            {
-                query.SetMaxSend(maxPacketSize);
-            }
-            return query;
+            //var query = new Query(this, sql, values);
+            //if (MAX_ALLOWED_PACKET > 0)
+            //{
+            //    query.SetMaxSend(MAX_ALLOWED_PACKET);
+            //}
+            //return query;
         }
 
         void CreateNewSocket()
@@ -222,7 +235,7 @@ namespace MySqlPacket
 
         public void Disconnect()
         {
-            writer.Reset();
+            writer.Rewrite();
             ComQuitPacket quitPacket = new ComQuitPacket();
             quitPacket.WritePacket(writer);
 
@@ -253,7 +266,7 @@ namespace MySqlPacket
             {
                 if (tmpForClearRecvBuffer == null)
                 {
-                    tmpForClearRecvBuffer = new byte[300000];//in test case socket recieve lower than 300,000 bytes
+                    tmpForClearRecvBuffer = new byte[1024];
                 }
 
                 while (socket.Available > 0)
@@ -268,6 +281,7 @@ namespace MySqlPacket
                 dbugConsole.WriteLine("All Receive bytes : " + allReceive);
             }
         }
+
 
         static byte[] GetScrollbleBuffer(byte[] part1, byte[] part2)
         {
@@ -292,7 +306,8 @@ namespace MySqlPacket
             byte[] combineFor3 = ConcatBuffer(scramble, stage2);
             byte[] stage3 = sha.ComputeHash(combineFor3);
 
-            return xor(stage3, stage1);
+            var final = xor(stage3, stage1);
+            return final;
         }
 
         static byte[] ConcatBuffer(byte[] a, byte[] b)
@@ -305,8 +320,8 @@ namespace MySqlPacket
 
         static byte[] xor(byte[] a, byte[] b)
         {
+            var result = new byte[a.Length];
             int j = a.Length;
-            var result = new byte[j];
             for (int i = 0; i < j; ++i)
             {
                 result[i] = (byte)(a[i] ^ b[i]);
@@ -315,127 +330,9 @@ namespace MySqlPacket
         }
 
 
+
     }
 
-
-    class ConnectionConfig
-    {
-        public string host;
-        public int port;
-        public string localAddress;//unknowed type
-        public string socketPath;//unknowed type
-        public string user;
-        public string password;
-        public string database;
-        public int connectionTimeout;
-        public bool insecureAuth;
-        public bool supportBigNumbers;
-        public bool bigNumberStrings;
-        public bool dateStrings;
-        public bool debug;
-        public bool trace;
-        public bool stringifyObjects;
-        public string timezone;
-        public string flags;
-        public string queryFormat;
-        public string pool;//unknowed type
-        public string ssl;//string or bool
-        public bool multipleStatements;
-        public bool typeCast;
-        public long maxPacketSize;
-        public int charsetNumber;
-        public int defaultFlags;
-        public int clientFlags;
-
-        public ConnectionConfig()
-        {
-            SetDefault();
-        }
-
-        public ConnectionConfig(string username, string password)
-        {
-            SetDefault();
-            this.user = username;
-            this.password = password;
-        }
-        public ConnectionConfig(string host, string username, string password, string database)
-        {
-            SetDefault();
-            this.user = username;
-            this.password = password;
-            this.host = host;
-            this.database = database;
-        }
-        void SetDefault()
-        {
-            //if (typeof options === 'string') {
-            //  options = ConnectionConfig.parseUrl(options);
-            //}
-            host = "127.0.0.1";//this.host = options.host || 'localhost';
-            port = 3306;//this.port = options.port || 3306;
-            //this.localAddress       = options.localAddress;
-            //this.socketPath         = options.socketPath;
-            //this.user               = options.user || undefined;
-            //this.password           = options.password || undefined;
-            //this.database           = options.database;
-            database = "";
-            connectionTimeout = 10 * 1000;
-            //this.connectTimeout     = (options.connectTimeout === undefined)
-            //  ? (10 * 1000)
-            //  : options.connectTimeout;
-            insecureAuth = false;//this.insecureAuth = options.insecureAuth || false;
-            supportBigNumbers = false;//this.supportBigNumbers = options.supportBigNumbers || false;
-            bigNumberStrings = false;//this.bigNumberStrings = options.bigNumberStrings || false;
-            dateStrings = false;//this.dateStrings = options.dateStrings || false;
-            debug = false;//this.debug = options.debug || true;
-            trace = false;//this.trace = options.trace !== false;
-            stringifyObjects = false;//this.stringifyObjects = options.stringifyObjects || false;
-            timezone = "local";//this.timezone = options.timezone || 'local';
-            flags = "";//this.flags = options.flags || '';
-            //this.queryFormat        = options.queryFormat;
-            //this.pool               = options.pool || undefined;
-
-            //this.ssl                = (typeof options.ssl === 'string')
-            //  ? ConnectionConfig.getSSLProfile(options.ssl)
-            //  : (options.ssl || false);
-            multipleStatements = false;//this.multipleStatements = options.multipleStatements || false; 
-            typeCast = true;
-            //this.typeCast = (options.typeCast === undefined)
-            //  ? true
-            //  : options.typeCast;
-
-            //if (this.timezone[0] == " ") {
-            //  // "+" is a url encoded char for space so it
-            //  // gets translated to space when giving a
-            //  // connection string..
-            //  this.timezone = "+" + this.timezone.substr(1);
-            //}
-
-            //if (this.ssl) {
-            //  // Default rejectUnauthorized to true
-            //  this.ssl.rejectUnauthorized = this.ssl.rejectUnauthorized !== false;
-            //}
-
-            maxPacketSize = 0;//this.maxPacketSize = 0;
-            charsetNumber = (int)CharSets.UTF8_GENERAL_CI;
-            //this.charsetNumber = (options.charset)
-            //  ? ConnectionConfig.getCharsetNumber(options.charset)
-            //  : options.charsetNumber||Charsets.UTF8_GENERAL_CI;
-
-            //// Set the client flags
-            //var defaultFlags = ConnectionConfig.getDefaultFlags(options);
-            //this.clientFlags = ConnectionConfig.mergeFlags(defaultFlags, options.flags)
-        }
-
-        public void SetConfig(string host, int port, string username, string password, string database)
-        {
-            this.host = host;
-            this.port = port;
-            this.user = username;
-            this.password = password;
-            this.database = database;
-        }
-    }
 
 
 }

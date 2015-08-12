@@ -359,14 +359,16 @@ namespace MySqlPacket
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
     struct MyStructData
     {
-        [System.Runtime.InteropServices.FieldOffset(0)]
-        public byte myByte;
-        [System.Runtime.InteropServices.FieldOffset(0)]
-        public short myInt16;
+      
         [System.Runtime.InteropServices.FieldOffset(0)]
         public int myInt32;
         [System.Runtime.InteropServices.FieldOffset(0)]
-        public long myLong;
+        public uint myUInt32;
+
+        [System.Runtime.InteropServices.FieldOffset(0)]
+        public long myInt64;
+        [System.Runtime.InteropServices.FieldOffset(0)]
+        public ulong myUInt64;
 
         [System.Runtime.InteropServices.FieldOffset(0)]
         public float myFloat;
@@ -406,7 +408,7 @@ namespace MySqlPacket
                 case Types.NEWDECIMAL:
                     return myDecimal.ToString();
                 case Types.LONGLONG:
-                    return myLong.ToString();
+                    return myInt64.ToString();
                 case Types.BIT:
                     return myBuffer.ToString();
                 case Types.STRING:

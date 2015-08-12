@@ -48,7 +48,7 @@ namespace SharpConnect.MySql
             //prepare.AddField("c2", "stringtestcol");
             //prepare.AddField("c3", "stringtestcol1");
 
-            cmdValues.AddValue("n1", 4537);
+            cmdValues.AddValue("n1", 4500);
             cmdValues.AddValue("n2", 4540);
             cmdValues.AddValue("n3", 22);
 
@@ -60,7 +60,7 @@ namespace SharpConnect.MySql
             //sql = "INSERT INTO ?t1 (?c1, ?c2) VALUES (?n1 , ?buffer1)";
             //sql = "insert into ?t1 set ?c2=load_file('d:/[]photo/" + filename + "')";
             //sql = "INSERT INTO ?t1 SET ?c2=?buffur1";
-            sql = "select * from ?t1 where ?c1 = ?n1";
+            sql = "select * from ?t1 where ?c1 > ?n1";
             //sql2 = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
             //sql = "INSERT INTO ?t1 ( ?c2, ?c3) VALUES ( ?s1, ?s2)";
             //sql = "DELETE FROM ?t1 WHERE ?c1=?n1";
@@ -85,10 +85,17 @@ namespace SharpConnect.MySql
                 else
                 {
 
+                    int col_idsaveImage = query.GetColumnIndex("idsaveImage");
+                    int col_saveImageCol = query.GetColumnIndex("saveImagecol");
+                    if (col_idsaveImage < 0 || col_saveImageCol < 0)
+                    {
+                        throw new Exception();
+                    }
                     while (query.ReadRow() && j < 3)
                     {
-                        Console.WriteLine(query.GetFieldData("idsaveImage"));
-                        Console.WriteLine(query.GetFieldData("saveImagecol"));
+
+                        Console.WriteLine(query.Cells[col_idsaveImage]);
+                        Console.WriteLine(query.Cells[col_saveImageCol]);
                         //Console.WriteLine(query.GetFieldData("myusercol1"));
                         j++;
                     }
@@ -123,8 +130,16 @@ namespace SharpConnect.MySql
         }
 
 
+        public static void Test2()
+        {
 
+            ConnectionConfig config = new ConnectionConfig("127.0.0.1", "root", "root", "test");
+            Connection conn = new Connection(config);
+            conn.ConnectAsync(() =>
+            {
 
+            });
+        }
         static void TempHandshakeParse()
         {
             //MemoryStream ms = new MemoryStream(buffer);
