@@ -60,7 +60,7 @@ namespace SharpConnect.MySql
             //sql = "INSERT INTO ?t1 (?c1, ?c2) VALUES (?n1 , ?buffer1)";
             //sql = "insert into ?t1 set ?c2=load_file('d:/[]photo/" + filename + "')";
             //sql = "INSERT INTO ?t1 SET ?c2=?buffur1";
-            sql = "select * from ?t1 where ?c1 = ?n1";
+            sql = "select * from ?t1 where ?c1 > ?n1 limit 5";
             //sql2 = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
             //sql = "INSERT INTO ?t1 ( ?c2, ?c3) VALUES ( ?s1, ?s2)";
             //sql = "DELETE FROM ?t1 WHERE ?c1=?n1";
