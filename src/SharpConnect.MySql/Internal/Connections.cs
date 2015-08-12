@@ -43,34 +43,45 @@ namespace MySqlPacket
         }
     }
 
+    enum ConnectionState
+    {
+        Disconnected,
+        Connected
+    }
     partial class Connection
     {
         public ConnectionConfig config;
 
-        public Object protocol;
+
         public bool connectionCall;
-        public string state;
+        public ConnectionState state;
         public uint threadId;
+        HandshakePacket handshake;
 
         public Socket socket;
-        HandshakePacket handshake;
-        ClientAuthenticationPacket authPacket;
+
+
         Query query;
 
         PacketParser parser;
         PacketWriter writer;
 
+        //TODO: review how to clear remaining buffer again
         byte[] tmpForClearRecvBuffer; //for clear buffer 
 
+        /// <summary>
+        /// max allowed packet size
+        /// </summary>
+        long maxPacketSize = 0;
 
-        long MAX_ALLOWED_PACKET = 0; //TODO: rename 
         public Connection(ConnectionConfig userConfig)
         {
             this.config = userConfig;
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            protocol = null;
+            //protocol = null;
             connectionCall = false;
-            state = "disconnected";
+            state = ConnectionState.Disconnected;
+
             //this.config = options.config;
             //this._socket        = options.socket;
             //this._protocol      = new Protocol({config: this.config, connection: this});
@@ -87,20 +98,27 @@ namespace MySqlPacket
                     parser = new PacketParser(Encoding.ASCII);
                     writer = new PacketWriter(Encoding.ASCII);
                     break;
+                default:
+                    throw new NotImplementedException();
             }
         }
 
         public void Connect()
         {
-            var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
+            if (state == ConnectionState.Connected)
+            {
+                throw new NotSupportedException("already connected");
+            }
 
+            var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             socket.Connect(endpoint);
+            state = ConnectionState.Connected;
 
             byte[] buffer = new byte[512];
             int count = socket.Receive(buffer);
-            if (count < 512)
+            if (count > 0)
             {
-                writer.Rewrite();
+                writer.Reset();
                 parser.LoadNewBuffer(buffer, count);
                 handshake = new HandshakePacket();
                 handshake.ParsePacket(parser);
@@ -112,7 +130,7 @@ namespace MySqlPacket
                 writer.IncrementPacketNumber();
 
                 //------------------------------------------
-                authPacket = new ClientAuthenticationPacket();
+                var authPacket = new ClientAuthenticationPacket();
                 authPacket.SetValues(config.user, token, config.database, handshake.protocol41);
                 authPacket.WritePacket(writer);
 
@@ -135,11 +153,11 @@ namespace MySqlPacket
                     OkPacket okPacket = new OkPacket(handshake.protocol41);
                     okPacket.ParsePacket(parser);
                 }
-                writer.Rewrite();
+                writer.Reset();
                 GetMaxAllowedPacket();
-                if (MAX_ALLOWED_PACKET > 0)
+                if (maxPacketSize > 0)
                 {
-                    writer.SetMaxAllowedPacket(MAX_ALLOWED_PACKET);
+                    writer.SetMaxAllowedPacket(maxPacketSize);
                 }
 
             }
@@ -164,7 +182,7 @@ namespace MySqlPacket
                 int i = 0;
                 if (query.ReadRow())
                 {
-                    MAX_ALLOWED_PACKET = query.GetFieldData(0).myLong;
+                    maxPacketSize = query.Cells[0].myInt64;
                     //MAX_ALLOWED_PACKET = query.resultSet.rows[0].GetDataInField("@@global.max_allowed_packet").myLong;
                     //dbugConsole.WriteLine("Rows Data " + i + " : " + query.resultSet.rows[i++]);
                 }
@@ -189,9 +207,9 @@ namespace MySqlPacket
             //    CreateNewSocket();
             //}
             var query = new Query(this, sql, values);
-            if (MAX_ALLOWED_PACKET > 0)
+            if (maxPacketSize > 0)
             {
-                query.SetMaxSend(MAX_ALLOWED_PACKET);
+                query.SetMaxSend(maxPacketSize);
             }
             return query;
         }
@@ -204,7 +222,7 @@ namespace MySqlPacket
 
         public void Disconnect()
         {
-            writer.Rewrite();
+            writer.Reset();
             ComQuitPacket quitPacket = new ComQuitPacket();
             quitPacket.WritePacket(writer);
 
@@ -235,7 +253,7 @@ namespace MySqlPacket
             {
                 if (tmpForClearRecvBuffer == null)
                 {
-                    tmpForClearRecvBuffer = new byte[1024];
+                    tmpForClearRecvBuffer = new byte[300000];//in test case socket recieve lower than 300,000 bytes
                 }
 
                 while (socket.Available > 0)
@@ -274,8 +292,7 @@ namespace MySqlPacket
             byte[] combineFor3 = ConcatBuffer(scramble, stage2);
             byte[] stage3 = sha.ComputeHash(combineFor3);
 
-            var final = xor(stage3, stage1);
-            return final;
+            return xor(stage3, stage1);
         }
 
         static byte[] ConcatBuffer(byte[] a, byte[] b)
@@ -288,8 +305,8 @@ namespace MySqlPacket
 
         static byte[] xor(byte[] a, byte[] b)
         {
-            var result = new byte[a.Length];
             int j = a.Length;
+            var result = new byte[j];
             for (int i = 0; i < j; ++i)
             {
                 result[i] = (byte)(a[i] ^ b[i]);

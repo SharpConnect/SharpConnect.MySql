@@ -25,6 +25,22 @@ using System.Text;
 
 namespace MySqlPacket
 {
+    struct PacketHeader
+    {
+        public readonly uint Length;
+        public readonly byte PacketNumber;
+
+        public PacketHeader(uint length, byte number)
+        {
+            Length = length;
+            PacketNumber = number;
+        }
+        public bool IsEmpty()
+        {
+            return PacketNumber == 0 && Length == 0;
+        }
+        public static readonly PacketHeader Empty = new PacketHeader();
+    }
 
     abstract class Packet
     {
@@ -48,12 +64,15 @@ namespace MySqlPacket
         public abstract void WritePacket(PacketWriter writer);
     }
 
+
     class ClientAuthenticationPacket : Packet
     {
+
+
         public uint clientFlags;
         public uint maxPacketSize;
         public byte charsetNumber;
-        public byte[] filler;
+
         public string user;
         public byte[] scrambleBuff;
         public string database;
@@ -69,7 +88,7 @@ namespace MySqlPacket
             clientFlags = 455631;
             maxPacketSize = 0;
             charsetNumber = 33;
-            filler = new byte[23];
+
             user = "";
             scrambleBuff = new byte[20];
             database = "";
@@ -81,7 +100,7 @@ namespace MySqlPacket
             clientFlags = 455631;
             maxPacketSize = 0;
             charsetNumber = 33;
-            filler = new byte[23];
+
             this.user = username;
             this.scrambleBuff = scrambleBuff;
             this.database = databaseName;
@@ -93,18 +112,19 @@ namespace MySqlPacket
             ParsePacketHeader(parser);
             if (this.protocol41)
             {
-                this.clientFlags = parser.ParseUnsignedNumber(4);
-                this.maxPacketSize = parser.ParseUnsignedNumber(4);
+                this.clientFlags = parser.ParseUnsigned4(); //4
+                this.maxPacketSize = parser.ParseUnsigned4(); //4 
                 this.charsetNumber = parser.ParseByte();
-                this.filler = parser.ParseFiller(23);
+
+                parser.ParseFiller(23);
                 this.user = parser.ParseNullTerminatedString();
                 this.scrambleBuff = parser.ParseLengthCodedBuffer();
                 this.database = parser.ParseNullTerminatedString();
             }
             else
             {
-                this.clientFlags = parser.ParseUnsignedNumber(2);
-                this.maxPacketSize = parser.ParseUnsignedNumber(3);
+                this.clientFlags = parser.ParseUnsigned2();//2
+                this.maxPacketSize = parser.ParseUnsigned3();//3
                 this.user = parser.ParseNullTerminatedString();
                 this.scrambleBuff = parser.ParseBuffer(8);
                 this.database = parser.ParseLengthCodedString();
@@ -116,9 +136,9 @@ namespace MySqlPacket
             writer.ReserveHeader();//allocate header
             if (protocol41)
             {
-                writer.WriteUnsignedNumber(4, this.clientFlags);
-                writer.WriteUnsignedNumber(4, this.maxPacketSize);
-                writer.WriteUnsignedNumber(1, this.charsetNumber);
+                writer.WriteUnsigned4(this.clientFlags);
+                writer.WriteUnsigned4(this.maxPacketSize);
+                writer.WriteUnsigned1(this.charsetNumber);
                 writer.WriteFiller(23);
                 writer.WriteNullTerminatedString(this.user);
                 writer.WriteLengthCodedBuffer(this.scrambleBuff);
@@ -126,8 +146,8 @@ namespace MySqlPacket
             }
             else
             {
-                writer.WriteUnsignedNumber(2, this.clientFlags);
-                writer.WriteUnsignedNumber(3, this.maxPacketSize);
+                writer.WriteUnsigned2(this.clientFlags);
+                writer.WriteUnsigned3(this.maxPacketSize);
                 writer.WriteNullTerminatedString(this.user);
                 writer.WriteBuffer(this.scrambleBuff);
                 if (this.database != null && this.database.Length > 0)
@@ -144,7 +164,7 @@ namespace MySqlPacket
 
     class ComQueryPacket : Packet
     {
-        uint command = 0x03;
+        byte command = 0x03;
         string sql;
 
         public ComQueryPacket(string sql)
@@ -156,7 +176,7 @@ namespace MySqlPacket
         {
             //parser = new PacketParser(stream);
             ParsePacketHeader(parser);
-            this.command = parser.ParseUnsignedNumber(1);
+            this.command = parser.ParseUnsigned1();//1
             this.sql = parser.ParsePacketTerminatedString();
         }
 
@@ -174,18 +194,20 @@ namespace MySqlPacket
 
     class ComQuitPacket : Packet
     {
-        byte command = 0x01;
+        const byte QUIT_CMD = 0x01;
+
 
         public override void ParsePacket(PacketParser parser)
         {
-            ParsePacketHeader(parser);
-            this.command = parser.ParseByte();
+            throw new NotImplementedException();
+            //ParsePacketHeader(parser);
+            //this.command = parser.ParseByte();
         }
 
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-            writer.WriteUnsignedNumber(1, this.command);
+            writer.WriteUnsigned1(QUIT_CMD);
             header = new PacketHeader((uint)writer.Length, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
         }
@@ -209,8 +231,8 @@ namespace MySqlPacket
             this.fieldCount = parser.ParseByte();
             if (this.protocol41)
             {
-                this.warningCount = parser.ParseUnsignedNumber(2);
-                this.serverStatus = parser.ParseUnsignedNumber(2);
+                this.warningCount = parser.ParseUnsigned2();//2
+                this.serverStatus = parser.ParseUnsigned2();//2
             }
         }
 
@@ -218,11 +240,11 @@ namespace MySqlPacket
         {
             writer.ReserveHeader();//allocate packet header
 
-            writer.WriteUnsignedNumber(1, 0xfe);
+            writer.WriteUnsigned1(0xfe);
             if (this.protocol41)
             {
-                writer.WriteUnsignedNumber(2, this.warningCount);
-                writer.WriteUnsignedNumber(2, this.serverStatus);
+                writer.WriteUnsigned2(this.warningCount);
+                writer.WriteUnsigned2(this.serverStatus);
             }
 
             header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
@@ -243,7 +265,7 @@ namespace MySqlPacket
             ParsePacketHeader(parser);
 
             fieldCount = parser.ParseByte();
-            errno = parser.ParseUnsignedNumber(2);
+            errno = parser.ParseUnsigned2();//2
 
             if (parser.Peak() == 0x23)
             {
@@ -303,10 +325,10 @@ namespace MySqlPacket
                     throw new Exception("Received invalid field length");
                 }
 
-                this.charsetNr = parser.ParseUnsignedNumber(2);
-                this.length = parser.ParseUnsignedNumber(4);
+                this.charsetNr = parser.ParseUnsigned2();//2
+                this.length = parser.ParseUnsigned4();//4
                 this.type = parser.ParseByte();
-                this.flags = parser.ParseUnsignedNumber(2);
+                this.flags = parser.ParseUnsigned2();//2
                 this.decimals = parser.ParseByte();
 
                 this.filler = parser.ParseBuffer(2);
@@ -373,19 +395,19 @@ namespace MySqlPacket
         {
             ParsePacketHeader(parser);
 
-            protocolVersion = parser.ParseUnsignedNumber(1);
+            protocolVersion = parser.ParseUnsigned1();//1
             serverVertion = parser.ParseNullTerminatedString();
-            threadId = parser.ParseUnsignedNumber(4);
+            threadId = parser.ParseUnsigned4();//4
             scrambleBuff1 = parser.ParseBuffer(8);
             filler1 = parser.ParseByte();
-            serverCapabilities1 = parser.ParseUnsignedNumber(2);
+            serverCapabilities1 = parser.ParseUnsigned2();//2
             serverLanguage = parser.ParseByte();
-            serverStatus = parser.ParseUnsignedNumber(2);
+            serverStatus = parser.ParseUnsigned2();//2
 
             protocol41 = (serverCapabilities1 & (1 << 9)) > 0;
             if (protocol41)
             {
-                serverCapabilities2 = parser.ParseUnsignedNumber(2);
+                serverCapabilities2 = parser.ParseUnsigned2();
                 scrambleLength = parser.ParseByte();
                 filler2 = parser.ParseBuffer(10);
 
@@ -452,7 +474,7 @@ namespace MySqlPacket
         {
             ParsePacketHeader(parser);
 
-            fieldCount = parser.ParseUnsignedNumber(1);
+            fieldCount = parser.ParseUnsigned1();
             affectedRows = parser.ParseLengthCodedNumber();
             insertId = parser.ParseLengthCodedNumber();
 
@@ -468,8 +490,8 @@ namespace MySqlPacket
             //this.changedRows = 0;
             if (protocol41)
             {
-                serverStatus = parser.ParseUnsignedNumber(2);
-                warningCount = parser.ParseUnsignedNumber(2);
+                serverStatus = parser.ParseUnsigned2();
+                warningCount = parser.ParseUnsigned2();
             }
             message = parser.ParsePacketTerminatedString();
             //var m = this.message.match(/\schanged:\s * (\d +) / i);
@@ -528,12 +550,17 @@ namespace MySqlPacket
 
         MyStructData[] myDataList;
         TableHeader tableHeader;
+        ConnectionConfig config;
+        StringBuilder stbuilder = new StringBuilder();
+        bool isLocalTimeZone;
         const long IEEE_754_BINARY_64_PRECISION = (long)1 << 53;
 
         public RowDataPacket(TableHeader tableHeader)
         {
             this.tableHeader = tableHeader;
             myDataList = new MyStructData[tableHeader.ColumnCount];
+            config = tableHeader.ConnConfig;
+            isLocalTimeZone = config.timezone.Equals("local");
 
         }
         public void ReuseSlots()
@@ -554,160 +581,200 @@ namespace MySqlPacket
             //  for (var i = 0; i < fieldPackets.length; i++) {
             //    var fieldPacket = fieldPackets[i];
             //    var value;
+
+
+            //---------------------------------------------
+            //danger!
+            //please note that  ***
+            //data in each slot is not completely cleared
+
+            //because we don't want to copy entire MyStructData back and forth
+            //we just replace some part of it ***
+            //---------------------------------------------
+
+
             ParsePacketHeader(parser);
             var fieldInfos = tableHeader.GetFields();
             int j = tableHeader.ColumnCount;
             bool typeCast = tableHeader.TypeCast;
             bool nestTables = tableHeader.NestTables;
 
-            for (int i = 0; i < j; i++)
+            if (!nestTables && typeCast)
             {
+                for (int i = 0; i < j; i++)
+                {
+                    ReadCellWithTypeCast(parser, fieldInfos[i], ref myDataList[i]);
+                }
+            }
+            else
+            {
+                //may be nestTables or type cast
+                //
 
-                MyStructData value;
-                if (typeCast)
+                for (int i = 0; i < j; i++)
                 {
-                    ConnectionConfig config = tableHeader.ConnConfig;
-                    value = TypeCast(parser,
-                        fieldInfos[i],
-                        config.timezone,
-                        config.supportBigNumbers,
-                        config.bigNumberStrings,
-                        config.dateStrings);
-                }
-                else if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
-                {
-                    value = new MyStructData();
-                    value.myBuffer = parser.ParseLengthCodedBuffer();
-                    value.type = (Types)fieldInfos[i].type;
-                }
-                else
-                {
-                    value = new MyStructData();
-                    value.myString = parser.ParseLengthCodedString();
-                    value.type = (Types)fieldInfos[i].type;
-                }
-                //    if (typeof typeCast == "function") {
-                //      value = typeCast.apply(connection, [ new Field({ packet: fieldPacket, parser: parser }), next ]);
-                //    } else {
-                //      value = (typeCast)
-                //        ? this._typeCast(fieldPacket, parser, connection.config.timezone, connection.config.supportBigNumbers, connection.config.bigNumberStrings, connection.config.dateStrings)
-                //        : ( (fieldPacket.charsetNr === Charsets.BINARY)
-                //          ? parser.parseLengthCodedBuffer()
-                //          : parser.parseLengthCodedString() );
-                //    }
-                if (nestTables)
-                {
+
+                    // MyStructData value;
+                    if (typeCast)
+                    {
+                        ReadCellWithTypeCast(parser, fieldInfos[i], ref myDataList[i]);
+                    }
+                    else if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
+                    {
+                        myDataList[i].myBuffer = parser.ParseLengthCodedBuffer();
+                        myDataList[i].type = (Types)fieldInfos[i].type;
+
+                        //value = new MyStructData();
+                        //value.myBuffer = parser.ParseLengthCodedBuffer();
+                        //value.type = (Types)fieldInfos[i].type;
+                    }
+                    else
+                    {
+                        myDataList[i].myString = parser.ParseLengthCodedString();
+                        myDataList[i].type = (Types)fieldInfos[i].type;
+
+                        //value = new MyStructData();
+                        //value.myString = parser.ParseLengthCodedString();
+                        //value.type = (Types)fieldInfos[i].type;
+                    }
+                    //    if (typeof typeCast == "function") {
+                    //      value = typeCast.apply(connection, [ new Field({ packet: fieldPacket, parser: parser }), next ]);
+                    //    } else {
+                    //      value = (typeCast)
+                    //        ? this._typeCast(fieldPacket, parser, connection.config.timezone, connection.config.supportBigNumbers, connection.config.bigNumberStrings, connection.config.dateStrings)
+                    //        : ( (fieldPacket.charsetNr === Charsets.BINARY)
+                    //          ? parser.parseLengthCodedBuffer()
+                    //          : parser.parseLengthCodedString() );
+                    //    }
+
+
+                    //TODO: review here
+                    //nestTables=? 
+
+
+                    //if (nestTables)
+                    //{
+                    //    //      this[fieldPacket.table] = this[fieldPacket.table] || {};
+                    //    //      this[fieldPacket.table][fieldPacket.name] = value;
+                    //}
+                    //else
+                    //{
+                    //    //      this[fieldPacket.name] = value;
+                    //    myDataList[i] = value;
+                    //}
+
+
+                    //    if (typeof nestTables == "string" && nestTables.length) {
+                    //      this[fieldPacket.table + nestTables + fieldPacket.name] = value;
+                    //    } else if (nestTables) {
                     //      this[fieldPacket.table] = this[fieldPacket.table] || {};
                     //      this[fieldPacket.table][fieldPacket.name] = value;
-                }
-                else
-                {
+                    //    } else {
                     //      this[fieldPacket.name] = value;
-                    myDataList[i] = value;
+                    //    }
+                    //  }
+                    //}
                 }
-                //    if (typeof nestTables == "string" && nestTables.length) {
-                //      this[fieldPacket.table + nestTables + fieldPacket.name] = value;
-                //    } else if (nestTables) {
-                //      this[fieldPacket.table] = this[fieldPacket.table] || {};
-                //      this[fieldPacket.table][fieldPacket.name] = value;
-                //    } else {
-                //      this[fieldPacket.name] = value;
-                //    }
-                //  }
-                //}
             }
+
         }
 
-        static MyStructData TypeCast(PacketParser parser, FieldPacket fieldPacket, string timezone, bool supportBigNumbers, bool bigNumberStrings, bool dateStrings)
+        /// <summary>
+        /// read a data cell with type cast
+        /// </summary>
+        /// <param name="parser"></param>
+        /// <param name="fieldPacket"></param>
+        /// <param name="data"></param>
+        void ReadCellWithTypeCast(PacketParser parser, FieldPacket fieldPacket, ref MyStructData data)
         {
-            //var numberString;
+
             string numberString;
+            
             Types type = (Types)fieldPacket.type;
-            MyStructData data = new MyStructData();
             switch (type)
             {
                 case Types.TIMESTAMP:
                 case Types.DATE:
                 case Types.DATETIME:
                 case Types.NEWDATE:
-                    StringBuilder strBuilder = new StringBuilder();
+
+                    stbuilder.Length = 0;//clear
                     string dateString = parser.ParseLengthCodedString();
-                    if (dateStrings)
+                    data.myString = dateString;
+
+                    if (config.dateStrings)
                     {
                         //return new FieldData<string>(type, dateString);
-                        data.myString = dateString;
+                        //data.myString = dateString;
                         data.type = type;
-                        return data;
+                        return;
                     }
 
                     if (dateString == null)
                     {
                         data.type = Types.NULL;
-                        return data;
+                        return;
                     }
 
                     //    var originalString = dateString;
                     //    if (field.type === Types.DATE) {
                     //      dateString += ' 00:00:00';
                     //    }
-                    strBuilder.Append(dateString);
-                    string originalString = dateString;
+                    stbuilder.Append(dateString);
+                    //string originalString = dateString;
                     if (fieldPacket.type == (int)Types.DATE)
                     {
-                        strBuilder.Append(" 00:00:00");
+                        stbuilder.Append(" 00:00:00");
                     }
                     //    if (timeZone !== 'local') {
                     //      dateString += ' ' + timeZone;
                     //    }
-                    if (!timezone.Equals("local"))
+
+                    if (!isLocalTimeZone)
                     {
-                        strBuilder.Append(' ' + timezone);
+                        stbuilder.Append(' ' + config.timezone);
                     }
                     //var dt;
                     //    dt = new Date(dateString);
                     //    if (isNaN(dt.getTime())) {
                     //      return originalString;
                     //    }
-                    DateTime dt = DateTime.Parse(strBuilder.ToString());
-                    //return new FieldData<DateTime>(type, dt);
-                    data.myDateTime = dt;
+
+                    data.myDateTime = DateTime.Parse(stbuilder.ToString());
                     data.type = type;
-                    return data;
+                    return;
                 case Types.TINY:
                 case Types.SHORT:
                 case Types.LONG:
                 case Types.INT24:
                 case Types.YEAR:
-                    numberString = parser.ParseLengthCodedString();
+
+                    //TODO: review here,                    
+                    data.myString = numberString = parser.ParseLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0') || numberString.Length == 0)
                     {
-                        //return new FieldData<string>(type, numberString);
-                        data.myString = numberString;
                         data.type = Types.NULL;
                     }
                     else
-                    {
-                        //return new FieldData<int>(type, Convert.ToInt32(numberString));
+                    {                        
                         data.myInt32 = Convert.ToInt32(numberString);
                         data.type = type;
                     }
-                    return data;
+                    return;
                 case Types.FLOAT:
                 case Types.DOUBLE:
-                    numberString = parser.ParseLengthCodedString();
+                    data.myString = numberString = parser.ParseLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
-                        //return new FieldData<string>(type, numberString);
                         data.myString = numberString;
                         data.type = Types.NULL;
                     }
                     else
                     {
-                        //return new FieldData<double>(type, Convert.ToDouble(numberString));
                         data.myDouble = Convert.ToDouble(numberString);
                         data.type = type;
                     }
-                    return data;
+                    return;
                 //    return (numberString === null || (field.zeroFill && numberString[0] == "0"))
                 //      ? numberString : Number(numberString);
                 case Types.NEWDECIMAL:
@@ -718,36 +785,39 @@ namespace MySqlPacket
                     //      : ((supportBigNumbers && (bigNumberStrings || (Number(numberString) > IEEE_754_BINARY_64_PRECISION)))
                     //        ? numberString
                     //        : Number(numberString));
-                    numberString = parser.ParseLengthCodedString();
+                    data.myString = numberString = parser.ParseLengthCodedString();
+
+
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
-                        //return new FieldData<string>(type, numberString);
                         data.myString = numberString;
                         data.type = Types.NULL;
                     }
-                    else if (supportBigNumbers && (bigNumberStrings || (Convert.ToInt64(numberString) > IEEE_754_BINARY_64_PRECISION)))
+                    else if (config.supportBigNumbers && (config.bigNumberStrings || (Convert.ToInt64(numberString) > IEEE_754_BINARY_64_PRECISION)))
                     {
-                        //return new FieldData<string>(type, numberString);
+                        //store as string ?
+                        //TODO: review here  again
+                        throw new NotSupportedException();
                         data.myString = numberString;
                         data.type = type;
                     }
                     else if (type == Types.LONGLONG)
                     {
-                        //return new FieldData<long>(type, Convert.ToInt64(numberString));
-                        data.myLong = Convert.ToInt64(numberString);
+                        data.myInt64 = Convert.ToInt64(numberString);
                         data.type = type;
                     }
                     else//decimal
                     {
+
                         data.myDecimal = Convert.ToDecimal(numberString);
                         data.type = type;
                     }
-                    return data;
+                    return;
                 case Types.BIT:
-                    //return new FieldData<byte[]>(type, parser.ParseLengthCodedBuffer());
+
                     data.myBuffer = parser.ParseLengthCodedBuffer();
                     data.type = type;
-                    return data;
+                    return;
                 //    return parser.parseLengthCodedBuffer();
                 case Types.STRING:
                 case Types.VAR_STRING:
@@ -757,28 +827,26 @@ namespace MySqlPacket
                 case Types.BLOB:
                     if (fieldPacket.charsetNr == (int)CharSets.BINARY)
                     {
-                        //return new FieldData<byte[]>(type, parser.ParseNullTerminatedBuffer());
-                        data.myBuffer = parser.ParseLengthCodedBuffer();
+                        data.myBuffer = parser.ParseLengthCodedBuffer(); //CodedBuffer
                         data.type = type;
                     }
                     else
                     {
-                        //return new FieldData<string>(type, parser.ParseLengthCodedString());
-                        data.myString = parser.ParseLengthCodedString();
+
+                        data.myString = parser.ParseLengthCodedString();//codeString
                         data.type = type;
                     }
-                    return data;
+                    return;
                 //    return (field.charsetNr === Charsets.BINARY)
                 //      ? parser.parseLengthCodedBuffer()
                 //      : parser.parseLengthCodedString();
                 case Types.GEOMETRY:
-                    //    return parser.parseGeometryValue();
-                    return data;
+                    data.type = Types.GEOMETRY;
+                    return;
                 default:
-                    //return new FieldData<string>(type, parser.ParseLengthCodedString());
                     data.myString = parser.ParseLengthCodedString();
                     data.type = type;
-                    return data;
+                    return;
             }
         }
 
@@ -789,49 +857,33 @@ namespace MySqlPacket
 
         public override string ToString()
         {
-            StringBuilder strBuilder = new StringBuilder();
             int count = myDataList.Length;
-            for (int i = 0; i < count; i++)
+            switch (count)
             {
-                strBuilder.Append(myDataList[i].ToString());
-                if (i < count - 1)
-                {
-                    strBuilder.Append(", ");
-                }
-            }
-            return strBuilder.ToString();
-        }
-
-        //-----------------------------------------------------
-        public MyStructData GetDataInField(int fieldIndex)
-        {
-            if (fieldIndex < tableHeader.ColumnCount)
-            {
-                return myDataList[fieldIndex];
-            }
-            else
-            {
-                MyStructData data = new MyStructData();
-                data.myString = "index out of range!";
-                data.type = Types.STRING;
-                return data;
-            }
-        }
-        public MyStructData GetDataInField(string fieldName)
-        {
-            int index = tableHeader.GetFieldIndex(fieldName);
-            if (index < 0)
-            {
-                MyStructData data = new MyStructData();
-                data.myString = "Not found field name '" + fieldName + "'";
-                data.type = Types.STRING;
-                return data;
-            }
-            else
-            {
-                return myDataList[index];
+                case 0: return "";
+                case 1:
+                    return myDataList[0].ToString();
+                default:
+                    var stBuilder = new StringBuilder();
+                    //1st
+                    stBuilder.Append(myDataList[0].ToString());
+                    //then
+                    for (int i = 1; i < count; ++i)
+                    {
+                        //then..
+                        stBuilder.Append(',');
+                        stBuilder.Append(myDataList[i].ToString());
+                    }
+                    return stBuilder.ToString();
             }
 
         }
+
+        internal MyStructData[] Cells
+        {
+            get { return myDataList; }
+        }
+
+
     }
 }

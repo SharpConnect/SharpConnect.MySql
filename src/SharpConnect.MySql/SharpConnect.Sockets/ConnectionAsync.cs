@@ -18,15 +18,14 @@
 //AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 //LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//THE SOFTWARE.
-
+//THE SOFTWARE. 
 
 
 using System.Net;
 using System.Net.Sockets;
 
 using SharpConnect;
-using SharpConnect.Sockets; 
+using SharpConnect.Sockets;
 
 namespace MySqlPacket
 {
@@ -34,43 +33,46 @@ namespace MySqlPacket
     partial class Connection
     {
 
+        byte[] sockBuffer = new byte[1024 * 2];
+        SocketAsyncEventArgs saea = new SocketAsyncEventArgs();
         MySqlConnectionSession connSession;
+
         public void ConnectAsync(Action connHandler)
         {
-            SocketAsyncEventArgs args = new SocketAsyncEventArgs();
+
             //1. socket
             this.socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            saea.SetBuffer(sockBuffer, 0, sockBuffer.Length);
 
-            //2. buffer
-            byte[] sockBuffer = new byte[1024 * 2];
-            args.SetBuffer(sockBuffer, 0, 1024 * 2);
-            connSession = new MySqlConnectionSession(args, 1024, 1024);
-            args.UserToken = connSession;
-            args.AcceptSocket = socket;
+            //2. buffer 
+            connSession = new MySqlConnectionSession(saea, 1024, 1024);
+            saea.UserToken = connSession;
+            saea.AcceptSocket = socket;
 
             var endPoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             //first connect 
             socket.Connect(endPoint);
             connSession.StartReceive(recv =>
-            {
+            {  
 
-                //parse input
-                writer.Rewrite();
+                //TODO: review here, don't copy, 
+                //we should use shared sockBuffer 
+
                 byte[] buffer = new byte[512];
                 int count = recv.BytesTransferred;
                 recv.CopyTo(0, buffer, 0, recv.BytesTransferred);
-
                 parser.LoadNewBuffer(buffer, count);
                 handshake = new HandshakePacket();
-                handshake.ParsePacket(parser);
+                handshake.ParsePacket(parser); 
                 this.threadId = handshake.threadId;
 
                 byte[] token = MakeToken(config.password,
                     GetScrollbleBuffer(handshake.scrambleBuff1, handshake.scrambleBuff2));
 
+                writer.Reset();
                 writer.IncrementPacketNumber();
                 //------------------------------------------
-                authPacket = new ClientAuthenticationPacket();
+                var authPacket = new ClientAuthenticationPacket();
                 authPacket.SetValues(config.user, token, config.database, handshake.protocol41);
                 authPacket.WritePacket(writer);
 
@@ -99,11 +101,11 @@ namespace MySqlPacket
                         OkPacket okPacket = new OkPacket(handshake.protocol41);
                         okPacket.ParsePacket(parser);
                     }
-                    writer.Rewrite();
+                    writer.Reset();
                     GetMaxAllowedPacket();
-                    if (MAX_ALLOWED_PACKET > 0)
+                    if (maxPacketSize > 0)
                     {
-                        writer.SetMaxAllowedPacket(MAX_ALLOWED_PACKET);
+                        writer.SetMaxAllowedPacket(maxPacketSize);
                     }
 
                     if (connHandler != null)
