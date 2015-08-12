@@ -313,11 +313,6 @@ namespace MySqlPacket
 
                 if (newBufferLength > buffer.Length)
                 {
-
-                    //byte[] remainBuff = CopyBufferBlock(buffer, (int)parser.Position, remainLength);
-                    //buffer = new byte[newBufferLength];
-                    //remainBuff.CopyTo(buffer, 0);
-
                     var tmpBuffer = new byte[newBufferLength];
                     Buffer.BlockCopy(buffer, (int)parser.Position, tmpBuffer, 0, remainLength);
                     buffer = tmpBuffer;
