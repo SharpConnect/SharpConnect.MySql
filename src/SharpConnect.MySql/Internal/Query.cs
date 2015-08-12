@@ -223,9 +223,9 @@ namespace MySqlPacket
 
                         receiveBuffer = CheckLimit(lastRow.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                         lastRow.ParsePacket(parser);
-
-                        receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
                         dbugConsole.WriteLine("After parse Row [Position] : " + parser.Position);
+                        receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
+                        dbugConsole.WriteLine("After CheckBeforeParseHeader [Position] : " + parser.Position);
 
 
                         return hasSomeRow = true;
@@ -233,13 +233,19 @@ namespace MySqlPacket
             }
         }
 
-        public MyStructData GetFieldData(string fieldName)
+
+
+        internal MyStructData[] Cells
         {
-            return lastRow.GetDataInField(fieldName);
+            get
+            {
+                return lastRow.Cells;
+            }
         }
-        public MyStructData GetFieldData(int fieldIndex)
+
+        public int GetColumnIndex(string colName)
         {
-            return lastRow.GetDataInField(fieldIndex);
+            return this.tableHeader.GetFieldIndex(colName);
         }
 
         public void Close()
@@ -265,10 +271,14 @@ namespace MySqlPacket
             //socket.Disconnect(false);
             //this.Disconnect(); 
             //TODO: review here !
-
             if (hasSomeRow)
             {
+                sql = "KILL " + conn.threadId;
+                Connection killConn = new Connection(conn.config);
+                killConn.Connect();
+                killConn.CreateQuery(sql, null).ExecuteQuery();
                 conn.ClearRemainingInputBuffer();
+                killConn.Disconnect();
             }
 
             //socket = null;
@@ -290,98 +300,69 @@ namespace MySqlPacket
             //socket = newConnect.socket;
         }
 
-        void Disconnect()
-        {
-            writer.Reset();
-            ComQuitPacket quitPacket = new ComQuitPacket();
-            quitPacket.WritePacket(writer);
-            var socket = conn.socket;
-            int send = socket.Send(writer.ToArray());
-        }
-
         byte[] CheckLimit(uint packetLength, byte[] buffer, int limit)
         {
             int remainLength = (int)(parser.Length - parser.Position);
             if (packetLength > remainLength)
             {
-                //TODO: review here, use buffer pool ?
-                byte[] remainBuff = CopyBufferBlock(buffer, (int)parser.Position, remainLength);
-                byte[] receiveBuff;
+
+
                 int packetRemainLength = (int)packetLength - remainLength;
-                if (packetRemainLength > limit)
+                int newReceiveBuffLength = (packetLength > limit) ? packetRemainLength : limit;
+                int newBufferLength = newReceiveBuffLength + remainLength;
+
+                if (newBufferLength > buffer.Length)
                 {
-                    receiveBuff = new byte[packetRemainLength];
+                    var tmpBuffer = new byte[newBufferLength];
+                    Buffer.BlockCopy(buffer, (int)parser.Position, tmpBuffer, 0, remainLength);
+                    buffer = tmpBuffer;
                 }
                 else
                 {
-                    receiveBuff = new byte[limit];
+                    //use same buffer
+                    //just move
+                    Buffer.BlockCopy(buffer, (int)parser.Position, buffer, 0, remainLength);
                 }
-                int newBufferLength = receiveBuff.Length + remainLength;
-                if (newBufferLength > buffer.Length)
-                {
-                    buffer = new byte[newBufferLength];
-                }
-                remainBuff.CopyTo(buffer, 0);
+
+
                 var socket = conn.socket;
-                int newReceive = socket.Receive(receiveBuff);
-                if (newReceive < newBufferLength)//get some but not complete
+                int newReceive = remainLength + socket.Receive(buffer, remainLength, newReceiveBuffLength, SocketFlags.None);
+                int timeoutCountdown = 10000;
+                while (newReceive < newBufferLength)
                 {
-                    int newIndex = 0;
-                    byte[] temp = new byte[newReceive];
-                    temp = CopyBufferBlock(receiveBuff, 0, newReceive);
-                    temp.CopyTo(buffer, remainLength);
-                    newIndex = newReceive + remainLength;
-                    while (newIndex < newBufferLength)
+                    int available = socket.Available;
+                    if (available > 0)
                     {
-
-                        //TODO: review here, 
-                        //use AsyncSocket
-
-                        Thread.Sleep(100);
-                        var s = socket.Available;
-                        if (s == 0)
+                        if (newReceive + available < newBufferLength)
                         {
-                            break;
-                        }
-                        newReceive = socket.Receive(receiveBuff);
-                        if (newReceive > 0)
-                        {
-                            if (newReceive + newIndex + remainLength > newBufferLength)
-                            {
-                                temp = new byte[newReceive];
-                                temp = CopyBufferBlock(receiveBuff, 0, newReceive);
-                                byte[] bytes;// = new byte[newReceive + newIndex];
-                                bytes = CopyBufferBlock(buffer, 0, newIndex);
-                                buffer = new byte[newReceive + newIndex];
-                                bytes.CopyTo(buffer, 0);
-                                temp.CopyTo(buffer, newIndex);
-                                newIndex += newReceive;
-                            }
-                            else
-                            {
-                                temp = new byte[newReceive];
-                                temp = CopyBufferBlock(receiveBuff, 0, newReceive);
-                                temp.CopyTo(buffer, remainLength + newIndex);
-                                newIndex += newReceive;
-                            }
+                            newReceive += socket.Receive(buffer, newReceive, available, SocketFlags.None);
                         }
                         else
+                        {
+                            newReceive += socket.Receive(buffer, newReceive, newBufferLength - newReceive, SocketFlags.None);
+                        }
+                        timeoutCountdown = 10000;//timeoutCountdown maybe < 10000 when socket receive faster than server send data
+                    }
+                    else
+                    {
+                        Thread.Sleep(100);//sometime socket maybe receive faster than server send data
+                        timeoutCountdown -= 100;
+                        if (socket.Available > 0)
+                        {
+                            continue;
+                        }
+                        if (timeoutCountdown <= 0)//sometime server maybe error
                         {
                             break;
                         }
                     }
-                    newBufferLength = newIndex;
-                }
-                else
-                {
-                    receiveBuff.CopyTo(buffer, remainLength);
                 }
                 parser.LoadNewBuffer(buffer, newBufferLength);
             }
             return buffer;
         }
 
-        byte[] CopyBufferBlock(byte[] inputBuffer, int start, int length)
+        static byte[] CopyBufferBlock(byte[] inputBuffer, int start, int length)
         {
 
             byte[] outputBuff = new byte[length];
@@ -396,6 +377,7 @@ namespace MySqlPacket
 
         byte[] CheckBeforeParseHeader(byte[] buffer, int position, int limit)
         {
+            //TODO: check memory mx again
             int remainLength = (int)parser.Length - position;
             if (remainLength < 5)//5 bytes --> 4 bytes from header and 1 byte for find packet type
             {
@@ -410,7 +392,6 @@ namespace MySqlPacket
                 }
                 remainBuff.CopyTo(buffer, 0);
                 receiveBuff.CopyTo(buffer, remainLength);
-                //buffer = remainBuff.Concat(receiveBuff).ToArray();
                 parser.LoadNewBuffer(buffer, newReceive + remainLength);
 
                 dbugConsole.WriteLine("CheckBeforeParseHeader : LoadNewBuffer");
@@ -670,7 +651,7 @@ namespace MySqlPacket
                 uint val = lookup32[bytes[i]];
                 result[m] = (char)val;
                 result[m + 1] = (char)(val >> 16);
-                m <<= 1;// m *=2;
+                m += 2;
             }
 
             return new string(result);
@@ -712,8 +693,6 @@ namespace MySqlPacket
                     fieldNamePosMap.Add(fields[i].name, i);
                 }
             }
-
-
             int found;
             if (!fieldNamePosMap.TryGetValue(fieldName, out found))
             {
@@ -729,9 +708,9 @@ namespace MySqlPacket
 
 
 
-  
 
-     
 
- 
+
+
+
 }

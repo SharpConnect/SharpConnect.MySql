@@ -121,7 +121,7 @@ namespace MySqlPacket
                 writer.Reset();
                 parser.LoadNewBuffer(buffer, count);
                 handshake = new HandshakePacket();
-                handshake.ParsePacket(parser); 
+                handshake.ParsePacket(parser);
                 this.threadId = handshake.threadId;
 
                 byte[] token = MakeToken(config.password,
@@ -182,7 +182,7 @@ namespace MySqlPacket
                 int i = 0;
                 if (query.ReadRow())
                 {
-                    maxPacketSize = query.GetFieldData(0).myLong;
+                    maxPacketSize = query.Cells[0].myInt64;
                     //MAX_ALLOWED_PACKET = query.resultSet.rows[0].GetDataInField("@@global.max_allowed_packet").myLong;
                     //dbugConsole.WriteLine("Rows Data " + i + " : " + query.resultSet.rows[i++]);
                 }
@@ -253,7 +253,7 @@ namespace MySqlPacket
             {
                 if (tmpForClearRecvBuffer == null)
                 {
-                    tmpForClearRecvBuffer = new byte[1024];
+                    tmpForClearRecvBuffer = new byte[300000];//in test case socket recieve lower than 300,000 bytes
                 }
 
                 while (socket.Available > 0)
