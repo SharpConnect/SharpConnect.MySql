@@ -152,8 +152,7 @@ namespace MySqlPacket
         {
             ResultSetHeaderPacket resultPacket = new ResultSetHeaderPacket();
             resultPacket.ParsePacket(parser);
-
-
+            
             this.tableHeader = new TableHeader();
             tableHeader.TypeCast = typeCast;
             tableHeader.NestTables = nestTables;
@@ -168,22 +167,17 @@ namespace MySqlPacket
                 receiveBuffer = CheckLimit(fieldPacket.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                 fieldPacket.ParsePacket(parser);
                 tableHeader.AddField(fieldPacket);
-                receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
+                CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
             }
-
-
-
+            
             EofPacket fieldEof = new EofPacket(protocol41);//if temp[4]=0xfe then eof packet
             fieldEof.ParsePacketHeader(parser);
             receiveBuffer = CheckLimit(fieldEof.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
             fieldEof.ParsePacket(parser);
-
-
-            receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
-
+            
+            CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
             //-----
             lastRow = new RowDataPacket(tableHeader);
-
         }
 
         public bool ReadRow()
@@ -192,8 +186,7 @@ namespace MySqlPacket
             {
                 return hasSomeRow = false;
             }
-
-
+            
             switch (receiveBuffer[parser.Position + 4])
             {
                 case ERROR_CODE:
@@ -208,8 +201,7 @@ namespace MySqlPacket
                         rowDataEof.ParsePacketHeader(parser);
                         receiveBuffer = CheckLimit(rowDataEof.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                         rowDataEof.ParsePacket(parser);
-
-
+                        
                         return hasSomeRow = false;
                     }
                 default:
@@ -224,17 +216,14 @@ namespace MySqlPacket
                         receiveBuffer = CheckLimit(lastRow.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                         lastRow.ParsePacket(parser);
                         dbugConsole.WriteLine("After parse Row [Position] : " + parser.Position);
-                        receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
+                        CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
                         dbugConsole.WriteLine("After CheckBeforeParseHeader [Position] : " + parser.Position);
-
-
+                        
                         return hasSomeRow = true;
                     }
             }
         }
-
-
-
+        
         internal MyStructData[] Cells
         {
             get
@@ -305,8 +294,6 @@ namespace MySqlPacket
             int remainLength = (int)(parser.Length - parser.Position);
             if (packetLength > remainLength)
             {
-
-
                 int packetRemainLength = (int)packetLength - remainLength;
                 int newReceiveBuffLength = (packetLength > limit) ? packetRemainLength : limit;
                 int newBufferLength = newReceiveBuffLength + remainLength;
@@ -323,8 +310,7 @@ namespace MySqlPacket
                     //just move
                     Buffer.BlockCopy(buffer, (int)parser.Position, buffer, 0, remainLength);
                 }
-
-
+                
                 var socket = conn.socket;
                 int newReceive = remainLength + socket.Receive(buffer, remainLength, newReceiveBuffLength, SocketFlags.None);
                 int timeoutCountdown = 10000;
@@ -375,28 +361,26 @@ namespace MySqlPacket
             //return outputBuff;
         }
 
-        byte[] CheckBeforeParseHeader(byte[] buffer, int position, int limit)
+        void CheckBeforeParseHeader(byte[] buffer, int position, int limit)
         {
-            //TODO: check memory mx again
+            //todo: check memory mx again
             int remainLength = (int)parser.Length - position;
             if (remainLength < 5)//5 bytes --> 4 bytes from header and 1 byte for find packet type
             {
                 byte[] remainBuff = CopyBufferBlock(buffer, position, remainLength);
-                byte[] receiveBuff = new byte[limit];
-                var socket = conn.socket;
-                int newReceive = socket.Receive(receiveBuff);
-                int newBufferLength = newReceive + remainLength;
-                if (newBufferLength > buffer.Length)
-                {
-                    buffer = new byte[newBufferLength];
-                }
                 remainBuff.CopyTo(buffer, 0);
-                receiveBuff.CopyTo(buffer, remainLength);
-                parser.LoadNewBuffer(buffer, newReceive + remainLength);
 
+                var socket = conn.socket;
+                int bufferRemain = buffer.Length - remainLength;
+                int available = socket.Available;
+                int expectedReceive = (available < bufferRemain ? available : bufferRemain);
+
+                int realReceive = socket.Receive(buffer, remainLength, expectedReceive, SocketFlags.None);
+                int newBufferLength = remainLength + realReceive;//sometime realReceive != expectedReceive
+                parser.LoadNewBuffer(buffer, newBufferLength);
                 dbugConsole.WriteLine("CheckBeforeParseHeader : LoadNewBuffer");
             }
-            return buffer;
+            //return buffer;
         }
 
         static string BindValues(string sql, CommandParameters values)
@@ -479,7 +463,6 @@ namespace MySqlPacket
             return strBuilder.ToString();
         }
 
-
         //public void Start(Socket socket, bool protocol41, ConnectionConfig config)
         //{
         //    this.socket = socket;
@@ -550,7 +533,6 @@ namespace MySqlPacket
         //        resultSet.Add(rowDataEof);
         //    }
         //}
-
     }
 
 
