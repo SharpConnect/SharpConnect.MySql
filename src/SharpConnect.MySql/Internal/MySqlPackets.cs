@@ -841,6 +841,7 @@ namespace MySqlPacket
                 //      ? parser.parseLengthCodedBuffer()
                 //      : parser.parseLengthCodedString();
                 case Types.GEOMETRY:
+                    //TODO: unfinished
                     data.type = Types.GEOMETRY;
                     return;
                 default:
@@ -883,7 +884,6 @@ namespace MySqlPacket
         {
             get { return myDataList; }
         }
-
-
+        
     }
 }

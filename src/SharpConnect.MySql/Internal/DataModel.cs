@@ -275,7 +275,7 @@ namespace MySqlPacket
         UTF8MB4_UNICODE_520_CI,//exports.UTF8MB4_UNICODE_520_CI    = 246;
         UTF8MB4_VIETNAMESE_CI,//exports.UTF8MB4_VIETNAMESE_CI      = 247;
 
-        UTF8_GENERAL50_CI = 253,  //exports.UTF8_GENERAL50_CI            = 253;
+        UTF8_GENERAL50_CI = 253,  //exports.UTF8_GENERAL50_CI      = 253;
 
         //// short aliases
         ARMSCII8 = ARMSCII8_GENERAL_CI, //exports.ARMSCII8 = exports.ARMSCII8_GENERAL_CI;
@@ -320,7 +320,7 @@ namespace MySqlPacket
         UTF32 = UTF32_GENERAL_CI        //exports.UTF32    = exports.UTF32_GENERAL_CI;
     }
 
-    enum Types
+    enum Types : byte
     {
         // Manually extracted from mysql-5.5.23/include/mysql_com.h
         // some more info here: http://dev.mysql.com/doc/refman/5.5/en/c-api-prepared-statement-type-codes.html
@@ -354,6 +354,14 @@ namespace MySqlPacket
         VAR_STRING,     //exports.VAR_STRING  = 0xfd; // aka VARCHAR, VARBINARY
         STRING,         //exports.STRING      = 0xfe; // aka CHAR, BINARY
         GEOMETRY        //exports.GEOMETRY    = 0xff; // aka GEOMETRY
+    }
+
+    enum CursorFlags : byte
+    {
+        CURSOR_TYPE_NO_CURSOR = 0,
+        CURSOR_TYPE_READ_ONLY = 1,
+        CURSOR_TYPE_FOR_UPDATE = 2,
+        CURSOR_TYPE_SCROLLABLE = 4
     }
 
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]

@@ -60,10 +60,8 @@ namespace MySqlPacket
         const byte ERROR_CODE = 255;
         const byte EOF_CODE = 0xfe;
         const byte OK_CODE = 0;
-
-        long MAX_ALLOWED_SEND = 0;
-
-
+        
+        const int MAX_PACKET_LENGTH = (int)(1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
 
         public Query(Connection conn, string sql, CommandParameters values)
         {
@@ -85,13 +83,6 @@ namespace MySqlPacket
             this.receiveBuffer = null;
 
         }
-
-
-        public void SetMaxSend(long max)
-        {
-            MAX_ALLOWED_SEND = max;
-        }
-
 
         public void ExecuteQuery()
         {
@@ -134,12 +125,13 @@ namespace MySqlPacket
             //if send data more than max_allowed_packet in mysql server it will be close connection
 
             var socket = conn.socket;
-            if (MAX_ALLOWED_SEND > 0 && qr.Length > MAX_ALLOWED_SEND)
+            if (qr.Length > MAX_PACKET_LENGTH)
             {
-                int packs = (int)Math.Floor(qr.Length / (double)MAX_ALLOWED_SEND) + 1;
+                int packs = (int)Math.Floor(qr.Length / (double)MAX_PACKET_LENGTH) + 1;
                 for (int pack = 0; pack < packs; pack++)
                 {
-                    sent = socket.Send(qr, (int)MAX_ALLOWED_SEND, SocketFlags.None);
+                    //TODO: not sure >> waiting to test
+                    sent = socket.Send(qr, MAX_PACKET_LENGTH, SocketFlags.None);
                 }
             }
             else
@@ -167,7 +159,7 @@ namespace MySqlPacket
                 receiveBuffer = CheckLimit(fieldPacket.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                 fieldPacket.ParsePacket(parser);
                 tableHeader.AddField(fieldPacket);
-                CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
+                CheckBeforeParseHeader(receiveBuffer);
             }
             
             EofPacket fieldEof = new EofPacket(protocol41);//if temp[4]=0xfe then eof packet
@@ -175,7 +167,7 @@ namespace MySqlPacket
             receiveBuffer = CheckLimit(fieldEof.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
             fieldEof.ParsePacket(parser);
             
-            CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
+            CheckBeforeParseHeader(receiveBuffer);
             //-----
             lastRow = new RowDataPacket(tableHeader);
         }
@@ -206,18 +198,12 @@ namespace MySqlPacket
                     }
                 default:
                     {
-                        dbugConsole.WriteLine("Before parse [Position] : " + parser.Position);
-
                         lastRow.ReuseSlots();
                         lastRow.ParsePacketHeader(parser);
 
-                        dbugConsole.WriteLine("After parse header [Position] : " + parser.Position);
-
                         receiveBuffer = CheckLimit(lastRow.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
                         lastRow.ParsePacket(parser);
-                        dbugConsole.WriteLine("After parse Row [Position] : " + parser.Position);
-                        CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, DEFAULT_BUFFER_SIZE);
-                        dbugConsole.WriteLine("After CheckBeforeParseHeader [Position] : " + parser.Position);
+                        CheckBeforeParseHeader(receiveBuffer);
                         
                         return hasSomeRow = true;
                     }
@@ -348,27 +334,27 @@ namespace MySqlPacket
             return buffer;
         }
 
-        static byte[] CopyBufferBlock(byte[] inputBuffer, int start, int length)
-        {
+        //static byte[] CopyBufferBlock(byte[] inputBuffer, int start, int length)
+        //{
+        //    byte[] outputBuff = new byte[length];
+        //    Buffer.BlockCopy(inputBuffer, start, outputBuff, 0, length);
+        //    return outputBuff;
+        //    //for (int index = 0; index < length; index++)
+        //    //{
+        //    //    outputBuff[index] = inputBuffer[start + index];
+        //    //}
+        //    //return outputBuff;
+        //}
 
-            byte[] outputBuff = new byte[length];
-            Buffer.BlockCopy(inputBuffer, start, outputBuff, 0, length);
-            return outputBuff;
-            //for (int index = 0; index < length; index++)
-            //{
-            //    outputBuff[index] = inputBuffer[start + index];
-            //}
-            //return outputBuff;
-        }
-
-        void CheckBeforeParseHeader(byte[] buffer, int position, int limit)
+        void CheckBeforeParseHeader(byte[] buffer)
         {
             //todo: check memory mx again
-            int remainLength = (int)parser.Length - position;
+            int remainLength = (int)(parser.Length - parser.Position);
             if (remainLength < 5)//5 bytes --> 4 bytes from header and 1 byte for find packet type
             {
-                byte[] remainBuff = CopyBufferBlock(buffer, position, remainLength);
-                remainBuff.CopyTo(buffer, 0);
+                //byte[] remainBuff = new byte[remainLength];
+                Buffer.BlockCopy(buffer, (int)parser.Position, buffer, 0, remainLength);
+                //remainBuff.CopyTo(buffer, 0);
 
                 var socket = conn.socket;
                 int bufferRemain = buffer.Length - remainLength;

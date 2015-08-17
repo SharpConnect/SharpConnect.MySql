@@ -155,11 +155,7 @@ namespace MySqlPacket
                 }
                 writer.Reset();
                 GetMaxAllowedPacket();
-                if (maxPacketSize > 0)
-                {
-                    writer.SetMaxAllowedPacket(maxPacketSize);
-                }
-
+                writer.SetMaxAllowedPacket(maxPacketSize);
             }
         }
 
@@ -179,7 +175,6 @@ namespace MySqlPacket
             }
             else
             {
-                int i = 0;
                 if (query.ReadRow())
                 {
                     maxPacketSize = query.Cells[0].myInt64;
@@ -207,10 +202,6 @@ namespace MySqlPacket
             //    CreateNewSocket();
             //}
             var query = new Query(this, sql, values);
-            if (maxPacketSize > 0)
-            {
-                query.SetMaxSend(maxPacketSize);
-            }
             return query;
         }
 
