@@ -97,49 +97,47 @@ namespace MySqlPacket
         {
             //  var packets  = Math.floor(this._buffer.length / MAX_PACKET_LENGTH) + 1;
             //  var buffer   = this._buffer;
-            int maxPacketLength = MAX_PACKET_LENGTH;
-            if (maxAllowedLength <= MAX_PACKET_LENGTH)
-            {
-                maxPacketLength = (int)maxAllowedLength - 4;//-4 bytes for header
-            }
+            //int maxPacketLength = MAX_PACKET_LENGTH;
 
             long curPacketLength = CurrentPacketLength();
 
             dbugConsole.WriteLine("Current Packet Length = " + curPacketLength);
 
-            int packets = (int)(curPacketLength / maxPacketLength) + 1;
+            int packets = (int)(curPacketLength / MAX_PACKET_LENGTH) + 1;
             if (packets == 1)
             {
-                //byte[] encodeData = new byte[4];
+                if (header.Length > maxAllowedLength)
+                {
+                    throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
+                }
                 EncodeUnsignedNumber0_3(headerBuffer, header.Length);
                 headerBuffer[3] = header.PacketNumber;
                 writer.RewindAndWriteAt(headerBuffer, (int)startPacketPosition);
             }
-            else
+            else //>1 
             {
-                //TODO: review here***
-
-                //>1 
-                //  this._buffer = new Buffer(this._buffer.length + packets * 4);
-                //  for (var packet = 0; packet < packets; packet++) { 
-                //  }
+                long allDataLength = (curPacketLength - 4) + (packets * 4);
+                if (allDataLength > maxAllowedLength)
+                {
+                    throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
+                }
+                byte[] allBuffer = new byte[allDataLength];
                 int startContentPos = (int)(startPacketPosition + 4);
                 int offset = 0;
                 byte startPacketNum = header.PacketNumber;
-                byte[] currentPacketBuff = new byte[maxPacketLength];
-                byte[] allBuffer = new byte[(curPacketLength - 4) + (packets * 4)];
-
+                byte[] currentPacketBuff = new byte[MAX_PACKET_LENGTH];
+                
                 for (int packet = 0; packet < packets; packet++)
                 {
                     //    this._offset = packet * (MAX_PACKET_LENGTH + 4);
-                    offset = packet * maxPacketLength + startContentPos;
+                    offset = packet * MAX_PACKET_LENGTH + startContentPos;
                     //    var isLast = (packet + 1 === packets);
                     //    var packetLength = (isLast)
                     //      ? buffer.length % MAX_PACKET_LENGTH
                     //      : MAX_PACKET_LENGTH;
                     int packetLength = (packet + 1 == packets)
-                        ? (int)((curPacketLength - 4) % maxPacketLength)
-                        : maxPacketLength;
+                        ? (int)((curPacketLength - 4) % MAX_PACKET_LENGTH)
+                        : MAX_PACKET_LENGTH;
                     //    var packetNumber = parser.incrementPacketNumber();
 
                     //    this.writeUnsignedNumber(3, packetLength);
@@ -149,15 +147,15 @@ namespace MySqlPacket
                     //    var end   = start + packetLength;
 
                     //    this.writeBuffer(buffer.slice(start, end));
-                    var start = packet * (maxPacketLength + 4);
+                    var start = packet * (MAX_PACKET_LENGTH + 4);//+4 for add header
 
                     //byte[] encodeData = new byte[4];
                     EncodeUnsignedNumber0_3(headerBuffer, (uint)packetLength);
-                    headerBuffer[3] = startPacketNum;
+                    headerBuffer[3] = startPacketNum++;
 
                     headerBuffer.CopyTo(allBuffer, start);
                     writer.RewindAndWriteAt(headerBuffer, (int)start);
-                    startPacketNum = 0;
+                    //startPacketNum = 0;
                     if (packetLength < currentPacketBuff.Length)
                     {
                         currentPacketBuff = new byte[packetLength];

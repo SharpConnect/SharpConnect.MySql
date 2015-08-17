@@ -60,10 +60,8 @@ namespace MySqlPacket
         const byte ERROR_CODE = 255;
         const byte EOF_CODE = 0xfe;
         const byte OK_CODE = 0;
-
-        long MAX_ALLOWED_SEND = 0;
-
-
+        
+        const int MAX_PACKET_LENGTH = (int)(1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
 
         public Query(Connection conn, string sql, CommandParameters values)
         {
@@ -85,13 +83,6 @@ namespace MySqlPacket
             this.receiveBuffer = null;
 
         }
-
-
-        public void SetMaxSend(long max)
-        {
-            MAX_ALLOWED_SEND = max;
-        }
-
 
         public void ExecuteQuery()
         {
@@ -134,12 +125,13 @@ namespace MySqlPacket
             //if send data more than max_allowed_packet in mysql server it will be close connection
 
             var socket = conn.socket;
-            if (MAX_ALLOWED_SEND > 0 && qr.Length > MAX_ALLOWED_SEND)
+            if (qr.Length > MAX_PACKET_LENGTH)
             {
-                int packs = (int)Math.Floor(qr.Length / (double)MAX_ALLOWED_SEND) + 1;
+                int packs = (int)Math.Floor(qr.Length / (double)MAX_PACKET_LENGTH) + 1;
                 for (int pack = 0; pack < packs; pack++)
                 {
-                    sent = socket.Send(qr, (int)MAX_ALLOWED_SEND, SocketFlags.None);
+                    //TODO: not sure >> waiting to test
+                    sent = socket.Send(qr, MAX_PACKET_LENGTH, SocketFlags.None);
                 }
             }
             else
