@@ -147,14 +147,14 @@ namespace MySqlPacket
                     //    var end   = start + packetLength;
 
                     //    this.writeBuffer(buffer.slice(start, end));
-                    var start = packet * (MAX_PACKET_LENGTH + 4);//+4 for add header
+                    int start = packet * (MAX_PACKET_LENGTH + 4);//+4 for add header
 
                     //byte[] encodeData = new byte[4];
                     EncodeUnsignedNumber0_3(headerBuffer, (uint)packetLength);
                     headerBuffer[3] = startPacketNum++;
 
                     headerBuffer.CopyTo(allBuffer, start);
-                    writer.RewindAndWriteAt(headerBuffer, (int)start);
+                    writer.RewindAndWriteAt(headerBuffer, start);
                     //startPacketNum = 0;
                     if (packetLength < currentPacketBuff.Length)
                     {
@@ -255,17 +255,31 @@ namespace MySqlPacket
         //}
         static void EncodeUnsignedNumber0_3(byte[] outputBuffer, uint value)
         {
-
             //start at 0
             //length= 3
             outputBuffer[0] = (byte)(value & 0xff);
             outputBuffer[1] = (byte)((value >> 8) & 0xff);
             outputBuffer[2] = (byte)((value >> 24) & 0xff);
         }
+
         public void WriteByte(byte value)
         {
             writer.Write(value);
+        }
 
+        public void WriteInt64(long value)
+        {
+            writer.WriteInt64(value);
+        }
+
+        public void WriteFloat(float value)
+        {
+            writer.WriteFloat(value);
+        }
+
+        public void WriteDouble(double value)
+        {
+            writer.WriteDouble(value);
         }
 
         public void WriteFiller(int length)
@@ -304,6 +318,7 @@ namespace MySqlPacket
         {
             writer.Write((byte)251);
         }
+
         public void WriteLengthCodedNumber(long value)
         {
 
@@ -415,16 +430,13 @@ namespace MySqlPacket
             return writer.ToArray();
         }
     }
-
-
-
+    
     class MyBinaryWriter : IDisposable
     {
         readonly BinaryWriter writer;
         int offset;
         MemoryStream ms;
-
-
+        
         public MyBinaryWriter()
         {
             ms = new MemoryStream();
@@ -448,6 +460,11 @@ namespace MySqlPacket
             writer.Write(bytes);
             offset += bytes.Length;
         }
+        public void WriteInt64(long value)
+        {
+            writer.Write(value);
+            offset += 8;
+        }
         public void WriteInt32(int value)
         {
             writer.Write(value);
@@ -457,6 +474,16 @@ namespace MySqlPacket
         {
             writer.Write(value);
             offset += 2;
+        }
+        public void WriteFloat(float value)
+        {
+            writer.Write(value);
+            offset += 4;
+        }
+        public void WriteDouble(double value)
+        {
+            writer.Write(value);
+            offset += 8;
         }
 
         public void Reset()
