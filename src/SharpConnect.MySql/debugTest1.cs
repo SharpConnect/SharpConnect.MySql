@@ -33,10 +33,15 @@ namespace SharpConnect.MySql
             ss.Start();
 
             CommandParameters cmdValues = new CommandParameters();
+            CommandParam2 cmd2Values = new CommandParam2();
             cmdValues.AddTable("t1", "saveimage");
             //prepare.AddTable("t1", "saveimageTest");
             cmdValues.AddField("c1", "idsaveImage");
             cmdValues.AddField("c2", "saveImagecol");
+
+            cmd2Values.AddValue("t1", "saveimage");
+            cmd2Values.AddValue("c1", "idsaveImage");
+            cmd2Values.AddValue("c2", "saveImagecol");
 
             //prepare.AddTable("t1", "myuser");
             //prepare.AddField("c1", "idmyuser");
@@ -52,18 +57,29 @@ namespace SharpConnect.MySql
             cmdValues.AddValue("n2", 4540);
             cmdValues.AddValue("n3", 22);
 
+            cmd2Values.AddValue("n1", 4500);
+            cmd2Values.AddValue("n2", 4540);
+            cmd2Values.AddValue("n3", 29.5);
+
             cmdValues.AddValue("s1", "test update");
             cmdValues.AddValue("s2", "psw21");
             cmdValues.AddValue("buffer1", buffer);
+
+            cmd2Values.AddValue("s1", "foo");
+            cmd2Values.AddValue("s2", "bar");
+            cmd2Values.AddValue("buffer1", buffer);
+
             string sql;
             string sql2;
             //sql = "INSERT INTO ?t1 (?c1, ?c2) VALUES (?n1 , ?buffer1)";
             //sql = "insert into ?t1 set ?c2=load_file('d:/[]photo/" + filename + "')";
             //sql = "INSERT INTO ?t1 SET ?c2=?buffur1";
             //sql = "select * from ?t1 where ?c1 > ?n1";
-            sql = "SELECT Orders.OrderID, Customers.CustomerName, Orders.OrderDate"
-                + " FROM Orders INNER JOIN Customers"
-                + " ON Orders.CustomerID = Customers.CustomerID;";
+            sql = "select 1+?n3 as test1";
+            //sql = "select concat(?s1,?s2,?s1,?s2,?s1,?s2,?s1,?s2,?s1,?s2) as test1";
+            //sql = "SELECT Orders.OrderID, Customers.CustomerName, Orders.OrderDate"
+            //    + " FROM Orders INNER JOIN Customers"
+            //    + " ON Orders.CustomerID = Customers.CustomerID;";
             //sql2 = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
             //sql = "INSERT INTO ?t1 ( ?c2, ?c3) VALUES ( ?s1, ?s2)";
             //sql = "DELETE FROM ?t1 WHERE ?c1=?n1";
@@ -74,7 +90,8 @@ namespace SharpConnect.MySql
             {
                 int j = 0;
                 query = connection.CreateQuery(sql, cmdValues);
-                query.ExecuteQuery();
+                query.ExecutePrepareQuery(sql,cmd2Values);
+                //query.ExecuteQuery();
                 if (query.loadError != null)
                 {
 
@@ -87,20 +104,23 @@ namespace SharpConnect.MySql
                 }
                 else
                 {
-
-                    int col_idsaveImage = query.GetColumnIndex("idsaveImage");
-                    int col_saveImageCol = query.GetColumnIndex("saveImagecol");
-                    if (col_idsaveImage < 0 || col_saveImageCol < 0)
+                    //int col_idsaveImage = query.GetColumnIndex("idsaveImage");
+                    //int col_saveImageCol = query.GetColumnIndex("saveImagecol");
+                    int col_test = query.GetColumnIndex("test1");
+                    //if (col_idsaveImage < 0 || col_saveImageCol < 0)
+                    //{
+                    //    throw new Exception();
+                    //}
+                    while (query.ReadRow())
                     {
-                        throw new Exception();
-                    }
-                    while (query.ReadRow() && j < 3)
-                    {
-
+                        Console.WriteLine("Result of " + "test1 : >> " + query.Cells[col_test] + " <<");
                         //Console.WriteLine(query.Cells[col_idsaveImage]);
                         //Console.WriteLine(query.Cells[col_saveImageCol]);
                         //Console.WriteLine(query.GetFieldData("myusercol1"));
-                        j++;
+                        if (j++ > 3)
+                        {
+                            break;
+                        }
                     }
                 }
                 query.Close();
