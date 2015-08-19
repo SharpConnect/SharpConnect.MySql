@@ -21,6 +21,7 @@
 //THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace MySqlPacket
@@ -63,8 +64,7 @@ namespace MySqlPacket
 
         public abstract void WritePacket(PacketWriter writer);
     }
-
-
+    
     class ClientAuthenticationPacket : Packet
     {
 
@@ -164,7 +164,8 @@ namespace MySqlPacket
 
     class ComQueryPacket : Packet
     {
-        byte command = 0x03;
+        byte QUERY_CMD = (byte)Command.QUERY;//0x03
+
         string sql;
 
         public ComQueryPacket(string sql)
@@ -176,7 +177,7 @@ namespace MySqlPacket
         {
             //parser = new PacketParser(stream);
             ParsePacketHeader(parser);
-            this.command = parser.ParseUnsigned1();//1
+            QUERY_CMD = parser.ParseUnsigned1();//1
             this.sql = parser.ParsePacketTerminatedString();
         }
 
@@ -184,9 +185,8 @@ namespace MySqlPacket
         {
             writer.ReserveHeader();
 
-            writer.WriteByte((byte)command);
+            writer.WriteByte(QUERY_CMD);
             writer.WriteString(this.sql);
-
             header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
         }
@@ -194,9 +194,8 @@ namespace MySqlPacket
 
     class ComQuitPacket : Packet
     {
-        const byte QUIT_CMD = 0x01;
-
-
+        const byte QUIT_CMD = (byte)Command.QUIT;//0x01
+        
         public override void ParsePacket(PacketParser parser)
         {
             throw new NotImplementedException();
@@ -209,6 +208,137 @@ namespace MySqlPacket
             writer.ReserveHeader();
             writer.WriteUnsigned1(QUIT_CMD);
             header = new PacketHeader((uint)writer.Length, writer.IncrementPacketNumber());
+            writer.WriteHeader(header);
+        }
+    }
+
+    class ComPrepareStatementPacket : Packet
+    {
+        byte PREPARE_CMD = (byte)Command.STMT_PREPARE;
+        string sql;
+        public ComPrepareStatementPacket(string sql)
+        {
+            this.sql = sql;
+        }
+
+        public override void ParsePacket(PacketParser parser)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void WritePacket(PacketWriter writer)
+        {
+            writer.ReserveHeader();
+            writer.WriteByte(PREPARE_CMD);
+            writer.WriteString(sql);
+            header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            writer.WriteHeader(header);
+        }
+    }
+
+    class ComExcutePrepareStatement : Packet
+    {
+        byte EXCUTE_CMD = (byte)Command.STMT_EXECUTE;
+        uint statementId;
+        List<string> keys;
+        CommandParam2 prepareValues;
+        public ComExcutePrepareStatement(uint statementId, List<string> keys, CommandParam2 prepareValues)
+        {            
+            this.statementId = statementId;
+            this.keys = keys;
+            this.prepareValues = prepareValues;
+        }
+        public override void ParsePacket(PacketParser parser)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void WritePacket(PacketWriter writer)
+        {
+            writer.ReserveHeader();
+            writer.WriteByte(EXCUTE_CMD);
+            writer.WriteUnsignedNumber(4, statementId);
+            writer.WriteByte((byte)CursorFlags.CURSOR_TYPE_NO_CURSOR);
+            writer.WriteUnsignedNumber(4, 1);//iteration-count, always 1
+            //write NULL-bitmap, length: (num-params+7)/8
+            int paramNum = keys.Count;
+            if (paramNum > 0)
+            {
+                uint bitmap = 0;
+                uint bitValue = 1;
+                for(int i=0;i< paramNum; i++)
+                {
+                    if (prepareValues.GetData(keys[i]).type == Types.NULL)
+                    {
+                        bitmap += bitValue;
+                    }
+                    bitValue *= 2;
+                    if (bitValue == 256)
+                    {
+                        writer.WriteUnsigned1(bitmap);
+                        bitmap = 0;
+                        bitValue = 1;
+                    }
+                }
+                if (bitValue != 1)
+                {
+                    writer.WriteUnsigned1(bitmap);
+                }
+            }
+            writer.WriteByte(1);//new-params-bound - flag
+            
+            MyStructData dataTemp;
+            for(int i=0;i< paramNum; i++)
+            {
+                dataTemp = prepareValues.GetData(keys[i]);
+                writer.WriteUnsignedNumber(2, (byte)dataTemp.type);
+            }
+            //write value of each parameter
+            //example:
+            //for(int i = 0; i < param.Length; i++)
+            //{
+            //    switch (param[i].type)
+            //    {
+            //        case Types.BLOB:writer.WriteLengthCodedBuffer(param[i].myBuffer);
+            //    }
+            //}
+            for(int i = 0; i < paramNum; i++)
+            {
+                dataTemp = prepareValues.GetData(keys[i]);
+                switch (dataTemp.type)
+                {
+                    case Types.VARCHAR:
+                    case Types.VAR_STRING:
+                        writer.WriteLengthCodedString(dataTemp.myString);
+                        break;
+                    case Types.STRING:
+                        writer.WriteLengthCodedString(dataTemp.myString);
+                        break;
+                    case Types.BIT:
+                        writer.WriteByte(dataTemp.myByte);
+                        break;
+                    case Types.LONG:
+                        writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
+                        break;
+                    case Types.LONGLONG:
+                        writer.WriteInt64(dataTemp.myInt64);
+                        break;
+                    case Types.FLOAT:
+                        writer.WriteFloat(dataTemp.myFloat);
+                        break;
+                    case Types.DOUBLE:
+                        writer.WriteDouble(dataTemp.myDouble);
+                        break;
+                    case Types.BLOB:
+                        writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
+                        break;
+                    default:
+                        writer.WriteLengthCodedNull();
+                        break;
+                }
+            }
+            //writer.WriteLengthCodedNumber(1);
+            header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
         }
     }
@@ -279,6 +409,11 @@ namespace MySqlPacket
         public override void WritePacket(PacketWriter writer)
         {
             throw new NotImplementedException();
+        }
+
+        public override string ToString()
+        {
+            return message;
         }
     }
 
@@ -508,6 +643,30 @@ namespace MySqlPacket
         }
     }
 
+    class OkPrepareStmtPacket : Packet
+    {
+        byte status;
+        public uint statement_id;
+        public uint num_columns;
+        public uint num_params;
+        public uint waring_count;
+        public override void ParsePacket(PacketParser parser)
+        {
+            ParsePacketHeader(parser);
+            status = parser.ParseByte();//alway 0
+            statement_id = parser.ParseUnsignedNumber(4);
+            num_columns = parser.ParseUnsignedNumber(2);
+            num_params = parser.ParseUnsignedNumber(2);
+            parser.ParseFiller(1);//reserved_1
+            waring_count = parser.ParseUnsignedNumber(2);
+        }
+
+        public override void WritePacket(PacketWriter writer)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     class ResultSetHeaderPacket : Packet
     {
         long fieldCount;
@@ -529,7 +688,7 @@ namespace MySqlPacket
             else
             {
                 extraNumber = parser.ParseLengthCodedNumber();
-                extraStr = null;
+                extraStr = parser.ParsePacketTerminatedString();//null;
             }
         }
 
@@ -546,8 +705,6 @@ namespace MySqlPacket
 
     class RowDataPacket : Packet
     {
-
-
         MyStructData[] myDataList;
         TableHeader tableHeader;
         ConnectionConfig config;
@@ -561,14 +718,12 @@ namespace MySqlPacket
             myDataList = new MyStructData[tableHeader.ColumnCount];
             config = tableHeader.ConnConfig;
             isLocalTimeZone = config.timezone.Equals("local");
-
         }
         public void ReuseSlots()
         {
             //this is reuseable row packet
             this.header = PacketHeader.Empty;
             Array.Clear(myDataList, 0, myDataList.Length);
-
         }
         public override void ParsePacket(PacketParser parser)
         {
@@ -594,6 +749,7 @@ namespace MySqlPacket
 
 
             ParsePacketHeader(parser);
+
             var fieldInfos = tableHeader.GetFields();
             int j = tableHeader.ColumnCount;
             bool typeCast = tableHeader.TypeCast;
@@ -785,9 +941,9 @@ namespace MySqlPacket
                     //      : ((supportBigNumbers && (bigNumberStrings || (Number(numberString) > IEEE_754_BINARY_64_PRECISION)))
                     //        ? numberString
                     //        : Number(numberString));
+                    
                     data.myString = numberString = parser.ParseLengthCodedString();
-
-
+                    
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
                         data.myString = numberString;
@@ -884,6 +1040,140 @@ namespace MySqlPacket
         {
             get { return myDataList; }
         }
-        
+    }
+
+    class RowPrepaqreDataPacket : Packet
+    {
+        MyStructData[] myDataList;
+        TableHeader tableHeader;
+        ConnectionConfig config;
+        public RowPrepaqreDataPacket(TableHeader tableHeader)
+        {
+            this.tableHeader = tableHeader;
+            myDataList = new MyStructData[tableHeader.ColumnCount];
+            config = tableHeader.ConnConfig;
+        }
+
+        public void ReuseSlots()
+        {
+            //this is reuseable row packet
+            this.header = PacketHeader.Empty;
+            Array.Clear(myDataList, 0, myDataList.Length);
+        }
+
+        public override void ParsePacket(PacketParser parser)
+        {
+            var fieldInfos = tableHeader.GetFields();
+            int columnCount = tableHeader.ColumnCount;
+            ParsePacketHeader(parser);
+            parser.ParseFiller(1);//skip packet header [00]
+            parser.ParseFiller(columnCount);//skip null-bitmap, length:(column-count+7+2)/8
+            for(int i = 0; i < columnCount; i++)
+            {
+                ParseValues(parser, fieldInfos[i], ref myDataList[i]);
+            }
+        }
+
+        void ParseValues(PacketParser parser, FieldPacket fieldInfo, ref MyStructData myData)
+        {
+            Types fieldType = (Types)fieldInfo.type;
+            switch (fieldType)
+            {
+                case Types.TIMESTAMP://
+                case Types.DATE://
+                case Types.DATETIME://
+                case Types.NEWDATE://
+                    myData.myDateTime = parser.ParseLengthCodedDateTime();
+                    myData.type = fieldType;
+                    break;
+                case Types.TINY://length = 1;
+                    myData.myByte = parser.ParseUnsigned1();
+                    myData.type = fieldType;
+                    break;
+                case Types.SHORT://length = 2;
+                case Types.YEAR://length = 2;
+                    myData.myInt32 = (int)parser.ParseUnsigned2();
+                    myData.type = fieldType;
+                    break;
+                case Types.INT24://length = 3;
+                    myData.myInt32 = (int)parser.ParseUnsigned3();
+                    myData.type = fieldType;
+                    break;
+                case Types.LONG://length = 4;
+                    myData.myInt32 = (int)parser.ParseUnsigned4();
+                    myData.type = fieldType;
+                    break;
+                case Types.FLOAT:
+                    myData.myFloat = parser.ParseFloat();
+                    myData.type = fieldType;
+                    break;
+                case Types.DOUBLE:
+                    myData.myDouble = parser.ParseDouble();
+                    myData.type = fieldType;
+                    break;
+                case Types.NEWDECIMAL:
+                    myData.myDecimal = parser.ParseDecimal();
+                    myData.type = fieldType;
+                    break;
+                case Types.LONGLONG:
+                    myData.myInt64 = parser.ParseInt64();
+                    myData.type = fieldType;
+                    break;
+                case Types.STRING:
+                case Types.VARCHAR:
+                case Types.VAR_STRING:
+                    myData.myString = parser.ParseLengthCodedString();
+                    myData.type = fieldType;
+                    break;
+                case Types.TINY_BLOB:
+                case Types.MEDIUM_BLOB:
+                case Types.LONG_BLOB:
+                case Types.BLOB:
+                case Types.BIT:
+                    myData.myBuffer = parser.ParseLengthCodedBuffer();
+                    myData.type = fieldType;
+                    break;
+                case Types.GEOMETRY:
+
+                default:
+                    myData.myBuffer = parser.ParseLengthCodedBuffer();
+                    myData.type = Types.NULL;
+                    break;
+            }
+        }
+
+        public override void WritePacket(PacketWriter writer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override string ToString()
+        {
+            int count = myDataList.Length;
+            switch (count)
+            {
+                case 0: return "";
+                case 1:
+                    return myDataList[0].ToString();
+                default:
+                    var stBuilder = new StringBuilder();
+                    //1st
+                    stBuilder.Append(myDataList[0].ToString());
+                    //then
+                    for (int i = 1; i < count; ++i)
+                    {
+                        //then..
+                        stBuilder.Append(',');
+                        stBuilder.Append(myDataList[i].ToString());
+                    }
+                    return stBuilder.ToString();
+            }
+
+        }
+
+        internal MyStructData[] Cells
+        {
+            get { return myDataList; }
+        }
     }
 }
