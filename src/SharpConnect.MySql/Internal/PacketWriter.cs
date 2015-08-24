@@ -259,7 +259,7 @@ namespace MySqlPacket
             //length= 3
             outputBuffer[0] = (byte)(value & 0xff);
             outputBuffer[1] = (byte)((value >> 8) & 0xff);
-            outputBuffer[2] = (byte)((value >> 24) & 0xff);
+            outputBuffer[2] = (byte)((value >> 16) & 0xff);
         }
 
         public void WriteByte(byte value)
