@@ -205,6 +205,17 @@ namespace MySqlPacket
             return query;
         }
 
+        public Query CreateQuery(CommandParam2 command)//testing
+        {
+            var query = new Query(this, command);
+            return query;
+        }
+
+        public Query CreateQuery()//testing
+        {
+            return new Query(this);
+        }
+
         void CreateNewSocket()
         {
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);

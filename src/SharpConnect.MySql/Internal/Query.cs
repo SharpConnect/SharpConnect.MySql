@@ -32,12 +32,11 @@ using System.Net.Sockets;
 
 namespace MySqlPacket
 {
-
-
     class Query
     {
         public string sql;
         CommandParameters values;
+        CommandParam2 command;
         Connection conn;
 
         public bool typeCast;
@@ -65,6 +64,23 @@ namespace MySqlPacket
         
         const int MAX_PACKET_LENGTH = (1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
 
+        public Query(Connection connecion)//testing
+        {
+            this.conn = connecion;
+            typeCast = connecion.config.typeCast;
+            nestTables = false;
+
+            index = 0;
+            loadError = null;
+
+            //*** query use conn resource such as parser,writer
+            //so 1 query 1 connection
+            parser = connecion.PacketParser;
+            writer = connecion.PacketWriter;
+            
+            receiveBuffer = null;
+        }
+
         public Query(Connection conn, string sql, CommandParameters values)
         {
             this.conn = conn;
@@ -86,6 +102,27 @@ namespace MySqlPacket
 
         }
 
+        public Query(Connection conn, CommandParam2 command)//testing
+        {
+            this.conn = conn;
+            sql = command.SQL;
+            this.command = command;
+            values = null;
+
+            typeCast = conn.config.typeCast;
+            nestTables = false;
+
+            index = 0;
+            loadError = null;
+
+            //*** query use conn resource such as parser,writer
+            //so 1 query 1 connection
+            parser = conn.PacketParser;
+            writer = conn.PacketWriter;
+            
+            receiveBuffer = null;
+        }
+
         public void ExecuteQuery()
         {
             //send query packet
@@ -93,8 +130,16 @@ namespace MySqlPacket
             ComQueryPacket queryPacket = new ComQueryPacket(sql);
             queryPacket.WritePacket(writer);
             SendPacket(writer.ToArray());
+
             IsPrepare = false;
             ParseReceivePacket();
+        }
+
+        public void ExecuteQuery(string sql, CommandParameters cmdParams)//testing
+        {
+            this.sql = sql;
+            this.sql = BindValues(sql, cmdParams);
+            ExecuteQuery();
         }
 
         void ParseReceivePacket()
@@ -126,14 +171,17 @@ namespace MySqlPacket
             }
         }
         
-        public void ExecutePrepareQuery(string sql, CommandParam2 values)
+        public void ExecutePrepareQuery(CommandParam2 values)
         {
-            List<string> keys = new List<string>();
-            List<string> list = FindKeysAndReplaceMarker(sql, keys);
-            string str = GetSql(list);
-
+            string sql = values.SQL;
+            if (values.KeysCount == 0)
+            {
+                this.sql = sql;
+                ExecuteQuery();
+                return;
+            }
             writer.Reset();
-            ComPrepareStatementPacket preparePacket = new ComPrepareStatementPacket(str);
+            ComPrepareStatementPacket preparePacket = new ComPrepareStatementPacket(sql);
             preparePacket.WritePacket(writer);
             SendPacket(writer.ToArray());
 
@@ -165,11 +213,15 @@ namespace MySqlPacket
                 }
 
                 writer.Reset();
-                ComExcutePrepareStatement excute = new ComExcutePrepareStatement(okPreparePacket.statement_id, keys, values);
+                ComExcutePrepareStatement excute = new ComExcutePrepareStatement(okPreparePacket.statement_id, values);
                 excute.WritePacket(writer);
                 SendPacket(writer.ToArray());
                 IsPrepare = true;
                 ParseReceivePacket();
+                if (okPacket != null || loadError != null)
+                {
+                    return;
+                }
                 lastPrepareRow = new RowPrepaqreDataPacket(tableHeader);
             }
         }
@@ -200,7 +252,7 @@ namespace MySqlPacket
             }
             return okPreparePacket;
         }
-
+        int binfile = 2;
         void SendPacket(byte[] packetBuffer)
         {
             //writer.Reset();
@@ -209,23 +261,33 @@ namespace MySqlPacket
             //byte[] packetBuffer = writer.ToArray();
             int sent = 0;
             //if send data more than max_allowed_packet in mysql server it will be close connection
-
+            int packetLength = packetBuffer.Length;
             var socket = conn.socket;
-            if (packetBuffer.Length > MAX_PACKET_LENGTH)
+            File.WriteAllBytes("D:/[]TestDir/CSharpPacketBin_"+binfile+".test", packetBuffer);
+            binfile++;
+            while (sent < packetLength)
             {
-                int packs = (int)Math.Floor(packetBuffer.Length / (double)MAX_PACKET_LENGTH) + 1;
-                for (int pack = 0; pack < packs; pack++)
-                {
-                    //TODO: not sure >> waiting to test
-                    sent = socket.Send(packetBuffer, MAX_PACKET_LENGTH, SocketFlags.None);
-                }
+                sent += socket.Send(packetBuffer, sent, packetLength - sent, SocketFlags.None);
             }
-            else
-            {
-                sent = socket.Send(packetBuffer, packetBuffer.Length, SocketFlags.None);
-            }
+            //if (packetLength > MAX_PACKET_LENGTH)
+            //{
+            //    int packs = (int)Math.Floor(packetBuffer.Length / (double)MAX_PACKET_LENGTH) + 1;
+            //    for (int pack = 0; pack < packs; pack++)
+            //    {
+            //        //TODO: not sure >> waiting to test
+            //        //sent = socket.Send(packetBuffer, MAX_PACKET_LENGTH, SocketFlags.None);
+            //        sent = socket.Send(packetBuffer, sent, MAX_PACKET_LENGTH, SocketFlags.None);
+            //    }
+            //}
+            //else
+            //{
+            //    while (sent < packetLength)
+            //    {
+            //        sent += socket.Send(packetBuffer, sent, packetLength - sent, SocketFlags.None);
+            //    }
+            //}
         }
-        
+
         void ParseResultSet()
         {
             ResultSetHeaderPacket resultPacket = new ResultSetHeaderPacket();
@@ -495,12 +557,6 @@ namespace MySqlPacket
             return ParseAndBindValues(sql, values);
         }
 
-        enum ParseState
-        {
-            FIND_MARKER,
-            GET_KEY
-        }
-
         List<string> FindKeysAndReplaceMarker(string sql, List<string> keys)
         {
             int length = sql.Length;
@@ -712,6 +768,11 @@ namespace MySqlPacket
         //}
     }
 
+    enum ParseState
+    {
+        FIND_MARKER,
+        GET_KEY
+    }
 
     class CommandParameters
     {
@@ -820,76 +881,258 @@ namespace MySqlPacket
     class CommandParam2
     {
         Dictionary<string, MyStructData> prepareValues;
+        Dictionary<string, string> fieldValues;
+        List<string> keys;//all keys
+        List<string> valueKeys;
+
+        List<string> sqlSection;
         MyStructData reuseData;
-        public CommandParam2()
-        {
-            prepareValues = new Dictionary<string, MyStructData>();
-            reuseData = new MyStructData();
-        }
+
+        string lastSql;
+        bool hasUpdate;
+        public string SQL { get{ return lastSql = hasUpdate ? CombindAndReplace() : lastSql; } }
+        public int KeysCount { get { return keys.Count - fieldValues.Count; } }
+
         public CommandParam2(string sql)
         {
             prepareValues = new Dictionary<string, MyStructData>();
+            fieldValues = new Dictionary<string, string>();
             reuseData = new MyStructData();
+            reuseData.type = Types.NULL;
+
+            sqlSection = new List<string>();
+            valueKeys = new List<string>();
+            keys = new List<string>();
+
+            ParseSQL(sql);
+            hasUpdate = true;
         }
-        public void AddValue(string key,string value)
+
+        void FindValueKeys()
         {
-            reuseData.myString = value;
-            reuseData.type = Types.VAR_STRING;
-            prepareValues.Add(key, reuseData);
+            if(KeysCount == 0 || valueKeys.Count == KeysCount)
+            {
+                return;
+            }
+            string temp;
+            for(int index = 0; index < keys.Count; index++)
+            {
+                if(!fieldValues.TryGetValue(keys[index], out temp))
+                {
+                    valueKeys.Add(keys[index]);
+                }
+            }
+        }
+        string CombindAndReplace()
+        {
+            StringBuilder strBuilder = new StringBuilder();
+            int count = sqlSection.Count;
+            string temp;
+            for (int i = 0; i < count; i++)
+            {
+                if(prepareValues.TryGetValue(sqlSection[i], out reuseData))
+                {
+                    strBuilder.Append('?');
+                }
+                else if (fieldValues.TryGetValue(sqlSection[i], out temp))
+                {
+                    strBuilder.Append(temp);
+                }
+                else
+                {
+                    if (sqlSection[i][0] == '?')
+                    {
+                        throw new Exception(sqlSection[i] + " not assign. please assign value and try again.");
+                    }
+                    strBuilder.Append(sqlSection[i]);
+                }
+            }
+            hasUpdate = false;
+            return strBuilder.ToString();
+        }
+
+        void ParseSQL(string sql)
+        {
+            int length = sql.Length;
+            ParseState state = ParseState.FIND_MARKER;
+            char ch;
+
+            StringBuilder strBuilder = new StringBuilder();
+            string temp;
+            for(int i = 0; i < length; i++)
+            {
+                ch = sql[i];
+                switch (state)
+                {
+                    case ParseState.FIND_MARKER:
+                        if (ch == '?')
+                        {
+                            temp = strBuilder.ToString();
+                            sqlSection.Add(temp);
+                            strBuilder.Length = 0;
+                            state = ParseState.GET_KEY;
+                            //continue;
+                        }
+                        strBuilder.Append(ch);
+                        break;
+                    case ParseState.GET_KEY:
+                        if((ch>='a'&&ch<='z')|| (ch >= 'A' && ch <= 'Z')|| (ch >= '0' && ch <= '9'))
+                        {
+                            strBuilder.Append(ch);
+                        }
+                        else
+                        {
+                            temp = strBuilder.ToString();
+                            sqlSection.Add(temp);
+                            keys.Add(temp);
+                            strBuilder.Length = 0;
+                            state = ParseState.FIND_MARKER;
+
+                            strBuilder.Append(ch);
+                        }
+                        break;
+                    default:
+                        break;
+                }//end swicth
+            }//end for
+            temp = strBuilder.ToString();
+            if(state== ParseState.GET_KEY)
+            {
+                keys.Add(temp);
+            }
+            sqlSection.Add(temp);
+        }//end method
+        bool HasKey(string key)
+        {
+            for(int i = 0; i < keys.Count; i++)
+            {
+                if (keys[i].Equals(key))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        public void AddTable(string key, string tablename)
+        {
+            key = "?" + key;
+            if (!HasKey(key))
+            {
+                throw new Exception("Not have key '" + key + "' in Sql string.");
+            }
+            fieldValues[key] = "`"+tablename+"`";
+        }
+        public void AddField(string key, string fieldname)
+        {
+            key = "?" + key;
+            if (!HasKey(key))
+            {
+                throw new Exception("Not have key '" + key + "' in Sql string.");
+            }
+            fieldValues[key] = "`"+fieldname+"`";
+        }
+        public void AddValue(string key, string value)
+        {
+            if (value != null)
+            {
+                reuseData.myString = value;
+                reuseData.type = Types.VAR_STRING;
+            }
+            else
+            {
+                reuseData.myString = null;
+                reuseData.type = Types.NULL;
+            }
+            AddKeyWithReuseData(key);
         }
         public void AddValue(string key, byte value)
         {
             reuseData.myByte = value;
             reuseData.type = Types.BIT;
-            prepareValues.Add(key, reuseData);
+            AddKeyWithReuseData(key);
         }
         public void AddValue(string key, int value)
         {
             reuseData.myInt32 = value;
             reuseData.type = Types.LONG;//Types.LONG = int32
-            prepareValues.Add(key, reuseData);
+            AddKeyWithReuseData(key);
         }
         public void AddValue(string key, long value)
         {
             reuseData.myInt64 = value;
             reuseData.type = Types.LONGLONG;
-            prepareValues.Add(key, reuseData);
+            AddKeyWithReuseData(key);
         }
         public void AddValue(string key, float value)
         {
             reuseData.myFloat = value;
             reuseData.type = Types.FLOAT;
-            prepareValues.Add(key, reuseData);
+            AddKeyWithReuseData(key);
         }
         public void AddValue(string key, double value)
         {
             reuseData.myDouble = value;
             reuseData.type = Types.DOUBLE;
-            prepareValues.Add(key, reuseData);
+            AddKeyWithReuseData(key);
         }
         public void AddValue(string key, decimal value)
         {
             reuseData.myDecimal = value;
             reuseData.type = Types.DECIMAL;
-            prepareValues.Add(key, reuseData);
+            AddKeyWithReuseData(key);
         }
         public void AddValue(string key, byte[] value)
         {
-            reuseData.myBuffer = value;
-            reuseData.type = Types.BLOB;
-            prepareValues.Add(key, reuseData);
+            if (value != null)
+            {
+                reuseData.myBuffer = value;
+                reuseData.type = Types.LONG_BLOB;
+            }
+            else
+            {
+                reuseData.myBuffer = null;
+                reuseData.type = Types.NULL;
+            }
+            AddKeyWithReuseData(key);
         }
         public void AddValue(string key, DateTime value)
         {
             reuseData.myDateTime = value;
             reuseData.type = Types.DATETIME;
-            prepareValues.Add(key, reuseData);
+            AddKeyWithReuseData(key);
         }
+        void AddKeyWithReuseData(string key)
+        {
+            key = "?" + key;
+            if (!HasKey(key))
+            {
+                throw new Exception("Not have key '" + key + "' in Sql string.");
+            }
+            hasUpdate = true;
+            prepareValues[key] = reuseData;
+        }
+
         public MyStructData GetData(string key)
         {
             MyStructData value = new MyStructData();
-            prepareValues.TryGetValue(key, out value);
-            return value;
+            if( prepareValues.TryGetValue(key, out value))
+            {
+                return value;
+            }
+            else
+            {
+                string temp;
+                if(fieldValues.TryGetValue(key, out temp))
+                {
+                    throw new Exception("Error : This key is key of table or field. Please use key of value and try again.");
+                }
+                throw new Exception("Error : Key not found (" + key + "). Please re-check key and try again.");
+            }
+        }
+        public List<string> GetValuesKeys()
+        {
+            FindValueKeys();
+            return valueKeys;
         }
     }
 
@@ -939,12 +1182,5 @@ namespace MySqlPacket
         public bool NestTables { get; set; }
         public ConnectionConfig ConnConfig { get; set; }
     }
-
-
-
-
-
-
-
 
 }
