@@ -242,11 +242,11 @@ namespace MySqlPacket
         uint statementId;
         List<string> keys;
         CommandParam2 prepareValues;
-        public ComExcutePrepareStatement(uint statementId, List<string> keys, CommandParam2 prepareValues)
+        public ComExcutePrepareStatement(uint statementId, CommandParam2 prepareValues)
         {            
             this.statementId = statementId;
-            this.keys = keys;
             this.prepareValues = prepareValues;
+            keys = prepareValues.GetValuesKeys();
         }
         public override void ParsePacket(PacketParser parser)
         {
@@ -305,42 +305,107 @@ namespace MySqlPacket
             for(int i = 0; i < paramNum; i++)
             {
                 dataTemp = prepareValues.GetData(keys[i]);
-                switch (dataTemp.type)
-                {
-                    case Types.VARCHAR:
-                    case Types.VAR_STRING:
-                        writer.WriteLengthCodedString(dataTemp.myString);
-                        break;
-                    case Types.STRING:
-                        writer.WriteLengthCodedString(dataTemp.myString);
-                        break;
-                    case Types.BIT:
-                        writer.WriteByte(dataTemp.myByte);
-                        break;
-                    case Types.LONG:
-                        writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
-                        break;
-                    case Types.LONGLONG:
-                        writer.WriteInt64(dataTemp.myInt64);
-                        break;
-                    case Types.FLOAT:
-                        writer.WriteFloat(dataTemp.myFloat);
-                        break;
-                    case Types.DOUBLE:
-                        writer.WriteDouble(dataTemp.myDouble);
-                        break;
-                    case Types.BLOB:
-                        writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
-                        break;
-                    default:
-                        writer.WriteLengthCodedNull();
-                        break;
-                }
+                WriteValueByType(writer, dataTemp);
             }
             //writer.WriteLengthCodedNumber(1);
             header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
         }
+
+        void WriteValueByType(PacketWriter writer, MyStructData dataTemp)
+        {
+            switch (dataTemp.type)
+            {
+                case Types.VARCHAR:
+                case Types.VAR_STRING:
+                case Types.STRING:
+                    writer.WriteLengthCodedString(dataTemp.myString);
+                    break;
+                case Types.LONG:
+                    writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
+                    break;
+                case Types.LONGLONG:
+                    writer.WriteInt64(dataTemp.myInt64);
+                    break;
+                case Types.FLOAT:
+                    writer.WriteFloat(dataTemp.myFloat);
+                    break;
+                case Types.DOUBLE:
+                    writer.WriteDouble(dataTemp.myDouble);
+                    break;
+                case Types.BIT:
+                case Types.BLOB:
+                case Types.MEDIUM_BLOB:
+                case Types.LONG_BLOB:
+                    writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
+                    break;
+                default:
+                    writer.WriteLengthCodedNull();
+                    break;
+            }
+        }
+    }
+
+    class ComStmtSendLongData : Packet
+    {
+        byte command = (byte)Command.STMT_SEND_LONG_DATA;
+        int statement_id;
+        int param_id;
+        MyStructData data;
+
+        public ComStmtSendLongData(int statement_id,int param_id,MyStructData data)
+        {
+            this.statement_id = statement_id;
+            this.param_id = param_id;
+            this.data = data;
+        }
+
+        public override void ParsePacket(PacketParser parser)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void WritePacket(PacketWriter writer)
+        {
+            writer.ReserveHeader();
+            writer.WriteUnsigned4((uint)statement_id);
+            writer.WriteUnsigned2((uint)param_id);
+            WriteValueByType(writer, data);
+        }
+
+        void WriteValueByType(PacketWriter writer, MyStructData dataTemp)
+        {
+            switch (dataTemp.type)
+            {
+                case Types.VARCHAR:
+                case Types.VAR_STRING:
+                case Types.STRING:
+                    writer.WriteLengthCodedString(dataTemp.myString);
+                    break;
+                case Types.LONG:
+                    writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
+                    break;
+                case Types.LONGLONG:
+                    writer.WriteInt64(dataTemp.myInt64);
+                    break;
+                case Types.FLOAT:
+                    writer.WriteFloat(dataTemp.myFloat);
+                    break;
+                case Types.DOUBLE:
+                    writer.WriteDouble(dataTemp.myDouble);
+                    break;
+                case Types.BIT:
+                case Types.BLOB:
+                case Types.MEDIUM_BLOB:
+                case Types.LONG_BLOB:
+                    writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
+                    break;
+                default:
+                    writer.WriteLengthCodedNull();
+                    break;
+            }
+        }
+
     }
 
     class EofPacket : Packet
@@ -1095,10 +1160,7 @@ namespace MySqlPacket
                     myData.myInt32 = (int)parser.ParseUnsigned2();
                     myData.type = fieldType;
                     break;
-                case Types.INT24://length = 3;
-                    myData.myInt32 = (int)parser.ParseUnsigned3();
-                    myData.type = fieldType;
-                    break;
+                case Types.INT24:
                 case Types.LONG://length = 4;
                     myData.myInt32 = (int)parser.ParseUnsigned4();
                     myData.type = fieldType;
