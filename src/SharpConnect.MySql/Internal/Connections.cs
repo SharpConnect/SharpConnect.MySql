@@ -160,9 +160,10 @@ namespace MySqlPacket
 
         void GetMaxAllowedPacket()
         {
-            //query = CreateQuery("SELECT @@global.max_allowed_packet", null);
-            query = CreateQuery();
-            query.ExecuteQuerySql("SELECT @@global.max_allowed_packet");
+            query = CreateQuery("SELECT @@global.max_allowed_packet", null);
+            query.Execute();
+            //query = CreateQuery();
+            //query.ExecuteQuerySql("SELECT @@global.max_allowed_packet");
             if (query.loadError != null)
             {
                 dbugConsole.WriteLine("Error Message : " + query.loadError.message);
@@ -194,16 +195,16 @@ namespace MySqlPacket
         //    return query;
         //}
 
-        //public Query CreateQuery(CommandParams command)//testing
-        //{
-        //    var query = new Query(this, command);
-        //    return query;
-        //}
-
-        public Query CreateQuery()//testing
+        public Query CreateQuery(string sql, CommandParams command)//testing
         {
-            return new Query(this);
+            var query = new Query(this, sql, command);
+            return query;
         }
+
+        //public Query CreateQuery()//testing
+        //{
+        //    return new Query(this);
+        //}
 
         void CreateNewSocket()
         {
