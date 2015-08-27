@@ -65,6 +65,7 @@ namespace MySqlPacket
         {
             get { return writer.Length; }
         }
+
         public void SetMaxAllowedPacket(long max)
         {
             maxAllowedLength = max;
