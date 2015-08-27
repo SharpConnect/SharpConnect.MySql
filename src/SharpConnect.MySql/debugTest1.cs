@@ -14,17 +14,25 @@ namespace SharpConnect.MySql
 
         public static void Test1()
         {
+            //Test1_Select();
+            Test1_Insert();
+            //Test1_Update();
+            //Test1_Delete();
+        }
+
+        public static void Test1_OldVersionTest()
+        {
             string filename;
             filename = "TestMe.png";//216,362 bytes
             //filename = "Colorful.jpg";//885,264 bytes
             //filename = "TestJpg.jpg";//2,066 bytes
             byte[] buffer;
-            
+
             buffer = File.ReadAllBytes("D:\\[]Photo\\" + filename);
             //buffer = new byte[500500];
             //Stream stReader = new Stream("D:\\[]Photo\\TestJpg.jpg");
             //BinaryReader binaryReader = new BinaryReader(stReader);
-            
+
             var ss = new System.Diagnostics.Stopwatch();
             ss.Start();
 
@@ -71,18 +79,29 @@ namespace SharpConnect.MySql
             ConnectionConfig config = new ConnectionConfig("root", "root");
             config.database = "test";
 
-            MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
-            Connection connection = sqlConn.Conn;/*ConnectionPool.GetConnection(new MySqlConnectionString(config.host, config.user, config.password, config.database));*/
-            if(connection == null)
+            //MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
+            //sqlConn.UseConnectionPool = true;
+            //sqlConn.Open();
+            //MySqlCommand command = new MySqlCommand(sql, sqlConn);
+            //command.Parameters.AddTable("t1", "saveimage");
+            //command.Parameters.AddField("c1", "idsaveImage");
+            //command.Parameters.AddValue("n1", testN1);
+            //command.Parameters.AddValue("n2", testN2);
+
+            //var reader = command.ExecuteReader();
+            //reader.Read();
+            //Connection connection = sqlConn.Conn;/*ConnectionPool.GetConnection(new MySqlConnectionString(config.host, config.user, config.password, config.database));*/
+            Connection connection = new Connection(config);
+            if (connection == null)
             {
                 connection = new Connection(config);
                 connection.IsStoredInConnPool = true;
                 connection.Connect();
             }
-            
+
             int count = 3;
             Query query;
-            query = connection.CreateQuery();
+            query = connection.CreateQuery(sql, cmd2Values);
 
             int fCase = 1;
             for (int i = 0; i < count; i++)
@@ -92,7 +111,9 @@ namespace SharpConnect.MySql
 
                 //query = connection.CreateQuery(sql, cmdValues);
                 //query = connection.CreateQuery(cmd2Values);
-                query.ExecutePrepareQuery(cmd2Values);
+                //query.ExecutePrepareQuery(cmd2Values);
+                query = connection.CreateQuery(sql, cmd2Values);
+                query.Execute();
 
                 //switch (fCase)
                 //{
@@ -115,6 +136,7 @@ namespace SharpConnect.MySql
                 //Console.WriteLine("Expected Result : " + (testN1 + testN2));
                 testN1 += 10;
                 testN2 += 10;
+
                 cmd2Values.AddValue("n1", testN1);
                 cmd2Values.AddValue("n2", testN2);
 
@@ -157,7 +179,9 @@ namespace SharpConnect.MySql
                     }
                 }
                 query.Close();
-
+                connection.Disconnect();
+                connection = new Connection(config);
+                connection.Connect();
                 //j = 0;
                 //query = connection.CreateQuery(sql2, prepare);
                 //query.ExecuteQuery();
@@ -184,9 +208,104 @@ namespace SharpConnect.MySql
             Console.WriteLine("Counting : " + count + " rounds. \r\nAverage Time : " + avg + " ms");
 
             connection.Disconnect();
-
         }
 
+        public static void Test1_Select()
+        {
+            ConnectionConfig config = new ConnectionConfig("root", "root");
+            config.database = "test";
+
+            MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
+            sqlConn.UseConnectionPool = true;
+            sqlConn.Open();
+
+            string sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
+            int testN1 = 4510;
+            int testN2 = 4520;
+
+            MySqlCommand command = new MySqlCommand(sql, sqlConn);
+            command.Parameters.AddTable("t1", "saveimage");
+            command.Parameters.AddField("c1", "idsaveImage");
+            command.Parameters.AddValue("n1", testN1);
+            command.Parameters.AddValue("n2", testN2);
+
+            var reader = command.ExecuteReader();
+            int count = 0;
+            while (reader.Read())
+            {
+                Console.WriteLine("Id : " + reader.GetInt32(0));
+                Console.WriteLine("Buffer size : " + reader.GetBuffer(1).Length);
+                ++count;
+                if (count >= 3)
+                {
+                    break;
+                }
+            }
+            reader.Close();
+        }
+
+        public static void Test1_Insert()
+        {
+            string filename = "TestMe.png";//216,362 bytes
+            //filename = "Colorful.jpg";//885,264 bytes
+            //filename = "TestJpg.jpg";//2,066 bytes
+            byte[] buffer = File.ReadAllBytes("D:\\[]Photo\\" + filename);
+            ConnectionConfig config = new ConnectionConfig("root", "root");
+            config.database = "test";
+
+            MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
+            sqlConn.UseConnectionPool = true;
+            sqlConn.Open();
+
+            string sql = "INSERT INTO ?t1 SET ?c2 = ?buffer1";
+
+            MySqlCommand command = new MySqlCommand(sql, sqlConn);
+            command.Parameters.AddTable("t1", "saveimage");
+            command.Parameters.AddField("c2", "saveImagecol");
+            command.Parameters.AddValue("buffer1", buffer);
+
+            command.ExecuteNonQuery();
+        }
+
+        public static void Test1_Update()
+        {
+            ConnectionConfig config = new ConnectionConfig("root", "root");
+            config.database = "test";
+
+            MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
+            sqlConn.UseConnectionPool = true;
+            sqlConn.Open();
+
+            string sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
+            int testN1 = 4510;
+            int testN2 = 4520;
+
+            MySqlCommand command = new MySqlCommand(sql, sqlConn);
+            command.Parameters.AddTable("t1", "saveimage");
+            command.Parameters.AddField("c1", "idsaveImage");
+            command.Parameters.AddValue("n1", testN1);
+            command.Parameters.AddValue("n2", testN2);
+        }
+
+        public static void Test1_Delete()
+        {
+            ConnectionConfig config = new ConnectionConfig("root", "root");
+            config.database = "test";
+
+            MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
+            sqlConn.UseConnectionPool = true;
+            sqlConn.Open();
+
+            string sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
+            int testN1 = 4510;
+            int testN2 = 4520;
+
+            MySqlCommand command = new MySqlCommand(sql, sqlConn);
+            command.Parameters.AddTable("t1", "saveimage");
+            command.Parameters.AddField("c1", "idsaveImage");
+            command.Parameters.AddValue("n1", testN1);
+            command.Parameters.AddValue("n2", testN2);
+        }
 
         public static void Test2()
         {
