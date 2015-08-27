@@ -241,8 +241,8 @@ namespace MySqlPacket
         byte EXCUTE_CMD = (byte)Command.STMT_EXECUTE;
         uint statementId;
         List<string> keys;
-        CommandParam2 prepareValues;
-        public ComExcutePrepareStatement(uint statementId, CommandParam2 prepareValues)
+        CommandParams prepareValues;
+        public ComExcutePrepareStatement(uint statementId, CommandParams prepareValues)
         {            
             this.statementId = statementId;
             this.prepareValues = prepareValues;
@@ -1131,8 +1131,8 @@ namespace MySqlPacket
             var fieldInfos = tableHeader.GetFields();
             int columnCount = tableHeader.ColumnCount;
             ParsePacketHeader(parser);
-            parser.ParseFiller(1);//skip packet header [00]
-            parser.ParseFiller(columnCount);//skip null-bitmap, length:(column-count+7+2)/8
+            parser.ParseFiller(1);//skip start packet byte [00]
+            parser.ParseFiller((columnCount + 7 + 2) / 8);//skip null-bitmap, length:(column-count+7+2)/8
             for(int i = 0; i < columnCount; i++)
             {
                 ParseValues(parser, fieldInfos[i], ref myDataList[i]);

@@ -14,23 +14,17 @@ namespace SharpConnect.MySql
 
         public static void Test1()
         {
-
             string filename;
             filename = "TestMe.png";//216,362 bytes
             //filename = "Colorful.jpg";//885,264 bytes
             //filename = "TestJpg.jpg";//2,066 bytes
             byte[] buffer;
+            
             buffer = File.ReadAllBytes("D:\\[]Photo\\" + filename);
             //buffer = new byte[500500];
             //Stream stReader = new Stream("D:\\[]Photo\\TestJpg.jpg");
             //BinaryReader binaryReader = new BinaryReader(stReader);
-
-            ConnectionConfig config = new ConnectionConfig("root", "root");
-            config.database = "test";
-
-            Connection connection = new Connection(config);
-            connection.Connect();
-
+            
             var ss = new System.Diagnostics.Stopwatch();
             ss.Start();
 
@@ -38,9 +32,11 @@ namespace SharpConnect.MySql
             string sql2;
             //sql = "INSERT INTO ?t1 (?c1, ?c2) VALUES (?n1 , ?buffer1)";
             sql = "INSERT INTO ?t1 SET ?c2 = ?buffer1";
-            //sql = "select * from `saveimage` where `idsaveImage` = 4562";
+            //sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
+            //sql = "select * from ?t1 where ?c1 = 4579";
             //sql = "select 1+?n3 as test1";
             //sql = "select concat(?s1,?s2,?s1,?s2,?s1,?s2,?s1,?s2,?s1,?s2) as test1";
+            //sql = "select concat(?s1,?s2,?s1,?s2) as test1";
             //sql = "SELECT Orders.OrderID, Customers.CustomerName, Orders.OrderDate"
             //    + " FROM Orders INNER JOIN Customers"
             //    + " ON Orders.CustomerID = Customers.CustomerID;";
@@ -49,57 +45,82 @@ namespace SharpConnect.MySql
             //sql = "DELETE FROM ?t1 WHERE ?c1=?n1";
             //sql = "UPDATE ?t1 SET ?c2=?s1 WHERE ?c1=?n1";
 
-            CommandParameters cmdValues = new CommandParameters();
-            CommandParam2 cmd2Values = new CommandParam2(sql);
-            cmdValues.AddTable("t1", "saveimage");
-            //cmdValues.AddTable("t1", "saveimageTest");
-            cmdValues.AddField("c1", "idsaveImage");
-            cmdValues.AddField("c2", "saveImagecol");
+            //CommandParameters cmdValues = new CommandParameters();
+            //sql = "select ?n1+?n2 as test1";
+
+            int testN1 = 4520;
+            int testN2 = 4530;
+
+            sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
+            //sql = "select * from ?t1 where ?c1 = ?n2";
+            //sql = "select ?n1+?n2 as test1";
+            CommandParams cmd2Values = new CommandParams(sql);
 
             cmd2Values.AddTable("t1", "saveimage");
-            //cmd2Values.AddField("c1", "idsaveImage");
-            cmd2Values.AddField("c2", "saveImagecol");
+            cmd2Values.AddField("c1", "idsaveImage");
+            //cmd2Values.AddField("c2", "saveImagecol");
 
-            //prepare.AddTable("t1", "myuser");
-            //prepare.AddField("c1", "idmyuser");
-            //prepare.AddField("c2", "myusercol");
-            //prepare.AddField("c3", "myusercol1");
-
-            //prepare.AddTable("t1", "stringtest");
-            //prepare.AddField("c1", "idstringtest");
-            //prepare.AddField("c2", "stringtestcol");
-            //prepare.AddField("c3", "stringtestcol1");
-
-            cmdValues.AddValue("n1", 4500);
-            cmdValues.AddValue("n2", 4540);
-            cmdValues.AddValue("n3", 22);
-
-            //cmd2Values.AddValue("n1", 4500);
-            //cmd2Values.AddValue("n2", 4540);
+            cmd2Values.AddValue("n1", testN1);
+            cmd2Values.AddValue("n2", testN2);
             //cmd2Values.AddValue("n3", 29.5);
-
-            cmdValues.AddValue("s1", "test update");
-            cmdValues.AddValue("s2", "psw21");
-            cmdValues.AddValue("buffer1", buffer);
 
             //cmd2Values.AddValue("s1", "foo");
             //cmd2Values.AddValue("s2", "bar");
-            cmd2Values.AddValue("buffer1", buffer);
+            //cmd2Values.AddValue("buffer1", buffer);
 
+            ConnectionConfig config = new ConnectionConfig("root", "root");
+            config.database = "test";
 
-            int count = 1;
+            MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
+            Connection connection = sqlConn.Conn;/*ConnectionPool.GetConnection(new MySqlConnectionString(config.host, config.user, config.password, config.database));*/
+            if(connection == null)
+            {
+                connection = new Connection(config);
+                connection.IsStoredInConnPool = true;
+                connection.Connect();
+            }
+            
+            int count = 3;
             Query query;
+            query = connection.CreateQuery();
+
+            int fCase = 1;
             for (int i = 0; i < count; i++)
             {
                 int j = 0;
+
+
                 //query = connection.CreateQuery(sql, cmdValues);
                 //query = connection.CreateQuery(cmd2Values);
-                query = connection.CreateQuery();
                 query.ExecutePrepareQuery(cmd2Values);
+
+                //switch (fCase)
+                //{
+                //    case 0:
+                //        filename = "TestMe.png";
+                //        fCase++;
+                //        break;
+                //    case 1:
+                //        filename = "Colorful.jpg";
+                //        fCase++;
+                //        break;
+                //    case 2:
+                //        filename = "TestJpg.jpg";
+                //        fCase = 0;
+                //        break;
+                //}
+                //buffer = File.ReadAllBytes("D:\\[]Photo\\" + filename);
+                //cmd2Values.AddValue("buffer1", buffer);
+
+                //Console.WriteLine("Expected Result : " + (testN1 + testN2));
+                testN1 += 10;
+                testN2 += 10;
+                cmd2Values.AddValue("n1", testN1);
+                cmd2Values.AddValue("n2", testN2);
+
                 //query.ExecuteQuery();
                 if (query.loadError != null)
                 {
-
                     Console.WriteLine("Error : " + query.loadError.message);
                 }
                 else if (query.okPacket != null)
@@ -111,24 +132,32 @@ namespace SharpConnect.MySql
                 {
                     int col_idsaveImage = query.GetColumnIndex("idsaveImage");
                     int col_saveImageCol = query.GetColumnIndex("saveImagecol");
-                    //int col_test = query.GetColumnIndex("test1");
+                    int col_test = query.GetColumnIndex("test1");
                     //if (col_idsaveImage < 0 || col_saveImageCol < 0)
                     //{
                     //    throw new Exception();
                     //}
+                    Console.WriteLine("Result : ");
                     while (query.ReadRow())
                     {
-                        //Console.WriteLine("Result of " + "test1 : >> " + query.Cells[col_test] + " <<");
-                        Console.WriteLine("Id : " + query.Cells[col_idsaveImage]);
-                        Console.WriteLine("Buffer size : "+ query.Cells[col_saveImageCol].myBuffer.Length);
+                        if (col_test == 0)
+                        {
+                            Console.WriteLine("Result of " + "test1 : >> " + query.Cells[col_test] + " <<");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Id : " + query.Cells[col_idsaveImage]);
+                            Console.WriteLine("Buffer size : " + query.Cells[col_saveImageCol].myBuffer.Length);
+                        }
                         //Console.WriteLine(query.GetFieldData("myusercol1"));
-                        if (j++ > 3)
+                        if (++j > 3)
                         {
                             break;
                         }
                     }
                 }
                 query.Close();
+
                 //j = 0;
                 //query = connection.CreateQuery(sql2, prepare);
                 //query.ExecuteQuery();
@@ -148,9 +177,10 @@ namespace SharpConnect.MySql
                 //}
                 //query.Close();
             }
+            query.Close();
             ss.Stop();
 
-            long avg = ss.ElapsedMilliseconds;
+            long avg = ss.ElapsedMilliseconds / count;
             Console.WriteLine("Counting : " + count + " rounds. \r\nAverage Time : " + avg + " ms");
 
             connection.Disconnect();
