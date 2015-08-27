@@ -96,34 +96,34 @@ namespace SharpConnect.MySql
 
     public class MySqlCommand
     {
+        public CommandParams Parameters;
         Query query;
         public MySqlCommand()
         {
+            Parameters = new CommandParams();
         }
         public MySqlCommand(string sql, MySqlConnection conn)
         {
             CommandText = sql;
             Connection = conn;
+            Parameters = new CommandParams();
         }
         public string CommandText { get; set; }
         public MySqlConnection Connection { get; set; }
         public MySqlDataReader ExecuteReader()
         {
-            //var parameters = new CommandParameters();
-            //query = Connection.Conn.CreateQuery(this.CommandText, parameters);
-            query = Connection.Conn.CreateQuery();
+            //parameters = new CommandParams();
+            query = Connection.Conn.CreateQuery(this.CommandText, Parameters);
             var reader = new MySqlDataReader(query);
-            query.ExecuteQuerySql(this.CommandText);
+            query.Execute();
             return reader;
         }
         public void ExecuteNonQuery()
         {
             //var parameters = new CommandParameters();
-            //query = Connection.Conn.CreateQuery(this.CommandText, parameters);
-            query = Connection.Conn.CreateQuery();
-            query.ExecuteQuerySql(this.CommandText);
+            query = Connection.Conn.CreateQuery(this.CommandText, Parameters);
+            query.Execute();
         }
-
     }
 
     public class MySqlDataReader
