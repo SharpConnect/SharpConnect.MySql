@@ -27,7 +27,14 @@ namespace SharpConnect.MySql
             key = "??" + key;
             _bindSpecialKeyValues[key] = "`" + tablename + "`";
         }
-
+        public void ClearBindValues()
+        {
+            _bindedValues.Clear();
+        }
+        public void ClearSpecialKeyValues()
+        {
+            _bindSpecialKeyValues.Clear();
+        }
 
         public void AddWithValue(string key, string value)
         {

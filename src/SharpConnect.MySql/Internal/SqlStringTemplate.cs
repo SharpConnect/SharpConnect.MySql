@@ -22,6 +22,7 @@ namespace SharpConnect.MySql.Internal
         FIND_MARKER,
         COLLECT_MARKER_KEY,
         COLLECT_SP_MARKER_KEY, //(extension) special marker key for bind with table name, fieldname 
+        STRING_ESCAPE,
     }
 
     enum SqlSectionKind
@@ -66,9 +67,10 @@ namespace SharpConnect.MySql.Internal
             ParseState state = ParseState.FIND_MARKER;
             StringBuilder stBuilder = new StringBuilder();
 
-            //TODO: review parser state, escape ' or " or 
+            //TODO: review parser state, escape ' or " or `
 
             char binderEscapeChar = '\0';
+
 
             for (int i = 0; i < length; i++)
             {
