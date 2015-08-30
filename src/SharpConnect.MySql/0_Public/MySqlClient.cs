@@ -103,14 +103,14 @@ namespace SharpConnect.MySql
     }
 
 
-   
+
 
     public class MySqlCommand
     {
 
         Query query;
         bool _isPreparedStmt;
-        MySqlDataReader _preparedDataReader;
+
 
         public MySqlCommand()
         {
@@ -134,7 +134,7 @@ namespace SharpConnect.MySql
             if (_isPreparedStmt)
             {
                 query.Execute();
-                return _preparedDataReader;
+                return new MySqlDataReader(query);
             }
             else
             {
@@ -176,8 +176,8 @@ namespace SharpConnect.MySql
             //prepare sql command;
             query = Connection.Conn.CreateQuery(CommandText, Parameters);
             query.Prepare();
-            _preparedDataReader = new MySqlDataReader(query);
-            _isPreparedStmt = true; 
+
+            _isPreparedStmt = true;
         }
 
     }
