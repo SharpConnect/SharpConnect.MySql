@@ -23,7 +23,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
     enum CharSets
     {
@@ -341,9 +341,7 @@ namespace MySqlPacket
         NEWDATE,        //exports.NEWDATE     = 0x0e; // aka ?
         VARCHAR,        //exports.VARCHAR     = 0x0f; // aka VARCHAR (?)
         BIT,            //exports.BIT         = 0x10; // aka BIT, 1-8 byte
-
-        ERROR = 0x23,   //manual new create
-
+        
         NEWDECIMAL = 0xf6,//exports.NEWDECIMAL= 0xf6; // aka DECIMAL
         ENUM,           //exports.ENUM        = 0xf7; // aka ENUM
         SET,            //exports.SET         = 0xf8; // aka SET
@@ -364,29 +362,65 @@ namespace MySqlPacket
         CURSOR_TYPE_SCROLLABLE = 4
     }
 
+    enum Command : byte
+    {
+        SLEEP = 0x00,   //SLEEP              : 0x00,  // deprecated
+        QUIT,           //QUIT               : 0x01,
+        INIT_DB,        //INIT_DB            : 0x02,
+        QUERY,          //QUERY              : 0x03,
+        FIELD_LIST,     //FIELD_LIST         : 0x04,
+        CREATE_DB,      //CREATE_DB          : 0x05,
+        DROP_DB,        //DROP_DB            : 0x06,
+        REFRESH,        //REFRESH            : 0x07,
+        SHUTDOWN,       //SHUTDOWN           : 0x08,
+        STATISTICS,     //STATISTICS         : 0x09,
+        PROCESS_INFO,   //PROCESS_INFO       : 0x0a,  // deprecated
+        CONNECT,        //CONNECT            : 0x0b,  // deprecated
+        PROCESS_KILL,   //PROCESS_KILL       : 0x0c,
+        DEBUG,          //DEBUG              : 0x0d,
+        PING,           //PING               : 0x0e,
+        TIME,           //TIME               : 0x0f,  // deprecated
+        DELAYED_INSERT, //DELAYED_INSERT     : 0x10,  // deprecated
+        CHANGE_USER,    //CHANGE_USER        : 0x11,
+        BINLOG_DUMP,    //BINLOG_DUMP        : 0x12,
+        TABLE_DUMP,     //TABLE_DUMP         : 0x13,
+        CONNECT_OUT,    //CONNECT_OUT        : 0x14,
+        REGISTER_SLAVE, //REGISTER_SLAVE     : 0x15,
+        STMT_PREPARE,   //STMT_PREPARE       : 0x16,
+        STMT_EXECUTE,   //STMT_EXECUTE       : 0x17,
+        STMT_SEND_LONG_DATA,//STMT_SEND_LONG_DATA: 0x18,
+        STMT_CLOSE,     //STMT_CLOSE         : 0x19,
+        STMT_RESET,     //STMT_RESET         : 0x1a,
+        SET_OPTION,     //SET_OPTION         : 0x1b,
+        STMT_FETCH,     //STMT_FETCH         : 0x1c,
+        DAEMON,         //DAEMON             : 0x1d,  // deprecated
+        BINLOG_DUMP_GTID,//BINLOG_DUMP_GTID  : 0x1e,
+        UNKNOWN = 0xff    //UNKNOWN            : 0xff   // bad!
+    }
+
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
     struct MyStructData
     {
-      
+ 
         [System.Runtime.InteropServices.FieldOffset(0)]
         public int myInt32;
         [System.Runtime.InteropServices.FieldOffset(0)]
         public uint myUInt32;
-
+        //---------------------------------------------
         [System.Runtime.InteropServices.FieldOffset(0)]
         public long myInt64;
         [System.Runtime.InteropServices.FieldOffset(0)]
         public ulong myUInt64;
-
-        [System.Runtime.InteropServices.FieldOffset(0)]
-        public float myFloat;
+        //---------------------------------------------
+        
         [System.Runtime.InteropServices.FieldOffset(0)]
         public double myDouble;
+        //---------------------------------------------
         [System.Runtime.InteropServices.FieldOffset(0)]
         public decimal myDecimal;//16-bytes
         [System.Runtime.InteropServices.FieldOffset(0)]
         public DateTime myDateTime;
-
+        //---------------------------------------------
         [System.Runtime.InteropServices.FieldOffset(16)]
         public byte[] myBuffer;
         [System.Runtime.InteropServices.FieldOffset(16)]

@@ -30,65 +30,272 @@ using System.Net;
 using System.Net.Sockets;
 
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
-
-
     class Query
     {
-        public string sql;
-        CommandParameters values;
+
+
+        CommandParams cmdParams;
         Connection conn;
 
         public bool typeCast;
         public bool nestTables;
 
         TableHeader tableHeader;
-        public ErrPacket loadError;
-        public OkPacket okPacket;
-        public int index;
 
         RowDataPacket lastRow;
+        RowPreparedDataPacket lastPrepareRow;
+
+        bool _isPrepared;
         bool hasSomeRow;
 
         PacketParser parser;
         PacketWriter writer;
 
+        SqlStringTemplate sqlStrTemplate;
 
+        //---------------
+        uint _prepareStmtId;
+
+        //---------------
         byte[] receiveBuffer;
+
         const int DEFAULT_BUFFER_SIZE = 512;
         const byte ERROR_CODE = 255;
         const byte EOF_CODE = 0xfe;
         const byte OK_CODE = 0;
-        
-        const int MAX_PACKET_LENGTH = (int)(1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
+        const int MAX_PACKET_LENGTH = (1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
 
-        public Query(Connection conn, string sql, CommandParameters values)
+
+        public Query(Connection conn, string sql, CommandParams cmdParams)//testing
         {
+            if (sql == null)
+            {
+                throw new Exception("Sql command can not null.");
+            }
             this.conn = conn;
-            this.sql = sql;
-            this.values = values;
+
+            this.cmdParams = cmdParams;
+
             typeCast = conn.config.typeCast;
             nestTables = false;
 
-            index = 0;
+            //index = 0;
             loadError = null;
 
             //*** query use conn resource such as parser,writer
             //so 1 query 1 connection
             parser = conn.PacketParser;
             writer = conn.PacketWriter;
+            receiveBuffer = null;
 
-            this.sql = BindValues(sql, values);
-            this.receiveBuffer = null;
+            sqlStrTemplate = new SqlStringTemplate(sql);
 
         }
 
-        public void ExecuteQuery()
-        {
-            //send query
-            SendQuery(sql);
+        public ErrPacket loadError { get; private set; }
+        public OkPacket okPacket { get; private set; }
 
+        internal MyStructData[] Cells
+        {
+            get
+            {
+                if (_isPrepared)
+                {
+                    return lastPrepareRow.Cells;
+                }
+                else
+                {
+                    return lastRow.Cells;
+                }
+            }
+        }
+
+        public void Execute()
+        {
+            if (_isPrepared)
+            {
+                ExecutePrepareQuery();
+            }
+            else
+            {
+                ExecuteNonPrepare();
+            }
+        }
+
+        public void ExecuteNonPrepare()
+        {
+            writer.Reset();
+
+            string realSql = sqlStrTemplate.BindValues(cmdParams, false);
+
+            var queryPacket = new ComQueryPacket(realSql);
+            queryPacket.WritePacket(writer);
+            SendPacket(writer.ToArray());
+
+            _isPrepared = false;
+            ParseReceivePacket();
+        }
+        public void Prepare()
+        {
+            //prepare sql query
+            this._prepareStmtId = 0;//reset  
+            _isPrepared = true;
+            if (cmdParams == null)
+            {
+                return;
+            }
+
+            writer.Reset();
+            string realSql = sqlStrTemplate.BindValues(cmdParams, true);
+
+            ComPrepareStatementPacket preparePacket = new ComPrepareStatementPacket(realSql);
+            preparePacket.WritePacket(writer);
+            SendPacket(writer.ToArray());
+
+            OkPrepareStmtPacket okPreparePacket = new OkPrepareStmtPacket();
+            okPreparePacket = ParsePrepareResponse();
+            if (okPreparePacket != null)
+            {
+                if (okPreparePacket.num_params > 0)
+                {
+                    this.tableHeader = new TableHeader();
+                    tableHeader.TypeCast = typeCast;
+                    tableHeader.NestTables = nestTables;
+                    tableHeader.ConnConfig = conn.config;
+
+                    for (int i = 0; i < okPreparePacket.num_params; i++)
+                    {
+                        FieldPacket field = ParseColumn();
+                        tableHeader.AddField(field);
+                    }
+
+                    ParseEOF();
+                }
+                if (okPreparePacket.num_columns > 0)
+                {
+                    this.tableHeader = new TableHeader();
+                    tableHeader.TypeCast = typeCast;
+                    tableHeader.NestTables = nestTables;
+                    tableHeader.ConnConfig = conn.config;
+
+                    for (int i = 0; i < okPreparePacket.num_columns; i++)
+                    {
+                        FieldPacket field = ParseColumn();
+                        tableHeader.AddField(field);
+                    }
+                    ParseEOF();
+                }
+
+                //-------------------
+                _prepareStmtId = okPreparePacket.statement_id;
+                //-------------------
+            }
+
+        }
+        public void ExecutePrepareQuery()
+        {
+            if (cmdParams == null)
+            {
+                return;
+            }
+
+            if (!_isPrepared)
+            {
+                ExecuteNonPrepare();
+                return;
+            }
+
+            if (_prepareStmtId == 0)
+            {
+                throw new Exception("exec Prepare() first");
+            }
+            //---------------------------------------------------------------------------------
+            writer.Reset();
+            var excute = new ComExecutePrepareStatement(_prepareStmtId, cmdParams, sqlStrTemplate);
+            excute.WritePacket(writer);
+            SendPacket(writer.ToArray());
+            _isPrepared = true;
+            ParseReceivePacket();
+            if (okPacket != null || loadError != null)
+            {
+                return;
+            }
+            lastPrepareRow = new RowPreparedDataPacket(tableHeader);
+
+        }
+
+
+
+        public bool ReadRow()
+        {
+            if (tableHeader == null)
+            {
+                return hasSomeRow = false;
+            }
+
+            switch (receiveBuffer[parser.Position + 4])
+            {
+                case ERROR_CODE:
+                    {
+                        loadError = new ErrPacket();
+                        loadError.ParsePacket(parser);
+                        return hasSomeRow = false;
+                    }
+                case EOF_CODE:
+                    {
+                        EofPacket rowDataEof = ParseEOF();
+
+                        return hasSomeRow = false;
+                    }
+                default:
+                    {
+                        if (_isPrepared)
+                        {
+                            lastPrepareRow.ReuseSlots();
+                            lastPrepareRow.ParsePacketHeader(parser);
+
+                            receiveBuffer = CheckLimit(lastPrepareRow.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
+                            lastPrepareRow.ParsePacket(parser);
+                            CheckBeforeParseHeader(receiveBuffer);
+                        }
+                        else
+                        {
+                            lastRow.ReuseSlots();
+                            lastRow.ParsePacketHeader(parser);
+
+                            receiveBuffer = CheckLimit(lastRow.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
+                            lastRow.ParsePacket(parser);
+                            CheckBeforeParseHeader(receiveBuffer);
+                        }
+                        return hasSomeRow = true;
+                    }
+            }
+        }
+
+        public int GetColumnIndex(string colName)
+        {
+            return this.tableHeader.GetFieldIndex(colName);
+        }
+
+        public void Close()
+        {
+            if (hasSomeRow)
+            {
+                string realSql = "KILL " + conn.threadId;
+                //sql = "FLUSH QUERY CACHE;";
+                Connection killConn = new Connection(conn.config);
+                killConn.Connect();
+                killConn.CreateQuery(realSql, null).ExecuteNonPrepare();
+                conn.ClearRemainingInputBuffer();
+                killConn.Disconnect();
+            }
+        }
+
+        void ParseReceivePacket()
+        {
+            //TODO: review here, optimized buffer
             receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
             var socket = conn.socket;
             int receive = socket.Receive(receiveBuffer);
@@ -105,6 +312,7 @@ namespace MySqlPacket
                     loadError = new ErrPacket();
                     loadError.ParsePacket(parser);
                     break;
+                case 0xfe://0x00 or 0xfe the OK packet header
                 case OK_CODE:
                     okPacket = new OkPacket(conn.IsProtocol41);
                     okPacket.ParsePacket(parser);
@@ -115,36 +323,11 @@ namespace MySqlPacket
             }
         }
 
-        void SendQuery(string sql)
-        {
-            writer.Reset();
-            ComQueryPacket queryPacket = new ComQueryPacket(sql);
-            queryPacket.WritePacket(writer);
-            byte[] qr = writer.ToArray();
-            int sent = 0;
-            //if send data more than max_allowed_packet in mysql server it will be close connection
-
-            var socket = conn.socket;
-            if (qr.Length > MAX_PACKET_LENGTH)
-            {
-                int packs = (int)Math.Floor(qr.Length / (double)MAX_PACKET_LENGTH) + 1;
-                for (int pack = 0; pack < packs; pack++)
-                {
-                    //TODO: not sure >> waiting to test
-                    sent = socket.Send(qr, MAX_PACKET_LENGTH, SocketFlags.None);
-                }
-            }
-            else
-            {
-                sent = socket.Send(qr, qr.Length, SocketFlags.None);
-            }
-        }
-
         void ParseResultSet()
         {
             ResultSetHeaderPacket resultPacket = new ResultSetHeaderPacket();
             resultPacket.ParsePacket(parser);
-            
+
             this.tableHeader = new TableHeader();
             tableHeader.TypeCast = typeCast;
             tableHeader.NestTables = nestTables;
@@ -154,125 +337,73 @@ namespace MySqlPacket
 
             while (receiveBuffer[parser.Position + 4] != EOF_CODE)
             {
-                FieldPacket fieldPacket = new FieldPacket(protocol41);
-                fieldPacket.ParsePacketHeader(parser);
-                receiveBuffer = CheckLimit(fieldPacket.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
-                fieldPacket.ParsePacket(parser);
+                FieldPacket fieldPacket = ParseColumn();
                 tableHeader.AddField(fieldPacket);
-                CheckBeforeParseHeader(receiveBuffer);
             }
-            
-            EofPacket fieldEof = new EofPacket(protocol41);//if temp[4]=0xfe then eof packet
-            fieldEof.ParsePacketHeader(parser);
-            receiveBuffer = CheckLimit(fieldEof.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
-            fieldEof.ParsePacket(parser);
-            
-            CheckBeforeParseHeader(receiveBuffer);
+
+            EofPacket fieldEof = ParseEOF();
             //-----
             lastRow = new RowDataPacket(tableHeader);
         }
 
-        public bool ReadRow()
+        void SendPacket(byte[] packetBuffer)
         {
-            if (tableHeader == null)
-            {
-                return hasSomeRow = false;
+            int sent = 0;
+            int packetLength = packetBuffer.Length;
+            var socket = conn.socket;
+
+            while (sent < packetLength)
+            {//if packet is large
+                sent += socket.Send(packetBuffer, sent, packetLength - sent, SocketFlags.None);
             }
-            
-            switch (receiveBuffer[parser.Position + 4])
+        }
+
+
+        OkPrepareStmtPacket ParsePrepareResponse()
+        {
+            receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
+            var socket = conn.socket;
+            int receive = socket.Receive(receiveBuffer);
+            if (receive == 0)
+            {
+                return null;
+            }
+            //---------------------------------------------------
+            parser.LoadNewBuffer(receiveBuffer, receive);
+            OkPrepareStmtPacket okPreparePacket = new OkPrepareStmtPacket();
+            switch (receiveBuffer[4])
             {
                 case ERROR_CODE:
-                    {
-                        loadError = new ErrPacket();
-                        loadError.ParsePacket(parser);
-                        return hasSomeRow = false;
-                    }
-                case EOF_CODE:
-                    {
-                        EofPacket rowDataEof = new EofPacket(conn.IsProtocol41);
-                        rowDataEof.ParsePacketHeader(parser);
-                        receiveBuffer = CheckLimit(rowDataEof.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
-                        rowDataEof.ParsePacket(parser);
-                        
-                        return hasSomeRow = false;
-                    }
-                default:
-                    {
-                        lastRow.ReuseSlots();
-                        lastRow.ParsePacketHeader(parser);
-
-                        receiveBuffer = CheckLimit(lastRow.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
-                        lastRow.ParsePacket(parser);
-                        CheckBeforeParseHeader(receiveBuffer);
-                        
-                        return hasSomeRow = true;
-                    }
+                    loadError = new ErrPacket();
+                    loadError.ParsePacket(parser);
+                    okPreparePacket = null;
+                    break;
+                case OK_CODE:
+                    okPreparePacket.ParsePacket(parser);
+                    break;
             }
-        }
-        
-        internal MyStructData[] Cells
-        {
-            get
-            {
-                return lastRow.Cells;
-            }
+            return okPreparePacket;
         }
 
-        public int GetColumnIndex(string colName)
+        FieldPacket ParseColumn()
         {
-            return this.tableHeader.GetFieldIndex(colName);
+            FieldPacket fieldPacket = new FieldPacket(conn.IsProtocol41);
+            fieldPacket.ParsePacketHeader(parser);
+            receiveBuffer = CheckLimit(fieldPacket.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
+            fieldPacket.ParsePacket(parser);
+            CheckBeforeParseHeader(receiveBuffer);
+            return fieldPacket;
         }
 
-        public void Close()
+        EofPacket ParseEOF()
         {
-            //sql = "RESET QUERY CACHE";//not work
-            //writer.Rewrite();
-            //ComQuitPacket quitPacket = new ComQuitPacket();
-            //quitPacket.WritePacket(writer);
-            //int send = socket.Send(writer.ToArray());
-            //sql = "KILL " + threadId;
-            //Connection connection = new Connection(config);
-            //connection.Connect();
-            //Query q = connection.CreateQuery(sql, null);
-            //sql = "RESET QUERY CACHE";
-            //sql = SqlFormat(sql, null);
-            //SendQuery(sql);
-            //Console.WriteLine("sql : '" + sql + "'");
-            //sql = "KILL " + threadId;
-            //sql = SqlFormat(sql, null);
-            //SendQuery(sql);
-            //Console.WriteLine("sql : '" + sql + "'");
-            //Thread.Sleep(1000);
-            //socket.Disconnect(false);
-            //this.Disconnect(); 
-            //TODO: review here !
-            if (hasSomeRow)
-            {
-                sql = "KILL " + conn.threadId;
-                Connection killConn = new Connection(conn.config);
-                killConn.Connect();
-                killConn.CreateQuery(sql, null).ExecuteQuery();
-                conn.ClearRemainingInputBuffer();
-                killConn.Disconnect();
-            }
+            EofPacket eofPacket = new EofPacket(conn.IsProtocol41);//if temp[4]=0xfe then eof packet
+            eofPacket.ParsePacketHeader(parser);
+            receiveBuffer = CheckLimit(eofPacket.GetPacketLength(), receiveBuffer, DEFAULT_BUFFER_SIZE);
+            eofPacket.ParsePacket(parser);
 
-            //socket = null;
-            ////TODO :test
-            //int test = 44;
-            //if (lastReceive > test)
-            //{
-            //    byte[] dd = new byte[test];
-            //    dd = CopyBufferBlock(temp, lastReceive - test, test);
-
-            //    parser.LoadNewBuffer(dd, test);
-            //    loadError = new ErrPacket();
-            //    loadError.ParsePacket(parser);
-            //}
-            //socket.Disconnect(false);
-
-            //Connection newConnect = new Connection(config);
-            //newConnect.Connect();
-            //socket = newConnect.socket;
+            CheckBeforeParseHeader(receiveBuffer);
+            return eofPacket;
         }
 
         byte[] CheckLimit(uint packetLength, byte[] buffer, int limit)
@@ -296,7 +427,7 @@ namespace MySqlPacket
                     //just move
                     Buffer.BlockCopy(buffer, (int)parser.Position, buffer, 0, remainLength);
                 }
-                
+
                 var socket = conn.socket;
                 int newReceive = remainLength + socket.Receive(buffer, remainLength, newReceiveBuffLength, SocketFlags.None);
                 int timeoutCountdown = 10000;
@@ -334,18 +465,6 @@ namespace MySqlPacket
             return buffer;
         }
 
-        //static byte[] CopyBufferBlock(byte[] inputBuffer, int start, int length)
-        //{
-        //    byte[] outputBuff = new byte[length];
-        //    Buffer.BlockCopy(inputBuffer, start, outputBuff, 0, length);
-        //    return outputBuff;
-        //    //for (int index = 0; index < length; index++)
-        //    //{
-        //    //    outputBuff[index] = inputBuffer[start + index];
-        //    //}
-        //    //return outputBuff;
-        //}
-
         void CheckBeforeParseHeader(byte[] buffer)
         {
             //todo: check memory mx again
@@ -359,6 +478,10 @@ namespace MySqlPacket
                 var socket = conn.socket;
                 int bufferRemain = buffer.Length - remainLength;
                 int available = socket.Available;
+                if (available == 0)//it finished
+                {
+                    return;
+                }
                 int expectedReceive = (available < bufferRemain ? available : bufferRemain);
 
                 int realReceive = socket.Receive(buffer, remainLength, expectedReceive, SocketFlags.None);
@@ -366,266 +489,10 @@ namespace MySqlPacket
                 parser.LoadNewBuffer(buffer, newBufferLength);
                 dbugConsole.WriteLine("CheckBeforeParseHeader : LoadNewBuffer");
             }
-            //return buffer;
         }
 
-        static string BindValues(string sql, CommandParameters values)
-        {
-            if (values == null)
-            {
-                return sql;
-            }
-            return ParseAndBindValues(sql, values);
-        }
-
-        enum ParseState
-        {
-            FIND_MARKER,
-            GET_KEY
-        }
-
-        static string ParseAndBindValues(string sql, CommandParameters prepare)
-        {
-            //TODO: implement prepared query string
-            int length = sql.Length;
-            ParseState state = ParseState.FIND_MARKER;
-            char ch;
-            StringBuilder strBuilder = new StringBuilder();
-            List<string> list = new List<string>();
-            string temp;
-            for (int i = 0; i < length; i++)
-            {
-                ch = sql[i];
-                switch (state)
-                {
-                    case ParseState.FIND_MARKER:
-                        if (ch == '?')
-                        {
-                            list.Add(strBuilder.ToString());
-                            strBuilder.Length = 0;
-
-                            state = ParseState.GET_KEY;
-                        }
-                        else
-                        {
-                            strBuilder.Append(ch);
-                        }
-                        break;
-                    case ParseState.GET_KEY:
-                        if (ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9')
-                        {
-                            strBuilder.Append(ch);
-                        }
-                        else
-                        {
-                            temp = prepare.GetValue(strBuilder.ToString());
-                            list.Add(temp);
-                            strBuilder.Length = 0;//clear
-                            state = ParseState.FIND_MARKER;
-                            strBuilder.Append(ch);
-                        }
-                        break;
-                    default:
-                        break;
-                }
-            }
-            temp = strBuilder.ToString();
-            if (state == ParseState.GET_KEY)
-            {
-                temp = prepare.GetValue(temp);
-            }
-            list.Add(temp);
-            return GetSql(list);
-        }
-
-        static string GetSql(List<string> list)
-        {
-            int length = list.Count;
-            StringBuilder strBuilder = new StringBuilder();
-            for (int i = 0; i < length; i++)
-            {
-                strBuilder.Append(list[i]);
-            }
-            return strBuilder.ToString();
-        }
-
-        //public void Start(Socket socket, bool protocol41, ConnectionConfig config)
-        //{
-        //    this.socket = socket;
-        //    this.config = config;
-        //    this.protocol41 = protocol41;
-        //    writer.Rewrite();
-        //    ComQueryPacket queryPacket = new ComQueryPacket(sql);
-        //    queryPacket.WritePacket(writer);
-
-        //    byte[] qr = writer.ToArray();
-        //    int sent = socket.Send(qr);
-
-        //    byte[] receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
-        //    int receive = socket.Receive(receiveBuffer);
-
-        //    parser.LoadNewBuffer(receiveBuffer, receive);
-        //    if (receiveBuffer[4] == ERROR_CODE)
-        //    {
-        //        loadError = new ErrPacket();
-        //        loadError.ParsePacket(parser);
-        //    }
-        //    else if (receiveBuffer[4] == OK_CODE)
-        //    {
-        //        okPacket = new OkPacket(protocol41);
-        //        okPacket.ParsePacket(parser);
-        //    }
-        //    else
-        //    {
-        //        ResultSetHeaderPacket resultPacket = new ResultSetHeaderPacket();
-        //        resultPacket.ParsePacket(parser);
-        //        resultSet = new ResultSet(resultPacket);
-
-        //        while (receiveBuffer[parser.Position + 4] != EOF_CODE)
-        //        {
-        //            FieldPacket fieldPacket = new FieldPacket(protocol41);
-        //            fieldPacket.ParsePacketHeader(parser);
-        //            receiveBuffer = CheckLimit(fieldPacket.GetPacketLength(), receiveBuffer, (int)parser.Length);
-        //            fieldPacket.ParsePacket(parser);
-        //            resultSet.Add(fieldPacket);
-
-        //            receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, (int)parser.Length);
-        //        }
-
-        //        EofPacket fieldEof = new EofPacket(protocol41);//if temp[4]=0xfe then eof packet
-        //        fieldEof.ParsePacketHeader(parser);
-        //        receiveBuffer = CheckLimit(fieldEof.GetPacketLength(), receiveBuffer, (int)parser.Length);
-        //        fieldEof.ParsePacket(parser);
-        //        resultSet.Add(fieldEof);
-
-        //        receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, (int)parser.Length);
-
-        //        var fieldList = resultSet.GetFields();
-        //        while (receiveBuffer[parser.Position + 4] != EOF_CODE)
-        //        {
-        //            RowDataPacket rowData = new RowDataPacket(fieldList, typeCast, nestTables, config);
-        //            rowData.ParsePacketHeader(parser);
-        //            receiveBuffer = CheckLimit(rowData.GetPacketLength(), receiveBuffer, (int)parser.Length);
-        //            rowData.ParsePacket(parser);
-        //            resultSet.Add(rowData);
-
-        //            receiveBuffer = CheckBeforeParseHeader(receiveBuffer, (int)parser.Position, (int)parser.Length);
-        //        }
-
-        //        EofPacket rowDataEof = new EofPacket(protocol41);
-        //        rowDataEof.ParsePacketHeader(parser);
-        //        receiveBuffer = CheckLimit(rowDataEof.GetPacketLength(), receiveBuffer, (int)parser.Length);
-        //        rowDataEof.ParsePacket(parser);
-        //        resultSet.Add(rowDataEof);
-        //    }
-        //}
     }
-
-
-    class CommandParameters
-    {
-        Dictionary<string, string> prepareValues;
-
-        public CommandParameters()
-        {
-            prepareValues = new Dictionary<string, string>();
-        }
-        public void AddTable(string key, string value)
-        {
-            prepareValues[key] = string.Concat("`", value, "`");
-        }
-
-        public void AddField(string key, string value)
-        {
-            prepareValues[key] = string.Concat("`", value, "`");
-        }
-
-        public void AddValue(string key, string value)
-        {
-            prepareValues[key] = string.Concat("`", value, "`");
-        }
-
-        public void AddValue(string key, decimal value)
-        {
-            prepareValues[key] = value.ToString();
-        }
-        public void AddValue(string key, int value)
-        {
-
-            prepareValues[key] = value.ToString();
-        }
-
-        public void AddValue(string key, long value)
-        {
-            prepareValues[key] = value.ToString();
-        }
-
-        public void AddValue(string key, byte value)
-        {
-            prepareValues[key] = Encoding.ASCII.GetString(new byte[] { value });
-        }
-
-        public void AddValue(string key, byte[] value)
-        {
-            prepareValues[key] = ConvertByteArrayToHexWithMySqlPrefix(value);
-            // string.Concat("0x", ByteArrayToHexViaLookup32(value));
-        }
-
-        public void AddValue(string key, DateTime value)
-        {
-            prepareValues[key] = value.ToString();
-        }
-        public string GetValue(string key)
-        {
-            string value;
-            prepareValues.TryGetValue(key, out value);
-            return value;
-        }
-
-
-
-        //-------------------------------------------------------
-        //convert byte array to binary
-        //from http://stackoverflow.com/questions/311165/how-do-you-convert-byte-array-to-hexadecimal-string-and-vice-versa/24343727#24343727
-        static readonly uint[] _lookup32 = CreateLookup32();
-
-        static uint[] CreateLookup32()
-        {
-            var result = new uint[256];
-            for (int i = 0; i < 256; i++)
-            {
-                string s = i.ToString("X2");
-                result[i] = ((uint)s[0]) + ((uint)s[1] << 16);
-            }
-            return result;
-        }
-
-        static string ConvertByteArrayToHexWithMySqlPrefix(byte[] bytes)
-        {
-            //for mysql only !, 
-            //we prefix with 0x
-
-            var lookup32 = _lookup32;
-            int j = bytes.Length;
-            var result = new char[(j * 2) + 2];
-
-            int m = 0;
-            result[0] = '0';
-            result[1] = 'x';
-            m = 2;
-
-            for (int i = 0; i < j; i++)
-            {
-                uint val = lookup32[bytes[i]];
-                result[m] = (char)val;
-                result[m + 1] = (char)(val >> 16);
-                m += 2;
-            }
-
-            return new string(result);
-        }
-    }
-
+     
 
     class TableHeader
     {
@@ -673,12 +540,5 @@ namespace MySqlPacket
         public bool NestTables { get; set; }
         public ConnectionConfig ConnConfig { get; set; }
     }
-
-
-
-
-
-
-
 
 }

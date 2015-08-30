@@ -30,10 +30,8 @@ using System.Net;
 using System.Net.Sockets;
 
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
-
-
     static class dbugConsole
     {
         [System.Diagnostics.Conditional("DEBUG")]
@@ -48,6 +46,7 @@ namespace MySqlPacket
         Disconnected,
         Connected
     }
+
     partial class Connection
     {
         public ConnectionConfig config;
@@ -162,48 +161,31 @@ namespace MySqlPacket
         void GetMaxAllowedPacket()
         {
             query = CreateQuery("SELECT @@global.max_allowed_packet", null);
-            query.ExecuteQuery();
+            query.Execute();
+            //query = CreateQuery();
+            //query.ExecuteQuerySql("SELECT @@global.max_allowed_packet");
             if (query.loadError != null)
             {
                 dbugConsole.WriteLine("Error Message : " + query.loadError.message);
             }
             else if (query.okPacket != null)
             {
-
                 dbugConsole.WriteLine("OkPacket : " + query.okPacket.affectedRows);
-
             }
             else
             {
                 if (query.ReadRow())
                 {
                     maxPacketSize = query.Cells[0].myInt64;
-                    //MAX_ALLOWED_PACKET = query.resultSet.rows[0].GetDataInField("@@global.max_allowed_packet").myLong;
-                    //dbugConsole.WriteLine("Rows Data " + i + " : " + query.resultSet.rows[i++]);
                 }
-
-                //while (query.ReadRow())
-                //{
-
-                //    MAX_ALLOWED_PACKET = query.resultSet.rows[0].GetDataInField("@@global.max_allowed_packet").myLong;
-                //    dbugConsole.WriteLine("Rows Data " + i + " : " + query.resultSet.rows[i++]);
-                //}
             }
-        }
+        } 
 
-        public Query CreateQuery(string sql, CommandParameters values)
+        public Query CreateQuery(string sql, CommandParams command)//testing
         {
-            //var query = Connection.createQuery(sql, values, cb);
-            //query = new Query(parser, writer, sql, values);
-            //query.typeCast = config.typeCast;
-            //query.Start(socket, handshake.protocol41, config);
-            //if (socket == null)
-            //{
-            //    CreateNewSocket();
-            //}
-            var query = new Query(this, sql, values);
-            return query;
+            return new Query(this, sql, command);
         }
+       
 
         void CreateNewSocket()
         {
@@ -307,7 +289,6 @@ namespace MySqlPacket
 
 
     }
-
 
     class ConnectionConfig
     {
@@ -427,6 +408,5 @@ namespace MySqlPacket
             this.database = database;
         }
     }
-
 
 }

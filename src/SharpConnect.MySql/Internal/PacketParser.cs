@@ -25,7 +25,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
     //packet reader
 
@@ -126,6 +126,63 @@ namespace MySqlPacket
                 return null;
         }
 
+        public DateTime ParseLengthCodedDateTime()
+        {
+            DateTime dateTime;
+            byte dateLength = ParseByte();
+            int year = 0;
+            int month = 0;
+            int day = 0;
+            int hour = 0;
+            int minute = 0;
+            int second = 0;
+            int micro_second = 0;
+            if (dateLength == 0)
+            {
+                //all values 0
+                dateTime = new DateTime(year, month, day, hour, minute, second, micro_second);
+            }
+            else
+            {
+                if (dateLength >= 4)
+                {
+                    year = (int)ParseUnsigned2();
+                    month = ParseUnsigned1();
+                    day = ParseUnsigned1();
+                    dateTime = new DateTime(year, month, day);
+                }
+                if (dateLength >= 7)
+                {
+                    hour = ParseUnsigned1();
+                    minute = ParseUnsigned1();
+                    second = ParseUnsigned1();
+                    dateTime = new DateTime(year, month, day, hour, minute, second);
+                }
+                if (dateLength == 11)
+                {
+                    micro_second = (int)ParseUnsignedNumber(4);
+                    int milli_second = micro_second / 1000;
+                    dateTime = new DateTime(year, month, day, hour, minute, second, milli_second);
+                }
+                else
+                {
+                    if (dateLength == 7)
+                    {
+                        dateTime = new DateTime(year, month, day, hour, minute, second);
+                    }
+                    else if (dateLength == 4)
+                    {
+                        dateTime = new DateTime(year, month, day);
+                    }
+                    else
+                    {
+                        dateTime = new DateTime(0, 0, 0, 0, 0, 0, 0, 0);
+                    }
+                }
+            }
+            return dateTime;
+        }
+
         public PacketHeader ParsePacketHeader()
         {
             startPosition = stream.Position;
@@ -155,7 +212,6 @@ namespace MySqlPacket
             return ParseBuffer((int)length);
             //  return this.parseBuffer(length);
         }
-
 
         public void ParseFiller(int length)
         {
@@ -246,6 +302,7 @@ namespace MySqlPacket
         {
             return reader.ReadByte();
         }
+
         public uint ParseUnsigned2()
         {
 
@@ -254,6 +311,7 @@ namespace MySqlPacket
 
             return (b1 << 8) | (b0);
         }
+
         public uint ParseUnsigned3()
         {
             uint b0 = reader.ReadByte(); //low bit
@@ -263,15 +321,36 @@ namespace MySqlPacket
 
             return (b2 << 16) | (b1 << 8) | (b0);
         }
+
         public uint ParseUnsigned4()
         {
             uint b0 = reader.ReadByte(); //low bit
             uint b1 = reader.ReadByte();
             uint b2 = reader.ReadByte();
             uint b3 = reader.ReadByte(); //high bit
-
             return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
         }
+
+        public float ParseFloat()
+        {
+            return reader.ReadSingle();
+        }
+
+        public double ParseDouble()
+        {
+            return reader.ReadDouble();
+        }
+
+        public decimal ParseDecimal()
+        {
+            return reader.ReadDecimal();
+        }
+
+        public long ParseInt64()
+        {
+            return reader.ReadInt64();
+        }
+
         public uint ParseUnsignedNumber(int n)
         {
             switch (n)
@@ -339,7 +418,7 @@ namespace MySqlPacket
 
         public string ParsePacketTerminatedString()
         {
-            long distance = Length - Position;
+            long distance = (startPosition + packetLength) - Position;
             if (distance > 0)
             {
                 return new string(reader.ReadChars((int)distance));
