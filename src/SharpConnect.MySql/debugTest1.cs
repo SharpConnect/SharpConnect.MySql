@@ -307,16 +307,7 @@ namespace SharpConnect.MySql
             command.Parameters.AddValue("n2", testN2);
         }
 
-        public static void Test2()
-        {
-
-            ConnectionConfig config = new ConnectionConfig("127.0.0.1", "root", "root", "test");
-            Connection conn = new Connection(config);
-            conn.ConnectAsync(() =>
-            {
-
-            });
-        }
+        
         static void TempHandshakeParse()
         {
             //MemoryStream ms = new MemoryStream(buffer);

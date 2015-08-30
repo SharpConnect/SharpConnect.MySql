@@ -6,12 +6,28 @@ using SharpConnect.MySql;
 
 namespace MySqlTest
 {
+
+
     public class TestSet3_AsyncSocket : MySqlTestSet
     {
         [Test]
-        public static void T_AsyncSoket1()
+        public static void T_AsyncSocket1()
         {
-             
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnectionAsync(connStr);
+            conn.Open(() =>
+            {
+
+                //do something
+
+
+                //close
+                conn.Close(() =>
+                {
+
+
+                });
+            });
         }
     }
 }

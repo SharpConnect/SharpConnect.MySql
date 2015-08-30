@@ -21,6 +21,12 @@
 //THE SOFTWARE. 
 
 
+
+//!!!!!!!!!!
+// experiment 
+//use socket async event arg, 
+//!!!!!!!!!!
+
 using System.Net;
 using System.Net.Sockets;
 
@@ -53,7 +59,7 @@ namespace MySqlPacket
             //first connect 
             socket.Connect(endPoint);
             connSession.StartReceive(recv =>
-            {  
+            {
 
                 //TODO: review here, don't copy, 
                 //we should use shared sockBuffer 
@@ -63,7 +69,7 @@ namespace MySqlPacket
                 recv.CopyTo(0, buffer, 0, recv.BytesTransferred);
                 parser.LoadNewBuffer(buffer, count);
                 handshake = new HandshakePacket();
-                handshake.ParsePacket(parser); 
+                handshake.ParsePacket(parser);
                 this.threadId = handshake.threadId;
 
                 byte[] token = MakeToken(config.password,
@@ -116,6 +122,25 @@ namespace MySqlPacket
                 return EndReceiveState.Complete;
             });
         }
+
+
+        public void DisconnectAsync(Action onClosed)
+        {
+            writer.Reset();
+            ComQuitPacket quitPacket = new ComQuitPacket();
+            quitPacket.WritePacket(writer);
+
+            byte[] dataToSend = writer.ToArray();
+            connSession.SetDataToSend(dataToSend, dataToSend.Length);
+
+            connSession.StartSend(recv =>
+            { 
+                socket.Disconnect(true);
+
+                return EndSendState.Complete;
+            }); 
+        }
+
     }
 
     class MySqlConnectionSession : ClientConnectionSession
