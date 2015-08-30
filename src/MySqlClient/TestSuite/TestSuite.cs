@@ -95,7 +95,8 @@ namespace MySqlTest
     }
 
     public delegate void TestAction();
-    public class MySqlTester
+
+    public abstract class MySqlTesterBase
     {
         public static void Test(int n, TimeUnit timeUnit, out long total, out long avg, TestAction ac)
         {
@@ -109,6 +110,7 @@ namespace MySqlTest
             total = sw.ElapsedTicks;
             avg = total / n;
         }
+
     }
 
 

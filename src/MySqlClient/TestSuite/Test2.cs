@@ -6,7 +6,7 @@ using SharpConnect.MySql;
 
 namespace MySqlTest
 {
-    public class TestSet2 : MySqlTester
+    public class TestSet2 : MySqlTestSet
     {
         [Test]
         public static void T_InsertAndSelect()
@@ -30,7 +30,7 @@ namespace MySqlTest
         }
         static void CreateTable(MySqlConnection conn)
         {
-            
+
             string sql = "create table test001(col_id  int(10) unsigned not null auto_increment, col1 int(10)," +
                 "col2 char(2),col3 varchar(255),col4 datetime, primary key(col_id) )";
             var cmd = new MySqlCommand(sql, conn);
@@ -45,14 +45,6 @@ namespace MySqlTest
 
             uint lastInsertId = cmd.LastInsertId;
 
-        }
-        static MySqlConnectionString GetMySqlConnString()
-        {
-            string h = "127.0.0.1";
-            string u = "root";
-            string p = "root";
-            string d = "test";
-            return new MySqlConnectionString(h, u, p, d);
         }
     }
 }

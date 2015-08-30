@@ -6,7 +6,7 @@ using SharpConnect.MySql;
 
 namespace MySqlTest
 {
-    public class TestSet1 : MySqlTester
+    public class TestSet1 : MySqlTestSet
     {
         [Test]
         public static void T_OpenAndClose()
@@ -110,15 +110,6 @@ namespace MySqlTest
             conn.Close();
         }
 
-
-
-        static MySqlConnectionString GetMySqlConnString()
-        {
-            string h = "127.0.0.1";
-            string u = "root";
-            string p = "root";
-            string d = "test";
-            return new MySqlConnectionString(h, u, p, d);
-        }
+         
     }
 }
