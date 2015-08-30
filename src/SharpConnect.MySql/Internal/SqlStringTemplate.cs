@@ -13,12 +13,17 @@ using System.Net.Sockets;
 
 namespace MySqlPacket
 {
+    enum ParseState
+    {
+        FIND_MARKER,
+        GET_KEY
+    }
+
     class SqlStringTemplate
     {
-        List<string> keys = new List<string>(); //all keys
-        List<string> valuesKeys = new List<string>(); //only value keys
-        List<string> sqlSection = new List<string>();
-
+        List<string> _sqlSections = new List<string>(); //all sections
+        List<string> _keys = new List<string>(); //all keys
+        List<string> _valuesKeys = new List<string>(); //only value keys        
 
         private SqlStringTemplate()
         {
@@ -27,16 +32,18 @@ namespace MySqlPacket
 
         public List<string> GetValueKeys()
         {
-            return valuesKeys;
+            return _valuesKeys;
         }
 
         public static SqlStringTemplate ParseSql(string rawSql, CommandParams sampleCmdParams)
         {
 
             var sqlStringTemplate = new SqlStringTemplate();
-            List<string> sqlSection = sqlStringTemplate.sqlSection;
-            List<string> keys = sqlStringTemplate.keys;
+
+            List<string> sqlSection = sqlStringTemplate._sqlSections;
+            List<string> keys = sqlStringTemplate._keys;
             int length = rawSql.Length;
+
             ParseState state = ParseState.FIND_MARKER;
             char ch;
 
@@ -86,8 +93,7 @@ namespace MySqlPacket
             sqlSection.Add(temp);
             //-------------------------------------------------------------------------
 
-
-
+             
             sqlStringTemplate.FindValueKeys(sampleCmdParams);
             //-------------------------------------------------------------------------
             return sqlStringTemplate;
@@ -95,12 +101,12 @@ namespace MySqlPacket
 
         void FindValueKeys(CommandParams sampleCmdParams)
         {
-            int count = keys.Count;
+            int count = _keys.Count;
             for (int i = 0; i < count; i++)
             {
-                if (sampleCmdParams.IsValueKeys(keys[i]))
+                if (sampleCmdParams.IsValueKeys(_keys[i]))
                 {
-                    valuesKeys.Add(keys[i]);
+                    _valuesKeys.Add(_keys[i]);
                 }
             }
         }
@@ -108,19 +114,19 @@ namespace MySqlPacket
         {
             //CombindAndReplaceSqlSection
             StringBuilder strBuilder = new StringBuilder();
-            int count = sqlSection.Count;
+            int count = _sqlSections.Count;
 
             for (int i = 0; i < count; i++)
             {
-                if (sqlSection[i][0] == '?')
+                if (_sqlSections[i][0] == '?')
                 {
                     //TODO: reivew here again
-                    string temp = cmdParams.GetFieldName(sqlSection[i]);
+                    string temp = cmdParams.GetFieldName(_sqlSections[i]);
                     if (temp != null)
                     {
                         strBuilder.Append(temp);
                     }
-                    else if (cmdParams.IsValueKeys(sqlSection[i]))
+                    else if (cmdParams.IsValueKeys(_sqlSections[i]))
                     {
                         strBuilder.Append('?');
                     }
@@ -128,7 +134,7 @@ namespace MySqlPacket
                     {
                         if (!forPrepareStmt)
                         {
-                            
+
                             throw new Exception("Error : This key not assign.");
                         }
                         else
@@ -139,7 +145,7 @@ namespace MySqlPacket
                 }
                 else
                 {
-                    strBuilder.Append(sqlSection[i]);
+                    strBuilder.Append(_sqlSections[i]);
                 }
             }
 

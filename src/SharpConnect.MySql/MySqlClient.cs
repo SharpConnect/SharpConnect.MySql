@@ -164,8 +164,7 @@ namespace SharpConnect.MySql
 
             //prepare sql command;
             query = Connection.Conn.CreatePreparedQuery(CommandText, Parameters);
-            query.Prepare();
-
+            query.Prepare(); 
             _preparedDataReader = new MySqlDataReader(query);
             _isPreparedStmt = true;
         }

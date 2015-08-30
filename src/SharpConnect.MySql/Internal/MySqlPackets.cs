@@ -294,6 +294,8 @@ namespace MySqlPacket
                 dataTemp = prepareValues.GetData(keys[i]);
                 writer.WriteUnsignedNumber(2, (byte)dataTemp.type);
             }
+
+
             //write value of each parameter
             //example:
             //for(int i = 0; i < param.Length; i++)
@@ -303,12 +305,14 @@ namespace MySqlPacket
             //        case Types.BLOB:writer.WriteLengthCodedBuffer(param[i].myBuffer);
             //    }
             //}
+
+
             for (int i = 0; i < paramNum; i++)
             {
                 dataTemp = prepareValues.GetData(keys[i]);
                 WriteValueByType(writer, dataTemp);
             }
-            //writer.WriteLengthCodedNumber(1);
+            
             header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
         }
