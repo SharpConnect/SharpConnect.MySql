@@ -243,11 +243,17 @@ namespace SharpConnect.MySql.Internal
         readonly uint _statementId;
         readonly List<SqlSection> _keys;
         readonly CommandParams _cmdParams;
+
         public ComExecutePrepareStatement(uint statementId, CommandParams prepareValues, SqlStringTemplate sqlStrTemplate)
         {
             _statementId = statementId;
             _cmdParams = prepareValues;
             _keys = sqlStrTemplate.GetValueKeys();
+
+            //------------
+            //find position 
+
+
         }
         public override void ParsePacket(PacketParser parser)
         {
@@ -291,7 +297,8 @@ namespace SharpConnect.MySql.Internal
                 }
             }
             writer.WriteByte(1);//new-params-bound - flag
-
+            //-------------------------------------------------------
+            //data types
             for (int i = 0; i < paramNum; i++)
             {
                 dataTemp = _cmdParams.GetData(_keys[i].Text);
@@ -309,7 +316,8 @@ namespace SharpConnect.MySql.Internal
             //    }
             //}
 
-
+            //--------------------------------------
+            //actual data
             for (int i = 0; i < paramNum; i++)
             {
                 dataTemp = _cmdParams.GetData(_keys[i].Text);

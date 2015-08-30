@@ -68,7 +68,7 @@ namespace SharpConnect.MySql.Internal
         const int MAX_PACKET_LENGTH = (1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
 
 
-        public Query(Connection conn, string sql, CommandParams cmdParams, bool forPreparedStmt = false)//testing
+        public Query(Connection conn, string sql, CommandParams cmdParams)//testing
         {
             if (sql == null)
             {
