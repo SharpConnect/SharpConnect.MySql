@@ -44,6 +44,7 @@ namespace MySqlTest
             string sql = "insert into test001(col1,col2,col3,col4) values(?col1,?col2,?col3,?col4)";
             var cmd = new MySqlCommand(sql, conn);
             cmd.Prepare();
+
             for (int i = 0; i < 100; ++i)
             {
                 var pars = cmd.Parameters;

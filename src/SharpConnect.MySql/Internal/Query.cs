@@ -130,9 +130,9 @@ namespace MySqlPacket
         {
             writer.Reset();
 
-            var realSql = sqlStrTemplate.BindValues(cmdParams, false);
+            string realSql = sqlStrTemplate.BindValues(cmdParams, false);
 
-            ComQueryPacket queryPacket = new ComQueryPacket(realSql);
+            var queryPacket = new ComQueryPacket(realSql);
             queryPacket.WritePacket(writer);
             SendPacket(writer.ToArray());
 
@@ -162,11 +162,17 @@ namespace MySqlPacket
             {
                 if (okPreparePacket.num_params > 0)
                 {
-                    FieldPacket[] fields = new FieldPacket[okPreparePacket.num_params];
+                    this.tableHeader = new TableHeader();
+                    tableHeader.TypeCast = typeCast;
+                    tableHeader.NestTables = nestTables;
+                    tableHeader.ConnConfig = conn.config;
+
                     for (int i = 0; i < okPreparePacket.num_params; i++)
                     {
-                        fields[i] = ParseColumn();
-                    }
+                        FieldPacket field = ParseColumn();
+                        tableHeader.AddField(field);
+                    } 
+
                     ParseEOF();
                 }
                 if (okPreparePacket.num_columns > 0)
