@@ -1108,12 +1108,12 @@ namespace MySqlPacket
         }
     }
 
-    class RowPrepaqreDataPacket : Packet
+    class RowPreparedDataPacket : Packet
     {
         MyStructData[] myDataList;
         TableHeader tableHeader;
         ConnectionConfig config;
-        public RowPrepaqreDataPacket(TableHeader tableHeader)
+        public RowPreparedDataPacket(TableHeader tableHeader)
         {
             this.tableHeader = tableHeader;
             myDataList = new MyStructData[tableHeader.ColumnCount];

@@ -112,7 +112,7 @@ namespace SharpConnect.MySql
         public MySqlConnection Connection { get; set; }
         public MySqlDataReader ExecuteReader()
         {
-            //parameters = new CommandParams();
+         
             query = Connection.Conn.CreateQuery(this.CommandText, Parameters);
             var reader = new MySqlDataReader(query);
             query.Execute();
@@ -120,7 +120,7 @@ namespace SharpConnect.MySql
         }
         public void ExecuteNonQuery()
         {
-            //var parameters = new CommandParameters();
+          
             query = Connection.Conn.CreateQuery(this.CommandText, Parameters);
             query.Execute();
         }

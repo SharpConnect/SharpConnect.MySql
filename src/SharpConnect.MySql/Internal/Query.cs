@@ -48,7 +48,7 @@ namespace MySqlPacket
         //public int index;
 
         RowDataPacket lastRow;
-        RowPrepaqreDataPacket lastPrepareRow;
+        RowPreparedDataPacket lastPrepareRow;
 
         bool IsPrepare;
         bool hasSomeRow;
@@ -191,7 +191,7 @@ namespace MySqlPacket
                 {
                     return;
                 }
-                lastPrepareRow = new RowPrepaqreDataPacket(tableHeader);
+                lastPrepareRow = new RowPreparedDataPacket(tableHeader);
             }
         }
 

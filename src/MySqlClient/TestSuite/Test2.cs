@@ -30,10 +30,7 @@ namespace MySqlTest
         }
         static void CreateTable(MySqlConnection conn)
         {
-            //string sql = @"create table test001 (" +
-            //            "`idnew_table2` INT NOT NULL AUTO_INCREMENT COMMENT ''," +
-            //            "PRIMARY KEY (`idnew_table2`)  COMMENT '');";
-
+            
             string sql = "create table test001(col_id  int(10) unsigned not null auto_increment, col1 int(10)," +
                 "col2 char(2),col3 varchar(255),col4 datetime, primary key(col_id) )";
             var cmd = new MySqlCommand(sql, conn);
