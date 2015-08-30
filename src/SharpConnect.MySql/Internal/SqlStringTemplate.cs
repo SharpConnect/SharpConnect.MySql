@@ -130,7 +130,7 @@ namespace MySqlPacket
                                 //eg ?@
                                 //error
                                 throw new NotSupportedException("syntax err!");
-                            } 
+                            }
                         }
                         else
                         {
@@ -225,13 +225,20 @@ namespace MySqlPacket
                     case SqlSectionKind.ValueKey:
 
                         //TODO: review checking technique again 
-                        if (cmdParams.IsValueKeys(sqlSection.Text))
+                        if (forPrepareStmt)
                         {
                             strBuilder.Append('?');
                         }
                         else
                         {
-                            throw new Exception("Error : This key not assign." + sqlSection.Text);
+                            if (cmdParams.IsValueKeys(sqlSection.Text))
+                            {
+                                strBuilder.Append('?');
+                            }
+                            else
+                            {
+                                throw new Exception("Error : This key not assign." + sqlSection.Text);
+                            }
                         }
                         break;
                     case SqlSectionKind.SpecialKey:

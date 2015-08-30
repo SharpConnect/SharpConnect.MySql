@@ -43,19 +43,18 @@ namespace MySqlTest
         {
             string sql = "insert into test001(col1,col2,col3,col4) values(?col1,?col2,?col3,?col4)";
             var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddValue("col1", 10);
-            cmd.Parameters.AddValue("col2", "AA");
-            cmd.Parameters.AddValue("col3", "0123456789");
-            cmd.Parameters.AddValue("col4", "0001-01-01");
-            cmd.Prepare(); 
+            cmd.Prepare();
             for (int i = 0; i < 100; ++i)
             {
-                cmd.Parameters.AddValue("col1", 10);
-                cmd.Parameters.AddValue("col2", "AA");
-                cmd.Parameters.AddValue("col3", "0123456789");
-                cmd.Parameters.AddValue("col4", "0001-01-01");
+                var pars = cmd.Parameters;
+
+                pars.AddValue("col1", 10);
+                pars.AddValue("col2", "AA");
+                pars.AddValue("col3", "0123456789");
+                pars.AddValue("col4", "0001-01-01");
+
                 cmd.ExecuteNonQuery();
-            }  
+            }
         }
     }
 }
