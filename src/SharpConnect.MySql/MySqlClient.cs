@@ -124,6 +124,22 @@ namespace SharpConnect.MySql
             query = Connection.Conn.CreateQuery(this.CommandText, Parameters);
             query.Execute();
         }
+        public uint LastInsertId
+        {
+            get
+            {
+                return query.okPacket.insertId;
+            }
+        }
+        public uint AffectedRows
+        {
+            get
+            {
+                return query.okPacket.affectedRows;
+            }
+        }
+
+
     }
 
     public class MySqlDataReader
