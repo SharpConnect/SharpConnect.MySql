@@ -240,13 +240,16 @@ namespace MySqlPacket
     {
         byte EXCUTE_CMD = (byte)Command.STMT_EXECUTE;
         uint statementId;
-        List<string> keys;
+
+        List<SqlSection> keys;
         CommandParams prepareValues;
-        public ComExecutePrepareStatement(uint statementId, CommandParams prepareValues, List<string> valueKeys)
+        public ComExecutePrepareStatement(uint statementId, CommandParams prepareValues, SqlStringTemplate sqlStrTemplate)
         {
             this.statementId = statementId;
             this.prepareValues = prepareValues;
-            keys = valueKeys;
+            keys = sqlStrTemplate.GetValueKeys();
+
+
         }
         public override void ParsePacket(PacketParser parser)
         {
@@ -262,6 +265,8 @@ namespace MySqlPacket
             writer.WriteUnsignedNumber(4, 1);//iteration-count, always 1
             //write NULL-bitmap, length: (num-params+7)/8
             MyStructData dataTemp;
+
+
             int paramNum = keys.Count;
             if (paramNum > 0)
             {
@@ -269,7 +274,7 @@ namespace MySqlPacket
                 uint bitValue = 1;
                 for (int i = 0; i < paramNum; i++)
                 {
-                    dataTemp = prepareValues.GetData(keys[i]);
+                    dataTemp = prepareValues.GetData(keys[i].Text);
                     if (dataTemp.type == Types.NULL)
                     {
                         bitmap += bitValue;
@@ -291,7 +296,7 @@ namespace MySqlPacket
 
             for (int i = 0; i < paramNum; i++)
             {
-                dataTemp = prepareValues.GetData(keys[i]);
+                dataTemp = prepareValues.GetData(keys[i].Text);
                 writer.WriteUnsignedNumber(2, (byte)dataTemp.type);
             }
 
@@ -309,10 +314,10 @@ namespace MySqlPacket
 
             for (int i = 0; i < paramNum; i++)
             {
-                dataTemp = prepareValues.GetData(keys[i]);
+                dataTemp = prepareValues.GetData(keys[i].Text);
                 WriteValueByType(writer, dataTemp);
             }
-            
+
             header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
         }

@@ -35,7 +35,7 @@ namespace MySqlPacket
     class Query
     {
 
-        string rawSql;
+
         CommandParams cmdParams;
         Connection conn;
 
@@ -77,7 +77,7 @@ namespace MySqlPacket
                 throw new Exception("Sql command can not null.");
             }
             this.conn = conn;
-            rawSql = sql;
+
             this.cmdParams = cmdParams;
 
             typeCast = conn.config.typeCast;
@@ -92,7 +92,7 @@ namespace MySqlPacket
             writer = conn.PacketWriter;
             receiveBuffer = null;
 
-            sqlStrTemplate = SqlStringTemplate.ParseSql(sql, cmdParams);
+            sqlStrTemplate = new SqlStringTemplate(sql);
 
         }
 
@@ -209,7 +209,7 @@ namespace MySqlPacket
             }
             //---------------------------------------------------------------------------------
             writer.Reset();
-            var excute = new ComExecutePrepareStatement(_prepareStmtId, cmdParams, sqlStrTemplate.GetValueKeys());
+            var excute = new ComExecutePrepareStatement(_prepareStmtId, cmdParams, sqlStrTemplate);
             excute.WritePacket(writer);
             SendPacket(writer.ToArray());
             _isPrepared = true;
@@ -774,7 +774,8 @@ namespace MySqlPacket
         }
         internal bool IsValueKeys(string key)
         {
-            return prepareValues.TryGetValue(key, out reuseData);
+            return prepareValues.ContainsKey(key);
+
         }
     }
 

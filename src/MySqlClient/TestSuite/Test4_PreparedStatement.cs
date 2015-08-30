@@ -25,7 +25,7 @@ namespace MySqlTest
         }
         static void DropTableIfExists(MySqlConnection conn)
         {
-            string sql = "drop table if exits test001";
+            string sql = "drop table if exists test001";
             var cmd = new MySqlCommand(sql, conn);
             cmd.ExecuteNonQuery();
         }

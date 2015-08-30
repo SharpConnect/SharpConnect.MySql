@@ -38,10 +38,17 @@ namespace SharpConnect.MySql
 
             string sql;
             string sql2;
-            //sql = "INSERT INTO ?t1 (?c1, ?c2) VALUES (?n1 , ?buffer1)";
-            sql = "INSERT INTO ?t1 SET ?c2 = ?buffer1";
-            //sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
-            //sql = "select * from ?t1 where ?c1 = 4579";
+
+
+            //please note the 
+            //field or column binding is extension, must start with ??
+
+            //sql = "INSERT INTO ??t1 (??c1, ??c2) VALUES (?n1 , ?buffer1)";
+            sql = "INSERT INTO ??t1 SET ??c2 = ?buffer1";
+            //sql = "select * from ??t1 where ??c1 > ?n1 and ?c1 < ?n2";
+            //sql = "select * from ??t1 where ??c1 = 4579";
+
+
             //sql = "select 1+?n3 as test1";
             //sql = "select concat(?s1,?s2,?s1,?s2,?s1,?s2,?s1,?s2,?s1,?s2) as test1";
             //sql = "select concat(?s1,?s2,?s1,?s2) as test1";
@@ -59,7 +66,7 @@ namespace SharpConnect.MySql
             int testN1 = 4520;
             int testN2 = 4530;
 
-            sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
+            sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             //sql = "select * from ?t1 where ?c1 = ?n2";
             //sql = "select ?n1+?n2 as test1";
             CommandParams cmd2Values = new CommandParams(sql);
@@ -219,7 +226,7 @@ namespace SharpConnect.MySql
             sqlConn.UseConnectionPool = true;
             sqlConn.Open();
 
-            string sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
+            string sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             int testN1 = 4510;
             int testN2 = 4520;
 
@@ -257,7 +264,7 @@ namespace SharpConnect.MySql
             sqlConn.UseConnectionPool = true;
             sqlConn.Open();
 
-            string sql = "INSERT INTO ?t1 SET ?c2 = ?buffer1";
+            string sql = "INSERT INTO ??t1 SET ??c2 = ?buffer1";
 
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
             command.Parameters.AddTable("t1", "saveimage");
@@ -276,7 +283,7 @@ namespace SharpConnect.MySql
             sqlConn.UseConnectionPool = true;
             sqlConn.Open();
 
-            string sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
+            string sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             int testN1 = 4510;
             int testN2 = 4520;
 
@@ -296,7 +303,7 @@ namespace SharpConnect.MySql
             sqlConn.UseConnectionPool = true;
             sqlConn.Open();
 
-            string sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
+            string sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             int testN1 = 4510;
             int testN2 = 4520;
 
