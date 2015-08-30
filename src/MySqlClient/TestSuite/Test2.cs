@@ -52,7 +52,7 @@ namespace MySqlTest
             cmd.ExecuteNonQuery();
 
             uint lastInsertId = cmd.LastInsertId;
-
         }
+        
     }
 }

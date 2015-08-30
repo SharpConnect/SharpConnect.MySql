@@ -68,7 +68,7 @@ namespace SharpConnect.MySql.Internal
         const int MAX_PACKET_LENGTH = (1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
 
 
-        public Query(Connection conn, string sql, CommandParams cmdParams, bool forPreparedStmt = false)//testing
+        public Query(Connection conn, string sql, CommandParams cmdParams)//testing
         {
             if (sql == null)
             {
@@ -295,6 +295,7 @@ namespace SharpConnect.MySql.Internal
 
         void ParseReceivePacket()
         {
+            //TODO: review here, optimized buffer
             receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
             var socket = conn.socket;
             int receive = socket.Receive(receiveBuffer);
@@ -491,9 +492,7 @@ namespace SharpConnect.MySql.Internal
         }
 
     }
-
-
-
+     
 
     class TableHeader
     {

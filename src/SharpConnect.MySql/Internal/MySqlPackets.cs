@@ -239,15 +239,19 @@ namespace SharpConnect.MySql.Internal
     class ComExecutePrepareStatement : Packet
     {
         byte EXCUTE_CMD = (byte)Command.STMT_EXECUTE;
-        uint statementId;
 
-        List<SqlSection> keys;
-        CommandParams prepareValues;
+        readonly uint _statementId;
+        readonly List<SqlSection> _keys;
+        readonly CommandParams _cmdParams;
+
         public ComExecutePrepareStatement(uint statementId, CommandParams prepareValues, SqlStringTemplate sqlStrTemplate)
         {
-            this.statementId = statementId;
-            this.prepareValues = prepareValues;
-            keys = sqlStrTemplate.GetValueKeys();
+            _statementId = statementId;
+            _cmdParams = prepareValues;
+            _keys = sqlStrTemplate.GetValueKeys();
+
+            //------------
+            //find position 
 
 
         }
@@ -260,21 +264,21 @@ namespace SharpConnect.MySql.Internal
         {
             writer.ReserveHeader();
             writer.WriteByte(EXCUTE_CMD);
-            writer.WriteUnsignedNumber(4, statementId);
+            writer.WriteUnsignedNumber(4, _statementId);
             writer.WriteByte((byte)CursorFlags.CURSOR_TYPE_NO_CURSOR);
             writer.WriteUnsignedNumber(4, 1);//iteration-count, always 1
             //write NULL-bitmap, length: (num-params+7)/8
             MyStructData dataTemp;
 
 
-            int paramNum = keys.Count;
+            int paramNum = _keys.Count;
             if (paramNum > 0)
             {
                 uint bitmap = 0;
                 uint bitValue = 1;
                 for (int i = 0; i < paramNum; i++)
                 {
-                    dataTemp = prepareValues.GetData(keys[i].Text);
+                    dataTemp = _cmdParams.GetData(_keys[i].Text);
                     if (dataTemp.type == Types.NULL)
                     {
                         bitmap += bitValue;
@@ -293,10 +297,11 @@ namespace SharpConnect.MySql.Internal
                 }
             }
             writer.WriteByte(1);//new-params-bound - flag
-
+            //-------------------------------------------------------
+            //data types
             for (int i = 0; i < paramNum; i++)
             {
-                dataTemp = prepareValues.GetData(keys[i].Text);
+                dataTemp = _cmdParams.GetData(_keys[i].Text);
                 writer.WriteUnsignedNumber(2, (byte)dataTemp.type);
             }
 
@@ -311,10 +316,11 @@ namespace SharpConnect.MySql.Internal
             //    }
             //}
 
-
+            //--------------------------------------
+            //actual data
             for (int i = 0; i < paramNum; i++)
             {
-                dataTemp = prepareValues.GetData(keys[i].Text);
+                dataTemp = _cmdParams.GetData(_keys[i].Text);
                 WriteValueByType(writer, dataTemp);
             }
 
@@ -338,7 +344,7 @@ namespace SharpConnect.MySql.Internal
                     writer.WriteInt64(dataTemp.myInt64);
                     break;
                 case Types.FLOAT:
-                    writer.WriteFloat(dataTemp.myFloat);
+                    writer.WriteFloat((float)dataTemp.myDouble);
                     break;
                 case Types.DOUBLE:
                     writer.WriteDouble(dataTemp.myDouble);
@@ -399,7 +405,7 @@ namespace SharpConnect.MySql.Internal
                     writer.WriteInt64(dataTemp.myInt64);
                     break;
                 case Types.FLOAT:
-                    writer.WriteFloat(dataTemp.myFloat);
+                    writer.WriteFloat((float)dataTemp.myDouble);
                     break;
                 case Types.DOUBLE:
                     writer.WriteDouble(dataTemp.myDouble);
@@ -1162,7 +1168,7 @@ namespace SharpConnect.MySql.Internal
                     myData.type = fieldType;
                     break;
                 case Types.TINY://length = 1;
-                    myData.myByte = parser.ParseUnsigned1();
+                    myData.myInt32 = parser.ParseUnsigned1();
                     myData.type = fieldType;
                     break;
                 case Types.SHORT://length = 2;
@@ -1176,7 +1182,7 @@ namespace SharpConnect.MySql.Internal
                     myData.type = fieldType;
                     break;
                 case Types.FLOAT:
-                    myData.myFloat = parser.ParseFloat();
+                    myData.myDouble = parser.ParseFloat();
                     myData.type = fieldType;
                     break;
                 case Types.DOUBLE:
