@@ -58,8 +58,6 @@ namespace SharpConnect.MySql.Internal
         //---------------
         uint _prepareStmtId;
 
-
-
         //---------------
         byte[] receiveBuffer;
 
@@ -171,7 +169,7 @@ namespace SharpConnect.MySql.Internal
                     {
                         FieldPacket field = ParseColumn();
                         tableHeader.AddField(field);
-                    } 
+                    }
 
                     ParseEOF();
                 }
@@ -490,87 +488,12 @@ namespace SharpConnect.MySql.Internal
                 parser.LoadNewBuffer(buffer, newBufferLength);
                 dbugConsole.WriteLine("CheckBeforeParseHeader : LoadNewBuffer");
             }
-            //return buffer;
         }
 
-        //static string BindValues(string sql, CommandParameters values)
-        //{
-        //    if (values == null)
-        //    {
-        //        return sql;
-        //    }
-        //    return ParseAndBindValues(sql, values);
-        //}
-
-        //static string ParseAndBindValues(string sql, CommandParameters prepare)
-        //{
-        //    //TODO: implement prepared query string
-        //    int length = sql.Length;
-        //    ParseState state = ParseState.FIND_MARKER;
-        //    char ch;
-        //    StringBuilder strBuilder = new StringBuilder();
-        //    List<string> list = new List<string>();
-        //    string temp;
-        //    for (int i = 0; i < length; i++)
-        //    {
-        //        ch = sql[i];
-        //        switch (state)
-        //        {
-        //            case ParseState.FIND_MARKER:
-        //                if (ch == '?')
-        //                {
-        //                    list.Add(strBuilder.ToString());
-        //                    strBuilder.Length = 0;
-
-        //                    state = ParseState.GET_KEY;
-        //                }
-        //                else
-        //                {
-        //                    strBuilder.Append(ch);
-        //                }
-        //                break;
-        //            case ParseState.GET_KEY:
-        //                if (ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9')
-        //                {
-        //                    strBuilder.Append(ch);
-        //                }
-        //                else
-        //                {
-        //                    temp = prepare.GetValue(strBuilder.ToString());
-        //                    list.Add(temp);
-        //                    strBuilder.Length = 0;//clear
-        //                    state = ParseState.FIND_MARKER;
-        //                    strBuilder.Append(ch);
-        //                }
-        //                break;
-        //            default:
-        //                break;
-        //        }
-        //    }
-        //    temp = strBuilder.ToString();
-        //    if (state == ParseState.GET_KEY)
-        //    {
-        //        temp = prepare.GetValue(temp);
-        //    }
-        //    list.Add(temp);
-        //    return GetSql(list);
-        //}
-
-        //static string GetSql(List<string> list)
-        //{
-        //    int length = list.Count;
-        //    StringBuilder strBuilder = new StringBuilder();
-        //    for (int i = 0; i < length; i++)
-        //    {
-        //        strBuilder.Append(list[i]);
-        //    }
-        //    return strBuilder.ToString();
-        //}
-
     }
-     
 
-    
+
+
 
     class TableHeader
     {

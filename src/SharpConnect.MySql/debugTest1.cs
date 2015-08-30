@@ -69,14 +69,14 @@ namespace SharpConnect.MySql
             sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             //sql = "select * from ?t1 where ?c1 = ?n2";
             //sql = "select ?n1+?n2 as test1";
-            CommandParams cmd2Values = new CommandParams(sql);
+            CommandParams cmd2Values = new CommandParams();
 
-            cmd2Values.AddTable("t1", "saveimage");
-            cmd2Values.AddField("c1", "idsaveImage");
+            cmd2Values.SetSpecialKey("t1", "saveimage");
+            cmd2Values.SetSpecialKey("c1", "idsaveImage");
             //cmd2Values.AddField("c2", "saveImagecol");
 
-            cmd2Values.AddValue("n1", testN1);
-            cmd2Values.AddValue("n2", testN2);
+            cmd2Values.AddWithValue("n1", testN1);
+            cmd2Values.AddWithValue("n2", testN2);
             //cmd2Values.AddValue("n3", 29.5);
 
             //cmd2Values.AddValue("s1", "foo");
@@ -144,8 +144,8 @@ namespace SharpConnect.MySql
                 testN1 += 10;
                 testN2 += 10;
 
-                cmd2Values.AddValue("n1", testN1);
-                cmd2Values.AddValue("n2", testN2);
+                cmd2Values.AddWithValue("n1", testN1);
+                cmd2Values.AddWithValue("n2", testN2);
 
                 //query.ExecuteQuery();
                 if (query.loadError != null)
@@ -231,10 +231,10 @@ namespace SharpConnect.MySql
             int testN2 = 4520;
 
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
-            command.Parameters.AddTable("t1", "saveimage");
-            command.Parameters.AddField("c1", "idsaveImage");
-            command.Parameters.AddValue("n1", testN1);
-            command.Parameters.AddValue("n2", testN2);
+            command.Parameters.SetSpecialKey("t1", "saveimage");
+            command.Parameters.SetSpecialKey("c1", "idsaveImage");
+            command.Parameters.AddWithValue("n1", testN1);
+            command.Parameters.AddWithValue("n2", testN2);
 
             var reader = command.ExecuteReader();
             int count = 0;
@@ -267,9 +267,10 @@ namespace SharpConnect.MySql
             string sql = "INSERT INTO ??t1 SET ??c2 = ?buffer1";
 
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
-            command.Parameters.AddTable("t1", "saveimage");
-            command.Parameters.AddField("c2", "saveImagecol");
-            command.Parameters.AddValue("buffer1", buffer);
+            command.Parameters.SetSpecialKey("t1", "saveimage");
+            command.Parameters.SetSpecialKey("c2", "saveImagecol");
+
+            command.Parameters.AddWithValue("buffer1", buffer);
 
             command.ExecuteNonQuery();
         }
@@ -288,10 +289,11 @@ namespace SharpConnect.MySql
             int testN2 = 4520;
 
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
-            command.Parameters.AddTable("t1", "saveimage");
-            command.Parameters.AddField("c1", "idsaveImage");
-            command.Parameters.AddValue("n1", testN1);
-            command.Parameters.AddValue("n2", testN2);
+            command.Parameters.SetSpecialKey("t1", "saveimage");
+            command.Parameters.SetSpecialKey("c1", "idsaveImage");
+
+            command.Parameters.AddWithValue("n1", testN1);
+            command.Parameters.AddWithValue("n2", testN2);
         }
 
         public static void Test1_Delete()
@@ -308,10 +310,11 @@ namespace SharpConnect.MySql
             int testN2 = 4520;
 
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
-            command.Parameters.AddTable("t1", "saveimage");
-            command.Parameters.AddField("c1", "idsaveImage");
-            command.Parameters.AddValue("n1", testN1);
-            command.Parameters.AddValue("n2", testN2);
+            command.Parameters.SetSpecialKey("t1", "saveimage");
+            command.Parameters.SetSpecialKey("c1", "idsaveImage");
+
+            command.Parameters.AddWithValue("n1", testN1);
+            command.Parameters.AddWithValue("n2", testN2);
         }
 
         

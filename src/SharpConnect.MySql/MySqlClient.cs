@@ -117,25 +117,16 @@ namespace SharpConnect.MySql
             reuseData = new MyStructData();
             reuseData.type = Types.NULL;
         }
-        public CommandParams(string sql)
-        {
-            prepareValues = new Dictionary<string, MyStructData>();
-            fieldValues = new Dictionary<string, string>();
-            reuseData = new MyStructData();
-            reuseData.type = Types.NULL;
-        }
 
-        public void AddTable(string key, string tablename)
+
+        public void SetSpecialKey(string key, string tablename)
         {
-            key = "?" + key;
+            key = "??" + key;
             fieldValues[key] = "`" + tablename + "`";
         }
-        public void AddField(string key, string fieldname)
-        {
-            key = "?" + key;
-            fieldValues[key] = "`" + fieldname + "`";
-        }
-        public void AddValue(string key, string value)
+
+
+        public void AddWithValue(string key, string value)
         {
             if (value != null)
             {
@@ -149,43 +140,43 @@ namespace SharpConnect.MySql
             }
             AddKeyWithReuseData(key);
         }
-        public void AddValue(string key, byte value)
+        public void AddWithValue(string key, byte value)
         {
             reuseData.myByte = value;
             reuseData.type = Types.BIT;
             AddKeyWithReuseData(key);
         }
-        public void AddValue(string key, int value)
+        public void AddWithValue(string key, int value)
         {
             reuseData.myInt32 = value;
             reuseData.type = Types.LONG;//Types.LONG = int32
             AddKeyWithReuseData(key);
         }
-        public void AddValue(string key, long value)
+        public void AddWithValue(string key, long value)
         {
             reuseData.myInt64 = value;
             reuseData.type = Types.LONGLONG;
             AddKeyWithReuseData(key);
         }
-        public void AddValue(string key, float value)
+        public void AddWithValue(string key, float value)
         {
             reuseData.myFloat = value;
             reuseData.type = Types.FLOAT;
             AddKeyWithReuseData(key);
         }
-        public void AddValue(string key, double value)
+        public void AddWithValue(string key, double value)
         {
             reuseData.myDouble = value;
             reuseData.type = Types.DOUBLE;
             AddKeyWithReuseData(key);
         }
-        public void AddValue(string key, decimal value)
+        public void AddWithValue(string key, decimal value)
         {
             reuseData.myDecimal = value;
             reuseData.type = Types.DECIMAL;
             AddKeyWithReuseData(key);
         }
-        public void AddValue(string key, byte[] value)
+        public void AddWithValue(string key, byte[] value)
         {
             if (value != null)
             {
@@ -199,12 +190,14 @@ namespace SharpConnect.MySql
             }
             AddKeyWithReuseData(key);
         }
-        public void AddValue(string key, DateTime value)
+        public void AddWithValue(string key, DateTime value)
         {
             reuseData.myDateTime = value;
             reuseData.type = Types.DATETIME;
             AddKeyWithReuseData(key);
         }
+
+
         void AddKeyWithReuseData(string key)
         {
             key = "?" + key;
@@ -228,27 +221,17 @@ namespace SharpConnect.MySql
                 throw new Exception("Error : Key not found '" + key + "' or value not assigned. Please re-check and try again.");
             }
         }
-        internal string GetFieldName(string key)
+
+
+        internal string GetSpecialKeyValue(string key)
         {
-            MyStructData value = new MyStructData();
-            string temp;
-            if (prepareValues.TryGetValue(key, out value))
-            {
-                return null;
-            }
-            else if (fieldValues.TryGetValue(key, out temp))
-            {
-                return temp;
-            }
-            else
-            {
-                return null;
-            }
+            string value;
+            fieldValues.TryGetValue(key, out value);
+            return value;
         }
         internal bool IsValueKeys(string key)
         {
             return prepareValues.ContainsKey(key);
-
         }
     }
     public class MySqlCommand
