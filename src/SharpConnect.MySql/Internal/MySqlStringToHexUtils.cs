@@ -1,5 +1,5 @@
 ﻿
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
     static class MySqlStringToHexUtils
     {

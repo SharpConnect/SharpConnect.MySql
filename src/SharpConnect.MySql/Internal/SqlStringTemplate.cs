@@ -11,7 +11,7 @@ using System.Net;
 using System.Net.Sockets;
 
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
     //---------------------------------
     //value key => prefix with ? or @

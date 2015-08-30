@@ -24,7 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
     struct PacketHeader
     {

@@ -23,7 +23,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
     enum CharSets
     {

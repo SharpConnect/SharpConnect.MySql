@@ -25,7 +25,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
     //packet reader
 
@@ -142,7 +142,7 @@ namespace MySqlPacket
                 //all values 0
                 dateTime = new DateTime(year, month, day, hour, minute, second, micro_second);
             }
-            else 
+            else
             {
                 if (dateLength >= 4)
                 {
@@ -151,7 +151,7 @@ namespace MySqlPacket
                     day = ParseUnsigned1();
                     dateTime = new DateTime(year, month, day);
                 }
-                if(dateLength >= 7)
+                if (dateLength >= 7)
                 {
                     hour = ParseUnsigned1();
                     minute = ParseUnsigned1();
@@ -212,7 +212,7 @@ namespace MySqlPacket
             return ParseBuffer((int)length);
             //  return this.parseBuffer(length);
         }
-        
+
         public void ParseFiller(int length)
         {
             this.stream.Position += length;
@@ -345,7 +345,7 @@ namespace MySqlPacket
         {
             return reader.ReadDecimal();
         }
-        
+
         public long ParseInt64()
         {
             return reader.ReadInt64();

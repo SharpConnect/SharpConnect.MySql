@@ -30,7 +30,7 @@ using System.Net;
 using System.Net.Sockets;
 
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
     static class dbugConsole
     {
