@@ -491,9 +491,7 @@ namespace SharpConnect.MySql.Internal
         }
 
     }
-
-
-
+     
 
     class TableHeader
     {
