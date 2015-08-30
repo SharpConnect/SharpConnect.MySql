@@ -30,7 +30,7 @@ using System.Net;
 using System.Net.Sockets;
 
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
     static class dbugConsole
     {
@@ -179,32 +179,13 @@ namespace MySqlPacket
                     maxPacketSize = query.Cells[0].myInt64;
                 }
             }
-        }
-
-        //public Query CreateQuery(string sql, CommandParameters values)
-        //{
-        //    //var query = Connection.createQuery(sql, values, cb);
-        //    //query = new Query(parser, writer, sql, values);
-        //    //query.typeCast = config.typeCast;
-        //    //query.Start(socket, handshake.protocol41, config);
-        //    //if (socket == null)
-        //    //{
-        //    //    CreateNewSocket();
-        //    //}
-        //    var query = new Query(this, sql, values);
-        //    return query;
-        //}
+        } 
 
         public Query CreateQuery(string sql, CommandParams command)//testing
         {
-            var query = new Query(this, sql, command);
-            return query;
+            return new Query(this, sql, command);
         }
-
-        //public Query CreateQuery()//testing
-        //{
-        //    return new Query(this);
-        //}
+       
 
         void CreateNewSocket()
         {

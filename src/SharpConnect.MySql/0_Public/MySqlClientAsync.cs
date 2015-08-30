@@ -6,7 +6,8 @@
 //--------------
 
 using System;
-using MySqlPacket;
+using SharpConnect.MySql.Internal;
+
 namespace SharpConnect.MySql
 {
     public class MySqlConnectionAsync

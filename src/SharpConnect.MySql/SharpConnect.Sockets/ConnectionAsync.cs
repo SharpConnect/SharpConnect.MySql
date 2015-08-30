@@ -33,7 +33,7 @@ using System.Net.Sockets;
 using SharpConnect;
 using SharpConnect.Sockets;
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
 
     partial class Connection

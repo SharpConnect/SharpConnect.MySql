@@ -1,7 +1,10 @@
 ﻿//MIT 2015, brezza27, EngineKit and contributors
 
 using System;
-using MySqlPacket;
+
+using System.Collections.Generic;
+using SharpConnect.MySql.Internal;
+
 namespace SharpConnect.MySql
 {
 
@@ -99,10 +102,16 @@ namespace SharpConnect.MySql
 
     }
 
+
+
+
     public class MySqlCommand
     {
-        public CommandParams Parameters;
+
         Query query;
+        bool _isPreparedStmt;
+
+
         public MySqlCommand()
         {
             Parameters = new CommandParams();
@@ -113,20 +122,39 @@ namespace SharpConnect.MySql
             Connection = conn;
             Parameters = new CommandParams();
         }
+        public CommandParams Parameters
+        {
+            get;
+            private set;
+        }
         public string CommandText { get; set; }
         public MySqlConnection Connection { get; set; }
         public MySqlDataReader ExecuteReader()
         {
-
-            query = Connection.Conn.CreateQuery(this.CommandText, Parameters);
-            var reader = new MySqlDataReader(query);
-            query.Execute();
-            return reader;
+            if (_isPreparedStmt)
+            {
+                query.Execute();
+                return new MySqlDataReader(query);
+            }
+            else
+            {
+                query = Connection.Conn.CreateQuery(this.CommandText, Parameters);
+                var reader = new MySqlDataReader(query);
+                query.Execute();
+                return reader;
+            }
         }
         public void ExecuteNonQuery()
         {
-            query = Connection.Conn.CreateQuery(this.CommandText, Parameters);
-            query.Execute();
+            if (_isPreparedStmt)
+            {
+                query.Execute();
+            }
+            else
+            {
+                query = Connection.Conn.CreateQuery(CommandText, Parameters);
+                query.Execute();
+            }
         }
         public uint LastInsertId
         {
@@ -141,8 +169,21 @@ namespace SharpConnect.MySql
             {
                 return query.okPacket.affectedRows;
             }
-        } 
+        }
+        public void Prepare()
+        {
+
+            //prepare sql command;
+            query = Connection.Conn.CreateQuery(CommandText, Parameters);
+            query.Prepare();
+
+            _isPreparedStmt = true;
+        }
+
     }
+
+
+
 
     public class MySqlDataReader
     {
