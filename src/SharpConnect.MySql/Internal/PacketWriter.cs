@@ -24,7 +24,7 @@ using System;
 using System.Text;
 using System.IO;
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
     class PacketWriter
     {

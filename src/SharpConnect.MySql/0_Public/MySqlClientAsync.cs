@@ -1,47 +1,24 @@
 ﻿//MIT 2015, brezza27, EngineKit and contributors
 
+//--------------
+//experiment only 
+//state: API design
+//--------------
+
 using System;
-using MySqlPacket;
+using SharpConnect.MySql.Internal;
+
 namespace SharpConnect.MySql
 {
-
-    public class MySqlConnectionString
-    {
-
-        string signature;
-        public MySqlConnectionString(string h, string u, string p, string d)
-        {
-            Host = h;
-            Username = u;
-            Password = p;
-            Database = d;
-
-            signature = string.Concat(h, u, p, d);
-        }
-
-        public string Host { get; private set; }
-        public string Username { get; private set; }
-        public string Password { get; private set; }
-        public string Database { get; private set; }
-
-        internal string ConnSignature
-        {
-            get
-            {
-                return signature;
-            }
-        }
-    }
-
-    public class MySqlConnection
+    public class MySqlConnectionAsync
     {
         MySqlConnectionString connStr;
         Connection conn;
-        public MySqlConnection(string host, string uid, string psw, string db)
+        public MySqlConnectionAsync(string host, string uid, string psw, string db)
         {
             connStr = new MySqlConnectionString(host, uid, psw, db);
         }
-        public MySqlConnection(MySqlConnectionString connStr)
+        public MySqlConnectionAsync(MySqlConnectionString connStr)
         {
             this.connStr = connStr;
         }
@@ -50,7 +27,7 @@ namespace SharpConnect.MySql
             get; set;
         }
 
-        public void Open()
+        public void Open(Action onOpen)
         {
             //get connection from pool
             if (UseConnectionPool)
@@ -60,31 +37,32 @@ namespace SharpConnect.MySql
                 {
                     //create new 
                     conn = new Connection(new ConnectionConfig(connStr.Host, connStr.Username, connStr.Password, connStr.Database));
-                    conn.Connect();
+                    conn.ConnectAsync(onOpen);
                 }
             }
             else
             {
                 //new connection
                 conn = new Connection(new ConnectionConfig(connStr.Host, connStr.Username, connStr.Password, connStr.Database));
-                conn.Connect();
+                conn.ConnectAsync(onOpen);
             }
 
-
-
         }
-        public void Close()
+        public void Close(Action onClosed)
         {
             if (UseConnectionPool)
             {
                 ConnectionPool.ReleaseConnection(connStr, conn);
+                if (onClosed != null)
+                {
+                    onClosed();
+                }
             }
             else
             {
-                conn.Disconnect();
+                conn.DisconnectAsync(onClosed);
             }
         }
-
         internal Connection Conn
         {
             get
@@ -92,44 +70,58 @@ namespace SharpConnect.MySql
                 return this.conn;
             }
         }
+
     }
 
-    public class MySqlCommand
+    public class MySqlCommandAsync
     {
         public CommandParams Parameters;
         Query query;
-        public MySqlCommand()
+        public MySqlCommandAsync()
         {
             Parameters = new CommandParams();
         }
-        public MySqlCommand(string sql, MySqlConnection conn)
+        public MySqlCommandAsync(string sql, MySqlConnectionAsync conn)
         {
             CommandText = sql;
             Connection = conn;
             Parameters = new CommandParams();
         }
         public string CommandText { get; set; }
-        public MySqlConnection Connection { get; set; }
-        public MySqlDataReader ExecuteReader()
+        public MySqlConnectionAsync Connection { get; set; }
+        public MySqlDataReaderAsync ExecuteReader()
         {
-            //parameters = new CommandParams();
+
             query = Connection.Conn.CreateQuery(this.CommandText, Parameters);
-            var reader = new MySqlDataReader(query);
+            var reader = new MySqlDataReaderAsync(query);
             query.Execute();
             return reader;
         }
         public void ExecuteNonQuery()
         {
-            //var parameters = new CommandParameters();
             query = Connection.Conn.CreateQuery(this.CommandText, Parameters);
             query.Execute();
         }
+        public uint LastInsertId
+        {
+            get
+            {
+                return query.okPacket.insertId;
+            }
+        }
+        public uint AffectedRows
+        {
+            get
+            {
+                return query.okPacket.affectedRows;
+            }
+        }
     }
 
-    public class MySqlDataReader
+    public class MySqlDataReaderAsync
     {
         Query query;
-        internal MySqlDataReader(Query query)
+        internal MySqlDataReaderAsync(Query query)
         {
             this.query = query;
             //if (query.loadError != null)
@@ -229,3 +221,5 @@ namespace SharpConnect.MySql
         }
     }
 }
+
+

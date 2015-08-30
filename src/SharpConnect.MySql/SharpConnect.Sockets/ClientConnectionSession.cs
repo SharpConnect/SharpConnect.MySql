@@ -27,7 +27,7 @@ namespace SharpConnect.Sockets
         Complete
     }
 
-    
+
 
     static class GlobalSessionNumber
     {
@@ -62,6 +62,7 @@ namespace SharpConnect.Sockets
 
         Queue<byte[]> sendingQueue = new Queue<byte[]>();
         protected Func<ReceiveCarrier, EndReceiveState> recvHandler;
+        protected Func<ReceiveCarrier, EndSendState> sendHandler;
 
         public ClientConnectionSession(SocketAsyncEventArgs recvSendArgs,
             int recvBufferSize, int sendBufferSize)
@@ -128,6 +129,7 @@ namespace SharpConnect.Sockets
                 ProcessReceive();
             }
         }
+
         void CloseClientSocket()
         {
             //release SAEA
@@ -188,7 +190,12 @@ namespace SharpConnect.Sockets
                 sendingQueue.Enqueue(dataToSend);
             }
         }
+        internal void StartSend(Func<ReceiveCarrier, EndSendState> sendHandler)
+        {
+            this.sendHandler = sendHandler;
 
+            StartSend();
+        }
         internal void StartSend()
         {
 
@@ -242,7 +249,10 @@ namespace SharpConnect.Sockets
                     return;
                 case EndSendState.Complete:
                     //finished send
-                    //
+                    if (sendHandler != null)
+                    {
+                        sendHandler(this.recvCarrier);
+                    }
                     return;
             }
         }

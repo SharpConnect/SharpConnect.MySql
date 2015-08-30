@@ -24,7 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
     struct PacketHeader
     {
@@ -64,7 +64,7 @@ namespace MySqlPacket
 
         public abstract void WritePacket(PacketWriter writer);
     }
-    
+
     class ClientAuthenticationPacket : Packet
     {
 
@@ -195,7 +195,7 @@ namespace MySqlPacket
     class ComQuitPacket : Packet
     {
         const byte QUIT_CMD = (byte)Command.QUIT;//0x01
-        
+
         public override void ParsePacket(PacketParser parser)
         {
             throw new NotImplementedException();
@@ -239,14 +239,21 @@ namespace MySqlPacket
     class ComExecutePrepareStatement : Packet
     {
         byte EXCUTE_CMD = (byte)Command.STMT_EXECUTE;
-        uint statementId;
-        List<string> keys;
-        CommandParams prepareValues;
-        public ComExecutePrepareStatement(uint statementId, CommandParams prepareValues, List<string> valueKeys)
-        {            
-            this.statementId = statementId;
-            this.prepareValues = prepareValues;
-            keys = valueKeys;
+
+        readonly uint _statementId;
+        readonly List<SqlSection> _keys;
+        readonly CommandParams _cmdParams;
+
+        public ComExecutePrepareStatement(uint statementId, CommandParams prepareValues, SqlStringTemplate sqlStrTemplate)
+        {
+            _statementId = statementId;
+            _cmdParams = prepareValues;
+            _keys = sqlStrTemplate.GetValueKeys();
+
+            //------------
+            //find position 
+
+
         }
         public override void ParsePacket(PacketParser parser)
         {
@@ -257,19 +264,21 @@ namespace MySqlPacket
         {
             writer.ReserveHeader();
             writer.WriteByte(EXCUTE_CMD);
-            writer.WriteUnsignedNumber(4, statementId);
+            writer.WriteUnsignedNumber(4, _statementId);
             writer.WriteByte((byte)CursorFlags.CURSOR_TYPE_NO_CURSOR);
             writer.WriteUnsignedNumber(4, 1);//iteration-count, always 1
             //write NULL-bitmap, length: (num-params+7)/8
             MyStructData dataTemp;
-            int paramNum = keys.Count;
+
+
+            int paramNum = _keys.Count;
             if (paramNum > 0)
             {
                 uint bitmap = 0;
                 uint bitValue = 1;
-                for(int i=0;i< paramNum; i++)
+                for (int i = 0; i < paramNum; i++)
                 {
-                    dataTemp = prepareValues.GetData(keys[i]);
+                    dataTemp = _cmdParams.GetData(_keys[i].Text);
                     if (dataTemp.type == Types.NULL)
                     {
                         bitmap += bitValue;
@@ -288,12 +297,15 @@ namespace MySqlPacket
                 }
             }
             writer.WriteByte(1);//new-params-bound - flag
-            
-            for(int i=0;i< paramNum; i++)
+            //-------------------------------------------------------
+            //data types
+            for (int i = 0; i < paramNum; i++)
             {
-                dataTemp = prepareValues.GetData(keys[i]);
+                dataTemp = _cmdParams.GetData(_keys[i].Text);
                 writer.WriteUnsignedNumber(2, (byte)dataTemp.type);
             }
+
+
             //write value of each parameter
             //example:
             //for(int i = 0; i < param.Length; i++)
@@ -303,12 +315,15 @@ namespace MySqlPacket
             //        case Types.BLOB:writer.WriteLengthCodedBuffer(param[i].myBuffer);
             //    }
             //}
-            for(int i = 0; i < paramNum; i++)
+
+            //--------------------------------------
+            //actual data
+            for (int i = 0; i < paramNum; i++)
             {
-                dataTemp = prepareValues.GetData(keys[i]);
+                dataTemp = _cmdParams.GetData(_keys[i].Text);
                 WriteValueByType(writer, dataTemp);
             }
-            //writer.WriteLengthCodedNumber(1);
+
             header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
         }
@@ -329,7 +344,7 @@ namespace MySqlPacket
                     writer.WriteInt64(dataTemp.myInt64);
                     break;
                 case Types.FLOAT:
-                    writer.WriteFloat(dataTemp.myFloat);
+                    writer.WriteFloat((float)dataTemp.myDouble);
                     break;
                 case Types.DOUBLE:
                     writer.WriteDouble(dataTemp.myDouble);
@@ -354,7 +369,7 @@ namespace MySqlPacket
         int param_id;
         MyStructData data;
 
-        public ComStmtSendLongData(int statement_id,int param_id,MyStructData data)
+        public ComStmtSendLongData(int statement_id, int param_id, MyStructData data)
         {
             this.statement_id = statement_id;
             this.param_id = param_id;
@@ -390,7 +405,7 @@ namespace MySqlPacket
                     writer.WriteInt64(dataTemp.myInt64);
                     break;
                 case Types.FLOAT:
-                    writer.WriteFloat(dataTemp.myFloat);
+                    writer.WriteFloat((float)dataTemp.myDouble);
                     break;
                 case Types.DOUBLE:
                     writer.WriteDouble(dataTemp.myDouble);
@@ -911,7 +926,7 @@ namespace MySqlPacket
         {
 
             string numberString;
-            
+
             Types type = (Types)fieldPacket.type;
             switch (type)
             {
@@ -978,7 +993,7 @@ namespace MySqlPacket
                         data.type = Types.NULL;
                     }
                     else
-                    {                        
+                    {
                         data.myInt32 = Convert.ToInt32(numberString);
                         data.type = type;
                     }
@@ -1007,9 +1022,9 @@ namespace MySqlPacket
                     //      : ((supportBigNumbers && (bigNumberStrings || (Number(numberString) > IEEE_754_BINARY_64_PRECISION)))
                     //        ? numberString
                     //        : Number(numberString));
-                    
+
                     data.myString = numberString = parser.ParseLengthCodedString();
-                    
+
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
                         data.myString = numberString;
@@ -1108,12 +1123,12 @@ namespace MySqlPacket
         }
     }
 
-    class RowPrepaqreDataPacket : Packet
+    class RowPreparedDataPacket : Packet
     {
         MyStructData[] myDataList;
         TableHeader tableHeader;
         ConnectionConfig config;
-        public RowPrepaqreDataPacket(TableHeader tableHeader)
+        public RowPreparedDataPacket(TableHeader tableHeader)
         {
             this.tableHeader = tableHeader;
             myDataList = new MyStructData[tableHeader.ColumnCount];
@@ -1134,7 +1149,7 @@ namespace MySqlPacket
             ParsePacketHeader(parser);
             parser.ParseFiller(1);//skip start packet byte [00]
             parser.ParseFiller((columnCount + 7 + 2) / 8);//skip null-bitmap, length:(column-count+7+2)/8
-            for(int i = 0; i < columnCount; i++)
+            for (int i = 0; i < columnCount; i++)
             {
                 ParseValues(parser, fieldInfos[i], ref myDataList[i]);
             }
@@ -1153,7 +1168,7 @@ namespace MySqlPacket
                     myData.type = fieldType;
                     break;
                 case Types.TINY://length = 1;
-                    myData.myByte = parser.ParseUnsigned1();
+                    myData.myInt32 = parser.ParseUnsigned1();
                     myData.type = fieldType;
                     break;
                 case Types.SHORT://length = 2;
@@ -1167,7 +1182,7 @@ namespace MySqlPacket
                     myData.type = fieldType;
                     break;
                 case Types.FLOAT:
-                    myData.myFloat = parser.ParseFloat();
+                    myData.myDouble = parser.ParseFloat();
                     myData.type = fieldType;
                     break;
                 case Types.DOUBLE:
