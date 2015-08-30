@@ -18,9 +18,7 @@ namespace MySqlTest
             conn.Open(() =>
             {
 
-                //do something
-
-
+                //do something 
                 //close
                 conn.Close(() =>
                 {

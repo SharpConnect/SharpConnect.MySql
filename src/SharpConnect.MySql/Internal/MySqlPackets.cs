@@ -64,7 +64,7 @@ namespace MySqlPacket
 
         public abstract void WritePacket(PacketWriter writer);
     }
-    
+
     class ClientAuthenticationPacket : Packet
     {
 
@@ -195,7 +195,7 @@ namespace MySqlPacket
     class ComQuitPacket : Packet
     {
         const byte QUIT_CMD = (byte)Command.QUIT;//0x01
-        
+
         public override void ParsePacket(PacketParser parser)
         {
             throw new NotImplementedException();
@@ -243,7 +243,7 @@ namespace MySqlPacket
         List<string> keys;
         CommandParams prepareValues;
         public ComExecutePrepareStatement(uint statementId, CommandParams prepareValues, List<string> valueKeys)
-        {            
+        {
             this.statementId = statementId;
             this.prepareValues = prepareValues;
             keys = valueKeys;
@@ -267,7 +267,7 @@ namespace MySqlPacket
             {
                 uint bitmap = 0;
                 uint bitValue = 1;
-                for(int i=0;i< paramNum; i++)
+                for (int i = 0; i < paramNum; i++)
                 {
                     dataTemp = prepareValues.GetData(keys[i]);
                     if (dataTemp.type == Types.NULL)
@@ -288,8 +288,8 @@ namespace MySqlPacket
                 }
             }
             writer.WriteByte(1);//new-params-bound - flag
-            
-            for(int i=0;i< paramNum; i++)
+
+            for (int i = 0; i < paramNum; i++)
             {
                 dataTemp = prepareValues.GetData(keys[i]);
                 writer.WriteUnsignedNumber(2, (byte)dataTemp.type);
@@ -303,7 +303,7 @@ namespace MySqlPacket
             //        case Types.BLOB:writer.WriteLengthCodedBuffer(param[i].myBuffer);
             //    }
             //}
-            for(int i = 0; i < paramNum; i++)
+            for (int i = 0; i < paramNum; i++)
             {
                 dataTemp = prepareValues.GetData(keys[i]);
                 WriteValueByType(writer, dataTemp);
@@ -354,7 +354,7 @@ namespace MySqlPacket
         int param_id;
         MyStructData data;
 
-        public ComStmtSendLongData(int statement_id,int param_id,MyStructData data)
+        public ComStmtSendLongData(int statement_id, int param_id, MyStructData data)
         {
             this.statement_id = statement_id;
             this.param_id = param_id;
@@ -911,7 +911,7 @@ namespace MySqlPacket
         {
 
             string numberString;
-            
+
             Types type = (Types)fieldPacket.type;
             switch (type)
             {
@@ -978,7 +978,7 @@ namespace MySqlPacket
                         data.type = Types.NULL;
                     }
                     else
-                    {                        
+                    {
                         data.myInt32 = Convert.ToInt32(numberString);
                         data.type = type;
                     }
@@ -1007,9 +1007,9 @@ namespace MySqlPacket
                     //      : ((supportBigNumbers && (bigNumberStrings || (Number(numberString) > IEEE_754_BINARY_64_PRECISION)))
                     //        ? numberString
                     //        : Number(numberString));
-                    
+
                     data.myString = numberString = parser.ParseLengthCodedString();
-                    
+
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
                         data.myString = numberString;
@@ -1134,7 +1134,7 @@ namespace MySqlPacket
             ParsePacketHeader(parser);
             parser.ParseFiller(1);//skip start packet byte [00]
             parser.ParseFiller((columnCount + 7 + 2) / 8);//skip null-bitmap, length:(column-count+7+2)/8
-            for(int i = 0; i < columnCount; i++)
+            for (int i = 0; i < columnCount; i++)
             {
                 ParseValues(parser, fieldInfos[i], ref myDataList[i]);
             }

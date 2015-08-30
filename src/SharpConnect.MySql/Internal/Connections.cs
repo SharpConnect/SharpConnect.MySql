@@ -197,14 +197,12 @@ namespace MySqlPacket
 
         public Query CreateQuery(string sql, CommandParams command)//testing
         {
-            var query = new Query(this, sql, command);
-            return query;
+            return new Query(this, sql, command, false);
         }
-
-        //public Query CreateQuery()//testing
-        //{
-        //    return new Query(this);
-        //}
+        public Query CreatePreparedQuery(string sql, CommandParams command)
+        {
+            return new Query(this, sql, command, true);
+        }
 
         void CreateNewSocket()
         {

@@ -56,6 +56,7 @@
     <Compile Include="TestSuite\Test2.cs" />
     <Compile Include="TestSuite\Test3_AsyncSocket.cs" />
     <Compile Include="TestSuite\MyTestSet.cs" />
+    <Compile Include="TestSuite\Test4_PreparedStatement.cs" />
     <Compile Include="TestSuite\TestSuite.cs" />
     <EmbeddedResource Include="FormTestSuite.resx">
       <DependentUpon>FormTestSuite.cs</DependentUpon>

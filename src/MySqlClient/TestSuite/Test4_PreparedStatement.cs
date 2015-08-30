@@ -6,28 +6,22 @@ using SharpConnect.MySql;
 
 namespace MySqlTest
 {
-    public class TestSet2 : MySqlTestSet
+
+
+    public class TestSet4_PreparedStatement : MySqlTestSet
     {
         [Test]
-        public static void T_InsertAndSelect()
+        public static void T_PrepareStatement()
         {
-            int n = 1;
-            long total;
-            long avg;
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
-            Test(n, TimeUnit.Ticks, out total, out avg, () =>
-            {
-                DropTableIfExists(conn);
-                CreateTable(conn);
-                InsertData(conn);
-                InsertData(conn);
-                InsertData(conn);
-                InsertData(conn);
-            });
+
+            DropTableIfExists(conn);
+            CreateTable(conn);
+            InsertDataSet(conn);
+
             conn.Close();
-            Report.WriteLine("avg:" + avg);
         }
         static void DropTableIfExists(MySqlConnection conn)
         {
@@ -45,14 +39,23 @@ namespace MySqlTest
             cmd.ExecuteNonQuery();
 
         }
-        static void InsertData(MySqlConnection conn)
+        static void InsertDataSet(MySqlConnection conn)
         {
-            string sql = "insert into test001(col1,col2,col3,col4) values(10,'AA','123456789','0001-01-01')";
+            string sql = "insert into test001(col1,col2,col3,col4) values(?col1,?col2,?col3,?col4)";
             var cmd = new MySqlCommand(sql, conn);
-            cmd.ExecuteNonQuery();
-
-            uint lastInsertId = cmd.LastInsertId;
-
+            cmd.Parameters.AddValue("col1", 10);
+            cmd.Parameters.AddValue("col2", "AA");
+            cmd.Parameters.AddValue("col3", "0123456789");
+            cmd.Parameters.AddValue("col4", "0001-01-01");
+            cmd.Prepare(); 
+            for (int i = 0; i < 100; ++i)
+            {
+                cmd.Parameters.AddValue("col1", 10);
+                cmd.Parameters.AddValue("col2", "AA");
+                cmd.Parameters.AddValue("col3", "0123456789");
+                cmd.Parameters.AddValue("col4", "0001-01-01");
+                cmd.ExecuteNonQuery();
+            }  
         }
     }
 }

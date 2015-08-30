@@ -34,7 +34,7 @@ namespace MySqlPacket
 {
     class Query
     {
-        string realSql;
+
         string rawSql;
         CommandParams cmdParams;
         Connection conn;
@@ -43,46 +43,34 @@ namespace MySqlPacket
         public bool nestTables;
 
         TableHeader tableHeader;
-        public ErrPacket loadError { get; private set; }
-        public OkPacket okPacket { get; private set; }
-        //public int index;
 
         RowDataPacket lastRow;
         RowPreparedDataPacket lastPrepareRow;
 
-        bool IsPrepare;
+        bool _isPrepared;
         bool hasSomeRow;
 
         PacketParser parser;
         PacketWriter writer;
 
-        List<string> keys;//all keys
-        List<string> sqlSection;
-        List<string> valuesKeys;
+        SqlStringTemplate sqlStrTemplate;
 
+        //---------------
+        uint _prepareStmtId;
+
+
+
+        //---------------
         byte[] receiveBuffer;
+
         const int DEFAULT_BUFFER_SIZE = 512;
         const byte ERROR_CODE = 255;
         const byte EOF_CODE = 0xfe;
         const byte OK_CODE = 0;
-        
         const int MAX_PACKET_LENGTH = (1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
-        internal MyStructData[] Cells
-        {
-            get
-            {
-                if (IsPrepare)
-                {
-                    return lastPrepareRow.Cells;
-                }
-                else
-                {
-                    return lastRow.Cells;
-                }
-            }
-        }
 
-        public Query(Connection conn, string sql, CommandParams command)//testing
+
+        public Query(Connection conn, string sql, CommandParams cmdParams, bool forPreparedStmt = false)//testing
         {
             if (sql == null)
             {
@@ -90,7 +78,7 @@ namespace MySqlPacket
             }
             this.conn = conn;
             rawSql = sql;
-            cmdParams = command;
+            this.cmdParams = cmdParams;
 
             typeCast = conn.config.typeCast;
             nestTables = false;
@@ -102,19 +90,33 @@ namespace MySqlPacket
             //so 1 query 1 connection
             parser = conn.PacketParser;
             writer = conn.PacketWriter;
-
             receiveBuffer = null;
 
-            keys = new List<string>();
-            sqlSection = new List<string>();
-            valuesKeys = new List<string>();
-            IsPrepare = PrepareChecker();
-            realSql = CombindAndReplaceSqlSection();
+            sqlStrTemplate = SqlStringTemplate.ParseSql(sql, cmdParams);
+
+        }
+
+        public ErrPacket loadError { get; private set; }
+        public OkPacket okPacket { get; private set; }
+
+        internal MyStructData[] Cells
+        {
+            get
+            {
+                if (_isPrepared)
+                {
+                    return lastPrepareRow.Cells;
+                }
+                else
+                {
+                    return lastRow.Cells;
+                }
+            }
         }
 
         public void Execute()
         {
-            if (IsPrepare)
+            if (_isPrepared)
             {
                 ExecutePrepareQuery();
             }
@@ -127,27 +129,29 @@ namespace MySqlPacket
         public void ExecuteNonPrepare()
         {
             writer.Reset();
+
+            var realSql = sqlStrTemplate.BindValues(cmdParams, false);
+
             ComQueryPacket queryPacket = new ComQueryPacket(realSql);
             queryPacket.WritePacket(writer);
             SendPacket(writer.ToArray());
 
-            IsPrepare = false;
+            _isPrepared = false;
             ParseReceivePacket();
         }
-
-        public void ExecutePrepareQuery()
+        public void Prepare()
         {
+            //prepare sql query
+            this._prepareStmtId = 0;//reset  
+            _isPrepared = true;
             if (cmdParams == null)
             {
                 return;
             }
 
-            if (!IsPrepare)
-            {
-                ExecuteNonPrepare();
-                return;
-            }
             writer.Reset();
+            string realSql = sqlStrTemplate.BindValues(cmdParams, true);
+
             ComPrepareStatementPacket preparePacket = new ComPrepareStatementPacket(realSql);
             preparePacket.WritePacket(writer);
             SendPacket(writer.ToArray());
@@ -180,82 +184,45 @@ namespace MySqlPacket
                     ParseEOF();
                 }
 
-                writer.Reset();
-                ComExecutePrepareStatement excute;// = new ComExcutePrepareStatement(okPreparePacket.statement_id, cmdParams, valuesKeys);
-                excute = new ComExecutePrepareStatement(okPreparePacket.statement_id, cmdParams, valuesKeys);
-                excute.WritePacket(writer);
-                SendPacket(writer.ToArray());
-                IsPrepare = true;
-                ParseReceivePacket();
-                if (okPacket != null || loadError != null)
-                {
-                    return;
-                }
-                lastPrepareRow = new RowPreparedDataPacket(tableHeader);
+                //-------------------
+                _prepareStmtId = okPreparePacket.statement_id;
+                //-------------------
             }
+
+        }
+        public void ExecutePrepareQuery()
+        {
+            if (cmdParams == null)
+            {
+                return;
+            }
+
+            if (!_isPrepared)
+            {
+                ExecuteNonPrepare();
+                return;
+            }
+
+            if (_prepareStmtId == 0)
+            {
+                throw new Exception("exec Prepare() first");
+            }
+            //---------------------------------------------------------------------------------
+            writer.Reset();
+            var excute = new ComExecutePrepareStatement(_prepareStmtId, cmdParams, sqlStrTemplate.GetValueKeys());
+            excute.WritePacket(writer);
+            SendPacket(writer.ToArray());
+            _isPrepared = true;
+            ParseReceivePacket();
+            if (okPacket != null || loadError != null)
+            {
+                return;
+            }
+            lastPrepareRow = new RowPreparedDataPacket(tableHeader);
+
         }
 
-        //public void ExecutePrepareQuery(CommandParams cmdParams)
-        //{
-        //    if (cmdParams == null)
-        //    {
-        //        return;
-        //    }
-        //    this.cmdParams = cmdParams;
-        //    IsPrepare = PrepareChecker();
-        //    if (!IsPrepare)
-        //    {
-        //        //sql = cmdParams.SQL;
-        //        ExecuteNonPrepare();
-        //        return;
-        //    }
-        //    writer.Reset();
-        //    ComPrepareStatementPacket preparePacket = new ComPrepareStatementPacket(sql);
-        //    preparePacket.WritePacket(writer);
-        //    SendPacket(writer.ToArray());
 
-        //    OkPrepareStmtPacket okPreparePacket = new OkPrepareStmtPacket();
-        //    okPreparePacket = ParsePrepareResponse();
-        //    if (okPreparePacket != null)
-        //    {
-        //        if (okPreparePacket.num_params > 0)
-        //        {
-        //            FieldPacket[] fields = new FieldPacket[okPreparePacket.num_params];
-        //            for (int i = 0; i < okPreparePacket.num_params; i++)
-        //            {
-        //                fields[i] = ParseColumn();
-        //            }
-        //            ParseEOF();
-        //        }
-        //        if (okPreparePacket.num_columns > 0)
-        //        {
-        //            this.tableHeader = new TableHeader();
-        //            tableHeader.TypeCast = typeCast;
-        //            tableHeader.NestTables = nestTables;
-        //            tableHeader.ConnConfig = conn.config;
-                    
-        //            for (int i = 0; i < okPreparePacket.num_columns; i++)
-        //            {
-        //                FieldPacket field = ParseColumn();
-        //                tableHeader.AddField(field);
-        //            }
-        //            ParseEOF();
-        //        }
-
-        //        writer.Reset();
-        //        ComExecutePrepareStatement excute;// = new ComExcutePrepareStatement(okPreparePacket.statement_id, cmdParams, valuesKeys);
-        //        excute = new ComExecutePrepareStatement(okPreparePacket.statement_id, cmdParams, valuesKeys);
-        //        excute.WritePacket(writer);
-        //        SendPacket(writer.ToArray());
-        //        IsPrepare = true;
-        //        ParseReceivePacket();
-        //        if (okPacket != null || loadError != null)
-        //        {
-        //            return;
-        //        }
-        //        lastPrepareRow = new RowPrepaqreDataPacket(tableHeader);
-        //    }
-        //}
 
         public bool ReadRow()
         {
@@ -280,7 +247,7 @@ namespace MySqlPacket
                     }
                 default:
                     {
-                        if (IsPrepare)
+                        if (_isPrepared)
                         {
                             lastPrepareRow.ReuseSlots();
                             lastPrepareRow.ParsePacketHeader(parser);
@@ -312,7 +279,7 @@ namespace MySqlPacket
         {
             if (hasSomeRow)
             {
-                realSql = "KILL " + conn.threadId;
+                string realSql = "KILL " + conn.threadId;
                 //sql = "FLUSH QUERY CACHE;";
                 Connection killConn = new Connection(conn.config);
                 killConn.Connect();
@@ -386,108 +353,6 @@ namespace MySqlPacket
             }
         }
 
-        bool PrepareChecker()
-        {
-            ParseSql();
-            FindValueKeys();
-            return valuesKeys.Count > 0 ? true : false;
-        }
-
-        void ParseSql()
-        {
-            int length = rawSql.Length;
-            ParseState state = ParseState.FIND_MARKER;
-            char ch;
-
-            StringBuilder strBuilder = new StringBuilder();
-            string temp;
-            for (int i = 0; i < length; i++)
-            {
-                ch = rawSql[i];
-                switch (state)
-                {
-                    case ParseState.FIND_MARKER:
-                        if (ch == '?')
-                        {
-                            temp = strBuilder.ToString();
-                            sqlSection.Add(temp);
-                            strBuilder.Length = 0;
-                            state = ParseState.GET_KEY;
-                            //continue;
-                        }
-                        strBuilder.Append(ch);
-                        break;
-                    case ParseState.GET_KEY:
-                        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9'))
-                        {
-                            strBuilder.Append(ch);
-                        }
-                        else
-                        {
-                            temp = strBuilder.ToString();
-                            sqlSection.Add(temp);
-                            keys.Add(temp);
-                            strBuilder.Length = 0;
-                            state = ParseState.FIND_MARKER;
-
-                            strBuilder.Append(ch);
-                        }
-                        break;
-                    default:
-                        break;
-                }//end swicth
-            }//end for
-            temp = strBuilder.ToString();
-            if (state == ParseState.GET_KEY)
-            {
-                keys.Add(temp);
-            }
-            sqlSection.Add(temp);
-        }//end method
-
-        void FindValueKeys()
-        {
-            int count = keys.Count;
-            for(int i=0;i< count; i++)
-            {
-                if (cmdParams.IsValueKeys(keys[i]))
-                {
-                    valuesKeys.Add(keys[i]);
-                }
-            }
-        }
-
-        string CombindAndReplaceSqlSection()
-        {
-            StringBuilder strBuilder = new StringBuilder();
-            int count = sqlSection.Count;
-            string temp;
-            for (int i = 0; i < count; i++)
-            {
-                if (sqlSection[i][0] == '?')
-                {
-                    temp = cmdParams.GetFieldName(sqlSection[i]);
-                    if (temp != null)
-                    {
-                        strBuilder.Append(temp);
-                    }
-                    else if(cmdParams.IsValueKeys(sqlSection[i]))
-                    {
-                        strBuilder.Append('?');
-                    }
-                    else
-                    {
-                        throw new Exception("Error : This key not assign.");
-                    }
-                }
-                else
-                {
-                    strBuilder.Append(sqlSection[i]);
-                }
-            }
-            
-            return strBuilder.ToString();
-        }
 
         OkPrepareStmtPacket ParsePrepareResponse()
         {
@@ -535,7 +400,7 @@ namespace MySqlPacket
             CheckBeforeParseHeader(receiveBuffer);
             return eofPacket;
         }
-        
+
         byte[] CheckLimit(uint packetLength, byte[] buffer, int limit)
         {
             int remainLength = (int)(parser.Length - parser.Position);
@@ -557,7 +422,7 @@ namespace MySqlPacket
                     //just move
                     Buffer.BlockCopy(buffer, (int)parser.Position, buffer, 0, remainLength);
                 }
-                
+
                 var socket = conn.socket;
                 int newReceive = remainLength + socket.Receive(buffer, remainLength, newReceiveBuffLength, SocketFlags.None);
                 int timeoutCountdown = 10000;
@@ -813,19 +678,7 @@ namespace MySqlPacket
         Dictionary<string, MyStructData> prepareValues;
         Dictionary<string, string> fieldValues;
         MyStructData reuseData;
-        //List<string> keys;//all keys
-        //List<string> valueKeys;
-        //List<string> sqlSection;
-        
-        //string lastSql;
-        //bool hasUpdate;
-        //bool key_finded;
-        //public string SQL { get{ return lastSql = hasUpdate ? CombindAndReplace() : lastSql; } }
-        //public int KeysCount { get {
-        //        FindValueKeys();
-        //        return valueKeys.Count;
-        //    }
-        //}
+
 
         public CommandParams()
         {
@@ -834,12 +687,6 @@ namespace MySqlPacket
             reuseData = new MyStructData();
             reuseData.type = Types.NULL;
 
-            //sqlSection = new List<string>();
-            //valueKeys = new List<string>();
-            //keys = new List<string>();
-
-            //hasUpdate = true;
-            //key_finded = false;
         }
 
         public CommandParams(string sql)
@@ -848,145 +695,17 @@ namespace MySqlPacket
             fieldValues = new Dictionary<string, string>();
             reuseData = new MyStructData();
             reuseData.type = Types.NULL;
-
-            //sqlSection = new List<string>();
-            //valueKeys = new List<string>();
-            //keys = new List<string>();
-
-            //if (sql != null)
-            //{
-            //    ParseSQL(sql);
-            //    hasUpdate = true;
-            //    key_finded = false;
-            //}
-            //else
-            //{
-            //    throw new Exception("Error : Sql can not null");
-            //}
         }
 
-        //void FindValueKeys()
-        //{
-        //    if (key_finded)
-        //    {
-        //        return;
-        //    }
-        //    string temp;
-        //    for(int index = 0; index < keys.Count; index++)
-        //    {
-        //        if(!fieldValues.TryGetValue(keys[index], out temp))
-        //        {
-        //            valueKeys.Add(keys[index]);
-        //        }
-        //    }
-        //    key_finded = true;
-        //}
-        //string CombindAndReplace()
-        //{
-        //    StringBuilder strBuilder = new StringBuilder();
-        //    int count = sqlSection.Count;
-        //    string temp;
-        //    for (int i = 0; i < count; i++)
-        //    {
-        //        if(sqlSection[i][0] == '?')
-        //        {
-        //            if(fieldValues.TryGetValue(sqlSection[i], out temp))
-        //            {
-        //                strBuilder.Append(temp);
-        //            }
-        //            else
-        //            {
-        //                strBuilder.Append('?');
-        //            }
-        //        }
-        //        else
-        //        {
-        //            strBuilder.Append(sqlSection[i]);
-        //        }
-        //    }
-        //    hasUpdate = false;
-        //    return strBuilder.ToString();
-        //}
-
-        //void ParseSQL(string sql)
-        //{
-        //    int length = sql.Length;
-        //    ParseState state = ParseState.FIND_MARKER;
-        //    char ch;
-
-        //    StringBuilder strBuilder = new StringBuilder();
-        //    string temp;
-        //    for(int i = 0; i < length; i++)
-        //    {
-        //        ch = sql[i];
-        //        switch (state)
-        //        {
-        //            case ParseState.FIND_MARKER:
-        //                if (ch == '?')
-        //                {
-        //                    temp = strBuilder.ToString();
-        //                    sqlSection.Add(temp);
-        //                    strBuilder.Length = 0;
-        //                    state = ParseState.GET_KEY;
-        //                    //continue;
-        //                }
-        //                strBuilder.Append(ch);
-        //                break;
-        //            case ParseState.GET_KEY:
-        //                if((ch>='a'&&ch<='z')|| (ch >= 'A' && ch <= 'Z')|| (ch >= '0' && ch <= '9'))
-        //                {
-        //                    strBuilder.Append(ch);
-        //                }
-        //                else
-        //                {
-        //                    temp = strBuilder.ToString();
-        //                    sqlSection.Add(temp);
-        //                    keys.Add(temp);
-        //                    strBuilder.Length = 0;
-        //                    state = ParseState.FIND_MARKER;
-
-        //                    strBuilder.Append(ch);
-        //                }
-        //                break;
-        //            default:
-        //                break;
-        //        }//end swicth
-        //    }//end for
-        //    temp = strBuilder.ToString();
-        //    if(state== ParseState.GET_KEY)
-        //    {
-        //        keys.Add(temp);
-        //    }
-        //    sqlSection.Add(temp);
-        //}//end method
-        //bool HasKey(string key)
-        //{
-        //    for(int i = 0; i < keys.Count; i++)
-        //    {
-        //        if (keys[i].Equals(key))
-        //        {
-        //            return true;
-        //        }
-        //    }
-        //    return false;
-        //}
         public void AddTable(string key, string tablename)
         {
             key = "?" + key;
-            //if (!HasKey(key))
-            //{
-            //    throw new Exception("Not have key '" + key + "' in Sql string.");
-            //}
-            fieldValues[key] = "`"+tablename+"`";
+            fieldValues[key] = "`" + tablename + "`";
         }
         public void AddField(string key, string fieldname)
         {
             key = "?" + key;
-            //if (!HasKey(key))
-            //{
-            //    throw new Exception("Not have key '" + key + "' in Sql string.");
-            //}
-            fieldValues[key] = "`"+fieldname+"`";
+            fieldValues[key] = "`" + fieldname + "`";
         }
         public void AddValue(string key, string value)
         {
@@ -1061,11 +780,6 @@ namespace MySqlPacket
         void AddKeyWithReuseData(string key)
         {
             key = "?" + key;
-            //if (!HasKey(key))
-            //{
-            //    throw new Exception("Not have key '" + key + "' in Sql string.");
-            //}
-            //hasUpdate = true;
             prepareValues[key] = reuseData;
         }
 
@@ -1073,7 +787,7 @@ namespace MySqlPacket
         {
             MyStructData value = new MyStructData();
             string temp;
-            if( prepareValues.TryGetValue(key, out value))
+            if (prepareValues.TryGetValue(key, out value))
             {
                 return value;
             }
@@ -1107,11 +821,6 @@ namespace MySqlPacket
         {
             return prepareValues.TryGetValue(key, out reuseData);
         }
-        //public List<string> GetValuesKeys()
-        //{
-        //    FindValueKeys();
-        //    return valueKeys;
-        //}
     }
 
     class TableHeader
