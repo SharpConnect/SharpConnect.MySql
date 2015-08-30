@@ -104,12 +104,39 @@ namespace MySqlTest
             conn.Open();
             var cmd = new MySqlCommand("create table user_info2(uid int(10),u_name varchar(45));", conn);
             cmd.ExecuteNonQuery();
-
             Report.WriteLine("ok");
-
             conn.Close();
         }
 
-         
+
+        [Test]
+        public static void T_StringEscape()
+        {
+
+
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+            //1. drop table
+            {
+                var cmd = new MySqlCommand("drop table if exists user_info2", conn);
+                cmd.ExecuteNonQuery();
+            }
+            //2. create new one
+            {
+                var cmd = new MySqlCommand("create table user_info2(uid int(10),u_name varchar(45));", conn);
+                cmd.ExecuteNonQuery();
+            }
+            //3. add some data
+            {
+                var cmd = new MySqlCommand("insert into user_info2(uid, u_name) values(?uid, 'abc')", conn);
+                cmd.Parameters.AddWithValue("uid", 10);
+                cmd.ExecuteNonQuery();
+            }
+
+            Report.WriteLine("ok");
+            conn.Close();
+        }
+
     }
 }

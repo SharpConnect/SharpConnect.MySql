@@ -19,7 +19,7 @@ namespace SharpConnect.MySql.Internal
             return result;
         }
 
-        static string ConvertByteArrayToHexWithMySqlPrefix(byte[] bytes)
+        public static void ConvertByteArrayToHexWithMySqlPrefix(byte[] bytes, System.Text.StringBuilder stbuilder)
         {
             //for mysql only !, 
             //we prefix with 0x
@@ -41,7 +41,7 @@ namespace SharpConnect.MySql.Internal
                 m += 2;
             }
 
-            return new string(result);
+            stbuilder.Append(result);
         }
     }
 

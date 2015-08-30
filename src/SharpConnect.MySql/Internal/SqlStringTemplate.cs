@@ -70,7 +70,7 @@ namespace SharpConnect.MySql.Internal
             //TODO: review parser state, escape ' or " or `
 
             char binderEscapeChar = '\0';
-
+            char escapeChar = '\0';
 
             for (int i = 0; i < length; i++)
             {
@@ -80,7 +80,6 @@ namespace SharpConnect.MySql.Internal
                     default:
                         //unknown state must throw exception, so we can see if something changed
                         throw new NotSupportedException();
-
                     case ParseState.FIND_MARKER:
 
                         if (ch == '?' || ch == '@')
@@ -95,6 +94,12 @@ namespace SharpConnect.MySql.Internal
                             }
                             state = ParseState.COLLECT_MARKER_KEY;
                         }
+                        else if (ch == '\'' || ch == '"' || ch == '`')
+                        {
+                            escapeChar = ch;
+                            state = ParseState.STRING_ESCAPE;
+                        }
+
                         stBuilder.Append(ch);
                         break;
                     case ParseState.COLLECT_MARKER_KEY:
@@ -170,7 +175,20 @@ namespace SharpConnect.MySql.Internal
                             stBuilder.Append(ch);
                         }
                         break;
-
+                    case ParseState.STRING_ESCAPE:
+                        {
+                            if (ch == '\'' || ch == '"' || ch == '`')
+                            {
+                                if (escapeChar == ch)
+                                {
+                                    escapeChar = '\0';
+                                    //go back to find marker state
+                                    state = ParseState.FIND_MARKER;
+                                }
+                            }
+                            stBuilder.Append(ch);
+                        }
+                        break;
 
                 }//end swicth
             }//end for
@@ -207,6 +225,67 @@ namespace SharpConnect.MySql.Internal
         }
 
 
+        static void FormatAndAppendData(StringBuilder stbuilder, ref MyStructData data)
+        {
+
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            //TODO: review here , data range
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            switch (data.type)
+            {
+                case Types.BLOB:
+                case Types.LONG_BLOB:
+                case Types.MEDIUM_BLOB:
+                case Types.TINY_BLOB:
+                    MySqlStringToHexUtils.ConvertByteArrayToHexWithMySqlPrefix(data.myBuffer, stbuilder);
+                    break;
+                case Types.DATE:
+                case Types.DATETIME:
+                case Types.NEWDATE:
+                case Types.TIMESTAMP:
+                case Types.TIME:
+                    //TODO: review here
+                    stbuilder.Append('`');
+                    stbuilder.Append(data.myDateTime.ToString());
+                    stbuilder.Append('`');
+                    break;
+                case Types.STRING:
+                case Types.VARCHAR:
+                case Types.VAR_STRING:
+                    stbuilder.Append('`');
+                    stbuilder.Append(data.myString);
+                    stbuilder.Append('`');
+                    break;
+                case Types.BIT:
+                    stbuilder.Append(Encoding.ASCII.GetString(new byte[] { (byte)data.myInt32 }));
+                    break;
+                case Types.DOUBLE:
+                    stbuilder.Append(data.myDouble.ToString());
+                    break;
+                case Types.FLOAT:
+                    stbuilder.Append(((float)data.myDouble).ToString());
+                    break;
+                case Types.TINY:
+                case Types.SHORT:
+                case Types.LONG:
+                case Types.INT24:
+                case Types.YEAR:
+                    stbuilder.Append(data.myInt32.ToString());
+                    break;
+                case Types.LONGLONG:
+                    stbuilder.Append(data.myInt64.ToString());
+                    break;
+                case Types.DECIMAL:
+                    stbuilder.Append(data.myDecimal.ToString());
+                    break;
+                default:
+                    stbuilder.Append(data.myUInt64.ToString());
+                    break;
+
+            }
+        }
+
+
         public string BindValues(CommandParams cmdParams, bool forPrepareStmt)
         {
 
@@ -233,13 +312,16 @@ namespace SharpConnect.MySql.Internal
                         }
                         else
                         {
-                            if (cmdParams.IsValueKeys(sqlSection.Text))
+                            //get bind data
+                            MyStructData bindedData;
+                            if (!cmdParams.TryGetData(sqlSection.Text, out bindedData))
                             {
-                                strBuilder.Append('?');
+                                throw new Exception("Error : This key not assign." + sqlSection.Text);
                             }
                             else
                             {
-                                throw new Exception("Error : This key not assign." + sqlSection.Text);
+                                //format data 
+                                FormatAndAppendData(strBuilder, ref bindedData);
                             }
                         }
                         break;

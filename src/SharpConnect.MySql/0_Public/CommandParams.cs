@@ -52,7 +52,7 @@ namespace SharpConnect.MySql
         }
         public void AddWithValue(string key, byte value)
         {
-            reuseData.myByte = value;
+            reuseData.myInt32 = value;
             reuseData.type = Types.BIT;
             AddKeyWithReuseData(key);
         }
@@ -70,7 +70,7 @@ namespace SharpConnect.MySql
         }
         public void AddWithValue(string key, float value)
         {
-            reuseData.myFloat = value;
+            reuseData.myDouble = value;
             reuseData.type = Types.FLOAT;
             AddKeyWithReuseData(key);
         }
@@ -124,9 +124,9 @@ namespace SharpConnect.MySql
             _bindSpecialKeyValues.TryGetValue(key, out value);
             return value;
         }
-        internal bool IsValueKeys(string key)
+        internal bool TryGetData(string key, out MyStructData data)
         {
-            return _bindedValues.ContainsKey(key);
+            return _bindedValues.TryGetValue(key, out data);
         }
     }
 }

@@ -295,6 +295,7 @@ namespace SharpConnect.MySql.Internal
 
         void ParseReceivePacket()
         {
+            //TODO: review here, optimized buffer
             receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
             var socket = conn.socket;
             int receive = socket.Receive(receiveBuffer);

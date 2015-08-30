@@ -344,7 +344,7 @@ namespace SharpConnect.MySql.Internal
                     writer.WriteInt64(dataTemp.myInt64);
                     break;
                 case Types.FLOAT:
-                    writer.WriteFloat(dataTemp.myFloat);
+                    writer.WriteFloat((float)dataTemp.myDouble);
                     break;
                 case Types.DOUBLE:
                     writer.WriteDouble(dataTemp.myDouble);
@@ -405,7 +405,7 @@ namespace SharpConnect.MySql.Internal
                     writer.WriteInt64(dataTemp.myInt64);
                     break;
                 case Types.FLOAT:
-                    writer.WriteFloat(dataTemp.myFloat);
+                    writer.WriteFloat((float)dataTemp.myDouble);
                     break;
                 case Types.DOUBLE:
                     writer.WriteDouble(dataTemp.myDouble);
@@ -1168,7 +1168,7 @@ namespace SharpConnect.MySql.Internal
                     myData.type = fieldType;
                     break;
                 case Types.TINY://length = 1;
-                    myData.myByte = parser.ParseUnsigned1();
+                    myData.myInt32 = parser.ParseUnsigned1();
                     myData.type = fieldType;
                     break;
                 case Types.SHORT://length = 2;
@@ -1182,7 +1182,7 @@ namespace SharpConnect.MySql.Internal
                     myData.type = fieldType;
                     break;
                 case Types.FLOAT:
-                    myData.myFloat = parser.ParseFloat();
+                    myData.myDouble = parser.ParseFloat();
                     myData.type = fieldType;
                     break;
                 case Types.DOUBLE:

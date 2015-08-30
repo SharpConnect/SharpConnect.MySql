@@ -401,28 +401,26 @@ namespace SharpConnect.MySql.Internal
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
     struct MyStructData
     {
-
-        [System.Runtime.InteropServices.FieldOffset(0)]
-        public byte myByte;
+ 
         [System.Runtime.InteropServices.FieldOffset(0)]
         public int myInt32;
         [System.Runtime.InteropServices.FieldOffset(0)]
         public uint myUInt32;
-
+        //---------------------------------------------
         [System.Runtime.InteropServices.FieldOffset(0)]
         public long myInt64;
         [System.Runtime.InteropServices.FieldOffset(0)]
         public ulong myUInt64;
-
-        [System.Runtime.InteropServices.FieldOffset(0)]
-        public float myFloat;
+        //---------------------------------------------
+        
         [System.Runtime.InteropServices.FieldOffset(0)]
         public double myDouble;
+        //---------------------------------------------
         [System.Runtime.InteropServices.FieldOffset(0)]
         public decimal myDecimal;//16-bytes
         [System.Runtime.InteropServices.FieldOffset(0)]
         public DateTime myDateTime;
-
+        //---------------------------------------------
         [System.Runtime.InteropServices.FieldOffset(16)]
         public byte[] myBuffer;
         [System.Runtime.InteropServices.FieldOffset(16)]
