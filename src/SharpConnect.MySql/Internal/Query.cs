@@ -511,18 +511,35 @@ namespace SharpConnect.MySql.Internal
         TableHeader _tableHeader;
         SqlStringTemplate _sqlStringTemplate;
         MyStructData[] _preparedValues;
-
+        List<SqlBoundSection> _keys;
         public readonly uint statementId;
 
         public PreparedContext(uint statementId, SqlStringTemplate sqlStringTemplate)
         {
             this.statementId = statementId;
             _sqlStringTemplate = sqlStringTemplate;
+            _keys = _sqlStringTemplate.GetValueKeys();
         }
         public void Setup(TableHeader tableHeader)
         {
             _tableHeader = tableHeader;
-            _preparedValues = new MyStructData[tableHeader.ColumnCount];
+
+            int fieldCount = tableHeader.ColumnCount;
+            _preparedValues = new MyStructData[fieldCount];
+
+
+            if (_keys.Count != fieldCount)
+            {
+                throw new Exception("key num not matched!");
+            }
+            //add field information to _keys
+
+            List<FieldPacket> fields = tableHeader.GetFields();
+            for (int i = 0; i < fieldCount; ++i)
+            {
+                _keys[i].fieldInfo = fields[i];
+            }
+
         }
         public MyStructData[] PrepareBoundData(CommandParams cmdParams)
         {
@@ -530,21 +547,51 @@ namespace SharpConnect.MySql.Internal
             //1. check proper type and 
             //2. check all values are in its range  
             //extract and arrange 
-            List<SqlSection> keys = _sqlStringTemplate.GetValueKeys();
-            int j = keys.Count;
+
+            int j = _keys.Count;
             for (int i = 0; i < j; ++i)
             {
-                if (!cmdParams.TryGetData(keys[i].Text, out _preparedValues[i]))
+                SqlBoundSection key = _keys[i];
+
+                if (!cmdParams.TryGetData(key.Text, out _preparedValues[i]))
                 {
                     //not found key 
-                    throw new Exception("not found " + keys[i].Text);
+                    throw new Exception("not found " + _keys[i].Text);
+                }
+                else
+                {
+                    //TODO: check here 
+                    //all field type is 253 ?
+                    //error
+
+                    //check
+                    //FieldPacket fieldInfo = key.fieldInfo;
+                    //switch ((Types)fieldInfo.type)
+                    //{
+                    //    case Types.VARCHAR:
+                    //    case Types.VAR_STRING:
+                    //        {
+                    //            //check length
+                    //            if (_preparedValues[i].myString.Length > fieldInfo.length)
+                    //            {
+                    //                //TODO: notify user how to handle this data
+                    //                //before error
+                    //            }
+                    //        }
+                    //        break;
+                    //}
                 }
             }
 
             return _preparedValues;
         }
+       
 
     }
+
+
+
+
     class TableHeader
     {
         List<FieldPacket> fields;
@@ -567,6 +614,8 @@ namespace SharpConnect.MySql.Internal
         {
             get { return this.fields.Count; }
         }
+
+
         public int GetFieldIndex(string fieldName)
         {
             if (fieldNamePosMap == null)
@@ -591,5 +640,4 @@ namespace SharpConnect.MySql.Internal
         public bool NestTables { get; set; }
         public ConnectionConfig ConnConfig { get; set; }
     }
-
 }

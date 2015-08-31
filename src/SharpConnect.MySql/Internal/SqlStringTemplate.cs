@@ -49,11 +49,30 @@ namespace SharpConnect.MySql.Internal
 #endif
     }
 
+    class SqlBoundSection : SqlSection
+    {
+
+        public FieldPacket fieldInfo;
+
+        public SqlBoundSection(string text)
+            : base(text, SqlSectionKind.ValueKey)
+        {
+
+        }
+
+
+#if DEBUG
+        public override string ToString()
+        {
+            return Text;
+        }
+#endif
+    }
 
     class SqlStringTemplate
     {
         List<SqlSection> _sqlSections = new List<SqlSection>(); //all sections 
-        List<SqlSection> _valuesKeys = new List<SqlSection>(); //only value keys        
+        List<SqlBoundSection> _valuesKeys = new List<SqlBoundSection>(); //only value keys        
         List<SqlSection> _specialKeys = new List<SqlSection>();
 
         string _userRawSql; //raw sql from user code
@@ -145,7 +164,7 @@ namespace SharpConnect.MySql.Internal
 
                             if (stBuilder.Length > 0)
                             {
-                                var valueSection = new SqlSection(stBuilder.ToString(), SqlSectionKind.ValueKey);
+                                var valueSection = new SqlBoundSection(stBuilder.ToString());
                                 _sqlSections.Add(valueSection);
                                 _valuesKeys.Add(valueSection);
 
@@ -205,7 +224,7 @@ namespace SharpConnect.MySql.Internal
                         _sqlSections.Add(new SqlSection(stBuilder.ToString(), SqlSectionKind.SqlText));
                         break;
                     case ParseState.COLLECT_MARKER_KEY:
-                        var valueSection = new SqlSection(stBuilder.ToString(), SqlSectionKind.ValueKey);
+                        var valueSection = new SqlBoundSection(stBuilder.ToString());
                         _sqlSections.Add(valueSection);
                         _valuesKeys.Add(valueSection);
                         break;
@@ -219,7 +238,7 @@ namespace SharpConnect.MySql.Internal
 
         }
 
-        public List<SqlSection> GetValueKeys()
+        public List<SqlBoundSection> GetValueKeys()
         {
             return _valuesKeys;
         }
@@ -316,7 +335,7 @@ namespace SharpConnect.MySql.Internal
                         break;
                     case SqlSectionKind.ValueKey:
 
-                        //TODO: review checking technique again 
+
                         if (forPrepareStmt)
                         {
                             strBuilder.Append('?');
