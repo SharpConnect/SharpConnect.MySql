@@ -176,7 +176,6 @@ namespace SharpConnect.MySql
             //prepare sql command;
             query = Connection.Conn.CreateQuery(CommandText, Parameters);
             query.Prepare();
-
             _isPreparedStmt = true;
         }
 

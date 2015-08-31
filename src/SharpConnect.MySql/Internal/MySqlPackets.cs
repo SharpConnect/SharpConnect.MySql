@@ -184,8 +184,7 @@ namespace SharpConnect.MySql.Internal
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-
-            writer.WriteByte(QUERY_CMD);
+            writer.WriteByte((byte)Command.QUERY);
             writer.WriteString(this.sql);
             header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
@@ -194,8 +193,7 @@ namespace SharpConnect.MySql.Internal
 
     class ComQuitPacket : Packet
     {
-        const byte QUIT_CMD = (byte)Command.QUIT;//0x01
-
+        //const byte QUIT_CMD = (byte)Command.QUIT;//0x01 
         public override void ParsePacket(PacketParser parser)
         {
             throw new NotImplementedException();
@@ -206,7 +204,7 @@ namespace SharpConnect.MySql.Internal
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-            writer.WriteUnsigned1(QUIT_CMD);
+            writer.WriteUnsigned1((byte)Command.QUIT);
             header = new PacketHeader((uint)writer.Length, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
         }
@@ -214,7 +212,7 @@ namespace SharpConnect.MySql.Internal
 
     class ComPrepareStatementPacket : Packet
     {
-        byte PREPARE_CMD = (byte)Command.STMT_PREPARE;
+        //byte PREPARE_CMD = (byte)Command.STMT_PREPARE;
         string sql;
         public ComPrepareStatementPacket(string sql)
         {
@@ -229,7 +227,7 @@ namespace SharpConnect.MySql.Internal
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-            writer.WriteByte(PREPARE_CMD);
+            writer.WriteByte((byte)Command.STMT_PREPARE);
             writer.WriteString(sql);
             header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
@@ -238,16 +236,16 @@ namespace SharpConnect.MySql.Internal
 
     class ComExecutePrepareStatement : Packet
     {
-        byte EXCUTE_CMD = (byte)Command.STMT_EXECUTE;
+        //byte EXCUTE_CMD = (byte)Command.STMT_EXECUTE;
 
         readonly uint _statementId;
         readonly List<SqlSection> _keys;
         readonly CommandParams _cmdParams;
 
-        public ComExecutePrepareStatement(uint statementId, CommandParams prepareValues, SqlStringTemplate sqlStrTemplate)
+        public ComExecutePrepareStatement(uint statementId, CommandParams cmdParams, SqlStringTemplate sqlStrTemplate)
         {
             _statementId = statementId;
-            _cmdParams = prepareValues;
+            _cmdParams = cmdParams;
             _keys = sqlStrTemplate.GetValueKeys();
 
             //------------
@@ -263,13 +261,12 @@ namespace SharpConnect.MySql.Internal
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-            writer.WriteByte(EXCUTE_CMD);
+            writer.WriteByte((byte)Command.STMT_EXECUTE);
             writer.WriteUnsignedNumber(4, _statementId);
             writer.WriteByte((byte)CursorFlags.CURSOR_TYPE_NO_CURSOR);
             writer.WriteUnsignedNumber(4, 1);//iteration-count, always 1
             //write NULL-bitmap, length: (num-params+7)/8
             MyStructData dataTemp;
-
 
             int paramNum = _keys.Count;
             if (paramNum > 0)
@@ -321,14 +318,14 @@ namespace SharpConnect.MySql.Internal
             for (int i = 0; i < paramNum; i++)
             {
                 dataTemp = _cmdParams.GetData(_keys[i].Text);
-                WriteValueByType(writer, dataTemp);
+                WriteValueByType(writer, ref dataTemp);
             }
 
             header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
         }
 
-        void WriteValueByType(PacketWriter writer, MyStructData dataTemp)
+        static void WriteValueByType(PacketWriter writer, ref MyStructData dataTemp)
         {
             switch (dataTemp.type)
             {
@@ -364,7 +361,7 @@ namespace SharpConnect.MySql.Internal
 
     class ComStmtSendLongData : Packet
     {
-        byte command = (byte)Command.STMT_SEND_LONG_DATA;
+        //byte command = (byte)Command.STMT_SEND_LONG_DATA;
         int statement_id;
         int param_id;
         MyStructData data;

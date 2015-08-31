@@ -212,12 +212,16 @@ namespace SharpConnect.MySql.Internal
                 throw new Exception("exec Prepare() first");
             }
             //---------------------------------------------------------------------------------
+            _isPrepared = true;
+
             writer.Reset();
+
             var excute = new ComExecutePrepareStatement(_prepareStmtId, cmdParams, sqlStrTemplate);
             excute.WritePacket(writer);
-            SendPacket(writer.ToArray());
-            _isPrepared = true;
+
+            SendPacket(writer.ToArray());            
             ParseReceivePacket();
+
             if (okPacket != null || loadError != null)
             {
                 return;
