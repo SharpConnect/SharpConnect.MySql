@@ -22,6 +22,8 @@ namespace MySqlTest
             InsertDataSet(conn);
 
             conn.Close();
+            Report.WriteLine("ok");
+
         }
         static void DropTableIfExists(MySqlConnection conn)
         {

@@ -71,8 +71,8 @@ namespace SharpConnect.MySql
             //sql = "select ?n1+?n2 as test1";
             CommandParams cmd2Values = new CommandParams();
 
-            cmd2Values.SetSpecialKey("t1", "saveimage");
-            cmd2Values.SetSpecialKey("c1", "idsaveImage");
+            cmd2Values.SetSqlPart("t1", "saveimage");
+            cmd2Values.SetSqlPart("c1", "idsaveImage");
             //cmd2Values.AddField("c2", "saveImagecol");
 
             cmd2Values.AddWithValue("n1", testN1);
@@ -231,8 +231,8 @@ namespace SharpConnect.MySql
             int testN2 = 4520;
 
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
-            command.Parameters.SetSpecialKey("t1", "saveimage");
-            command.Parameters.SetSpecialKey("c1", "idsaveImage");
+            command.Parameters.SetSqlPart("t1", "saveimage");
+            command.Parameters.SetSqlPart("c1", "idsaveImage");
             command.Parameters.AddWithValue("n1", testN1);
             command.Parameters.AddWithValue("n2", testN2);
 
@@ -267,8 +267,8 @@ namespace SharpConnect.MySql
             string sql = "INSERT INTO ??t1 SET ??c2 = ?buffer1";
 
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
-            command.Parameters.SetSpecialKey("t1", "saveimage");
-            command.Parameters.SetSpecialKey("c2", "saveImagecol");
+            command.Parameters.SetSqlPart("t1", "saveimage");
+            command.Parameters.SetSqlPart("c2", "saveImagecol");
 
             command.Parameters.AddWithValue("buffer1", buffer);
 
@@ -289,8 +289,8 @@ namespace SharpConnect.MySql
             int testN2 = 4520;
 
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
-            command.Parameters.SetSpecialKey("t1", "saveimage");
-            command.Parameters.SetSpecialKey("c1", "idsaveImage");
+            command.Parameters.SetSqlPart("t1", "saveimage");
+            command.Parameters.SetSqlPart("c1", "idsaveImage");
 
             command.Parameters.AddWithValue("n1", testN1);
             command.Parameters.AddWithValue("n2", testN2);
@@ -310,8 +310,8 @@ namespace SharpConnect.MySql
             int testN2 = 4520;
 
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
-            command.Parameters.SetSpecialKey("t1", "saveimage");
-            command.Parameters.SetSpecialKey("c1", "idsaveImage");
+            command.Parameters.SetSqlPart("t1", "saveimage");
+            command.Parameters.SetSqlPart("c1", "idsaveImage");
 
             command.Parameters.AddWithValue("n1", testN1);
             command.Parameters.AddWithValue("n2", testN2);

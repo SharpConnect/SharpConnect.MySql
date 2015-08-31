@@ -326,8 +326,8 @@ namespace SharpConnect.MySql.Internal
                         }
                         break;
                     case SqlSectionKind.SpecialKey:
-                        string found = cmdParams.GetSpecialKeyValue(sqlSection.Text);
-                        if (found != null)
+                        string found;
+                        if (cmdParams.TryGetSqlPart(sqlSection.Text, out found))
                         {
                             strBuilder.Append(found);
                         }

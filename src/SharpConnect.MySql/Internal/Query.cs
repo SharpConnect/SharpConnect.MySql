@@ -47,7 +47,7 @@ namespace SharpConnect.MySql.Internal
         RowDataPacket lastRow;
         RowPreparedDataPacket lastPrepareRow;
 
-        bool _isPrepared;
+
         bool hasSomeRow;
 
         PacketParser parser;
@@ -57,15 +57,18 @@ namespace SharpConnect.MySql.Internal
 
         //---------------
         uint _prepareStmtId;
-
+        bool _isPrepared;
+        MyStructData[] _preparedValues;
         //---------------
+
+
         byte[] receiveBuffer;
 
         const int DEFAULT_BUFFER_SIZE = 512;
         const byte ERROR_CODE = 255;
         const byte EOF_CODE = 0xfe;
         const byte OK_CODE = 0;
-        const int MAX_PACKET_LENGTH = (1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
+        const int MAX_PACKET_LENGTH = (1 << 24) - 1;//(int)Math.Pow(2, 24) - 1; 
 
 
         public Query(Connection conn, string sql, CommandParams cmdParams)//testing
@@ -124,7 +127,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public void ExecuteNonPrepare()
+        void ExecuteNonPrepare()
         {
             writer.Reset();
 
@@ -160,6 +163,7 @@ namespace SharpConnect.MySql.Internal
             {
                 if (okPreparePacket.num_params > 0)
                 {
+
                     this.tableHeader = new TableHeader();
                     tableHeader.TypeCast = typeCast;
                     tableHeader.NestTables = nestTables;
@@ -170,6 +174,8 @@ namespace SharpConnect.MySql.Internal
                         FieldPacket field = ParseColumn();
                         tableHeader.AddField(field);
                     }
+
+                    _preparedValues = new MyStructData[okPreparePacket.num_params];
 
                     ParseEOF();
                 }
@@ -194,7 +200,7 @@ namespace SharpConnect.MySql.Internal
             }
 
         }
-        public void ExecutePrepareQuery()
+        void ExecutePrepareQuery()
         {
             if (cmdParams == null)
             {
@@ -212,12 +218,19 @@ namespace SharpConnect.MySql.Internal
                 throw new Exception("exec Prepare() first");
             }
             //---------------------------------------------------------------------------------
-            writer.Reset();
-            var excute = new ComExecutePrepareStatement(_prepareStmtId, cmdParams, sqlStrTemplate);
-            excute.WritePacket(writer);
-            SendPacket(writer.ToArray());
             _isPrepared = true;
+
+            writer.Reset();
+
+            //fill prepared values
+            cmdParams.ExtractBoundData(sqlStrTemplate, _preparedValues);
+            var excute = new ComExecutePrepareStatement(_prepareStmtId, _preparedValues);
+
+            excute.WritePacket(writer);
+
+            SendPacket(writer.ToArray());
             ParseReceivePacket();
+
             if (okPacket != null || loadError != null)
             {
                 return;
@@ -287,7 +300,7 @@ namespace SharpConnect.MySql.Internal
                 //sql = "FLUSH QUERY CACHE;";
                 Connection killConn = new Connection(conn.config);
                 killConn.Connect();
-                killConn.CreateQuery(realSql, null).ExecuteNonPrepare();
+                killConn.CreateQuery(realSql, null).Execute();
                 conn.ClearRemainingInputBuffer();
                 killConn.Disconnect();
             }
@@ -492,7 +505,7 @@ namespace SharpConnect.MySql.Internal
         }
 
     }
-     
+
 
     class TableHeader
     {

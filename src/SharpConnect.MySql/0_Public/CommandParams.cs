@@ -9,124 +9,180 @@ namespace SharpConnect.MySql
 {
     public class CommandParams
     {
-        Dictionary<string, MyStructData> _bindedValues;
-        Dictionary<string, string> _bindSpecialKeyValues;
-        MyStructData reuseData;
 
+        Dictionary<string, MyStructData> _values = new Dictionary<string, MyStructData>(); //user bound values
+        Dictionary<string, string> _sqlParts;//null at first, special  extension
         public CommandParams()
         {
-            _bindedValues = new Dictionary<string, MyStructData>();
-            _bindSpecialKeyValues = new Dictionary<string, string>();
-            reuseData = new MyStructData();
-            reuseData.type = Types.NULL;
         }
 
-
-        public void SetSpecialKey(string key, string tablename)
-        {
-            key = "??" + key;
-            _bindSpecialKeyValues[key] = "`" + tablename + "`";
-        }
-        public void ClearBindValues()
-        {
-            _bindedValues.Clear();
-        }
-        public void ClearSpecialKeyValues()
-        {
-            _bindSpecialKeyValues.Clear();
-        }
+        //-------------------------------------------------------
+        //user's bound data values
 
         public void AddWithValue(string key, string value)
         {
+            var data = new MyStructData();
             if (value != null)
             {
-                reuseData.myString = value;
-                reuseData.type = Types.VAR_STRING;
+                data.myString = value;
+                data.type = Types.VAR_STRING;
             }
             else
             {
-                reuseData.myString = null;
-                reuseData.type = Types.NULL;
+                data.myString = null;
+                data.type = Types.NULL;
             }
-            AddKeyWithReuseData(key);
+            _values["?" + key] = data;
+
         }
         public void AddWithValue(string key, byte value)
         {
-            reuseData.myInt32 = value;
-            reuseData.type = Types.BIT;
-            AddKeyWithReuseData(key);
+            var data = new MyStructData();
+            data.myInt32 = value;
+            data.type = Types.BIT;
+            _values["?" + key] = data;
         }
         public void AddWithValue(string key, int value)
         {
-            reuseData.myInt32 = value;
-            reuseData.type = Types.LONG;//Types.LONG = int32
-            AddKeyWithReuseData(key);
+            var data = new MyStructData();
+            data.myInt32 = value;
+            data.type = Types.LONG;//Types.LONG = int32
+            _values["?" + key] = data;
         }
         public void AddWithValue(string key, long value)
         {
-            reuseData.myInt64 = value;
-            reuseData.type = Types.LONGLONG;
-            AddKeyWithReuseData(key);
+            var data = new MyStructData();
+            data.myInt64 = value;
+            data.type = Types.LONGLONG;
+            _values["?" + key] = data;
         }
         public void AddWithValue(string key, float value)
         {
-            reuseData.myDouble = value;
-            reuseData.type = Types.FLOAT;
-            AddKeyWithReuseData(key);
+            var data = new MyStructData();
+            data.myDouble = value;
+            data.type = Types.FLOAT;
+            _values["?" + key] = data;
         }
         public void AddWithValue(string key, double value)
         {
-            reuseData.myDouble = value;
-            reuseData.type = Types.DOUBLE;
-            AddKeyWithReuseData(key);
+            var data = new MyStructData();
+            data.myDouble = value;
+            data.type = Types.DOUBLE;
+            _values["?" + key] = data;
         }
         public void AddWithValue(string key, decimal value)
         {
-            reuseData.myDecimal = value;
-            reuseData.type = Types.DECIMAL;
-            AddKeyWithReuseData(key);
+            var data = new MyStructData();
+            data.myDecimal = value;
+            data.type = Types.DECIMAL;
+            _values["?" + key] = data;
         }
         public void AddWithValue(string key, byte[] value)
         {
+            var data = new MyStructData();
             if (value != null)
             {
-                reuseData.myBuffer = value;
-                reuseData.type = Types.LONG_BLOB;
+                data.myBuffer = value;
+                data.type = Types.LONG_BLOB;
             }
             else
             {
-                reuseData.myBuffer = null;
-                reuseData.type = Types.NULL;
+                data.myBuffer = null;
+                data.type = Types.NULL;
             }
-            AddKeyWithReuseData(key);
+            _values["?" + key] = data;
         }
         public void AddWithValue(string key, DateTime value)
         {
-            reuseData.myDateTime = value;
-            reuseData.type = Types.DATETIME;
-            AddKeyWithReuseData(key);
-        }
-        void AddKeyWithReuseData(string key)
-        {
-            key = "?" + key;
-            _bindedValues[key] = reuseData;
+            var data = new MyStructData();
+            data.myDateTime = value;
+            data.type = Types.DATETIME;
+            _values["?" + key] = data;
         }
 
-        internal MyStructData GetData(string key)
+
+        //-------------------------------------------------------
+        //TODO: how about other datatype,
+        //sbyte, uint,ulong, ?
+        //-------------------------------------------------------
+        public void AddWithValue(string key, sbyte value)
         {
-            MyStructData value;
-            _bindedValues.TryGetValue(key, out value);
-            return value;
+            throw new NotImplementedException();
         }
-        internal string GetSpecialKeyValue(string key)
+        public void AddWithValue(string key, char value)
         {
-            string value;
-            _bindSpecialKeyValues.TryGetValue(key, out value);
-            return value;
+            throw new NotImplementedException();
         }
+        public void AddWithValue(string key, ushort value)
+        {
+            throw new NotImplementedException();
+        }
+        public void AddWithValue(string key, uint value)
+        {
+            throw new NotImplementedException();
+        }
+        public void AddWithValue(string key, ulong value)
+        {
+            throw new NotImplementedException();
+        }
+
+
         internal bool TryGetData(string key, out MyStructData data)
         {
-            return _bindedValues.TryGetValue(key, out data);
+            return _values.TryGetValue(key, out data);
+        }
+
+        MyStructData GetData(string key)
+        {
+            MyStructData value;
+            _values.TryGetValue(key, out value);
+            return value;
+        }
+        public void ClearDataValues()
+        {
+            _values.Clear();
+        }
+
+
+        //-------------------------------------------------------
+        //sql parts : special extension 
+        public void SetSqlPart(string sqlBoundKey, string sqlPart)
+        {
+            if (_sqlParts == null)
+            {
+                _sqlParts = new Dictionary<string, string>();
+            }
+
+            _sqlParts["??" + sqlBoundKey] = "`" + sqlPart + "`";
+        }
+        public bool TryGetSqlPart(string sqlBoundKey, out string sqlPart)
+        {
+            if (_sqlParts == null)
+            {
+                sqlPart = null;
+                return false;
+            }
+
+            return _sqlParts.TryGetValue(sqlBoundKey, out sqlPart);
+        }
+        public void ClearSqlParts()
+        {
+            if (_sqlParts != null)
+            {
+                _sqlParts.Clear();
+            }
+        }
+        //-------------------------------------------------------
+
+        internal void ExtractBoundData(SqlStringTemplate sqlStringTemplate, MyStructData[] outputStructData)
+        {
+            //extract and arrange 
+            List<SqlSection> keys = sqlStringTemplate.GetValueKeys();
+            int j = keys.Count;
+            for (int i = 0; i < j; ++i)
+            {
+                outputStructData[i] = GetData(keys[i].Text);
+            }
         }
     }
 }
