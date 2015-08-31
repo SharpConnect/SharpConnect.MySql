@@ -13,12 +13,12 @@ namespace SharpConnect.MySql
         Dictionary<string, MyStructData> _values = new Dictionary<string, MyStructData>(); //user bound values
         Dictionary<string, string> _sqlParts;//null at first, special  extension
         public CommandParams()
-        {             
+        {
         }
 
         //-------------------------------------------------------
         //user's bound data values
-        
+
         public void AddWithValue(string key, string value)
         {
             var data = new MyStructData();
@@ -105,8 +105,26 @@ namespace SharpConnect.MySql
         //TODO: how about other datatype,
         //sbyte, uint,ulong, ?
         //-------------------------------------------------------
-
-
+        public void AddWithValue(string key, sbyte value)
+        {
+            throw new NotImplementedException();
+        }
+        public void AddWithValue(string key, char value)
+        {
+            throw new NotImplementedException();
+        }
+        public void AddWithValue(string key, ushort value)
+        {
+            throw new NotImplementedException();
+        }
+        public void AddWithValue(string key, uint value)
+        {
+            throw new NotImplementedException();
+        }
+        public void AddWithValue(string key, ulong value)
+        {
+            throw new NotImplementedException();
+        }
 
 
         internal bool TryGetData(string key, out MyStructData data)
@@ -147,7 +165,7 @@ namespace SharpConnect.MySql
 
             return _sqlParts.TryGetValue(sqlBoundKey, out sqlPart);
         }
-        public void ClearBoundSqlParts()
+        public void ClearSqlParts()
         {
             if (_sqlParts != null)
             {
