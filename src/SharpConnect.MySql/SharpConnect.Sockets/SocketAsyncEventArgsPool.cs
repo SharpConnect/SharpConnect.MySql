@@ -9,8 +9,8 @@ namespace SharpConnect.Sockets
     sealed class SocketAsyncEventArgsPool
     {
         //just for assigning an ID so we can watch our objects while testing.
-        int nextTokenId = 0;
-        Stack<SocketAsyncEventArgs> pool;
+        int _nextTokenId = 0;
+        Stack<SocketAsyncEventArgs> _pool;
 
         public SocketAsyncEventArgsPool(int capacity)
         {
@@ -22,27 +22,27 @@ namespace SharpConnect.Sockets
             //            }
             //#endif
 
-            this.pool = new Stack<SocketAsyncEventArgs>(capacity);
+            _pool = new Stack<SocketAsyncEventArgs>(capacity);
         }
 
         // The number of SocketAsyncEventArgs instances in the pool.         
         internal int Count
         {
-            get { return this.pool.Count; }
+            get { return _pool.Count; }
         }
 
         internal int GetNewTokenId()
         {
-            return Interlocked.Increment(ref nextTokenId);
+            return Interlocked.Increment(ref _nextTokenId);
         }
 
         // Removes a SocketAsyncEventArgs instance from the pool.
         // returns SocketAsyncEventArgs removed from the pool.
         internal SocketAsyncEventArgs Pop()
         {
-            lock (this.pool)
+            lock (_pool)
             {
-                return this.pool.Pop();
+                return _pool.Pop();
             }
         }
 
@@ -54,9 +54,9 @@ namespace SharpConnect.Sockets
             {
                 throw new ArgumentNullException("Items added to a SocketAsyncEventArgsPool cannot be null");
             }
-            lock (this.pool)
+            lock (_pool)
             {
-                this.pool.Push(item);
+                _pool.Push(item);
             }
         }
     }

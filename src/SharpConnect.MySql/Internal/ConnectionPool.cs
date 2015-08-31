@@ -1,13 +1,14 @@
 ﻿//MIT 2015, brezza27, EngineKit and contributors
-using MySqlPacket;
 using System;
 using System.Collections.Generic;
 
-namespace SharpConnect.MySql
+
+namespace SharpConnect.MySql.Internal
 {
 
     static class ConnectionPool
     {
+
         static readonly ConnectionPoolAgent s_connPoolAgent = new ConnectionPoolAgent();
         static object s_queueLock = new object();
 
@@ -34,22 +35,26 @@ namespace SharpConnect.MySql
             }
         }
 
+
+
+
         class ConnectionPoolAgent
         {
-            static Dictionary<string, Queue<Connection>> connQueue = new Dictionary<string, Queue<Connection>>();
+            static Dictionary<string, Queue<Connection>> s_connQueue = new Dictionary<string, Queue<Connection>>();
             public ConnectionPoolAgent()
             {
 
             }
             ~ConnectionPoolAgent()
             {
+
                 ClearAllConnections();
             }
             public void ClearAllConnections()
             {
-                foreach (var q in connQueue.Values)
+                foreach (var q in s_connQueue.Values)
                 {
-                    for (int i = connQueue.Count - 1; i >= 0; --i)
+                    for (int i = s_connQueue.Count - 1; i >= 0; --i)
                     {
                         try
                         {
@@ -63,20 +68,22 @@ namespace SharpConnect.MySql
                     }
                 }
 
-                connQueue.Clear();
+                s_connQueue.Clear();
 
             }
             public Connection GetConnection(MySqlConnectionString connstr)
             {
+
                 Queue<Connection> found;
                 //not found
-                if (!connQueue.TryGetValue(connstr.ConnSignature, out found))
+                if (!s_connQueue.TryGetValue(connstr.ConnSignature, out found))
                 {
                     return null;
                 }
 
                 if (found.Count > 0)
                 {
+
                     var conn = found.Dequeue();
                     //TODO: check if conn is valid
 
@@ -93,13 +100,14 @@ namespace SharpConnect.MySql
             {
                 Queue<Connection> found;
                 //not found
-                if (!connQueue.TryGetValue(connstr.ConnSignature, out found))
+                if (!s_connQueue.TryGetValue(connstr.ConnSignature, out found))
                 {
                     found = new Queue<Connection>();
-                    connQueue.Add(connstr.ConnSignature, found);
+                    s_connQueue.Add(connstr.ConnSignature, found);
                 }
                 conn.IsStoredInConnPool = true;
                 found.Enqueue(conn);
+
             }
         }
     }

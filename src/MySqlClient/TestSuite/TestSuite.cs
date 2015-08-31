@@ -18,7 +18,7 @@ namespace MySqlTest
     {
 
         public TestAttribute() { }
-        public TestAttribute(string desc) { this.Description = desc; }
+        public TestAttribute(string desc) { Description = desc; }
         public string Description { get; set; }
 
     }
@@ -26,38 +26,38 @@ namespace MySqlTest
 
     public static class Report
     {
-        static StringBuilder stbuilder = new StringBuilder();
+        static StringBuilder s_stbuilder = new StringBuilder();
         public static void Clear()
         {
-            stbuilder.Length = 0;
+            s_stbuilder.Length = 0;
         }
         public static void WriteLine(string info)
         {
-            stbuilder.AppendLine(info);
+            s_stbuilder.AppendLine(info);
         }
         public static string GetReportText()
         {
-            return stbuilder.ToString();
+            return s_stbuilder.ToString();
         }
 
     }
 
     public class TestCase
     {
-        MethodInfo testMethod;
-        string testName;
+        MethodInfo _testMethod;
+        string _testName;
         public TestCase(string name, MethodInfo testMethod)
         {
-            this.testMethod = testMethod;
-            this.testName = name;
+            _testMethod = testMethod;
+            _testName = name;
         }
         public override string ToString()
         {
-            return this.testName;
+            return _testName;
         }
         public void Run()
         {
-            testMethod.Invoke(null, null);
+            _testMethod.Invoke(null, null);
         }
     }
 
@@ -95,7 +95,8 @@ namespace MySqlTest
     }
 
     public delegate void TestAction();
-    public class MySqlTester
+
+    public abstract class MySqlTesterBase
     {
         public static void Test(int n, TimeUnit timeUnit, out long total, out long avg, TestAction ac)
         {
@@ -109,6 +110,7 @@ namespace MySqlTest
             total = sw.ElapsedTicks;
             avg = total / n;
         }
+
     }
 
 

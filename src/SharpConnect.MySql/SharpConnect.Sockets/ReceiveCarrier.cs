@@ -7,23 +7,23 @@ namespace SharpConnect.Sockets
     class ReceiveCarrier
     {
 
-        readonly SocketAsyncEventArgs recvSendArgs;
-        readonly int recvStartBufferOffset;
-        internal Action recvAction;
+        readonly SocketAsyncEventArgs _recvSendArgs;
+        readonly int _recvStartBufferOffset;
+        internal Action _recvAction;
 
         public ReceiveCarrier(SocketAsyncEventArgs recvSendArgs)
         {
-            this.recvSendArgs = recvSendArgs;
-            this.recvStartBufferOffset = recvSendArgs.Offset;
+            _recvSendArgs = recvSendArgs;
+            _recvStartBufferOffset = recvSendArgs.Offset;
         }
         public int BytesTransferred
         {
-            get { return this.recvSendArgs.BytesTransferred; }
+            get { return _recvSendArgs.BytesTransferred; }
         }
         public void CopyTo(int srcIndex, byte[] destBuffer, int destIndex, int count)
         {
-            Buffer.BlockCopy(recvSendArgs.Buffer,
-                recvStartBufferOffset + srcIndex,
+            Buffer.BlockCopy(_recvSendArgs.Buffer,
+                _recvStartBufferOffset + srcIndex,
                 destBuffer,
                 destIndex, count);
         }
@@ -33,25 +33,25 @@ namespace SharpConnect.Sockets
         /// <param name="targetBuffer"></param>
         public void CopyTo(byte[] destBuffer, int destIndex)
         {
-            Buffer.BlockCopy(recvSendArgs.Buffer,
-                recvStartBufferOffset,
+            Buffer.BlockCopy(_recvSendArgs.Buffer,
+                _recvStartBufferOffset,
                 destBuffer,
                 destIndex, BytesTransferred);
         }
         public byte[] ToArray()
         {
-            byte[] buffer = new byte[this.BytesTransferred];
+            var buffer = new byte[BytesTransferred];
             CopyTo(buffer, 0);
             return buffer;
         }
         public byte ReadByte(int index)
         {
-            return recvSendArgs.Buffer[this.recvStartBufferOffset + index];
+            return _recvSendArgs.Buffer[_recvStartBufferOffset + index];
         }
         public void ReadBytes(byte[] output, int start, int count)
         {
-            Buffer.BlockCopy(recvSendArgs.Buffer,
-                 recvStartBufferOffset + start,
+            Buffer.BlockCopy(_recvSendArgs.Buffer,
+                 _recvStartBufferOffset + start,
                  output, 0, count);
         }
     }

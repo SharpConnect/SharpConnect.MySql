@@ -1,6 +1,8 @@
-﻿using MySqlPacket;
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using System.IO;
+using SharpConnect.MySql.Internal;
 
 namespace SharpConnect.MySql
 {
@@ -36,10 +38,17 @@ namespace SharpConnect.MySql
 
             string sql;
             string sql2;
-            //sql = "INSERT INTO ?t1 (?c1, ?c2) VALUES (?n1 , ?buffer1)";
-            sql = "INSERT INTO ?t1 SET ?c2 = ?buffer1";
-            //sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
-            //sql = "select * from ?t1 where ?c1 = 4579";
+
+
+            //please note the 
+            //field or column binding is extension, must start with ??
+
+            //sql = "INSERT INTO ??t1 (??c1, ??c2) VALUES (?n1 , ?buffer1)";
+            sql = "INSERT INTO ??t1 SET ??c2 = ?buffer1";
+            //sql = "select * from ??t1 where ??c1 > ?n1 and ?c1 < ?n2";
+            //sql = "select * from ??t1 where ??c1 = 4579";
+
+
             //sql = "select 1+?n3 as test1";
             //sql = "select concat(?s1,?s2,?s1,?s2,?s1,?s2,?s1,?s2,?s1,?s2) as test1";
             //sql = "select concat(?s1,?s2,?s1,?s2) as test1";
@@ -57,17 +66,17 @@ namespace SharpConnect.MySql
             int testN1 = 4520;
             int testN2 = 4530;
 
-            sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
+            sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             //sql = "select * from ?t1 where ?c1 = ?n2";
             //sql = "select ?n1+?n2 as test1";
             CommandParams cmd2Values = new CommandParams();
 
-            cmd2Values.AddTable("t1", "saveimage");
-            cmd2Values.AddField("c1", "idsaveImage");
+            cmd2Values.SetSqlPart("t1", "saveimage");
+            cmd2Values.SetSqlPart("c1", "idsaveImage");
             //cmd2Values.AddField("c2", "saveImagecol");
 
-            cmd2Values.AddValue("n1", testN1);
-            cmd2Values.AddValue("n2", testN2);
+            cmd2Values.AddWithValue("n1", testN1);
+            cmd2Values.AddWithValue("n2", testN2);
             //cmd2Values.AddValue("n3", 29.5);
 
             //cmd2Values.AddValue("s1", "foo");
@@ -135,18 +144,18 @@ namespace SharpConnect.MySql
                 testN1 += 10;
                 testN2 += 10;
 
-                cmd2Values.AddValue("n1", testN1);
-                cmd2Values.AddValue("n2", testN2);
+                cmd2Values.AddWithValue("n1", testN1);
+                cmd2Values.AddWithValue("n2", testN2);
 
                 //query.ExecuteQuery();
-                if (query.loadError != null)
+                if (query.LoadError != null)
                 {
-                    Console.WriteLine("Error : " + query.loadError.Message);
+                    Console.WriteLine("Error : " + query.LoadError.message);
                 }
-                else if (query.okPacket != null)
+                else if (query.OkPacket != null)
                 {
-                    Console.WriteLine("i : " + i + ", OkPacket : [affectedRow] >> " + query.okPacket._affectedRows);
-                    Console.WriteLine("i : " + i + ", OkPacket : [insertId] >> " + query.okPacket._insertId);
+                    Console.WriteLine("i : " + i + ", OkPacket : [affectedRow] >> " + query.OkPacket.affectedRows);
+                    Console.WriteLine("i : " + i + ", OkPacket : [insertId] >> " + query.OkPacket.insertId);
                 }
                 else
                 {
@@ -162,12 +171,12 @@ namespace SharpConnect.MySql
                     {
                         if (col_test == 0)
                         {
-                            Console.WriteLine("Result of " + "test1 : >> " + query._Cells[col_test] + " <<");
+                            Console.WriteLine("Result of " + "test1 : >> " + query.Cells[col_test] + " <<");
                         }
                         else
                         {
-                            Console.WriteLine("Id : " + query._Cells[col_idsaveImage]);
-                            Console.WriteLine("Buffer size : " + query._Cells[col_saveImageCol].myBuffer.Length);
+                            Console.WriteLine("Id : " + query.Cells[col_idsaveImage]);
+                            Console.WriteLine("Buffer size : " + query.Cells[col_saveImageCol].myBuffer.Length);
                         }
                         //Console.WriteLine(query.GetFieldData("myusercol1"));
                         if (++j > 3)
@@ -217,15 +226,15 @@ namespace SharpConnect.MySql
             sqlConn.UseConnectionPool = true;
             sqlConn.Open();
 
-            string sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
+            string sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             int testN1 = 4510;
             int testN2 = 4520;
 
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
-            command.Parameters.AddTable("t1", "saveimage");
-            command.Parameters.AddField("c1", "idsaveImage");
-            command.Parameters.AddValue("n1", testN1);
-            command.Parameters.AddValue("n2", testN2);
+            command.Parameters.SetSqlPart("t1", "saveimage");
+            command.Parameters.SetSqlPart("c1", "idsaveImage");
+            command.Parameters.AddWithValue("n1", testN1);
+            command.Parameters.AddWithValue("n2", testN2);
 
             var reader = command.ExecuteReader();
             int count = 0;
@@ -255,12 +264,13 @@ namespace SharpConnect.MySql
             sqlConn.UseConnectionPool = true;
             sqlConn.Open();
 
-            string sql = "INSERT INTO ?t1 SET ?c2 = ?buffer1";
+            string sql = "INSERT INTO ??t1 SET ??c2 = ?buffer1";
 
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
-            command.Parameters.AddTable("t1", "saveimage");
-            command.Parameters.AddField("c2", "saveImagecol");
-            command.Parameters.AddValue("buffer1", buffer);
+            command.Parameters.SetSqlPart("t1", "saveimage");
+            command.Parameters.SetSqlPart("c2", "saveImagecol");
+
+            command.Parameters.AddWithValue("buffer1", buffer);
 
             command.ExecuteNonQuery();
         }
@@ -274,15 +284,16 @@ namespace SharpConnect.MySql
             sqlConn.UseConnectionPool = true;
             sqlConn.Open();
 
-            string sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
+            string sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             int testN1 = 4510;
             int testN2 = 4520;
 
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
-            command.Parameters.AddTable("t1", "saveimage");
-            command.Parameters.AddField("c1", "idsaveImage");
-            command.Parameters.AddValue("n1", testN1);
-            command.Parameters.AddValue("n2", testN2);
+            command.Parameters.SetSqlPart("t1", "saveimage");
+            command.Parameters.SetSqlPart("c1", "idsaveImage");
+
+            command.Parameters.AddWithValue("n1", testN1);
+            command.Parameters.AddWithValue("n2", testN2);
         }
 
         public static void Test1_Delete()
@@ -294,27 +305,19 @@ namespace SharpConnect.MySql
             sqlConn.UseConnectionPool = true;
             sqlConn.Open();
 
-            string sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
+            string sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             int testN1 = 4510;
             int testN2 = 4520;
 
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
-            command.Parameters.AddTable("t1", "saveimage");
-            command.Parameters.AddField("c1", "idsaveImage");
-            command.Parameters.AddValue("n1", testN1);
-            command.Parameters.AddValue("n2", testN2);
+            command.Parameters.SetSqlPart("t1", "saveimage");
+            command.Parameters.SetSqlPart("c1", "idsaveImage");
+
+            command.Parameters.AddWithValue("n1", testN1);
+            command.Parameters.AddWithValue("n2", testN2);
         }
 
-        public static void Test2()
-        {
-
-            ConnectionConfig config = new ConnectionConfig("127.0.0.1", "root", "root", "test");
-            Connection conn = new Connection(config);
-            conn.ConnectAsync(() =>
-            {
-
-            });
-        }
+        
         static void TempHandshakeParse()
         {
             //MemoryStream ms = new MemoryStream(buffer);

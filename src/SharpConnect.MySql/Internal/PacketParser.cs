@@ -25,8 +25,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace MySqlPacket
+
+namespace SharpConnect.MySql.Internal
 {
+    //packet reader
+
     class PacketParser
     {
         BinaryReader _reader;
@@ -101,7 +104,7 @@ namespace MySqlPacket
         public byte[] ParseNullTerminatedBuffer()
         {
             _bList.Clear();
-            byte temp = _reader.ReadByte();
+            var temp = _reader.ReadByte();
             _bList.Add(temp);
             while (temp != 0x00)
             {
@@ -140,7 +143,7 @@ namespace MySqlPacket
                 //all values 0
                 dateTime = new DateTime(year, month, day, hour, minute, second, micro_second);
             }
-            else 
+            else
             {
                 if (dateLength >= 4)
                 {
@@ -149,7 +152,7 @@ namespace MySqlPacket
                     day = ParseUnsigned1();
                     dateTime = new DateTime(year, month, day);
                 }
-                if(dateLength >= 7)
+                if (dateLength >= 7)
                 {
                     hour = ParseUnsigned1();
                     minute = ParseUnsigned1();
@@ -191,24 +194,26 @@ namespace MySqlPacket
 
         public string ParseLengthCodedString()
         {
+            //var length = this.parseLengthCodedNumber();
             uint length = ParseLengthCodedNumber();
-            if (length == 0)
-            {
-                return null;
-            }
+            //if (length === null) {
+            //  return null;
+            //}
             return ParseString(length);
+            //return this.parseString(length);
         }
 
         public byte[] ParseLengthCodedBuffer()
         {
+            //var length = this.parseLengthCodedNumber();
             uint length = ParseLengthCodedNumber();
-            if (length == 0)
-            {
-                return null;
-            }
+            //  if (length === null) {
+            //    return null;
+            //  }
             return ParseBuffer((int)length);
+            //  return this.parseBuffer(length);
         }
-        
+
         public void ParseFiller(int length)
         {
             _stream.Position += length;
@@ -216,17 +221,46 @@ namespace MySqlPacket
 
         public uint ParseLengthCodedNumber()
         {
+            //if (this._offset >= this._buffer.length)
+            //    {
+            //        var err = new Error('Parser: read past end');
+            //        err.offset = (this._offset - this._packetOffset);
+            //        err.code = 'PARSER_READ_PAST_END';
+            //        throw err;
+            //    }
             if (Position >= Length)
             {
                 throw new Exception("Parser: read past end");
             }
+            //    var bits = this._buffer[this._offset++];
 
             byte bits = _reader.ReadByte();
+
+            //    if (bits <= 250)
+            //    {
+            //        return bits;
+            //    }
 
             if (bits <= 250)
             {
                 return bits;
             }
+            //    switch (bits)
+            //    {
+            //        case 251:
+            //            return null;
+            //        case 252:
+            //            return this.parseUnsignedNumber(2);
+            //        case 253:
+            //            return this.parseUnsignedNumber(3);
+            //        case 254:
+            //            break;
+            //        default:
+            //            var err = new Error('Unexpected first byte' + (bits ? ': 0x' + bits.toString(16) : ''));
+            //            err.offset = (this._offset - this._packetOffset - 1);
+            //            err.code = 'PARSER_BAD_LENGTH_BYTE';
+            //            throw err;
+            //    }
 
             switch (bits)
             {
@@ -239,8 +273,6 @@ namespace MySqlPacket
             //    var low = this.parseUnsignedNumber(4);
             //    var high = this.parseUnsignedNumber(4);
             //    var value;
-
-            //TODO : Review here again
             uint low = ParseUnsigned4();
             uint high = ParseUnsigned4();
             return 0;
@@ -314,7 +346,7 @@ namespace MySqlPacket
         {
             return _reader.ReadDecimal();
         }
-        
+
         public long ParseInt64()
         {
             return _reader.ReadInt64();
@@ -350,7 +382,39 @@ namespace MySqlPacket
                     }
                 default:
                     throw new Exception("parseUnsignedNumber: Supports only up to 4 bytes");
+
             }
+            //if (bytes === 1)
+            //{
+            //    return this._buffer[this._offset++];
+            //}
+
+            //var buffer = this._buffer;
+            //var offset = this._offset + bytes - 1;
+            //var value = 0;
+
+            //if (bytes > 4)
+            //{
+            //    var err = new Error('parseUnsignedNumber: Supports only up to 4 bytes');
+            //    err.offset = (this._offset - this._packetOffset - 1);
+            //    err.code = 'PARSER_UNSIGNED_TOO_LONG';
+            //    throw err;
+            //}
+
+
+            //long start = Position;
+            //long end = start + n - 1;
+
+            //while (offset >= this._offset)
+            //{
+            //    value = ((value << 8) | buffer[offset]) >>> 0;
+            //    offset--;
+            //}
+
+
+            //this._offset += bytes;
+            //return value;
+            //return value;
         }
 
         public string ParsePacketTerminatedString()
@@ -376,11 +440,15 @@ namespace MySqlPacket
             return _encoding.GetString(_reader.ReadBytes((int)length));
         }
 
-        //unfinished
         public List<Geometry> ParseGeometryValue()
         {
+            //var buffer = this.parseLengthCodedBuffer();
+            //var offset = 4;
             byte[] buffer = ParseLengthCodedBuffer();
             int offset = 4;
+            //if (buffer === null || !buffer.length) {
+            //  return null;
+            //}
             if (buffer == null)
             {
                 return null;
@@ -401,7 +469,6 @@ namespace MySqlPacket
             return result;
         }
 
-        //unfinished
         void ParseGeometry(List<Geometry> result, byte[] buffer, int byteOrder, int wkbType, int offset)
         {
             double x;
@@ -497,7 +564,6 @@ namespace MySqlPacket
             }
         }
 
-        //unfinished
         int ReadInt32LE(byte[] buffer, int start)
         {
             //byte[] temp = new byte[n];
@@ -517,19 +583,16 @@ namespace MySqlPacket
             return 0;
         }
 
-        //unfinished
         int ReadInt32BE(byte[] buffer, int start)
         {
             return 0;
         }
 
-        //unfinished
         double ReadDoubleLE(byte[] buffer, int start)
         {
             return 0;
         }
 
-        //unfinished
         double ReadDoubleBE(byte[] buffer, int start)
         {
             return 0;
@@ -542,7 +605,7 @@ namespace MySqlPacket
 
         public bool ReachedPacketEnd()
         {
-            return Position == _startPosition + _packetLength;
+            return this.Position == _startPosition + _packetLength;
         }
 
         public byte[] ToArray()

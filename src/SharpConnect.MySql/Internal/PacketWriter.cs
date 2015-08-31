@@ -24,25 +24,26 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
     class PacketWriter
     {
         MyBinaryWriter _writer;
         byte _packetNumber;
         long _startPacketPosition;
+        long _maxAllowedLength = MAX_PACKET_LENGTH;
+        Encoding _encoding;
+        byte[] _headerBuffer = new byte[4];//reusable header buffer
 
-        const int _bit16 = 1 << 16;//(int)Math.Pow(2, 16);
-        const int _bit24 = 1 << 24;//(int)Math.Pow(2, 24);
+
+        const int BIT_16 = (int)1 << 16;//(int)Math.Pow(2, 16);
+        const int BIT_24 = (int)1 << 24;//(int)Math.Pow(2, 24);
         // The maximum precision JS Numbers can hold precisely
         // Don't panic: Good enough to represent byte values up to 8192 TB
-        const long _ieee754Binary64Precision = (long)1 << 53;
-        const int _maxPacketLength = (1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
+        const long IEEE_754_BINARY_64_PRECISION = (long)1 << 53;
+        const int MAX_PACKET_LENGTH = (int)(1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
 
-        long _maxAllowedLength = _maxPacketLength;
-        Encoding _encoding;
 
-        byte[] _headerBuffer = new byte[4];//reusable header buffer
 
         public PacketWriter(Encoding encoding)
         {
@@ -96,11 +97,15 @@ namespace MySqlPacket
 
         public void WriteHeader(PacketHeader header)
         {
+            //  var packets  = Math.floor(this._buffer.length / MAX_PACKET_LENGTH) + 1;
+            //  var buffer   = this._buffer;
+            //int maxPacketLength = MAX_PACKET_LENGTH;
 
             long curPacketLength = CurrentPacketLength();
+
             dbugConsole.WriteLine("Current Packet Length = " + curPacketLength);
 
-            int packets = (int)(curPacketLength / _maxPacketLength) + 1;
+            int packets = (int)(curPacketLength / MAX_PACKET_LENGTH) + 1;
             if (packets == 1)
             {
                 if (header.Length > _maxAllowedLength)
@@ -122,19 +127,19 @@ namespace MySqlPacket
                 int startContentPos = (int)(_startPacketPosition + 4);
                 int offset = 0;
                 byte startPacketNum = header.PacketNumber;
-                byte[] currentPacketBuff = new byte[_maxPacketLength];
-                
+                byte[] currentPacketBuff = new byte[MAX_PACKET_LENGTH];
+
                 for (int packet = 0; packet < packets; packet++)
                 {
                     //    this._offset = packet * (MAX_PACKET_LENGTH + 4);
-                    offset = packet * _maxPacketLength + startContentPos;
+                    offset = packet * MAX_PACKET_LENGTH + startContentPos;
                     //    var isLast = (packet + 1 === packets);
                     //    var packetLength = (isLast)
                     //      ? buffer.length % MAX_PACKET_LENGTH
                     //      : MAX_PACKET_LENGTH;
                     int packetLength = (packet + 1 == packets)
-                        ? (int)((curPacketLength - 4) % _maxPacketLength)
-                        : _maxPacketLength;
+                        ? (int)((curPacketLength - 4) % MAX_PACKET_LENGTH)
+                        : MAX_PACKET_LENGTH;
                     //    var packetNumber = parser.incrementPacketNumber();
 
                     //    this.writeUnsignedNumber(3, packetLength);
@@ -144,7 +149,7 @@ namespace MySqlPacket
                     //    var end   = start + packetLength;
 
                     //    this.writeBuffer(buffer.slice(start, end));
-                    int start = packet * (_maxPacketLength + 4);//+4 for add header
+                    int start = packet * (MAX_PACKET_LENGTH + 4);//+4 for add header
 
                     //byte[] encodeData = new byte[4];
                     EncodeUnsignedNumber0_3(_headerBuffer, (uint)packetLength);
@@ -208,18 +213,22 @@ namespace MySqlPacket
             {
                 case 0: break;
                 case 1:
+
                     _writer.Write((byte)(value & 0xff));
                     break;
                 case 2:
+
                     _writer.Write((byte)(value & 0xff));
                     _writer.Write((byte)((value >> 8) & 0xff));
                     break;
                 case 3:
+
                     _writer.Write((byte)(value & 0xff));
                     _writer.Write((byte)((value >> 8) & 0xff));
                     _writer.Write((byte)((value >> 16) & 0xff));
                     break;
                 case 4:
+
                     _writer.Write((byte)(value & 0xff));
                     _writer.Write((byte)((value >> 8) & 0xff));
                     _writer.Write((byte)((value >> 16) & 0xff));
@@ -238,6 +247,14 @@ namespace MySqlPacket
             }
         }
 
+        //static void EncodeUnsignedNumber(byte[] outputBuffer, int start, int length, uint value)
+        //{
+        //    int lim = start + length;
+        //    for (var i = start; i < lim; i++)
+        //    {
+        //        outputBuffer[i] = (byte)((value >> (i * 8)) & 0xff);
+        //    }
+        //}
         static void EncodeUnsignedNumber0_3(byte[] outputBuffer, uint value)
         {
             //start at 0
@@ -312,13 +329,13 @@ namespace MySqlPacket
                 _writer.Write((byte)value);
                 return;
             }
-            if (value > _ieee754Binary64Precision)
+            if (value > IEEE_754_BINARY_64_PRECISION)
             {
                 throw new Exception("writeLengthCodedNumber: JS precision range exceeded, your" +
                   "number is > 53 bit: " + value);
             }
 
-            if (value <= _bit16)
+            if (value <= BIT_16)
             {
 
                 _writer.Write((byte)252); //endcode
@@ -329,7 +346,7 @@ namespace MySqlPacket
                 _writer.Write((byte)(value & 0xff));
                 _writer.Write((byte)((value >> 8) & 0xff));
             }
-            else if (value <= _bit24)
+            else if (value <= BIT_24)
             {
                 _writer.Write((byte)253); //encode
 
@@ -358,6 +375,7 @@ namespace MySqlPacket
                 //this._buffer[this._offset++] = 0;
                 _writer.Write((byte)0);
             }
+
         }
 
         public void WriteLengthCodedBuffer(byte[] value)
@@ -369,7 +387,10 @@ namespace MySqlPacket
 
         public void WriteLengthCodedString(string value)
         {
-
+            //          if (value === null) {
+            //  this.writeLengthCodedNumber(null);
+            //  return;
+            //}
             if (value == null)
             {
                 WriteLengthCodedNull();
@@ -382,7 +403,8 @@ namespace MySqlPacket
             //var bytes = Buffer.byteLength(value, 'utf-8');
             //this.writeLengthCodedNumber(bytes);
 
-            byte[] buff = _encoding.GetBytes(value);
+            //TODO: review here , always UTF8 ?
+            byte[] buff = Encoding.UTF8.GetBytes(value);
             WriteLengthCodedNumber(buff.Length);
 
             //if (!bytes) {
@@ -392,6 +414,9 @@ namespace MySqlPacket
             {
                 return;
             }
+            //this._allocate(bytes);
+            //this._buffer.write(value, this._offset, 'utf-8');
+            //this._offset += bytes;
             _writer.Write(buff);
         }
 
@@ -407,13 +432,13 @@ namespace MySqlPacket
             return _writer.ToArray();
         }
     }
-    
+
     class MyBinaryWriter : IDisposable
     {
         readonly BinaryWriter _writer;
         int _offset;
         MemoryStream _ms;
-        
+
         public MyBinaryWriter()
         {
             _ms = new MemoryStream();
@@ -497,7 +522,7 @@ namespace MySqlPacket
         }
         public byte[] ToArray()
         {
-            byte[] output = new byte[_offset];
+            var output = new byte[_offset];
             _ms.Position = 0;
             Read(output, 0, _offset);
             return output;

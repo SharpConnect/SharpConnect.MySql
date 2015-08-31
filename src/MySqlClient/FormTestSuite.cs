@@ -56,12 +56,6 @@ namespace MySqlClient
             dbugInternal.Test1();
 #endif
         }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-#if DEBUG
-            dbugInternal.Test2();
-#endif
-        }
+         
     }
 }

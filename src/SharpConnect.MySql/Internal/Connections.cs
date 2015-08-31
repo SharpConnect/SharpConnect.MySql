@@ -21,16 +21,12 @@
 //THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
-using System.Text;
-using System.IO;
-
-using System.Threading;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
+using System.Threading;
 
-
-namespace MySqlPacket
+namespace SharpConnect.MySql.Internal
 {
     static class dbugConsole
     {
@@ -60,6 +56,7 @@ namespace MySqlPacket
         PacketParser _parser;
         PacketWriter _writer;
 
+        //TODO: review how to clear remaining buffer again
         byte[] _tmpForClearRecvBuffer; //for clear buffer 
 
         /// <summary>
@@ -71,9 +68,16 @@ namespace MySqlPacket
         {
             config = userConfig;
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            //protocol = null;
             connectionCall = false;
             state = ConnectionState.Disconnected;
 
+            //this.config = options.config;
+            //this._socket        = options.socket;
+            //this._protocol      = new Protocol({config: this.config, connection: this});
+            //this._connectCalled = false;
+            //this.state          = "disconnected";
+            //this.threadId       = null;
             switch ((CharSets)config.charsetNumber)
             {
                 case CharSets.UTF8_GENERAL_CI:
@@ -149,28 +153,30 @@ namespace MySqlPacket
         {
             _query = CreateQuery("SELECT @@global.max_allowed_packet", null);
             _query.Execute();
-            if (_query.loadError != null)
+            //query = CreateQuery();
+            //query.ExecuteQuerySql("SELECT @@global.max_allowed_packet");
+            if (_query.LoadError != null)
             {
-                dbugConsole.WriteLine("Error Message : " + _query.loadError.Message);
+                dbugConsole.WriteLine("Error Message : " + _query.LoadError.message);
             }
-            else if (_query.okPacket != null)
+            else if (_query.OkPacket != null)
             {
-                dbugConsole.WriteLine("OkPacket : " + _query.okPacket._affectedRows);
+                dbugConsole.WriteLine("OkPacket : " + _query.OkPacket.affectedRows);
             }
             else
             {
                 if (_query.ReadRow())
                 {
-                    _maxPacketSize = _query._Cells[0].myInt64;
+                    _maxPacketSize = _query.Cells[0].myInt64;
                 }
             }
         }
 
         public Query CreateQuery(string sql, CommandParams command)//testing
         {
-            var query = new Query(this, sql, command);
-            return query;
+            return new Query(this, sql, command);
         }
+
 
         void CreateNewSocket()
         {
@@ -202,6 +208,8 @@ namespace MySqlPacket
 
         internal void ClearRemainingInputBuffer()
         {
+            //TODO: review here again
+
             int lastReceive = 0;
             long allReceive = 0;
             int i = 0;
@@ -217,6 +225,7 @@ namespace MySqlPacket
                     lastReceive = socket.Receive(_tmpForClearRecvBuffer);
                     allReceive += lastReceive;
                     i++;
+                    //TODO: review here again
                     dbugConsole.WriteLine("i : " + i + ", lastReceive : " + lastReceive);
                     Thread.Sleep(100);
                 }
@@ -231,10 +240,19 @@ namespace MySqlPacket
 
         static byte[] MakeToken(string password, byte[] scramble)
         {
+            // password must be in binary format, not utf8
+            //var stage1 = sha1((new Buffer(password, "utf8")).toString("binary"));
+            //var stage2 = sha1(stage1);
+            //var stage3 = sha1(scramble.toString('binary') + stage2);
+            //return xor(stage3, stage1);
             var buff1 = Encoding.UTF8.GetBytes(password.ToCharArray());
+
             var sha = new System.Security.Cryptography.SHA1Managed();
+            // This is one implementation of the abstract class SHA1.
+            //scramble = new byte[] { 52, 78, 110, 96, 117, 75, 85, 75, 87, 83, 121, 44, 106, 82, 62, 123, 113, 73, 84, 77 };
             byte[] stage1 = sha.ComputeHash(buff1);
             byte[] stage2 = sha.ComputeHash(stage1);
+            //merge scramble and stage2 again
             byte[] combineFor3 = ConcatBuffer(scramble, stage2);
             byte[] stage3 = sha.ComputeHash(combineFor3);
 
@@ -259,6 +277,8 @@ namespace MySqlPacket
             }
             return result;
         }
+
+
     }
 
     class ConnectionConfig
@@ -298,19 +318,22 @@ namespace MySqlPacket
         public ConnectionConfig(string username, string password)
         {
             SetDefault();
-            user = username;
+            this.user = username;
             this.password = password;
         }
         public ConnectionConfig(string host, string username, string password, string database)
         {
             SetDefault();
-            user = username;
+            this.user = username;
             this.password = password;
             this.host = host;
             this.database = database;
         }
         void SetDefault()
         {
+            //if (typeof options === 'string') {
+            //  options = ConnectionConfig.parseUrl(options);
+            //}
             host = "127.0.0.1";//this.host = options.host || 'localhost';
             port = 3306;//this.port = options.port || 3306;
             //this.localAddress       = options.localAddress;
@@ -371,9 +394,10 @@ namespace MySqlPacket
         {
             this.host = host;
             this.port = port;
-            user = username;
+            this.user = username;
             this.password = password;
             this.database = database;
         }
     }
+
 }
