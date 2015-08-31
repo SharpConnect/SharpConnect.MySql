@@ -240,13 +240,21 @@ namespace SharpConnect.MySql.Internal
                     MySqlStringToHexUtils.ConvertByteArrayToHexWithMySqlPrefix(data.myBuffer, stbuilder);
                     break;
                 case Types.DATE:
-                case Types.DATETIME:
                 case Types.NEWDATE:
+                    stbuilder.Append('`');
+                    stbuilder.Append(data.myDateTime.ToString("yyyy-MM-DD"));
+                    stbuilder.Append('`');
+                    break;
+                case Types.DATETIME:
+                    stbuilder.Append('`');
+                    stbuilder.Append(data.myDateTime.ToString("yyyy-MM-DD hh:mm:ss"));
+                    stbuilder.Append('`');
+                    break;
                 case Types.TIMESTAMP:
                 case Types.TIME:
                     //TODO: review here
                     stbuilder.Append('`');
-                    stbuilder.Append(data.myDateTime.ToString());
+                    stbuilder.Append(data.myDateTime.ToString("hh:mm:ss"));
                     stbuilder.Append('`');
                     break;
                 case Types.STRING:
