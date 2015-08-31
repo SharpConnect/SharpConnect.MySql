@@ -55,11 +55,9 @@ namespace SharpConnect.MySql.Internal
 
         SqlStringTemplate sqlStrTemplate;
 
-        //---------------
-        uint _prepareStmtId;
-        bool _isPrepared;
-        MyStructData[] _preparedValues;
-        //---------------
+
+        PreparedContext _prepareContext;
+
 
 
         byte[] receiveBuffer;
@@ -104,7 +102,7 @@ namespace SharpConnect.MySql.Internal
         {
             get
             {
-                if (_isPrepared)
+                if (_prepareContext != null)
                 {
                     return lastPrepareRow.Cells;
                 }
@@ -117,7 +115,7 @@ namespace SharpConnect.MySql.Internal
 
         public void Execute()
         {
-            if (_isPrepared)
+            if (_prepareContext != null)
             {
                 ExecutePrepareQuery();
             }
@@ -137,23 +135,26 @@ namespace SharpConnect.MySql.Internal
             queryPacket.WritePacket(writer);
             SendPacket(writer.ToArray());
 
-            _isPrepared = false;
+            _prepareContext = null;
             ParseReceivePacket();
         }
         public void Prepare()
         {
             //prepare sql query
-            this._prepareStmtId = 0;//reset  
-            _isPrepared = true;
+
+
+            this._prepareContext = null;
+
             if (cmdParams == null)
             {
                 return;
             }
 
             writer.Reset();
-            string realSql = sqlStrTemplate.BindValues(cmdParams, true);
 
+            string realSql = sqlStrTemplate.BindValues(cmdParams, true);
             ComPrepareStatementPacket preparePacket = new ComPrepareStatementPacket(realSql);
+
             preparePacket.WritePacket(writer);
             SendPacket(writer.ToArray());
 
@@ -161,23 +162,25 @@ namespace SharpConnect.MySql.Internal
             okPreparePacket = ParsePrepareResponse();
             if (okPreparePacket != null)
             {
+                _prepareContext = new PreparedContext(okPreparePacket.statement_id, sqlStrTemplate);
+
                 if (okPreparePacket.num_params > 0)
                 {
-
-                    this.tableHeader = new TableHeader();
+                    var tableHeader = new TableHeader(); 
                     tableHeader.TypeCast = typeCast;
                     tableHeader.NestTables = nestTables;
                     tableHeader.ConnConfig = conn.config;
-
                     for (int i = 0; i < okPreparePacket.num_params; i++)
                     {
                         FieldPacket field = ParseColumn();
                         tableHeader.AddField(field);
                     }
 
-                    _preparedValues = new MyStructData[okPreparePacket.num_params];
+                    //set table after the table is ready!
+                    _prepareContext.Setup(tableHeader);
 
                     ParseEOF();
+
                 }
                 if (okPreparePacket.num_columns > 0)
                 {
@@ -194,9 +197,6 @@ namespace SharpConnect.MySql.Internal
                     ParseEOF();
                 }
 
-                //-------------------
-                _prepareStmtId = okPreparePacket.statement_id;
-                //-------------------
             }
 
         }
@@ -207,24 +207,23 @@ namespace SharpConnect.MySql.Internal
                 return;
             }
 
-            if (!_isPrepared)
+            if (_prepareContext == null)
             {
                 ExecuteNonPrepare();
                 return;
             }
 
-            if (_prepareStmtId == 0)
+            if (_prepareContext.statementId == 0)
             {
                 throw new Exception("exec Prepare() first");
             }
             //---------------------------------------------------------------------------------
-            _isPrepared = true;
+
 
             writer.Reset();
 
-            //fill prepared values
-            cmdParams.ExtractBoundData(sqlStrTemplate, _preparedValues);
-            var excute = new ComExecutePrepareStatement(_prepareStmtId, _preparedValues);
+            //fill prepared values 
+            var excute = new ComExecutePrepareStatement(_prepareContext.statementId, _prepareContext.PrepareBoundData(cmdParams));
 
             excute.WritePacket(writer);
 
@@ -264,8 +263,9 @@ namespace SharpConnect.MySql.Internal
                     }
                 default:
                     {
-                        if (_isPrepared)
-                        {
+                        if (_prepareContext != null)
+                        {   
+
                             lastPrepareRow.ReuseSlots();
                             lastPrepareRow.ParsePacketHeader(parser);
 
@@ -506,7 +506,38 @@ namespace SharpConnect.MySql.Internal
 
     }
 
+    class PreparedContext
+    {
+        TableHeader _tableHeader;
+        SqlStringTemplate _sqlStringTemplate;
+        MyStructData[] _preparedValues;
+        public uint statementId;
 
+        public PreparedContext(uint statementId, SqlStringTemplate sqlStringTemplate)
+        {
+            this.statementId = statementId;
+            _sqlStringTemplate = sqlStringTemplate;
+        }
+        public void Setup(TableHeader tableHeader)
+        {
+            _tableHeader = tableHeader;
+            _preparedValues = new MyStructData[tableHeader.ColumnCount];
+        }
+        public MyStructData[] PrepareBoundData(CommandParams cmdParams)
+        {
+            cmdParams.ExtractBoundData(_sqlStringTemplate, _preparedValues);
+
+            //1. check proper type and 
+            //2. check all values are in its range
+            
+
+
+
+
+            return _preparedValues;
+        }
+
+    }
     class TableHeader
     {
         List<FieldPacket> fields;

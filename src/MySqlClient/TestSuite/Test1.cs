@@ -231,6 +231,69 @@ namespace MySqlTest
             conn.Close();
             Report.WriteLine("ok");
         }
-       
+        [Test]
+        public static void T_StringData2_DataIsTooLong()
+        {
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+
+            {
+                string sql = "drop table if exists test001";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
+
+            {
+                string sql = "create table test001(col_id  int(10) unsigned not null auto_increment, myname varchar(20), col1 char(2)," +
+                "col2 varchar(10), primary key(col_id) )";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
+
+            {
+                string sql = "insert into test001(myname,col1,col2) values(?myname,?col1,?col2)";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("myname", "OKOK!");
+                cmd.Parameters.AddWithValue("col1", "OK1"); //width =2 ,so  in MySQL 5.6 strict mode, err-> data is too long for column
+                cmd.Parameters.AddWithValue("col2", "1000");
+                cmd.ExecuteNonQuery();
+            }
+            conn.Close();
+            Report.WriteLine("ok");
+        }
+
+        [Test]
+        public static void T_StringData3()
+        {
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+
+            {
+                string sql = "drop table if exists test001";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
+
+            {
+                string sql = "create table test001(col_id  int(10) unsigned not null auto_increment, myname varchar(20), col1 char(2)," +
+                "col2 varchar(10), primary key(col_id) )";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
+
+            {
+                string sql = "insert into test001(myname,col1,col2) values(?myname,?col1,?col2)";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.Prepare();
+                cmd.Parameters.AddWithValue("myname", "OKOK!");
+                cmd.Parameters.AddWithValue("col1", "OK1"); //width =2 ,so  in MySQL 5.6 strict mode, err-> data is too long for column
+                cmd.Parameters.AddWithValue("col2", "1000");
+                cmd.ExecuteNonQuery();
+            }
+            conn.Close();
+            Report.WriteLine("ok");
+        }
     }
 }
