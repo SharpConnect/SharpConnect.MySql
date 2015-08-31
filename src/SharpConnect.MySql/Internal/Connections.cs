@@ -50,52 +50,39 @@ namespace MySqlPacket
     partial class Connection
     {
         public ConnectionConfig config;
-
-
         public bool connectionCall;
         public ConnectionState state;
         public uint threadId;
-        HandshakePacket handshake;
-
         public Socket socket;
 
+        HandshakePacket _handshake;
+        Query _query;
+        PacketParser _parser;
+        PacketWriter _writer;
 
-        Query query;
-
-        PacketParser parser;
-        PacketWriter writer;
-
-        //TODO: review how to clear remaining buffer again
-        byte[] tmpForClearRecvBuffer; //for clear buffer 
+        byte[] _tmpForClearRecvBuffer; //for clear buffer 
 
         /// <summary>
         /// max allowed packet size
         /// </summary>
-        long maxPacketSize = 0;
+        long _maxPacketSize = 0;
 
         public Connection(ConnectionConfig userConfig)
         {
-            this.config = userConfig;
+            config = userConfig;
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            //protocol = null;
             connectionCall = false;
             state = ConnectionState.Disconnected;
 
-            //this.config = options.config;
-            //this._socket        = options.socket;
-            //this._protocol      = new Protocol({config: this.config, connection: this});
-            //this._connectCalled = false;
-            //this.state          = "disconnected";
-            //this.threadId       = null;
             switch ((CharSets)config.charsetNumber)
             {
                 case CharSets.UTF8_GENERAL_CI:
-                    parser = new PacketParser(Encoding.UTF8);
-                    writer = new PacketWriter(Encoding.UTF8);
+                    _parser = new PacketParser(Encoding.UTF8);
+                    _writer = new PacketWriter(Encoding.UTF8);
                     break;
                 case CharSets.ASCII:
-                    parser = new PacketParser(Encoding.ASCII);
-                    writer = new PacketWriter(Encoding.ASCII);
+                    _parser = new PacketParser(Encoding.ASCII);
+                    _writer = new PacketWriter(Encoding.ASCII);
                     break;
                 default:
                     throw new NotImplementedException();
@@ -117,83 +104,67 @@ namespace MySqlPacket
             int count = socket.Receive(buffer);
             if (count > 0)
             {
-                writer.Reset();
-                parser.LoadNewBuffer(buffer, count);
-                handshake = new HandshakePacket();
-                handshake.ParsePacket(parser);
-                this.threadId = handshake.threadId;
+                _writer.Reset();
+                _parser.LoadNewBuffer(buffer, count);
+                _handshake = new HandshakePacket();
+                _handshake.ParsePacket(_parser);
+                threadId = _handshake.threadId;
 
                 byte[] token = MakeToken(config.password,
-                    GetScrollbleBuffer(handshake.scrambleBuff1, handshake.scrambleBuff2));
+                    GetScrollbleBuffer(_handshake.scrambleBuff1, _handshake.scrambleBuff2));
 
-                writer.IncrementPacketNumber();
+                _writer.IncrementPacketNumber();
 
                 //------------------------------------------
                 var authPacket = new ClientAuthenticationPacket();
-                authPacket.SetValues(config.user, token, config.database, handshake.protocol41);
-                authPacket.WritePacket(writer);
+                authPacket.SetValues(config.user, token, config.database, _handshake.protocol41);
+                authPacket.WritePacket(_writer);
 
-                byte[] sendBuff = writer.ToArray();
+                byte[] sendBuff = _writer.ToArray();
                 byte[] receiveBuff = new byte[512];
                 //-------------------------------------------
                 //send data
                 int sendNum = socket.Send(sendBuff);
                 int receiveNum = socket.Receive(receiveBuff);
 
-                parser.LoadNewBuffer(receiveBuff, receiveNum);
+                _parser.LoadNewBuffer(receiveBuff, receiveNum);
                 if (receiveBuff[4] == 255)
                 {
                     ErrPacket errPacket = new ErrPacket();
-                    errPacket.ParsePacket(parser);
+                    errPacket.ParsePacket(_parser);
                     return;
                 }
                 else
                 {
-                    OkPacket okPacket = new OkPacket(handshake.protocol41);
-                    okPacket.ParsePacket(parser);
+                    OkPacket okPacket = new OkPacket(_handshake.protocol41);
+                    okPacket.ParsePacket(_parser);
                 }
-                writer.Reset();
+                _writer.Reset();
                 GetMaxAllowedPacket();
-                writer.SetMaxAllowedPacket(maxPacketSize);
+                _writer.SetMaxAllowedPacket(_maxPacketSize);
             }
         }
 
         void GetMaxAllowedPacket()
         {
-            query = CreateQuery("SELECT @@global.max_allowed_packet", null);
-            query.Execute();
-            //query = CreateQuery();
-            //query.ExecuteQuerySql("SELECT @@global.max_allowed_packet");
-            if (query.loadError != null)
+            _query = CreateQuery("SELECT @@global.max_allowed_packet", null);
+            _query.Execute();
+            if (_query.loadError != null)
             {
-                dbugConsole.WriteLine("Error Message : " + query.loadError.message);
+                dbugConsole.WriteLine("Error Message : " + _query.loadError.Message);
             }
-            else if (query.okPacket != null)
+            else if (_query.okPacket != null)
             {
-                dbugConsole.WriteLine("OkPacket : " + query.okPacket.affectedRows);
+                dbugConsole.WriteLine("OkPacket : " + _query.okPacket._affectedRows);
             }
             else
             {
-                if (query.ReadRow())
+                if (_query.ReadRow())
                 {
-                    maxPacketSize = query.Cells[0].myInt64;
+                    _maxPacketSize = _query._Cells[0].myInt64;
                 }
             }
         }
-
-        //public Query CreateQuery(string sql, CommandParameters values)
-        //{
-        //    //var query = Connection.createQuery(sql, values, cb);
-        //    //query = new Query(parser, writer, sql, values);
-        //    //query.typeCast = config.typeCast;
-        //    //query.Start(socket, handshake.protocol41, config);
-        //    //if (socket == null)
-        //    //{
-        //    //    CreateNewSocket();
-        //    //}
-        //    var query = new Query(this, sql, values);
-        //    return query;
-        //}
 
         public Query CreateQuery(string sql, CommandParams command)//testing
         {
@@ -201,24 +172,19 @@ namespace MySqlPacket
             return query;
         }
 
-        //public Query CreateQuery()//testing
-        //{
-        //    return new Query(this);
-        //}
-
         void CreateNewSocket()
         {
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            this.Connect();
+            Connect();
         }
 
         public void Disconnect()
         {
-            writer.Reset();
+            _writer.Reset();
             ComQuitPacket quitPacket = new ComQuitPacket();
-            quitPacket.WritePacket(writer);
+            quitPacket.WritePacket(_writer);
 
-            int send = socket.Send(writer.ToArray());
+            int send = socket.Send(_writer.ToArray());
             socket.Disconnect(true);
         }
         public bool IsStoredInConnPool { get; set; }
@@ -226,34 +192,31 @@ namespace MySqlPacket
 
         internal PacketParser PacketParser
         {
-            get { return parser; }
+            get { return _parser; }
         }
         internal PacketWriter PacketWriter
         {
-            get { return writer; }
+            get { return _writer; }
         }
-        internal bool IsProtocol41 { get { return handshake.protocol41; } }
+        internal bool IsProtocol41 { get { return _handshake.protocol41; } }
 
         internal void ClearRemainingInputBuffer()
         {
-            //TODO: review here again
-
             int lastReceive = 0;
             long allReceive = 0;
             int i = 0;
             if (socket.Available > 0)
             {
-                if (tmpForClearRecvBuffer == null)
+                if (_tmpForClearRecvBuffer == null)
                 {
-                    tmpForClearRecvBuffer = new byte[300000];//in test case socket recieve lower than 300,000 bytes
+                    _tmpForClearRecvBuffer = new byte[300000];//in test case socket recieve lower than 300,000 bytes
                 }
 
                 while (socket.Available > 0)
                 {
-                    lastReceive = socket.Receive(tmpForClearRecvBuffer);
+                    lastReceive = socket.Receive(_tmpForClearRecvBuffer);
                     allReceive += lastReceive;
                     i++;
-                    //TODO: review here again
                     dbugConsole.WriteLine("i : " + i + ", lastReceive : " + lastReceive);
                     Thread.Sleep(100);
                 }
@@ -268,19 +231,10 @@ namespace MySqlPacket
 
         static byte[] MakeToken(string password, byte[] scramble)
         {
-            // password must be in binary format, not utf8
-            //var stage1 = sha1((new Buffer(password, "utf8")).toString("binary"));
-            //var stage2 = sha1(stage1);
-            //var stage3 = sha1(scramble.toString('binary') + stage2);
-            //return xor(stage3, stage1);
             var buff1 = Encoding.UTF8.GetBytes(password.ToCharArray());
-
             var sha = new System.Security.Cryptography.SHA1Managed();
-            // This is one implementation of the abstract class SHA1.
-            //scramble = new byte[] { 52, 78, 110, 96, 117, 75, 85, 75, 87, 83, 121, 44, 106, 82, 62, 123, 113, 73, 84, 77 };
             byte[] stage1 = sha.ComputeHash(buff1);
             byte[] stage2 = sha.ComputeHash(stage1);
-            //merge scramble and stage2 again
             byte[] combineFor3 = ConcatBuffer(scramble, stage2);
             byte[] stage3 = sha.ComputeHash(combineFor3);
 
@@ -305,8 +259,6 @@ namespace MySqlPacket
             }
             return result;
         }
-
-
     }
 
     class ConnectionConfig
@@ -346,22 +298,19 @@ namespace MySqlPacket
         public ConnectionConfig(string username, string password)
         {
             SetDefault();
-            this.user = username;
+            user = username;
             this.password = password;
         }
         public ConnectionConfig(string host, string username, string password, string database)
         {
             SetDefault();
-            this.user = username;
+            user = username;
             this.password = password;
             this.host = host;
             this.database = database;
         }
         void SetDefault()
         {
-            //if (typeof options === 'string') {
-            //  options = ConnectionConfig.parseUrl(options);
-            //}
             host = "127.0.0.1";//this.host = options.host || 'localhost';
             port = 3306;//this.port = options.port || 3306;
             //this.localAddress       = options.localAddress;
@@ -422,10 +371,9 @@ namespace MySqlPacket
         {
             this.host = host;
             this.port = port;
-            this.user = username;
+            user = username;
             this.password = password;
             this.database = database;
         }
     }
-
 }

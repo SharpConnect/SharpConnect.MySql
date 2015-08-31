@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using MySqlPacket;
+using System;
 using System.IO;
-using MySqlPacket;
 
 namespace SharpConnect.MySql
 {
@@ -62,7 +60,7 @@ namespace SharpConnect.MySql
             sql = "select * from ?t1 where ?c1 > ?n1 and ?c1 < ?n2";
             //sql = "select * from ?t1 where ?c1 = ?n2";
             //sql = "select ?n1+?n2 as test1";
-            CommandParams cmd2Values = new CommandParams(sql);
+            CommandParams cmd2Values = new CommandParams();
 
             cmd2Values.AddTable("t1", "saveimage");
             cmd2Values.AddField("c1", "idsaveImage");
@@ -143,12 +141,12 @@ namespace SharpConnect.MySql
                 //query.ExecuteQuery();
                 if (query.loadError != null)
                 {
-                    Console.WriteLine("Error : " + query.loadError.message);
+                    Console.WriteLine("Error : " + query.loadError.Message);
                 }
                 else if (query.okPacket != null)
                 {
-                    Console.WriteLine("i : " + i + ", OkPacket : [affectedRow] >> " + query.okPacket.affectedRows);
-                    Console.WriteLine("i : " + i + ", OkPacket : [insertId] >> " + query.okPacket.insertId);
+                    Console.WriteLine("i : " + i + ", OkPacket : [affectedRow] >> " + query.okPacket._affectedRows);
+                    Console.WriteLine("i : " + i + ", OkPacket : [insertId] >> " + query.okPacket._insertId);
                 }
                 else
                 {
@@ -164,12 +162,12 @@ namespace SharpConnect.MySql
                     {
                         if (col_test == 0)
                         {
-                            Console.WriteLine("Result of " + "test1 : >> " + query.Cells[col_test] + " <<");
+                            Console.WriteLine("Result of " + "test1 : >> " + query._Cells[col_test] + " <<");
                         }
                         else
                         {
-                            Console.WriteLine("Id : " + query.Cells[col_idsaveImage]);
-                            Console.WriteLine("Buffer size : " + query.Cells[col_saveImageCol].myBuffer.Length);
+                            Console.WriteLine("Id : " + query._Cells[col_idsaveImage]);
+                            Console.WriteLine("Buffer size : " + query._Cells[col_saveImageCol].myBuffer.Length);
                         }
                         //Console.WriteLine(query.GetFieldData("myusercol1"));
                         if (++j > 3)

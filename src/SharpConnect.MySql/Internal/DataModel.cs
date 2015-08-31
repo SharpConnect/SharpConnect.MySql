@@ -475,17 +475,17 @@ namespace MySqlPacket
         double x;
         double y;
 
-        List<Geometry> geoValues;
+        List<Geometry> _geoValues;
         public Geometry()
         {
-            geoValues = new List<Geometry>();
+            _geoValues = new List<Geometry>();
         }
 
         public Geometry(double x, double y)
         {
             this.x = x;
             this.y = y;
-            geoValues = new List<Geometry>();
+            _geoValues = new List<Geometry>();
         }
 
         public void SetValue(double x, double y)
@@ -496,12 +496,12 @@ namespace MySqlPacket
 
         public void AddChildValue(Geometry value)
         {
-            geoValues.Add(value);
+            _geoValues.Add(value);
         }
 
         public void AddChildValues(List<Geometry> values)
         {
-            geoValues = values;
+            _geoValues = values;
         }
     }
 }

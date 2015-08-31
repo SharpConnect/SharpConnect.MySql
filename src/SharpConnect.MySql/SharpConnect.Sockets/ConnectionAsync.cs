@@ -61,27 +61,27 @@ namespace MySqlPacket
                 byte[] buffer = new byte[512];
                 int count = recv.BytesTransferred;
                 recv.CopyTo(0, buffer, 0, recv.BytesTransferred);
-                parser.LoadNewBuffer(buffer, count);
-                handshake = new HandshakePacket();
-                handshake.ParsePacket(parser); 
-                this.threadId = handshake.threadId;
+                _parser.LoadNewBuffer(buffer, count);
+                _handshake = new HandshakePacket();
+                _handshake.ParsePacket(_parser); 
+                this.threadId = _handshake.threadId;
 
                 byte[] token = MakeToken(config.password,
-                    GetScrollbleBuffer(handshake.scrambleBuff1, handshake.scrambleBuff2));
+                    GetScrollbleBuffer(_handshake.scrambleBuff1, _handshake.scrambleBuff2));
 
-                writer.Reset();
-                writer.IncrementPacketNumber();
+                _writer.Reset();
+                _writer.IncrementPacketNumber();
                 //------------------------------------------
                 var authPacket = new ClientAuthenticationPacket();
-                authPacket.SetValues(config.user, token, config.database, handshake.protocol41);
-                authPacket.WritePacket(writer);
+                authPacket.SetValues(config.user, token, config.database, _handshake.protocol41);
+                authPacket.WritePacket(_writer);
 
                 //send  
                 //do authen 
                 //handle  
                 recv.recvAction = () =>
                 {
-                    byte[] sendBuff = writer.ToArray();
+                    byte[] sendBuff = _writer.ToArray();
                     byte[] receiveBuff = new byte[512];
                     //-------------------------------------------
 
@@ -89,23 +89,23 @@ namespace MySqlPacket
                     int sendNum = socket.Send(sendBuff);
                     int receiveNum = socket.Receive(receiveBuff);
 
-                    parser.LoadNewBuffer(receiveBuff, receiveNum);
+                    _parser.LoadNewBuffer(receiveBuff, receiveNum);
                     if (receiveBuff[4] == 255)
                     {
                         ErrPacket errPacket = new ErrPacket();
-                        errPacket.ParsePacket(parser);
+                        errPacket.ParsePacket(_parser);
 
                     }
                     else
                     {
-                        OkPacket okPacket = new OkPacket(handshake.protocol41);
-                        okPacket.ParsePacket(parser);
+                        OkPacket okPacket = new OkPacket(_handshake.protocol41);
+                        okPacket.ParsePacket(_parser);
                     }
-                    writer.Reset();
+                    _writer.Reset();
                     GetMaxAllowedPacket();
-                    if (maxPacketSize > 0)
+                    if (_maxPacketSize > 0)
                     {
-                        writer.SetMaxAllowedPacket(maxPacketSize);
+                        _writer.SetMaxAllowedPacket(_maxPacketSize);
                     }
 
                     if (connHandler != null)

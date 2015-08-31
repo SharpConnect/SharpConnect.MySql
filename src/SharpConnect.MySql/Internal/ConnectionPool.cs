@@ -1,42 +1,38 @@
 ﻿//MIT 2015, brezza27, EngineKit and contributors
+using MySqlPacket;
 using System;
 using System.Collections.Generic;
-using MySqlPacket;
 
 namespace SharpConnect.MySql
 {
 
     static class ConnectionPool
     {
-
-        static readonly ConnectionPoolAgent connPoolAgent = new ConnectionPoolAgent();
-        static object queueLock = new object();
+        static readonly ConnectionPoolAgent s_connPoolAgent = new ConnectionPoolAgent();
+        static object s_queueLock = new object();
 
         public static Connection GetConnection(MySqlConnectionString connstr)
         {
-            lock (queueLock)
+            lock (s_queueLock)
             {
-                return connPoolAgent.GetConnection(connstr);
+                return s_connPoolAgent.GetConnection(connstr);
             }
         }
         public static void ReleaseConnection(MySqlConnectionString connstr, Connection conn)
         {
-            lock (queueLock)
+            lock (s_queueLock)
             {
-                connPoolAgent.ReleaseConnection(connstr, conn);
+                s_connPoolAgent.ReleaseConnection(connstr, conn);
             }
         }
         public static void ClearConnectionPool()
         {
 
-            lock (queueLock)
+            lock (s_queueLock)
             {
-                connPoolAgent.ClearAllConnections();
+                s_connPoolAgent.ClearAllConnections();
             }
         }
-
-         
-
 
         class ConnectionPoolAgent
         {
@@ -47,7 +43,6 @@ namespace SharpConnect.MySql
             }
             ~ConnectionPoolAgent()
             {
-
                 ClearAllConnections();
             }
             public void ClearAllConnections()
@@ -73,7 +68,6 @@ namespace SharpConnect.MySql
             }
             public Connection GetConnection(MySqlConnectionString connstr)
             {
-
                 Queue<Connection> found;
                 //not found
                 if (!connQueue.TryGetValue(connstr.ConnSignature, out found))
@@ -83,7 +77,6 @@ namespace SharpConnect.MySql
 
                 if (found.Count > 0)
                 {
-
                     var conn = found.Dequeue();
                     //TODO: check if conn is valid
 
@@ -107,7 +100,6 @@ namespace SharpConnect.MySql
                 }
                 conn.IsStoredInConnPool = true;
                 found.Enqueue(conn);
-
             }
         }
     }

@@ -45,21 +45,21 @@ namespace MySqlPacket
 
     abstract class Packet
     {
-        protected PacketHeader header;
+        protected PacketHeader _header;
 
         public abstract void ParsePacket(PacketParser parser);
 
         public virtual void ParsePacketHeader(PacketParser parser)
         {
-            if (header.IsEmpty())
+            if (_header.IsEmpty())
             {
-                header = parser.ParsePacketHeader();
+                _header = parser.ParsePacketHeader();
             }
         }
 
         public virtual uint GetPacketLength()
         {
-            return header.Length;
+            return _header.Length;
         }
 
         public abstract void WritePacket(PacketWriter writer);
@@ -67,8 +67,6 @@ namespace MySqlPacket
     
     class ClientAuthenticationPacket : Packet
     {
-
-
         public uint clientFlags;
         public uint maxPacketSize;
         public byte charsetNumber;
@@ -95,39 +93,39 @@ namespace MySqlPacket
             protocol41 = true;
         }
 
-        public void SetValues(string username, byte[] scrambleBuff, string databaseName, bool protocol41)
+        public void SetValues(string username, byte[] scrambleBuffer, string databaseName, bool isProtocol41)
         {
             clientFlags = 455631;
             maxPacketSize = 0;
             charsetNumber = 33;
 
-            this.user = username;
-            this.scrambleBuff = scrambleBuff;
-            this.database = databaseName;
-            this.protocol41 = protocol41;
+            user = username;
+            scrambleBuff = scrambleBuffer;
+            database = databaseName;
+            protocol41 = isProtocol41;
         }
 
         public override void ParsePacket(PacketParser parser)
         {
             ParsePacketHeader(parser);
-            if (this.protocol41)
+            if (protocol41)
             {
-                this.clientFlags = parser.ParseUnsigned4(); //4
-                this.maxPacketSize = parser.ParseUnsigned4(); //4 
-                this.charsetNumber = parser.ParseByte();
+                clientFlags = parser.ParseUnsigned4(); //4
+                maxPacketSize = parser.ParseUnsigned4(); //4 
+                charsetNumber = parser.ParseByte();
 
                 parser.ParseFiller(23);
-                this.user = parser.ParseNullTerminatedString();
-                this.scrambleBuff = parser.ParseLengthCodedBuffer();
-                this.database = parser.ParseNullTerminatedString();
+                user = parser.ParseNullTerminatedString();
+                scrambleBuff = parser.ParseLengthCodedBuffer();
+                database = parser.ParseNullTerminatedString();
             }
             else
             {
-                this.clientFlags = parser.ParseUnsigned2();//2
-                this.maxPacketSize = parser.ParseUnsigned3();//3
-                this.user = parser.ParseNullTerminatedString();
-                this.scrambleBuff = parser.ParseBuffer(8);
-                this.database = parser.ParseLengthCodedString();
+                clientFlags = parser.ParseUnsigned2();//2
+                maxPacketSize = parser.ParseUnsigned3();//3
+                user = parser.ParseNullTerminatedString();
+                scrambleBuff = parser.ParseBuffer(8);
+                database = parser.ParseLengthCodedString();
             }
         }
 
@@ -136,66 +134,64 @@ namespace MySqlPacket
             writer.ReserveHeader();//allocate header
             if (protocol41)
             {
-                writer.WriteUnsigned4(this.clientFlags);
-                writer.WriteUnsigned4(this.maxPacketSize);
-                writer.WriteUnsigned1(this.charsetNumber);
+                writer.WriteUnsigned4(clientFlags);
+                writer.WriteUnsigned4(maxPacketSize);
+                writer.WriteUnsigned1(charsetNumber);
                 writer.WriteFiller(23);
-                writer.WriteNullTerminatedString(this.user);
-                writer.WriteLengthCodedBuffer(this.scrambleBuff);
-                writer.WriteNullTerminatedString(this.database);
+                writer.WriteNullTerminatedString(user);
+                writer.WriteLengthCodedBuffer(scrambleBuff);
+                writer.WriteNullTerminatedString(database);
             }
             else
             {
-                writer.WriteUnsigned2(this.clientFlags);
-                writer.WriteUnsigned3(this.maxPacketSize);
-                writer.WriteNullTerminatedString(this.user);
-                writer.WriteBuffer(this.scrambleBuff);
-                if (this.database != null && this.database.Length > 0)
+                writer.WriteUnsigned2(clientFlags);
+                writer.WriteUnsigned3(maxPacketSize);
+                writer.WriteNullTerminatedString(user);
+                writer.WriteBuffer(scrambleBuff);
+                if (database != null && database.Length > 0)
                 {
                     writer.WriteFiller(1);
-                    writer.WriteBuffer(Encoding.ASCII.GetBytes(this.database));
+                    writer.WriteBuffer(Encoding.ASCII.GetBytes(database));
                 }
             }
-            header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
-            writer.WriteHeader(header);
+            _header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            writer.WriteHeader(_header);
         }
 
     }
 
     class ComQueryPacket : Packet
     {
-        byte QUERY_CMD = (byte)Command.QUERY;//0x03
-
-        string sql;
+        byte _queryCommand = (byte)Command.QUERY;//0x03
+        string _sql;
 
         public ComQueryPacket(string sql)
         {
-            this.sql = sql;
+            _sql = sql;
         }
 
         public override void ParsePacket(PacketParser parser)
         {
-            //parser = new PacketParser(stream);
-            ParsePacketHeader(parser);
-            QUERY_CMD = parser.ParseUnsigned1();//1
-            this.sql = parser.ParsePacketTerminatedString();
+            throw new NotImplementedException();
+            //ParsePacketHeader(parser);
+            //_queryCommand = parser.ParseUnsigned1();//1
+            //_sql = parser.ParsePacketTerminatedString();
         }
 
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-
-            writer.WriteByte(QUERY_CMD);
-            writer.WriteString(this.sql);
-            header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
-            writer.WriteHeader(header);
+            writer.WriteByte(_queryCommand);
+            writer.WriteString(_sql);
+            _header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            writer.WriteHeader(_header);
         }
     }
 
     class ComQuitPacket : Packet
     {
-        const byte QUIT_CMD = (byte)Command.QUIT;//0x01
-        
+        byte _quitCommand = (byte)Command.QUIT;//0x01
+
         public override void ParsePacket(PacketParser parser)
         {
             throw new NotImplementedException();
@@ -206,19 +202,20 @@ namespace MySqlPacket
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-            writer.WriteUnsigned1(QUIT_CMD);
-            header = new PacketHeader((uint)writer.Length, writer.IncrementPacketNumber());
-            writer.WriteHeader(header);
+            writer.WriteUnsigned1(_quitCommand);
+            _header = new PacketHeader((uint)writer.Length, writer.IncrementPacketNumber());
+            writer.WriteHeader(_header);
         }
     }
 
     class ComPrepareStatementPacket : Packet
     {
-        byte PREPARE_CMD = (byte)Command.STMT_PREPARE;
-        string sql;
+        byte _prepareCommand = (byte)Command.STMT_PREPARE;
+        string _sql;
+
         public ComPrepareStatementPacket(string sql)
         {
-            this.sql = sql;
+            _sql = sql;
         }
 
         public override void ParsePacket(PacketParser parser)
@@ -229,24 +226,25 @@ namespace MySqlPacket
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-            writer.WriteByte(PREPARE_CMD);
-            writer.WriteString(sql);
-            header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
-            writer.WriteHeader(header);
+            writer.WriteByte(_prepareCommand);
+            writer.WriteString(_sql);
+            _header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            writer.WriteHeader(_header);
         }
     }
 
     class ComExecutePrepareStatement : Packet
     {
-        byte EXCUTE_CMD = (byte)Command.STMT_EXECUTE;
-        uint statementId;
-        List<string> keys;
-        CommandParams prepareValues;
+        byte _executeCommand = (byte)Command.STMT_EXECUTE;
+        uint _statementId;
+        List<string> _keys;
+        CommandParams _prepareValues;
+
         public ComExecutePrepareStatement(uint statementId, CommandParams prepareValues, List<string> valueKeys)
         {            
-            this.statementId = statementId;
-            this.prepareValues = prepareValues;
-            keys = valueKeys;
+            _statementId = statementId;
+            _prepareValues = prepareValues;
+            _keys = valueKeys;
         }
         public override void ParsePacket(PacketParser parser)
         {
@@ -256,20 +254,20 @@ namespace MySqlPacket
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-            writer.WriteByte(EXCUTE_CMD);
-            writer.WriteUnsignedNumber(4, statementId);
+            writer.WriteByte(_executeCommand);
+            writer.WriteUnsignedNumber(4, _statementId);
             writer.WriteByte((byte)CursorFlags.CURSOR_TYPE_NO_CURSOR);
             writer.WriteUnsignedNumber(4, 1);//iteration-count, always 1
             //write NULL-bitmap, length: (num-params+7)/8
             MyStructData dataTemp;
-            int paramNum = keys.Count;
+            int paramNum = _keys.Count;
             if (paramNum > 0)
             {
                 uint bitmap = 0;
                 uint bitValue = 1;
                 for(int i=0;i< paramNum; i++)
                 {
-                    dataTemp = prepareValues.GetData(keys[i]);
+                    dataTemp = _prepareValues.GetData(_keys[i]);
                     if (dataTemp.type == Types.NULL)
                     {
                         bitmap += bitValue;
@@ -291,26 +289,16 @@ namespace MySqlPacket
             
             for(int i=0;i< paramNum; i++)
             {
-                dataTemp = prepareValues.GetData(keys[i]);
+                dataTemp = _prepareValues.GetData(_keys[i]);
                 writer.WriteUnsignedNumber(2, (byte)dataTemp.type);
             }
-            //write value of each parameter
-            //example:
-            //for(int i = 0; i < param.Length; i++)
-            //{
-            //    switch (param[i].type)
-            //    {
-            //        case Types.BLOB:writer.WriteLengthCodedBuffer(param[i].myBuffer);
-            //    }
-            //}
             for(int i = 0; i < paramNum; i++)
             {
-                dataTemp = prepareValues.GetData(keys[i]);
+                dataTemp = _prepareValues.GetData(_keys[i]);
                 WriteValueByType(writer, dataTemp);
             }
-            //writer.WriteLengthCodedNumber(1);
-            header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
-            writer.WriteHeader(header);
+            _header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            writer.WriteHeader(_header);
         }
 
         void WriteValueByType(PacketWriter writer, MyStructData dataTemp)
@@ -349,16 +337,16 @@ namespace MySqlPacket
 
     class ComStmtSendLongData : Packet
     {
-        byte command = (byte)Command.STMT_SEND_LONG_DATA;
-        int statement_id;
-        int param_id;
-        MyStructData data;
+        byte _sendLongDataCommand = (byte)Command.STMT_SEND_LONG_DATA;
+        int _statementId;
+        int _paramId;
+        MyStructData _data;
 
-        public ComStmtSendLongData(int statement_id,int param_id,MyStructData data)
+        public ComStmtSendLongData(int statementId,int paramId,MyStructData data)
         {
-            this.statement_id = statement_id;
-            this.param_id = param_id;
-            this.data = data;
+            _statementId = statementId;
+            _paramId = paramId;
+            _data = data;
         }
 
         public override void ParsePacket(PacketParser parser)
@@ -369,9 +357,9 @@ namespace MySqlPacket
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-            writer.WriteUnsigned4((uint)statement_id);
-            writer.WriteUnsigned2((uint)param_id);
-            WriteValueByType(writer, data);
+            writer.WriteUnsigned4((uint)_statementId);
+            writer.WriteUnsigned2((uint)_paramId);
+            WriteValueByType(writer, _data);
         }
 
         void WriteValueByType(PacketWriter writer, MyStructData dataTemp)
@@ -424,11 +412,11 @@ namespace MySqlPacket
         public override void ParsePacket(PacketParser parser)
         {
             ParsePacketHeader(parser);
-            this.fieldCount = parser.ParseByte();
-            if (this.protocol41)
+            fieldCount = parser.ParseByte();
+            if (protocol41)
             {
-                this.warningCount = parser.ParseUnsigned2();//2
-                this.serverStatus = parser.ParseUnsigned2();//2
+                warningCount = parser.ParseUnsigned2();//2
+                serverStatus = parser.ParseUnsigned2();//2
             }
         }
 
@@ -437,39 +425,40 @@ namespace MySqlPacket
             writer.ReserveHeader();//allocate packet header
 
             writer.WriteUnsigned1(0xfe);
-            if (this.protocol41)
+            if (protocol41)
             {
-                writer.WriteUnsigned2(this.warningCount);
-                writer.WriteUnsigned2(this.serverStatus);
+                writer.WriteUnsigned2(warningCount);
+                writer.WriteUnsigned2(serverStatus);
             }
 
-            header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
-            writer.WriteHeader(header);//write packet header
+            _header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            writer.WriteHeader(_header);//write packet header
         }
     }
 
     class ErrPacket : Packet
     {
-        byte fieldCount;
-        uint errno;
-        char sqlStateMarker;
-        string sqlState;
-        public string message;
+        byte _fieldCount;
+        uint _errno;
+        char _sqlStateMarker;
+        string _sqlState;
+        string _message;
+        public string Message { get { return _message; } }
 
         public override void ParsePacket(PacketParser parser)
         {
             ParsePacketHeader(parser);
 
-            fieldCount = parser.ParseByte();
-            errno = parser.ParseUnsigned2();//2
+            _fieldCount = parser.ParseByte();
+            _errno = parser.ParseUnsigned2();//2
 
             if (parser.Peak() == 0x23)
             {
-                sqlStateMarker = parser.ParseChar();
-                sqlState = parser.ParseString(5);
+                _sqlStateMarker = parser.ParseChar();
+                _sqlState = parser.ParseString(5);
             }
 
-            message = parser.ParsePacketTerminatedString();
+            _message = parser.ParsePacketTerminatedString();
         }
 
         public override void WritePacket(PacketWriter writer)
@@ -479,7 +468,7 @@ namespace MySqlPacket
 
         public override string ToString()
         {
-            return message;
+            return _message;
         }
     }
 
@@ -509,57 +498,46 @@ namespace MySqlPacket
         public override void ParsePacket(PacketParser parser)
         {
             ParsePacketHeader(parser);
-            if (this.protocol41)
+            if (protocol41)
             {
-                this.catalog = parser.ParseLengthCodedString();
-                this.db = parser.ParseLengthCodedString();
-                this.table = parser.ParseLengthCodedString();
-                this.orgTable = parser.ParseLengthCodedString();
-                this.name = parser.ParseLengthCodedString();
-                this.orgName = parser.ParseLengthCodedString();
+                catalog = parser.ParseLengthCodedString();
+                db = parser.ParseLengthCodedString();
+                table = parser.ParseLengthCodedString();
+                orgTable = parser.ParseLengthCodedString();
+                name = parser.ParseLengthCodedString();
+                orgName = parser.ParseLengthCodedString();
 
                 if (parser.ParseLengthCodedNumber() != 0x0c)
                 {
-                    //var err  = new TypeError('Received invalid field length');
-                    //err.code = 'PARSER_INVALID_FIELD_LENGTH';
-                    //throw err;
                     throw new Exception("Received invalid field length");
                 }
 
-                this.charsetNr = parser.ParseUnsigned2();//2
-                this.length = parser.ParseUnsigned4();//4
-                this.type = parser.ParseByte();
-                this.flags = parser.ParseUnsigned2();//2
-                this.decimals = parser.ParseByte();
+                charsetNr = parser.ParseUnsigned2();//2
+                length = parser.ParseUnsigned4();//4
+                type = parser.ParseByte();
+                flags = parser.ParseUnsigned2();//2
+                decimals = parser.ParseByte();
 
-                this.filler = parser.ParseBuffer(2);
+                filler = parser.ParseBuffer(2);
                 if (filler[0] != 0x0 || filler[1] != 0x0)
                 {
-                    //var err  = new TypeError('Received invalid filler');
-                    //err.code = 'PARSER_INVALID_FILLER';
-                    //throw err;
                     throw new Exception("Received invalid filler");
                 }
+                
+                zeroFill = ((flags & 0x0040) == 0x0040 ? true : false);
 
-                // parsed flags
-                //this.zeroFill = (this.flags & 0x0040 ? true : false);
-                this.zeroFill = ((this.flags & 0x0040) == 0x0040 ? true : false);
-
-                //    if (parser.reachedPacketEnd()) {
-                //      return;
-                //    }
                 if (parser.ReachedPacketEnd())
                 {
                     return;
                 }
-                this.strDefault = parser.ParseLengthCodedString();
+                strDefault = parser.ParseLengthCodedString();
             }
             else
             {
-                this.table = parser.ParseLengthCodedString();
-                this.name = parser.ParseLengthCodedString();
-                this.length = parser.ParseUnsignedNumber(parser.ParseByte());
-                this.type = (int)parser.ParseUnsignedNumber(parser.ParseByte());
+                table = parser.ParseLengthCodedString();
+                name = parser.ParseLengthCodedString();
+                length = parser.ParseUnsignedNumber(parser.ParseByte());
+                type = (int)parser.ParseUnsignedNumber(parser.ParseByte());
             }
         }
 
@@ -611,7 +589,6 @@ namespace MySqlPacket
                 serverCapabilities2 = parser.ParseUnsigned2();
                 scrambleLength = parser.ParseByte();
                 filler2 = parser.ParseBuffer(10);
-
                 scrambleBuff2 = parser.ParseBuffer(12);
                 filler3 = parser.ParseByte();
             }
@@ -635,6 +612,7 @@ namespace MySqlPacket
 
         public override void WritePacket(PacketWriter writer)
         {
+            throw new NotImplementedException();
             //writer.writeUnsignedNumber(1, this.protocolVersion);
             //writer.writeNullTerminatedString(this.serverVersion);
             //writer.writeUnsignedNumber(4, this.threadId);
@@ -658,43 +636,33 @@ namespace MySqlPacket
 
     class OkPacket : Packet
     {
-        uint fieldCount;
-        public uint affectedRows;
-        public uint insertId;
-        uint serverStatus;
-        uint warningCount;
-        string message;
-        bool protocol41;
+        uint _fieldCount;
+        public uint _affectedRows;
+        public uint _insertId;
+        uint _serverStatus;
+        uint _warningCount;
+        string _message;
+        bool _protocol41;
 
         public OkPacket(bool protocol41)
         {
-            this.protocol41 = protocol41;
+            _protocol41 = protocol41;
         }
 
         public override void ParsePacket(PacketParser parser)
         {
             ParsePacketHeader(parser);
 
-            fieldCount = parser.ParseUnsigned1();
-            affectedRows = parser.ParseLengthCodedNumber();
-            insertId = parser.ParseLengthCodedNumber();
+            _fieldCount = parser.ParseUnsigned1();
+            _affectedRows = parser.ParseLengthCodedNumber();
+            _insertId = parser.ParseLengthCodedNumber();
 
-            //this.fieldCount = parser.parseUnsignedNumber(1);
-            //this.affectedRows = parser.parseLengthCodedNumber();
-            //this.insertId = parser.parseLengthCodedNumber();
-            //if (this.protocol41)
-            //{
-            //    this.serverStatus = parser.parseUnsignedNumber(2);
-            //    this.warningCount = parser.parseUnsignedNumber(2);
-            //}
-            //this.message = parser.parsePacketTerminatedString();
-            //this.changedRows = 0;
-            if (protocol41)
+            if (_protocol41)
             {
-                serverStatus = parser.ParseUnsigned2();
-                warningCount = parser.ParseUnsigned2();
+                _serverStatus = parser.ParseUnsigned2();
+                _warningCount = parser.ParseUnsigned2();
             }
-            message = parser.ParsePacketTerminatedString();
+            _message = parser.ParsePacketTerminatedString();
             //var m = this.message.match(/\schanged:\s * (\d +) / i);
 
             //if (m !== null)
@@ -711,7 +679,7 @@ namespace MySqlPacket
 
     class OkPrepareStmtPacket : Packet
     {
-        byte status;
+        byte _status;
         public uint statement_id;
         public uint num_columns;
         public uint num_params;
@@ -719,7 +687,11 @@ namespace MySqlPacket
         public override void ParsePacket(PacketParser parser)
         {
             ParsePacketHeader(parser);
-            status = parser.ParseByte();//alway 0
+            _status = parser.ParseByte();//alway 0
+            if (_status != 0)
+            {
+                throw new Exception("Parse Error : something wrong.");
+            }
             statement_id = parser.ParseUnsignedNumber(4);
             num_columns = parser.ParseUnsignedNumber(2);
             num_params = parser.ParseUnsignedNumber(2);
@@ -735,32 +707,33 @@ namespace MySqlPacket
 
     class ResultSetHeaderPacket : Packet
     {
-        long fieldCount;
-        uint extraNumber;
-        string extraStr;
+        long _fieldCount;
+        uint _extraNumber;
+        string _extraStr;
 
         public override void ParsePacket(PacketParser parser)
         {
             ParsePacketHeader(parser);
-            this.fieldCount = parser.ParseLengthCodedNumber();
+            _fieldCount = parser.ParseLengthCodedNumber();
 
             if (parser.ReachedPacketEnd())
                 return;
 
-            if (this.fieldCount == 0)
+            if (_fieldCount == 0)
             {
-                extraStr = parser.ParsePacketTerminatedString();
+                _extraStr = parser.ParsePacketTerminatedString();
             }
             else
             {
-                extraNumber = parser.ParseLengthCodedNumber();
-                extraStr = parser.ParsePacketTerminatedString();//null;
+                _extraNumber = parser.ParseLengthCodedNumber();
+                _extraStr = parser.ParsePacketTerminatedString();//null;
             }
         }
 
         public override void WritePacket(PacketWriter writer)
         {
-            writer.ReserveHeader();
+            throw new NotImplementedException();
+            //writer.ReserveHeader();
             //writer.WriteLengthCodedNumber(this.fieldCount);
 
             //if (this.extra !== undefined) {
@@ -771,25 +744,25 @@ namespace MySqlPacket
 
     class RowDataPacket : Packet
     {
-        MyStructData[] myDataList;
-        TableHeader tableHeader;
-        ConnectionConfig config;
-        StringBuilder stbuilder = new StringBuilder();
-        bool isLocalTimeZone;
-        const long IEEE_754_BINARY_64_PRECISION = (long)1 << 53;
+        MyStructData[] _myDataList;
+        TableHeader _tableHeader;
+        ConnectionConfig _config;
+        StringBuilder _stbuilder = new StringBuilder();
+        bool _isLocalTimeZone;
+        const long _ieee754Binary64Precision = (long)1 << 53;
 
         public RowDataPacket(TableHeader tableHeader)
         {
-            this.tableHeader = tableHeader;
-            myDataList = new MyStructData[tableHeader.ColumnCount];
-            config = tableHeader.ConnConfig;
-            isLocalTimeZone = config.timezone.Equals("local");
+            _tableHeader = tableHeader;
+            _myDataList = new MyStructData[tableHeader.ColumnCount];
+            _config = tableHeader.ConnConfig;
+            _isLocalTimeZone = _config.timezone.Equals("local");
         }
         public void ReuseSlots()
         {
             //this is reuseable row packet
-            this.header = PacketHeader.Empty;
-            Array.Clear(myDataList, 0, myDataList.Length);
+            _header = PacketHeader.Empty;
+            Array.Clear(_myDataList, 0, _myDataList.Length);
         }
         public override void ParsePacket(PacketParser parser)
         {
@@ -816,16 +789,16 @@ namespace MySqlPacket
 
             ParsePacketHeader(parser);
 
-            var fieldInfos = tableHeader.GetFields();
-            int j = tableHeader.ColumnCount;
-            bool typeCast = tableHeader.TypeCast;
-            bool nestTables = tableHeader.NestTables;
+            var fieldInfos = _tableHeader.GetFields();
+            int j = _tableHeader.ColumnCount;
+            bool typeCast = _tableHeader.TypeCast;
+            bool nestTables = _tableHeader.NestTables;
 
             if (!nestTables && typeCast)
             {
                 for (int i = 0; i < j; i++)
                 {
-                    ReadCellWithTypeCast(parser, fieldInfos[i], ref myDataList[i]);
+                    ReadCellWithTypeCast(parser, fieldInfos[i], ref _myDataList[i]);
                 }
             }
             else
@@ -839,12 +812,12 @@ namespace MySqlPacket
                     // MyStructData value;
                     if (typeCast)
                     {
-                        ReadCellWithTypeCast(parser, fieldInfos[i], ref myDataList[i]);
+                        ReadCellWithTypeCast(parser, fieldInfos[i], ref _myDataList[i]);
                     }
                     else if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
                     {
-                        myDataList[i].myBuffer = parser.ParseLengthCodedBuffer();
-                        myDataList[i].type = (Types)fieldInfos[i].type;
+                        _myDataList[i].myBuffer = parser.ParseLengthCodedBuffer();
+                        _myDataList[i].type = (Types)fieldInfos[i].type;
 
                         //value = new MyStructData();
                         //value.myBuffer = parser.ParseLengthCodedBuffer();
@@ -852,8 +825,8 @@ namespace MySqlPacket
                     }
                     else
                     {
-                        myDataList[i].myString = parser.ParseLengthCodedString();
-                        myDataList[i].type = (Types)fieldInfos[i].type;
+                        _myDataList[i].myString = parser.ParseLengthCodedString();
+                        _myDataList[i].type = (Types)fieldInfos[i].type;
 
                         //value = new MyStructData();
                         //value.myString = parser.ParseLengthCodedString();
@@ -920,11 +893,11 @@ namespace MySqlPacket
                 case Types.DATETIME:
                 case Types.NEWDATE:
 
-                    stbuilder.Length = 0;//clear
+                    _stbuilder.Length = 0;//clear
                     string dateString = parser.ParseLengthCodedString();
                     data.myString = dateString;
 
-                    if (config.dateStrings)
+                    if (_config.dateStrings)
                     {
                         //return new FieldData<string>(type, dateString);
                         //data.myString = dateString;
@@ -942,19 +915,19 @@ namespace MySqlPacket
                     //    if (field.type === Types.DATE) {
                     //      dateString += ' 00:00:00';
                     //    }
-                    stbuilder.Append(dateString);
+                    _stbuilder.Append(dateString);
                     //string originalString = dateString;
                     if (fieldPacket.type == (int)Types.DATE)
                     {
-                        stbuilder.Append(" 00:00:00");
+                        _stbuilder.Append(" 00:00:00");
                     }
                     //    if (timeZone !== 'local') {
                     //      dateString += ' ' + timeZone;
                     //    }
 
-                    if (!isLocalTimeZone)
+                    if (!_isLocalTimeZone)
                     {
-                        stbuilder.Append(' ' + config.timezone);
+                        _stbuilder.Append(' ' + _config.timezone);
                     }
                     //var dt;
                     //    dt = new Date(dateString);
@@ -962,7 +935,7 @@ namespace MySqlPacket
                     //      return originalString;
                     //    }
 
-                    data.myDateTime = DateTime.Parse(stbuilder.ToString());
+                    data.myDateTime = DateTime.Parse(_stbuilder.ToString());
                     data.type = type;
                     return;
                 case Types.TINY:
@@ -1015,7 +988,7 @@ namespace MySqlPacket
                         data.myString = numberString;
                         data.type = Types.NULL;
                     }
-                    else if (config.supportBigNumbers && (config.bigNumberStrings || (Convert.ToInt64(numberString) > IEEE_754_BINARY_64_PRECISION)))
+                    else if (_config.supportBigNumbers && (_config.bigNumberStrings || (Convert.ToInt64(numberString) > _ieee754Binary64Precision)))
                     {
                         //store as string ?
                         //TODO: review here  again
@@ -1080,22 +1053,22 @@ namespace MySqlPacket
 
         public override string ToString()
         {
-            int count = myDataList.Length;
+            int count = _myDataList.Length;
             switch (count)
             {
                 case 0: return "";
                 case 1:
-                    return myDataList[0].ToString();
+                    return _myDataList[0].ToString();
                 default:
                     var stBuilder = new StringBuilder();
                     //1st
-                    stBuilder.Append(myDataList[0].ToString());
+                    stBuilder.Append(_myDataList[0].ToString());
                     //then
                     for (int i = 1; i < count; ++i)
                     {
                         //then..
                         stBuilder.Append(',');
-                        stBuilder.Append(myDataList[i].ToString());
+                        stBuilder.Append(_myDataList[i].ToString());
                     }
                     return stBuilder.ToString();
             }
@@ -1104,39 +1077,39 @@ namespace MySqlPacket
 
         internal MyStructData[] Cells
         {
-            get { return myDataList; }
+            get { return _myDataList; }
         }
     }
 
     class RowPrepaqreDataPacket : Packet
     {
-        MyStructData[] myDataList;
-        TableHeader tableHeader;
-        ConnectionConfig config;
+        MyStructData[] _myDataList;
+        TableHeader _tableHeader;
+        ConnectionConfig _config;
         public RowPrepaqreDataPacket(TableHeader tableHeader)
         {
-            this.tableHeader = tableHeader;
-            myDataList = new MyStructData[tableHeader.ColumnCount];
-            config = tableHeader.ConnConfig;
+            _tableHeader = tableHeader;
+            _myDataList = new MyStructData[tableHeader.ColumnCount];
+            _config = tableHeader.ConnConfig;
         }
 
         public void ReuseSlots()
         {
             //this is reuseable row packet
-            this.header = PacketHeader.Empty;
-            Array.Clear(myDataList, 0, myDataList.Length);
+            _header = PacketHeader.Empty;
+            Array.Clear(_myDataList, 0, _myDataList.Length);
         }
 
         public override void ParsePacket(PacketParser parser)
         {
-            var fieldInfos = tableHeader.GetFields();
-            int columnCount = tableHeader.ColumnCount;
+            var fieldInfos = _tableHeader.GetFields();
+            int columnCount = _tableHeader.ColumnCount;
             ParsePacketHeader(parser);
             parser.ParseFiller(1);//skip start packet byte [00]
             parser.ParseFiller((columnCount + 7 + 2) / 8);//skip null-bitmap, length:(column-count+7+2)/8
             for(int i = 0; i < columnCount; i++)
             {
-                ParseValues(parser, fieldInfos[i], ref myDataList[i]);
+                ParseValues(parser, fieldInfos[i], ref _myDataList[i]);
             }
         }
 
@@ -1212,22 +1185,22 @@ namespace MySqlPacket
 
         public override string ToString()
         {
-            int count = myDataList.Length;
+            int count = _myDataList.Length;
             switch (count)
             {
                 case 0: return "";
                 case 1:
-                    return myDataList[0].ToString();
+                    return _myDataList[0].ToString();
                 default:
                     var stBuilder = new StringBuilder();
                     //1st
-                    stBuilder.Append(myDataList[0].ToString());
+                    stBuilder.Append(_myDataList[0].ToString());
                     //then
                     for (int i = 1; i < count; ++i)
                     {
                         //then..
                         stBuilder.Append(',');
-                        stBuilder.Append(myDataList[i].ToString());
+                        stBuilder.Append(_myDataList[i].ToString());
                     }
                     return stBuilder.ToString();
             }
@@ -1236,7 +1209,7 @@ namespace MySqlPacket
 
         internal MyStructData[] Cells
         {
-            get { return myDataList; }
+            get { return _myDataList; }
         }
     }
 }

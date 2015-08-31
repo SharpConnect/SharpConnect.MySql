@@ -1,14 +1,13 @@
 ﻿//MIT 2015, brezza27, EngineKit and contributors
-
-using System;
 using MySqlPacket;
+using System;
+
 namespace SharpConnect.MySql
 {
 
     public class MySqlConnectionString
     {
-
-        string signature;
+        string _signature;
         public MySqlConnectionString(string h, string u, string p, string d)
         {
             Host = h;
@@ -16,7 +15,7 @@ namespace SharpConnect.MySql
             Password = p;
             Database = d;
 
-            signature = string.Concat(h, u, p, d);
+            _signature = string.Concat(h, u, p, d);
         }
 
         public string Host { get; private set; }
@@ -28,22 +27,22 @@ namespace SharpConnect.MySql
         {
             get
             {
-                return signature;
+                return _signature;
             }
         }
     }
 
     public class MySqlConnection
     {
-        MySqlConnectionString connStr;
-        Connection conn;
+        MySqlConnectionString _connStr;
+        Connection _conn;
         public MySqlConnection(string host, string uid, string psw, string db)
         {
-            connStr = new MySqlConnectionString(host, uid, psw, db);
+            _connStr = new MySqlConnectionString(host, uid, psw, db);
         }
         public MySqlConnection(MySqlConnectionString connStr)
         {
-            this.connStr = connStr;
+            _connStr = connStr;
         }
         public bool UseConnectionPool
         {
@@ -55,33 +54,30 @@ namespace SharpConnect.MySql
             //get connection from pool
             if (UseConnectionPool)
             {
-                conn = ConnectionPool.GetConnection(connStr);
-                if (conn == null)
+                _conn = ConnectionPool.GetConnection(_connStr);
+                if (_conn == null)
                 {
                     //create new 
-                    conn = new Connection(new ConnectionConfig(connStr.Host, connStr.Username, connStr.Password, connStr.Database));
-                    conn.Connect();
+                    _conn = new Connection(new ConnectionConfig(_connStr.Host, _connStr.Username, _connStr.Password, _connStr.Database));
+                    _conn.Connect();
                 }
             }
             else
             {
                 //new connection
-                conn = new Connection(new ConnectionConfig(connStr.Host, connStr.Username, connStr.Password, connStr.Database));
-                conn.Connect();
+                _conn = new Connection(new ConnectionConfig(_connStr.Host, _connStr.Username, _connStr.Password, _connStr.Database));
+                _conn.Connect();
             }
-
-
-
         }
         public void Close()
         {
             if (UseConnectionPool)
             {
-                ConnectionPool.ReleaseConnection(connStr, conn);
+                ConnectionPool.ReleaseConnection(_connStr, _conn);
             }
             else
             {
-                conn.Disconnect();
+                _conn.Disconnect();
             }
         }
 
@@ -89,7 +85,7 @@ namespace SharpConnect.MySql
         {
             get
             {
-                return this.conn;
+                return _conn;
             }
         }
     }
@@ -97,7 +93,7 @@ namespace SharpConnect.MySql
     public class MySqlCommand
     {
         public CommandParams Parameters;
-        Query query;
+        Query _query;
         public MySqlCommand()
         {
             Parameters = new CommandParams();
@@ -112,120 +108,95 @@ namespace SharpConnect.MySql
         public MySqlConnection Connection { get; set; }
         public MySqlDataReader ExecuteReader()
         {
-            //parameters = new CommandParams();
-            query = Connection.Conn.CreateQuery(this.CommandText, Parameters);
-            var reader = new MySqlDataReader(query);
-            query.Execute();
+            _query = Connection.Conn.CreateQuery(CommandText, Parameters);
+            var reader = new MySqlDataReader(_query);
+            _query.Execute();
             return reader;
         }
         public void ExecuteNonQuery()
         {
-            //var parameters = new CommandParameters();
-            query = Connection.Conn.CreateQuery(this.CommandText, Parameters);
-            query.Execute();
+            _query = Connection.Conn.CreateQuery(CommandText, Parameters);
+            _query.Execute();
         }
     }
 
     public class MySqlDataReader
     {
-        Query query;
+        Query _query;
         internal MySqlDataReader(Query query)
         {
-            this.query = query;
-            //if (query.loadError != null)
-            //{
-
-            //    //Console.WriteLine("Error : " + query.loadError.message);
-            //}
-            //else if (query.okPacket != null)
-            //{
-            //    //Console.WriteLine("i : " + i + ", OkPacket : [affectedRow] >> " + query.okPacket.affectedRows);
-            //    //Console.WriteLine("i : " + i + ", OkPacket : [insertId] >> " + query.okPacket.insertId);
-            //}
-            //else
-            //{
-            //    //while (query.ReadRow())
-            //    //{
-            //    //    //Console.WriteLine(query.GetFieldData("idsaveImage"));
-            //    //    //Console.WriteLine(query.GetFieldData("saveImagecol"));
-            //    //    //Console.WriteLine(query.GetFieldData("myusercol1"));
-            //    //    //j++;
-            //    //}
-            //}
-
+            _query = query;
         }
         public bool Read()
         {
-            return query.ReadRow();
+            return _query.ReadRow();
         }
 
         public sbyte GetInt8(int colIndex)
         {
             //TODO: check match type and check index here
-            return (sbyte)query.Cells[colIndex].myInt32;
+            return (sbyte)_query._Cells[colIndex].myInt32;
         }
         public byte GetUInt8(int colIndex)
         {
             //TODO: check match type and check index here
-            return (byte)query.Cells[colIndex].myInt32;
+            return (byte)_query._Cells[colIndex].myInt32;
         }
         public short GetInt16(int colIndex)
         {   //TODO: check match type and check index here
-            return (short)query.Cells[colIndex].myInt32;
+            return (short)_query._Cells[colIndex].myInt32;
         }
         public ushort GetUInt16(int colIndex)
         {
             //TODO: check match type and check index here
-            return (ushort)query.Cells[colIndex].myInt32;
+            return (ushort)_query._Cells[colIndex].myInt32;
         }
 
         public int GetInt32(int colIndex)
         {
             //TODO: check match type and check index here
-            return query.Cells[colIndex].myInt32;
+            return _query._Cells[colIndex].myInt32;
         }
         public uint GetUInt32(int colIndex)
         {
             //TODO: check match type and check index here
-            return query.Cells[colIndex].myUInt32;
+            return _query._Cells[colIndex].myUInt32;
         }
         public long GetLong(int colIndex)
         {
             //TODO: check match type and check index here
-            return query.Cells[colIndex].myInt64;
+            return _query._Cells[colIndex].myInt64;
         }
         public ulong GetULong(int colIndex)
         {
             //TODO: check match type and check index here
-            return query.Cells[colIndex].myUInt64;
+            return _query._Cells[colIndex].myUInt64;
         }
         public decimal GetDecimal(int colIndex)
         {
             //TODO: check match type and index here
-            return query.Cells[colIndex].myDecimal;
+            return _query._Cells[colIndex].myDecimal;
         }
         public string GetString(int colIndex)
         {
             //TODO: check match type and index here
-            return query.Cells[colIndex].myString;
+            return _query._Cells[colIndex].myString;
         }
         public byte[] GetBuffer(int colIndex)
         {
             //TODO: check match type and index here
-            return query.Cells[colIndex].myBuffer;
+            return _query._Cells[colIndex].myBuffer;
         }
 
         public DateTime GetDateTime(int colIndex)
         {
             //TODO: check match type and check index here
-            return query.Cells[colIndex].myDateTime;
+            return _query._Cells[colIndex].myDateTime;
         }
-
 
         public void Close()
         {
-            query.Close();
-
+            _query.Close();
         }
     }
 }

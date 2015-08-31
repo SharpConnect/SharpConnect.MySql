@@ -22,29 +22,27 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.IO;
+using System.Text;
 
 namespace MySqlPacket
 {
-    //packet reader
-
     class PacketParser
     {
-        BinaryReader reader;
-        MemoryStream stream;
-        int myLength;
-        long startPosition;
-        long packetLength;
-        Encoding encoding = Encoding.UTF8;
-        List<byte> bList = new List<byte>();
+        BinaryReader _reader;
+        MemoryStream _stream;
+        int _myLength;
+        long _startPosition;
+        long _packetLength;
+        Encoding _encoding = Encoding.UTF8;
+        List<byte> _bList = new List<byte>();
 
         public PacketParser(Encoding encoding)
         {
-            this.encoding = encoding;
-            stream = new MemoryStream();
-            startPosition = stream.Position;//stream.Position = 0;
-            reader = new BinaryReader(stream, encoding);
+            _encoding = encoding;
+            _stream = new MemoryStream();
+            _startPosition = _stream.Position;//stream.Position = 0;
+            _reader = new BinaryReader(_stream, encoding);
         }
 
         ~PacketParser()
@@ -53,75 +51,75 @@ namespace MySqlPacket
         }
         public long Position
         {
-            get { return stream.Position; }
+            get { return _stream.Position; }
 
         }
         public long Length
         {
             get
             {
-                return myLength;
+                return _myLength;
             }
         }
 
         public void Dispose()
         {
-            reader.Close();
-            stream.Close();
-            stream.Dispose();
+            _reader.Close();
+            _stream.Close();
+            _stream.Dispose();
         }
 
         void Reset()
         {
-            stream.Position = 0;
-            myLength = 0;
+            _stream.Position = 0;
+            _myLength = 0;
         }
 
         public void LoadNewBuffer(byte[] newBuffer, int count)
         {
             Reset();
-            stream.Write(newBuffer, 0, count);
-            stream.Position = 0;
-            startPosition = 0;
-            myLength = count;
+            _stream.Write(newBuffer, 0, count);
+            _stream.Position = 0;
+            _startPosition = 0;
+            _myLength = count;
         }
 
         public string ParseNullTerminatedString()
         {
-            bList.Clear();
-            byte temp = reader.ReadByte();
-            bList.Add(temp);
+            _bList.Clear();
+            byte temp = _reader.ReadByte();
+            _bList.Add(temp);
             while (temp != 0)
             {
-                temp = reader.ReadByte();
-                bList.Add(temp);
+                temp = _reader.ReadByte();
+                _bList.Add(temp);
             }
-            byte[] bytes = bList.ToArray();
-            return encoding.GetString(bytes);
+            byte[] bytes = _bList.ToArray();
+            return _encoding.GetString(bytes);
         }
 
         public byte[] ParseNullTerminatedBuffer()
         {
-            bList.Clear();
-            var temp = reader.ReadByte();
-            bList.Add(temp);
+            _bList.Clear();
+            byte temp = _reader.ReadByte();
+            _bList.Add(temp);
             while (temp != 0x00)
             {
-                temp = reader.ReadByte();
-                bList.Add(temp);
+                temp = _reader.ReadByte();
+                _bList.Add(temp);
             }
-            return bList.ToArray();
+            return _bList.ToArray();
         }
 
         public byte ParseByte()
         {
-            return reader.ReadByte();
+            return _reader.ReadByte();
         }
 
         public byte[] ParseBuffer(int n)
         {
             if (n > 0)
-                return reader.ReadBytes(n);
+                return _reader.ReadBytes(n);
             else
                 return null;
         }
@@ -185,95 +183,66 @@ namespace MySqlPacket
 
         public PacketHeader ParsePacketHeader()
         {
-            startPosition = stream.Position;
+            _startPosition = _stream.Position;
             PacketHeader header = new PacketHeader(ParseUnsigned3(), ParseByte());
-            packetLength = header.Length + 4;
+            _packetLength = header.Length + 4;
             return header;
         }
 
         public string ParseLengthCodedString()
         {
-            //var length = this.parseLengthCodedNumber();
             uint length = ParseLengthCodedNumber();
-            //if (length === null) {
-            //  return null;
-            //}
+            if (length == 0)
+            {
+                return null;
+            }
             return ParseString(length);
-            //return this.parseString(length);
         }
 
         public byte[] ParseLengthCodedBuffer()
         {
-            //var length = this.parseLengthCodedNumber();
             uint length = ParseLengthCodedNumber();
-            //  if (length === null) {
-            //    return null;
-            //  }
+            if (length == 0)
+            {
+                return null;
+            }
             return ParseBuffer((int)length);
-            //  return this.parseBuffer(length);
         }
         
         public void ParseFiller(int length)
         {
-            this.stream.Position += length;
+            _stream.Position += length;
         }
 
         public uint ParseLengthCodedNumber()
         {
-            //if (this._offset >= this._buffer.length)
-            //    {
-            //        var err = new Error('Parser: read past end');
-            //        err.offset = (this._offset - this._packetOffset);
-            //        err.code = 'PARSER_READ_PAST_END';
-            //        throw err;
-            //    }
             if (Position >= Length)
             {
                 throw new Exception("Parser: read past end");
             }
-            //    var bits = this._buffer[this._offset++];
 
-            byte bits = reader.ReadByte();
-
-            //    if (bits <= 250)
-            //    {
-            //        return bits;
-            //    }
+            byte bits = _reader.ReadByte();
 
             if (bits <= 250)
             {
                 return bits;
             }
-            //    switch (bits)
-            //    {
-            //        case 251:
-            //            return null;
-            //        case 252:
-            //            return this.parseUnsignedNumber(2);
-            //        case 253:
-            //            return this.parseUnsignedNumber(3);
-            //        case 254:
-            //            break;
-            //        default:
-            //            var err = new Error('Unexpected first byte' + (bits ? ': 0x' + bits.toString(16) : ''));
-            //            err.offset = (this._offset - this._packetOffset - 1);
-            //            err.code = 'PARSER_BAD_LENGTH_BYTE';
-            //            throw err;
-            //    }
 
             switch (bits)
             {
                 case 251: return 0;
-                case 252: return this.ParseUnsigned2();
-                case 253: return this.ParseUnsigned3();
+                case 252: return ParseUnsigned2();
+                case 253: return ParseUnsigned3();
                 case 254: break;
                 default: throw new Exception("Unexpected first byte");
             }
             //    var low = this.parseUnsignedNumber(4);
             //    var high = this.parseUnsignedNumber(4);
             //    var value;
-            uint low = this.ParseUnsigned4();
-            uint high = this.ParseUnsigned4();
+
+            //TODO : Review here again
+            uint low = ParseUnsigned4();
+            uint high = ParseUnsigned4();
             return 0;
             //    if (high >>> 21)
             //    {
@@ -300,23 +269,23 @@ namespace MySqlPacket
 
         public byte ParseUnsigned1()
         {
-            return reader.ReadByte();
+            return _reader.ReadByte();
         }
 
         public uint ParseUnsigned2()
         {
 
-            uint b0 = reader.ReadByte(); //low bit
-            uint b1 = reader.ReadByte(); //high bit
+            uint b0 = _reader.ReadByte(); //low bit
+            uint b1 = _reader.ReadByte(); //high bit
 
             return (b1 << 8) | (b0);
         }
 
         public uint ParseUnsigned3()
         {
-            uint b0 = reader.ReadByte(); //low bit
-            uint b1 = reader.ReadByte();
-            uint b2 = reader.ReadByte(); //high bit
+            uint b0 = _reader.ReadByte(); //low bit
+            uint b1 = _reader.ReadByte();
+            uint b2 = _reader.ReadByte(); //high bit
 
 
             return (b2 << 16) | (b1 << 8) | (b0);
@@ -324,31 +293,31 @@ namespace MySqlPacket
 
         public uint ParseUnsigned4()
         {
-            uint b0 = reader.ReadByte(); //low bit
-            uint b1 = reader.ReadByte();
-            uint b2 = reader.ReadByte();
-            uint b3 = reader.ReadByte(); //high bit
+            uint b0 = _reader.ReadByte(); //low bit
+            uint b1 = _reader.ReadByte();
+            uint b2 = _reader.ReadByte();
+            uint b3 = _reader.ReadByte(); //high bit
             return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
         }
 
         public float ParseFloat()
         {
-            return reader.ReadSingle();
+            return _reader.ReadSingle();
         }
 
         public double ParseDouble()
         {
-            return reader.ReadDouble();
+            return _reader.ReadDouble();
         }
 
         public decimal ParseDecimal()
         {
-            return reader.ReadDecimal();
+            return _reader.ReadDecimal();
         }
         
         public long ParseInt64()
         {
-            return reader.ReadInt64();
+            return _reader.ReadInt64();
         }
 
         public uint ParseUnsignedNumber(int n)
@@ -356,72 +325,40 @@ namespace MySqlPacket
             switch (n)
             {
                 case 0: throw new NotSupportedException();
-                case 1: return reader.ReadByte();
+                case 1: return _reader.ReadByte();
                 case 2:
                     {
-                        uint b0 = reader.ReadByte(); //low bit
-                        uint b1 = reader.ReadByte(); //high bit
+                        uint b0 = _reader.ReadByte(); //low bit
+                        uint b1 = _reader.ReadByte(); //high bit
                         return (b1 << 8) | (b0);
                     }
                 case 3:
                     {
-                        uint b0 = reader.ReadByte(); //low bit
-                        uint b1 = reader.ReadByte();
-                        uint b2 = reader.ReadByte(); //high bit
+                        uint b0 = _reader.ReadByte(); //low bit
+                        uint b1 = _reader.ReadByte();
+                        uint b2 = _reader.ReadByte(); //high bit
 
                         return (b2 << 16) | (b1 << 8) | (b0);
                     }
                 case 4:
                     {
-                        uint b0 = reader.ReadByte(); //low bit
-                        uint b1 = reader.ReadByte();
-                        uint b2 = reader.ReadByte();
-                        uint b3 = reader.ReadByte(); //high bit
+                        uint b0 = _reader.ReadByte(); //low bit
+                        uint b1 = _reader.ReadByte();
+                        uint b2 = _reader.ReadByte();
+                        uint b3 = _reader.ReadByte(); //high bit
                         return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
                     }
                 default:
                     throw new Exception("parseUnsignedNumber: Supports only up to 4 bytes");
-
             }
-            //if (bytes === 1)
-            //{
-            //    return this._buffer[this._offset++];
-            //}
-
-            //var buffer = this._buffer;
-            //var offset = this._offset + bytes - 1;
-            //var value = 0;
-
-            //if (bytes > 4)
-            //{
-            //    var err = new Error('parseUnsignedNumber: Supports only up to 4 bytes');
-            //    err.offset = (this._offset - this._packetOffset - 1);
-            //    err.code = 'PARSER_UNSIGNED_TOO_LONG';
-            //    throw err;
-            //}
-
-
-            //long start = Position;
-            //long end = start + n - 1;
-
-            //while (offset >= this._offset)
-            //{
-            //    value = ((value << 8) | buffer[offset]) >>> 0;
-            //    offset--;
-            //}
-
-
-            //this._offset += bytes;
-            //return value;
-            //return value;
         }
 
         public string ParsePacketTerminatedString()
         {
-            long distance = (startPosition + packetLength) - Position;
+            long distance = (_startPosition + _packetLength) - Position;
             if (distance > 0)
             {
-                return new string(reader.ReadChars((int)distance));
+                return new string(_reader.ReadChars((int)distance));
             }
             else
             {
@@ -431,23 +368,19 @@ namespace MySqlPacket
 
         public char ParseChar()
         {
-            return reader.ReadChar();
+            return _reader.ReadChar();
         }
 
         public string ParseString(uint length)
         {
-            return encoding.GetString(reader.ReadBytes((int)length));
+            return _encoding.GetString(_reader.ReadBytes((int)length));
         }
 
+        //unfinished
         public List<Geometry> ParseGeometryValue()
         {
-            //var buffer = this.parseLengthCodedBuffer();
-            //var offset = 4;
             byte[] buffer = ParseLengthCodedBuffer();
             int offset = 4;
-            //if (buffer === null || !buffer.length) {
-            //  return null;
-            //}
             if (buffer == null)
             {
                 return null;
@@ -468,6 +401,7 @@ namespace MySqlPacket
             return result;
         }
 
+        //unfinished
         void ParseGeometry(List<Geometry> result, byte[] buffer, int byteOrder, int wkbType, int offset)
         {
             double x;
@@ -563,6 +497,7 @@ namespace MySqlPacket
             }
         }
 
+        //unfinished
         int ReadInt32LE(byte[] buffer, int start)
         {
             //byte[] temp = new byte[n];
@@ -582,16 +517,19 @@ namespace MySqlPacket
             return 0;
         }
 
+        //unfinished
         int ReadInt32BE(byte[] buffer, int start)
         {
             return 0;
         }
 
+        //unfinished
         double ReadDoubleLE(byte[] buffer, int start)
         {
             return 0;
         }
 
+        //unfinished
         double ReadDoubleBE(byte[] buffer, int start)
         {
             return 0;
@@ -599,17 +537,17 @@ namespace MySqlPacket
 
         public int Peak()
         {
-            return reader.PeekChar();
+            return _reader.PeekChar();
         }
 
         public bool ReachedPacketEnd()
         {
-            return this.Position == startPosition + packetLength;
+            return Position == _startPosition + _packetLength;
         }
 
         public byte[] ToArray()
         {
-            return stream.ToArray();
+            return _stream.ToArray();
         }
     }
 }
