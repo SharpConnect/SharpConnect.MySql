@@ -38,7 +38,14 @@ namespace SharpConnect.MySql
         {
             var data = new MyStructData();
             data.myInt32 = value;
-            data.type = Types.BIT;
+            data.type = Types.TINY;
+            _values["?" + key] = data;
+        }
+        public void AddWithValue(string key, short value)
+        {
+            var data = new MyStructData();
+            data.myInt32 = value;
+            data.type = Types.SHORT;
             _values["?" + key] = data;
         }
         public void AddWithValue(string key, int value)
@@ -106,31 +113,45 @@ namespace SharpConnect.MySql
         //-------------------------------------------------------
         public void AddWithValue(string key, sbyte value)
         {
-            throw new NotImplementedException();
+            var data = new MyStructData();
+            data.myInt32 = value;
+            data.type = Types.TINY; 
+            _values["?" + key] = data;
         }
         public void AddWithValue(string key, char value)
         {
-            throw new NotImplementedException();
+            //1 unicode char => 2 bytes store
+            var data = new MyStructData();
+            data.myUInt32 = value;
+            data.type = Types.SHORT;//Types.SHORT = 2 bytes
+            _values["?" + key] = data;
         }
         public void AddWithValue(string key, ushort value)
         {
-            throw new NotImplementedException();
+            var data = new MyStructData();
+            data.myUInt32 = value;
+            data.type = Types.SHORT;//Types.SHORT = 2 bytes
+            _values["?" + key] = data;
         }
         public void AddWithValue(string key, uint value)
         {
-            throw new NotImplementedException();
+            var data = new MyStructData();
+            data.myUInt32 = value;
+            data.type = Types.LONG;//Types.LONG = 4 bytes
+            _values["?" + key] = data;
         }
         public void AddWithValue(string key, ulong value)
         {
-            throw new NotImplementedException();
+            var data = new MyStructData();
+            data.myUInt64 = value;
+            data.type = Types.LONGLONG;//Types.LONG = 4 bytes
+            _values["?" + key] = data;
         }
-
-
         internal bool TryGetData(string key, out MyStructData data)
         {
             return _values.TryGetValue(key, out data);
         }
- 
+
         public void ClearDataValues()
         {
             _values.Clear();
@@ -166,6 +187,6 @@ namespace SharpConnect.MySql
             }
         }
         //-------------------------------------------------------
-        
+
     }
 }

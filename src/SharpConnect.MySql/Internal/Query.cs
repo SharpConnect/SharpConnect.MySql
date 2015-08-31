@@ -157,6 +157,7 @@ namespace SharpConnect.MySql.Internal
                     tableHeader.ConnConfig = _conn.config;
                     for (int i = 0; i < okPreparePacket.num_params; i++)
                     {
+                        //no meaing for each field?
                         FieldPacket field = ParseColumn();
                         tableHeader.AddField(field);
                     }
