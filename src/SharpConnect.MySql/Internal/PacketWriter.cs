@@ -21,16 +21,20 @@
 //THE SOFTWARE.
 
 using System;
-using System.Text;
 using System.IO;
+using System.Text;
 
 namespace SharpConnect.MySql.Internal
 {
     class PacketWriter
     {
-        MyBinaryWriter writer;
-        byte packetNumber;
-        long startPacketPosition;
+        MyBinaryWriter _writer;
+        byte _packetNumber;
+        long _startPacketPosition;
+        long _maxAllowedLength = MAX_PACKET_LENGTH;
+        Encoding _encoding;
+        byte[] _headerBuffer = new byte[4];//reusable header buffer
+
 
         const int BIT_16 = (int)1 << 16;//(int)Math.Pow(2, 16);
         const int BIT_24 = (int)1 << 24;//(int)Math.Pow(2, 24);
@@ -39,18 +43,15 @@ namespace SharpConnect.MySql.Internal
         const long IEEE_754_BINARY_64_PRECISION = (long)1 << 53;
         const int MAX_PACKET_LENGTH = (int)(1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
 
-        long maxAllowedLength = MAX_PACKET_LENGTH;
-        Encoding encoding;
 
-        byte[] headerBuffer = new byte[4];//reusable header buffer
 
         public PacketWriter(Encoding encoding)
         {
-            writer = new MyBinaryWriter();
-            writer.Reset();
-            packetNumber = 0;
-            startPacketPosition = 0;
-            this.encoding = encoding;
+            _writer = new MyBinaryWriter();
+            _writer.Reset();
+            _packetNumber = 0;
+            _startPacketPosition = 0;
+            _encoding = encoding;
         }
 
         ~PacketWriter()
@@ -59,39 +60,39 @@ namespace SharpConnect.MySql.Internal
         }
         public long Position
         {
-            get { return writer.OriginalStreamPosition; }
+            get { return _writer.OriginalStreamPosition; }
         }
         public long Length
         {
-            get { return writer.Length; }
+            get { return _writer.Length; }
         }
 
         public void SetMaxAllowedPacket(long max)
         {
-            maxAllowedLength = max;
+            _maxAllowedLength = max;
         }
 
         public void Reset()
         {
-            packetNumber = 0;
-            startPacketPosition = 0;
-            this.writer.Reset();
+            _packetNumber = 0;
+            _startPacketPosition = 0;
+            _writer.Reset();
         }
 
         public void Dispose()
         {
-            writer.Close();
+            _writer.Close();
         }
 
         public void ReserveHeader()
         {
-            startPacketPosition = writer.OriginalStreamPosition;
+            _startPacketPosition = _writer.OriginalStreamPosition;
             WriteFiller(4);
         }
 
         public byte IncrementPacketNumber()
         {
-            return packetNumber++;
+            return _packetNumber++;
         }
 
         public void WriteHeader(PacketHeader header)
@@ -107,27 +108,27 @@ namespace SharpConnect.MySql.Internal
             int packets = (int)(curPacketLength / MAX_PACKET_LENGTH) + 1;
             if (packets == 1)
             {
-                if (header.Length > maxAllowedLength)
+                if (header.Length > _maxAllowedLength)
                 {
                     throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
                 }
-                EncodeUnsignedNumber0_3(headerBuffer, header.Length);
-                headerBuffer[3] = header.PacketNumber;
-                writer.RewindAndWriteAt(headerBuffer, (int)startPacketPosition);
+                EncodeUnsignedNumber0_3(_headerBuffer, header.Length);
+                _headerBuffer[3] = header.PacketNumber;
+                _writer.RewindAndWriteAt(_headerBuffer, (int)_startPacketPosition);
             }
             else //>1 
             {
                 long allDataLength = (curPacketLength - 4) + (packets * 4);
-                if (allDataLength > maxAllowedLength)
+                if (allDataLength > _maxAllowedLength)
                 {
                     throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
                 }
                 byte[] allBuffer = new byte[allDataLength];
-                int startContentPos = (int)(startPacketPosition + 4);
+                int startContentPos = (int)(_startPacketPosition + 4);
                 int offset = 0;
                 byte startPacketNum = header.PacketNumber;
                 byte[] currentPacketBuff = new byte[MAX_PACKET_LENGTH];
-                
+
                 for (int packet = 0; packet < packets; packet++)
                 {
                     //    this._offset = packet * (MAX_PACKET_LENGTH + 4);
@@ -151,32 +152,32 @@ namespace SharpConnect.MySql.Internal
                     int start = packet * (MAX_PACKET_LENGTH + 4);//+4 for add header
 
                     //byte[] encodeData = new byte[4];
-                    EncodeUnsignedNumber0_3(headerBuffer, (uint)packetLength);
-                    headerBuffer[3] = startPacketNum++;
+                    EncodeUnsignedNumber0_3(_headerBuffer, (uint)packetLength);
+                    _headerBuffer[3] = startPacketNum++;
 
-                    headerBuffer.CopyTo(allBuffer, start);
-                    writer.RewindAndWriteAt(headerBuffer, start);
+                    _headerBuffer.CopyTo(allBuffer, start);
+                    _writer.RewindAndWriteAt(_headerBuffer, start);
                     //startPacketNum = 0;
                     if (packetLength < currentPacketBuff.Length)
                     {
                         currentPacketBuff = new byte[packetLength];
                     }
-                    writer.Read(currentPacketBuff, offset, packetLength);
+                    _writer.Read(currentPacketBuff, offset, packetLength);
                     currentPacketBuff.CopyTo(allBuffer, start + 4);
                 }
-                writer.RewindAndWriteAt(allBuffer, (int)startPacketPosition);
+                _writer.RewindAndWriteAt(allBuffer, (int)_startPacketPosition);
             }
         }
         public long CurrentPacketLength()
         {
-            return writer.OriginalStreamPosition - startPacketPosition;
+            return _writer.OriginalStreamPosition - _startPacketPosition;
         }
         public void WriteNullTerminatedString(string str)
         {
 
-            byte[] buff = encoding.GetBytes(str.ToCharArray());
-            writer.Write(buff);
-            writer.Write((byte)0);
+            byte[] buff = _encoding.GetBytes(str.ToCharArray());
+            _writer.Write(buff);
+            _writer.Write((byte)0);
         }
 
         public void WriteNullTerminatedBuffer(byte[] value)
@@ -186,25 +187,25 @@ namespace SharpConnect.MySql.Internal
         }
         public void WriteUnsigned1(uint value)
         {
-            writer.Write((byte)(value & 0xff));
+            _writer.Write((byte)(value & 0xff));
         }
         public void WriteUnsigned2(uint value)
         {
-            writer.Write((byte)(value & 0xff));
-            writer.Write((byte)((value >> 8) & 0xff));
+            _writer.Write((byte)(value & 0xff));
+            _writer.Write((byte)((value >> 8) & 0xff));
         }
         public void WriteUnsigned3(uint value)
         {
-            writer.Write((byte)(value & 0xff));
-            writer.Write((byte)((value >> 8) & 0xff));
-            writer.Write((byte)((value >> 16) & 0xff));
+            _writer.Write((byte)(value & 0xff));
+            _writer.Write((byte)((value >> 8) & 0xff));
+            _writer.Write((byte)((value >> 16) & 0xff));
         }
         public void WriteUnsigned4(uint value)
         {
-            writer.Write((byte)(value & 0xff));
-            writer.Write((byte)((value >> 8) & 0xff));
-            writer.Write((byte)((value >> 16) & 0xff));
-            writer.Write((byte)((value >> 24) & 0xff));
+            _writer.Write((byte)(value & 0xff));
+            _writer.Write((byte)((value >> 8) & 0xff));
+            _writer.Write((byte)((value >> 16) & 0xff));
+            _writer.Write((byte)((value >> 24) & 0xff));
         }
         public void WriteUnsignedNumber(int length, uint value)
         {
@@ -213,25 +214,25 @@ namespace SharpConnect.MySql.Internal
                 case 0: break;
                 case 1:
 
-                    writer.Write((byte)(value & 0xff));
+                    _writer.Write((byte)(value & 0xff));
                     break;
                 case 2:
 
-                    writer.Write((byte)(value & 0xff));
-                    writer.Write((byte)((value >> 8) & 0xff));
+                    _writer.Write((byte)(value & 0xff));
+                    _writer.Write((byte)((value >> 8) & 0xff));
                     break;
                 case 3:
 
-                    writer.Write((byte)(value & 0xff));
-                    writer.Write((byte)((value >> 8) & 0xff));
-                    writer.Write((byte)((value >> 16) & 0xff));
+                    _writer.Write((byte)(value & 0xff));
+                    _writer.Write((byte)((value >> 8) & 0xff));
+                    _writer.Write((byte)((value >> 16) & 0xff));
                     break;
                 case 4:
 
-                    writer.Write((byte)(value & 0xff));
-                    writer.Write((byte)((value >> 8) & 0xff));
-                    writer.Write((byte)((value >> 16) & 0xff));
-                    writer.Write((byte)((value >> 24) & 0xff));
+                    _writer.Write((byte)(value & 0xff));
+                    _writer.Write((byte)((value >> 8) & 0xff));
+                    _writer.Write((byte)((value >> 16) & 0xff));
+                    _writer.Write((byte)((value >> 24) & 0xff));
                     break;
                 case 5:
                     throw new NotSupportedException();
@@ -265,22 +266,22 @@ namespace SharpConnect.MySql.Internal
 
         public void WriteByte(byte value)
         {
-            writer.Write(value);
+            _writer.Write(value);
         }
 
         public void WriteInt64(long value)
         {
-            writer.WriteInt64(value);
+            _writer.WriteInt64(value);
         }
 
         public void WriteFloat(float value)
         {
-            writer.WriteFloat(value);
+            _writer.WriteFloat(value);
         }
 
         public void WriteDouble(double value)
         {
-            writer.WriteDouble(value);
+            _writer.WriteDouble(value);
         }
 
         public void WriteFiller(int length)
@@ -290,34 +291,34 @@ namespace SharpConnect.MySql.Internal
                 case 0:
                     break;
                 case 1:
-                    writer.Write((byte)0);//1
+                    _writer.Write((byte)0);//1
                     break;
                 case 2:
-                    writer.WriteInt16(0);//2
+                    _writer.WriteInt16(0);//2
                     break;
                 case 3:
-                    writer.WriteInt16(0);//2
-                    writer.Write((byte)0);//1
+                    _writer.WriteInt16(0);//2
+                    _writer.Write((byte)0);//1
                     break;
                 case 4:
-                    writer.WriteInt32(0);//4
+                    _writer.WriteInt32(0);//4
                     break;
                 default:
                     //else
                     byte[] filler = new byte[length];
-                    writer.Write(filler);
+                    _writer.Write(filler);
                     break;
             }
         }
 
         public void WriteBuffer(byte[] value)
         {
-            writer.Write(value);
+            _writer.Write(value);
         }
 
         public void WriteLengthCodedNull()
         {
-            writer.Write((byte)251);
+            _writer.Write((byte)251);
         }
 
         public void WriteLengthCodedNumber(long value)
@@ -325,7 +326,7 @@ namespace SharpConnect.MySql.Internal
 
             if (value <= 250)
             {
-                writer.Write((byte)value);
+                _writer.Write((byte)value);
                 return;
             }
             if (value > IEEE_754_BINARY_64_PRECISION)
@@ -337,42 +338,42 @@ namespace SharpConnect.MySql.Internal
             if (value <= BIT_16)
             {
 
-                writer.Write((byte)252); //endcode
+                _writer.Write((byte)252); //endcode
 
                 //// 16 Bit
                 //this._buffer[this._offset++] = value & 0xff;
                 //this._buffer[this._offset++] = (value >> 8) & 0xff;
-                writer.Write((byte)(value & 0xff));
-                writer.Write((byte)((value >> 8) & 0xff));
+                _writer.Write((byte)(value & 0xff));
+                _writer.Write((byte)((value >> 8) & 0xff));
             }
             else if (value <= BIT_24)
             {
-                writer.Write((byte)253); //encode
+                _writer.Write((byte)253); //encode
 
-                writer.Write((byte)(value & 0xff));
-                writer.Write((byte)((value >> 8) & 0xff));
-                writer.Write((byte)((value >> 16) & 0xff));
+                _writer.Write((byte)(value & 0xff));
+                _writer.Write((byte)((value >> 8) & 0xff));
+                _writer.Write((byte)((value >> 16) & 0xff));
             }
             else
             {
-                writer.Write((byte)254); //encode 
+                _writer.Write((byte)254); //encode 
 
-                writer.Write((byte)(value & 0xff));
-                writer.Write((byte)((value >> 8) & 0xff));
-                writer.Write((byte)((value >> 16) & 0xff));
-                writer.Write((byte)((value >> 24) & 0xff));
+                _writer.Write((byte)(value & 0xff));
+                _writer.Write((byte)((value >> 8) & 0xff));
+                _writer.Write((byte)((value >> 16) & 0xff));
+                _writer.Write((byte)((value >> 24) & 0xff));
 
                 //// Hack: Get the most significant 32 bit (JS bitwise operators are 32 bit)
                 //value = value.toString(2);
                 //value = value.substr(0, value.length - 32);
                 //value = parseInt(value, 2); 
-                writer.Write((byte)((value >> 32) & 0xff));
-                writer.Write((byte)((value >> 40) & 0xff));
-                writer.Write((byte)((value >> 48) & 0xff));
+                _writer.Write((byte)((value >> 32) & 0xff));
+                _writer.Write((byte)((value >> 40) & 0xff));
+                _writer.Write((byte)((value >> 48) & 0xff));
 
                 //// Set last byte to 0, as we can only support 53 bits in JS (see above)
                 //this._buffer[this._offset++] = 0;
-                writer.Write((byte)0);
+                _writer.Write((byte)0);
             }
 
         }
@@ -381,7 +382,7 @@ namespace SharpConnect.MySql.Internal
         {
             var bytes = value.Length;
             WriteLengthCodedNumber(bytes);
-            writer.Write(value);
+            _writer.Write(value);
         }
 
         public void WriteLengthCodedString(string value)
@@ -416,120 +417,120 @@ namespace SharpConnect.MySql.Internal
             //this._allocate(bytes);
             //this._buffer.write(value, this._offset, 'utf-8');
             //this._offset += bytes;
-            writer.Write(buff);
+            _writer.Write(buff);
         }
 
         public void WriteString(string value)
         {
-            byte[] buff = encoding.GetBytes(value.ToCharArray());
-            writer.Write(buff);
+            byte[] buff = _encoding.GetBytes(value.ToCharArray());
+            _writer.Write(buff);
         }
 
         public byte[] ToArray()
         {
-            writer.Flush();
-            return writer.ToArray();
+            _writer.Flush();
+            return _writer.ToArray();
         }
     }
-    
+
     class MyBinaryWriter : IDisposable
     {
-        readonly BinaryWriter writer;
-        int offset;
-        MemoryStream ms;
-        
+        readonly BinaryWriter _writer;
+        int _offset;
+        MemoryStream _ms;
+
         public MyBinaryWriter()
         {
-            ms = new MemoryStream();
-            writer = new BinaryWriter(ms);
+            _ms = new MemoryStream();
+            _writer = new BinaryWriter(_ms);
         }
         public int Length
         {
-            get { return this.offset; }
+            get { return _offset; }
         }
         public void Dispose()
         {
-            this.Close();
+            Close();
         }
         public void Write(byte b)
         {
-            writer.Write(b);
-            offset++;
+            _writer.Write(b);
+            _offset++;
         }
         public void Write(byte[] bytes)
         {
-            writer.Write(bytes);
-            offset += bytes.Length;
+            _writer.Write(bytes);
+            _offset += bytes.Length;
         }
         public void WriteInt64(long value)
         {
-            writer.Write(value);
-            offset += 8;
+            _writer.Write(value);
+            _offset += 8;
         }
         public void WriteInt32(int value)
         {
-            writer.Write(value);
-            offset += 4;
+            _writer.Write(value);
+            _offset += 4;
         }
         public void WriteInt16(short value)
         {
-            writer.Write(value);
-            offset += 2;
+            _writer.Write(value);
+            _offset += 2;
         }
         public void WriteFloat(float value)
         {
-            writer.Write(value);
-            offset += 4;
+            _writer.Write(value);
+            _offset += 4;
         }
         public void WriteDouble(double value)
         {
-            writer.Write(value);
-            offset += 8;
+            _writer.Write(value);
+            _offset += 8;
         }
 
         public void Reset()
         {
-            writer.BaseStream.Position = 0;
-            offset = 0;
+            _writer.BaseStream.Position = 0;
+            _offset = 0;
         }
         public void RewindAndWriteAt(byte[] buffer, int offset)
         {
-            var pos = writer.BaseStream.Position;
-            writer.BaseStream.Position = offset;
-            writer.Write(buffer);
-            writer.BaseStream.Position = pos;
+            var pos = _writer.BaseStream.Position;
+            _writer.BaseStream.Position = offset;
+            _writer.Write(buffer);
+            _writer.BaseStream.Position = pos;
 
-            if (this.offset < buffer.Length)
+            if (_offset < buffer.Length)
             {
-                this.offset = buffer.Length;
+                _offset = buffer.Length;
             }
         }
         public long OriginalStreamPosition
         {
-            get { return this.writer.BaseStream.Position; }
-            set { this.writer.BaseStream.Position = value; }
+            get { return _writer.BaseStream.Position; }
+            set { _writer.BaseStream.Position = value; }
         }
         public void Close()
         {
-            writer.Close();
-            ms.Close();
-            ms.Dispose();
+            _writer.Close();
+            _ms.Close();
+            _ms.Dispose();
         }
         public void Flush()
         {
-            writer.Flush();
+            _writer.Flush();
         }
         public byte[] ToArray()
         {
-            byte[] output = new byte[offset];
-            ms.Position = 0;
-            Read(output, 0, offset);
+            var output = new byte[_offset];
+            _ms.Position = 0;
+            Read(output, 0, _offset);
             return output;
         }
         public void Read(byte[] buffer, int offset, int count)
         {
-            ms.Position = offset;
-            var a = ms.Read(buffer, 0, count);
+            _ms.Position = offset;
+            var a = _ms.Read(buffer, 0, count);
         }
     }
 }

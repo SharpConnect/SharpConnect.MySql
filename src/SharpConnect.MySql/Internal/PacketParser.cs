@@ -22,8 +22,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.IO;
+using System.Text;
+
 
 namespace SharpConnect.MySql.Internal
 {
@@ -31,20 +32,20 @@ namespace SharpConnect.MySql.Internal
 
     class PacketParser
     {
-        BinaryReader reader;
-        MemoryStream stream;
-        int myLength;
-        long startPosition;
-        long packetLength;
-        Encoding encoding = Encoding.UTF8;
-        List<byte> bList = new List<byte>();
+        BinaryReader _reader;
+        MemoryStream _stream;
+        int _myLength;
+        long _startPosition;
+        long _packetLength;
+        Encoding _encoding = Encoding.UTF8;
+        List<byte> _bList = new List<byte>();
 
         public PacketParser(Encoding encoding)
         {
-            this.encoding = encoding;
-            stream = new MemoryStream();
-            startPosition = stream.Position;//stream.Position = 0;
-            reader = new BinaryReader(stream, encoding);
+            _encoding = encoding;
+            _stream = new MemoryStream();
+            _startPosition = _stream.Position;//stream.Position = 0;
+            _reader = new BinaryReader(_stream, encoding);
         }
 
         ~PacketParser()
@@ -53,75 +54,75 @@ namespace SharpConnect.MySql.Internal
         }
         public long Position
         {
-            get { return stream.Position; }
+            get { return _stream.Position; }
 
         }
         public long Length
         {
             get
             {
-                return myLength;
+                return _myLength;
             }
         }
 
         public void Dispose()
         {
-            reader.Close();
-            stream.Close();
-            stream.Dispose();
+            _reader.Close();
+            _stream.Close();
+            _stream.Dispose();
         }
 
         void Reset()
         {
-            stream.Position = 0;
-            myLength = 0;
+            _stream.Position = 0;
+            _myLength = 0;
         }
 
         public void LoadNewBuffer(byte[] newBuffer, int count)
         {
             Reset();
-            stream.Write(newBuffer, 0, count);
-            stream.Position = 0;
-            startPosition = 0;
-            myLength = count;
+            _stream.Write(newBuffer, 0, count);
+            _stream.Position = 0;
+            _startPosition = 0;
+            _myLength = count;
         }
 
         public string ParseNullTerminatedString()
         {
-            bList.Clear();
-            byte temp = reader.ReadByte();
-            bList.Add(temp);
+            _bList.Clear();
+            byte temp = _reader.ReadByte();
+            _bList.Add(temp);
             while (temp != 0)
             {
-                temp = reader.ReadByte();
-                bList.Add(temp);
+                temp = _reader.ReadByte();
+                _bList.Add(temp);
             }
-            byte[] bytes = bList.ToArray();
-            return encoding.GetString(bytes);
+            byte[] bytes = _bList.ToArray();
+            return _encoding.GetString(bytes);
         }
 
         public byte[] ParseNullTerminatedBuffer()
         {
-            bList.Clear();
-            var temp = reader.ReadByte();
-            bList.Add(temp);
+            _bList.Clear();
+            var temp = _reader.ReadByte();
+            _bList.Add(temp);
             while (temp != 0x00)
             {
-                temp = reader.ReadByte();
-                bList.Add(temp);
+                temp = _reader.ReadByte();
+                _bList.Add(temp);
             }
-            return bList.ToArray();
+            return _bList.ToArray();
         }
 
         public byte ParseByte()
         {
-            return reader.ReadByte();
+            return _reader.ReadByte();
         }
 
         public byte[] ParseBuffer(int n)
         {
             if (n > 0)
-                return reader.ReadBytes(n);
+                return _reader.ReadBytes(n);
             else
                 return null;
         }
@@ -185,9 +186,9 @@ namespace SharpConnect.MySql.Internal
 
         public PacketHeader ParsePacketHeader()
         {
-            startPosition = stream.Position;
+            _startPosition = _stream.Position;
             PacketHeader header = new PacketHeader(ParseUnsigned3(), ParseByte());
-            packetLength = header.Length + 4;
+            _packetLength = header.Length + 4;
             return header;
         }
 
@@ -215,7 +216,7 @@ namespace SharpConnect.MySql.Internal
 
         public void ParseFiller(int length)
         {
-            this.stream.Position += length;
+            _stream.Position += length;
         }
 
         public uint ParseLengthCodedNumber()
@@ -233,7 +234,7 @@ namespace SharpConnect.MySql.Internal
             }
             //    var bits = this._buffer[this._offset++];
 
-            byte bits = reader.ReadByte();
+            byte bits = _reader.ReadByte();
 
             //    if (bits <= 250)
             //    {
@@ -264,16 +265,16 @@ namespace SharpConnect.MySql.Internal
             switch (bits)
             {
                 case 251: return 0;
-                case 252: return this.ParseUnsigned2();
-                case 253: return this.ParseUnsigned3();
+                case 252: return ParseUnsigned2();
+                case 253: return ParseUnsigned3();
                 case 254: break;
                 default: throw new Exception("Unexpected first byte");
             }
             //    var low = this.parseUnsignedNumber(4);
             //    var high = this.parseUnsignedNumber(4);
             //    var value;
-            uint low = this.ParseUnsigned4();
-            uint high = this.ParseUnsigned4();
+            uint low = ParseUnsigned4();
+            uint high = ParseUnsigned4();
             return 0;
             //    if (high >>> 21)
             //    {
@@ -300,23 +301,23 @@ namespace SharpConnect.MySql.Internal
 
         public byte ParseUnsigned1()
         {
-            return reader.ReadByte();
+            return _reader.ReadByte();
         }
 
         public uint ParseUnsigned2()
         {
 
-            uint b0 = reader.ReadByte(); //low bit
-            uint b1 = reader.ReadByte(); //high bit
+            uint b0 = _reader.ReadByte(); //low bit
+            uint b1 = _reader.ReadByte(); //high bit
 
             return (b1 << 8) | (b0);
         }
 
         public uint ParseUnsigned3()
         {
-            uint b0 = reader.ReadByte(); //low bit
-            uint b1 = reader.ReadByte();
-            uint b2 = reader.ReadByte(); //high bit
+            uint b0 = _reader.ReadByte(); //low bit
+            uint b1 = _reader.ReadByte();
+            uint b2 = _reader.ReadByte(); //high bit
 
 
             return (b2 << 16) | (b1 << 8) | (b0);
@@ -324,31 +325,31 @@ namespace SharpConnect.MySql.Internal
 
         public uint ParseUnsigned4()
         {
-            uint b0 = reader.ReadByte(); //low bit
-            uint b1 = reader.ReadByte();
-            uint b2 = reader.ReadByte();
-            uint b3 = reader.ReadByte(); //high bit
+            uint b0 = _reader.ReadByte(); //low bit
+            uint b1 = _reader.ReadByte();
+            uint b2 = _reader.ReadByte();
+            uint b3 = _reader.ReadByte(); //high bit
             return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
         }
 
         public float ParseFloat()
         {
-            return reader.ReadSingle();
+            return _reader.ReadSingle();
         }
 
         public double ParseDouble()
         {
-            return reader.ReadDouble();
+            return _reader.ReadDouble();
         }
 
         public decimal ParseDecimal()
         {
-            return reader.ReadDecimal();
+            return _reader.ReadDecimal();
         }
 
         public long ParseInt64()
         {
-            return reader.ReadInt64();
+            return _reader.ReadInt64();
         }
 
         public uint ParseUnsignedNumber(int n)
@@ -356,27 +357,27 @@ namespace SharpConnect.MySql.Internal
             switch (n)
             {
                 case 0: throw new NotSupportedException();
-                case 1: return reader.ReadByte();
+                case 1: return _reader.ReadByte();
                 case 2:
                     {
-                        uint b0 = reader.ReadByte(); //low bit
-                        uint b1 = reader.ReadByte(); //high bit
+                        uint b0 = _reader.ReadByte(); //low bit
+                        uint b1 = _reader.ReadByte(); //high bit
                         return (b1 << 8) | (b0);
                     }
                 case 3:
                     {
-                        uint b0 = reader.ReadByte(); //low bit
-                        uint b1 = reader.ReadByte();
-                        uint b2 = reader.ReadByte(); //high bit
+                        uint b0 = _reader.ReadByte(); //low bit
+                        uint b1 = _reader.ReadByte();
+                        uint b2 = _reader.ReadByte(); //high bit
 
                         return (b2 << 16) | (b1 << 8) | (b0);
                     }
                 case 4:
                     {
-                        uint b0 = reader.ReadByte(); //low bit
-                        uint b1 = reader.ReadByte();
-                        uint b2 = reader.ReadByte();
-                        uint b3 = reader.ReadByte(); //high bit
+                        uint b0 = _reader.ReadByte(); //low bit
+                        uint b1 = _reader.ReadByte();
+                        uint b2 = _reader.ReadByte();
+                        uint b3 = _reader.ReadByte(); //high bit
                         return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
                     }
                 default:
@@ -418,10 +419,10 @@ namespace SharpConnect.MySql.Internal
 
         public string ParsePacketTerminatedString()
         {
-            long distance = (startPosition + packetLength) - Position;
+            long distance = (_startPosition + _packetLength) - Position;
             if (distance > 0)
             {
-                return new string(reader.ReadChars((int)distance));
+                return new string(_reader.ReadChars((int)distance));
             }
             else
             {
@@ -431,12 +432,12 @@ namespace SharpConnect.MySql.Internal
 
         public char ParseChar()
         {
-            return reader.ReadChar();
+            return _reader.ReadChar();
         }
 
         public string ParseString(uint length)
         {
-            return encoding.GetString(reader.ReadBytes((int)length));
+            return _encoding.GetString(_reader.ReadBytes((int)length));
         }
 
         public List<Geometry> ParseGeometryValue()
@@ -599,17 +600,17 @@ namespace SharpConnect.MySql.Internal
 
         public int Peak()
         {
-            return reader.PeekChar();
+            return _reader.PeekChar();
         }
 
         public bool ReachedPacketEnd()
         {
-            return this.Position == startPosition + packetLength;
+            return this.Position == _startPosition + _packetLength;
         }
 
         public byte[] ToArray()
         {
-            return stream.ToArray();
+            return _stream.ToArray();
         }
     }
 }

@@ -4,12 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.IO;
-
-using System.Threading;
-using System.Net;
-using System.Net.Sockets;
-
 
 namespace SharpConnect.MySql.Internal
 {
@@ -314,8 +308,6 @@ namespace SharpConnect.MySql.Internal
 
             }
         }
-
-
         public string BindValues(CommandParams cmdParams, bool forPrepareStmt)
         {
 

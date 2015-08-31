@@ -29,8 +29,6 @@
 
 using System.Net;
 using System.Net.Sockets;
-
-using SharpConnect;
 using SharpConnect.Sockets;
 
 namespace SharpConnect.MySql.Internal
@@ -39,26 +37,26 @@ namespace SharpConnect.MySql.Internal
     partial class Connection
     {
 
-        byte[] sockBuffer = new byte[1024 * 2];
-        SocketAsyncEventArgs saea = new SocketAsyncEventArgs();
-        MySqlConnectionSession connSession;
+        byte[] _sockBuffer = new byte[1024 * 2];
+        SocketAsyncEventArgs _saea = new SocketAsyncEventArgs();
+        MySqlConnectionSession _connSession;
 
         public void ConnectAsync(Action connHandler)
         {
 
             //1. socket
-            this.socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            saea.SetBuffer(sockBuffer, 0, sockBuffer.Length);
+            socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _saea.SetBuffer(_sockBuffer, 0, _sockBuffer.Length);
 
             //2. buffer 
-            connSession = new MySqlConnectionSession(saea, 1024, 1024);
-            saea.UserToken = connSession;
-            saea.AcceptSocket = socket;
+            _connSession = new MySqlConnectionSession(_saea, 1024, 1024);
+            _saea.UserToken = _connSession;
+            _saea.AcceptSocket = socket;
 
             var endPoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             //first connect 
             socket.Connect(endPoint);
-            connSession.StartReceive(recv =>
+            _connSession.StartReceive(recv =>
             {
 
                 //TODO: review here, don't copy, 
@@ -67,27 +65,27 @@ namespace SharpConnect.MySql.Internal
                 byte[] buffer = new byte[512];
                 int count = recv.BytesTransferred;
                 recv.CopyTo(0, buffer, 0, recv.BytesTransferred);
-                parser.LoadNewBuffer(buffer, count);
-                handshake = new HandshakePacket();
-                handshake.ParsePacket(parser);
-                this.threadId = handshake.threadId;
+                _parser.LoadNewBuffer(buffer, count);
+                _handshake = new HandshakePacket();
+                _handshake.ParsePacket(_parser);
+                this.threadId = _handshake.threadId;
 
                 byte[] token = MakeToken(config.password,
-                    GetScrollbleBuffer(handshake.scrambleBuff1, handshake.scrambleBuff2));
+                    GetScrollbleBuffer(_handshake.scrambleBuff1, _handshake.scrambleBuff2));
 
-                writer.Reset();
-                writer.IncrementPacketNumber();
+                _writer.Reset();
+                _writer.IncrementPacketNumber();
                 //------------------------------------------
                 var authPacket = new ClientAuthenticationPacket();
-                authPacket.SetValues(config.user, token, config.database, handshake.protocol41);
-                authPacket.WritePacket(writer);
+                authPacket.SetValues(config.user, token, config.database, _handshake.protocol41);
+                authPacket.WritePacket(_writer);
 
                 //send  
                 //do authen 
                 //handle  
-                recv.recvAction = () =>
+                recv._recvAction = () =>
                 {
-                    byte[] sendBuff = writer.ToArray();
+                    byte[] sendBuff = _writer.ToArray();
                     byte[] receiveBuff = new byte[512];
                     //-------------------------------------------
 
@@ -95,23 +93,23 @@ namespace SharpConnect.MySql.Internal
                     int sendNum = socket.Send(sendBuff);
                     int receiveNum = socket.Receive(receiveBuff);
 
-                    parser.LoadNewBuffer(receiveBuff, receiveNum);
+                    _parser.LoadNewBuffer(receiveBuff, receiveNum);
                     if (receiveBuff[4] == 255)
                     {
                         ErrPacket errPacket = new ErrPacket();
-                        errPacket.ParsePacket(parser);
+                        errPacket.ParsePacket(_parser);
 
                     }
                     else
                     {
-                        OkPacket okPacket = new OkPacket(handshake.protocol41);
-                        okPacket.ParsePacket(parser);
+                        OkPacket okPacket = new OkPacket(_handshake.protocol41);
+                        okPacket.ParsePacket(_parser);
                     }
-                    writer.Reset();
+                    _writer.Reset();
                     GetMaxAllowedPacket();
-                    if (maxPacketSize > 0)
+                    if (_maxPacketSize > 0)
                     {
-                        writer.SetMaxAllowedPacket(maxPacketSize);
+                        _writer.SetMaxAllowedPacket(_maxPacketSize);
                     }
 
                     if (connHandler != null)
@@ -126,19 +124,19 @@ namespace SharpConnect.MySql.Internal
 
         public void DisconnectAsync(Action onClosed)
         {
-            writer.Reset();
+            _writer.Reset();
             ComQuitPacket quitPacket = new ComQuitPacket();
-            quitPacket.WritePacket(writer);
+            quitPacket.WritePacket(_writer);
 
-            byte[] dataToSend = writer.ToArray();
-            connSession.SetDataToSend(dataToSend, dataToSend.Length);
+            byte[] dataToSend = _writer.ToArray();
+            _connSession.SetDataToSend(dataToSend, dataToSend.Length);
 
-            connSession.StartSend(recv =>
-            { 
+            _connSession.StartSend(recv =>
+            {
                 socket.Disconnect(true);
 
                 return EndSendState.Complete;
-            }); 
+            });
         }
 
     }
@@ -157,9 +155,9 @@ namespace SharpConnect.MySql.Internal
         }
         protected override EndReceiveState ProtocolRecvBuffer(ReceiveCarrier recvCarrier)
         {
-            if (this.recvHandler != null)
+            if (this._recvHandler != null)
             {
-                return recvHandler(recvCarrier);
+                return _recvHandler(recvCarrier);
             }
 
             //else
