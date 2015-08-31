@@ -239,19 +239,12 @@ namespace SharpConnect.MySql.Internal
         //byte EXCUTE_CMD = (byte)Command.STMT_EXECUTE;
 
         readonly uint _statementId;
-        readonly List<SqlSection> _keys;
-        readonly CommandParams _cmdParams;
+        readonly MyStructData[] _prepareValues;
 
-        public ComExecutePrepareStatement(uint statementId, CommandParams cmdParams, SqlStringTemplate sqlStrTemplate)
+        public ComExecutePrepareStatement(uint statementId, MyStructData[] filledValues)
         {
             _statementId = statementId;
-            _cmdParams = cmdParams;
-            _keys = sqlStrTemplate.GetValueKeys();
-
-            //------------
-            //find position 
-
-
+            _prepareValues = filledValues;
         }
         public override void ParsePacket(PacketParser parser)
         {
@@ -265,18 +258,19 @@ namespace SharpConnect.MySql.Internal
             writer.WriteUnsignedNumber(4, _statementId);
             writer.WriteByte((byte)CursorFlags.CURSOR_TYPE_NO_CURSOR);
             writer.WriteUnsignedNumber(4, 1);//iteration-count, always 1
-            //write NULL-bitmap, length: (num-params+7)/8
-            MyStructData dataTemp;
+                                             //write NULL-bitmap, length: (num-params+7)/8
 
-            int paramNum = _keys.Count;
+            MyStructData[] fillValues = _prepareValues;
+
+            int paramNum = _prepareValues.Length;
             if (paramNum > 0)
             {
                 uint bitmap = 0;
                 uint bitValue = 1;
                 for (int i = 0; i < paramNum; i++)
                 {
-                    dataTemp = _cmdParams.GetData(_keys[i].Text);
-                    if (dataTemp.type == Types.NULL)
+                    Types dataType = _prepareValues[i].type;
+                    if (dataType == Types.NULL)
                     {
                         bitmap += bitValue;
                     }
@@ -298,8 +292,7 @@ namespace SharpConnect.MySql.Internal
             //data types
             for (int i = 0; i < paramNum; i++)
             {
-                dataTemp = _cmdParams.GetData(_keys[i].Text);
-                writer.WriteUnsignedNumber(2, (byte)dataTemp.type);
+                writer.WriteUnsignedNumber(2, (byte)_prepareValues[i].type);
             }
 
 
@@ -317,8 +310,7 @@ namespace SharpConnect.MySql.Internal
             //actual data
             for (int i = 0; i < paramNum; i++)
             {
-                dataTemp = _cmdParams.GetData(_keys[i].Text);
-                WriteValueByType(writer, ref dataTemp);
+                WriteValueByType(writer, ref _prepareValues[i]);
             }
 
             header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());

@@ -132,7 +132,7 @@ namespace SharpConnect.MySql
             return _values.TryGetValue(key, out data);
         }
 
-        internal MyStructData GetData(string key)
+        MyStructData GetData(string key)
         {
             MyStructData value;
             _values.TryGetValue(key, out value);
@@ -155,7 +155,7 @@ namespace SharpConnect.MySql
 
             _sqlParts["??" + sqlBoundKey] = "`" + sqlPart + "`";
         }
-        internal bool TryGetSqlPart(string sqlBoundKey, out string sqlPart)
+        public bool TryGetSqlPart(string sqlBoundKey, out string sqlPart)
         {
             if (_sqlParts == null)
             {
@@ -172,6 +172,17 @@ namespace SharpConnect.MySql
                 _sqlParts.Clear();
             }
         }
+        //-------------------------------------------------------
 
+        internal void ExtractBoundData(SqlStringTemplate sqlStringTemplate, MyStructData[] outputStructData)
+        {
+            //extract and arrange 
+            List<SqlSection> keys = sqlStringTemplate.GetValueKeys();
+            int j = keys.Count;
+            for (int i = 0; i < j; ++i)
+            {
+                outputStructData[i] = GetData(keys[i].Text);
+            }
+        }
     }
 }
