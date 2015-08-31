@@ -241,28 +241,31 @@ namespace SharpConnect.MySql.Internal
                     break;
                 case Types.DATE:
                 case Types.NEWDATE:
-                    stbuilder.Append('`');
-                    stbuilder.Append(data.myDateTime.ToString("yyyy-MM-DD"));
-                    stbuilder.Append('`');
+                    stbuilder.Append('\'');
+                    stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd"));
+                    stbuilder.Append('\'');
                     break;
                 case Types.DATETIME:
-                    stbuilder.Append('`');
-                    stbuilder.Append(data.myDateTime.ToString("yyyy-MM-DD hh:mm:ss"));
-                    stbuilder.Append('`');
+                    stbuilder.Append('\'');
+                    stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd hh:mm:ss"));
+                    stbuilder.Append('\'');
                     break;
                 case Types.TIMESTAMP:
                 case Types.TIME:
                     //TODO: review here
-                    stbuilder.Append('`');
+                    stbuilder.Append('\'');
                     stbuilder.Append(data.myDateTime.ToString("hh:mm:ss"));
-                    stbuilder.Append('`');
+                    stbuilder.Append('\'');
                     break;
                 case Types.STRING:
                 case Types.VARCHAR:
                 case Types.VAR_STRING:
-                    stbuilder.Append('`');
+
+                    stbuilder.Append('\'');
+                    //TODO: check /escape string here ****
                     stbuilder.Append(data.myString);
-                    stbuilder.Append('`');
+                    stbuilder.Append('\'');
+
                     break;
                 case Types.BIT:
                     stbuilder.Append(Encoding.ASCII.GetString(new byte[] { (byte)data.myInt32 }));

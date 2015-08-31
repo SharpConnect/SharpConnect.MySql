@@ -17,47 +17,41 @@ namespace MySqlTest
             var conn = new MySqlConnection(connStr);
             conn.Open();
 
-            DropTableIfExists(conn);
-            CreateTable(conn);
-            InsertDataSet(conn);
-
-            conn.Close();
-            Report.WriteLine("ok");
-
-        }
-        static void DropTableIfExists(MySqlConnection conn)
-        {
-            string sql = "drop table if exists test001";
-            var cmd = new MySqlCommand(sql, conn);
-            cmd.ExecuteNonQuery();
-        }
-
-        static void CreateTable(MySqlConnection conn)
-        {
-
-            string sql = "create table test001(col_id  int(10) unsigned not null auto_increment, col1 int(10)," +
-                "col2 char(2),col3 varchar(255),col4 datetime, primary key(col_id) )";
-            var cmd = new MySqlCommand(sql, conn);
-            cmd.ExecuteNonQuery();
-
-        }
-        static void InsertDataSet(MySqlConnection conn)
-        {
-            string sql = "insert into test001(col1,col2,col3,col4) values(?col1,?col2,?col3,?col4)";
-            var cmd = new MySqlCommand(sql, conn);
-            cmd.Prepare();
-
-            for (int i = 0; i < 100; ++i)
             {
-                var pars = cmd.Parameters;
-
-                pars.AddWithValue("col1", 10);
-                pars.AddWithValue("col2", "AA");
-                pars.AddWithValue("col3", "0123456789");
-                pars.AddWithValue("col4", "0001-01-01");
-
+                string sql = "drop table if exists test001";
+                var cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
             }
+
+            {
+                string sql = "create table test001(col_id  int(10) unsigned not null auto_increment, col1 int(10)," +
+                "col2 char(2),col3 varchar(255),col4 datetime, primary key(col_id) )";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+
+            }
+
+            {
+                string sql = "insert into test001(col1,col2,col3,col4) values(?col1,?col2,?col3,?col4)";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.Prepare();
+
+                for (int i = 0; i < 100; ++i)
+                {
+                    var pars = cmd.Parameters;
+
+                    pars.AddWithValue("col1", 10);
+                    pars.AddWithValue("col2", "AA");
+                    pars.AddWithValue("col3", "0123456789");
+                    pars.AddWithValue("col4", "0001-01-01");
+
+                    cmd.ExecuteNonQuery();
+                }
+            } 
+            conn.Close();
+            Report.WriteLine("ok"); 
         }
+
+     
     }
 }
