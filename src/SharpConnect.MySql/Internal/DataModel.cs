@@ -341,7 +341,7 @@ namespace SharpConnect.MySql.Internal
         NEWDATE,        //exports.NEWDATE     = 0x0e; // aka ?
         VARCHAR,        //exports.VARCHAR     = 0x0f; // aka VARCHAR (?)
         BIT,            //exports.BIT         = 0x10; // aka BIT, 1-8 byte
-        
+
         NEWDECIMAL = 0xf6,//exports.NEWDECIMAL= 0xf6; // aka DECIMAL
         ENUM,           //exports.ENUM        = 0xf7; // aka ENUM
         SET,            //exports.SET         = 0xf8; // aka SET
@@ -401,7 +401,7 @@ namespace SharpConnect.MySql.Internal
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
     struct MyStructData
     {
- 
+
         [System.Runtime.InteropServices.FieldOffset(0)]
         public int myInt32;
         [System.Runtime.InteropServices.FieldOffset(0)]
@@ -412,7 +412,7 @@ namespace SharpConnect.MySql.Internal
         [System.Runtime.InteropServices.FieldOffset(0)]
         public ulong myUInt64;
         //---------------------------------------------
-        
+
         [System.Runtime.InteropServices.FieldOffset(0)]
         public double myDouble;
         //---------------------------------------------
@@ -470,33 +470,29 @@ namespace SharpConnect.MySql.Internal
 
     class Geometry
     {
-        double x;
-        double y;
+        double _x;
+        double _y;
 
         List<Geometry> geoValues;
         public Geometry()
         {
             geoValues = new List<Geometry>();
         }
-
         public Geometry(double x, double y)
         {
-            this.x = x;
-            this.y = y;
+            _x = x;
+            _y = y;
             geoValues = new List<Geometry>();
         }
-
         public void SetValue(double x, double y)
         {
-            this.x = x;
-            this.y = y;
+            _x = x;
+            _y = y;
         }
-
         public void AddChildValue(Geometry value)
         {
             geoValues.Add(value);
         }
-
         public void AddChildValues(List<Geometry> values)
         {
             geoValues = values;

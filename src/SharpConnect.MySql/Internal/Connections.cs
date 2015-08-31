@@ -21,14 +21,10 @@
 //THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
-using System.Text;
-using System.IO;
-
-using System.Threading;
 using System.Net;
 using System.Net.Sockets;
-
+using System.Text;
+using System.Threading;
 
 namespace SharpConnect.MySql.Internal
 {
@@ -50,32 +46,27 @@ namespace SharpConnect.MySql.Internal
     partial class Connection
     {
         public ConnectionConfig config;
-
-
         public bool connectionCall;
         public ConnectionState state;
         public uint threadId;
-        HandshakePacket handshake;
-
         public Socket socket;
 
-
-        Query query;
-
-        PacketParser parser;
-        PacketWriter writer;
+        HandshakePacket _handshake;
+        Query _query;
+        PacketParser _parser;
+        PacketWriter _writer;
 
         //TODO: review how to clear remaining buffer again
-        byte[] tmpForClearRecvBuffer; //for clear buffer 
+        byte[] _tmpForClearRecvBuffer; //for clear buffer 
 
         /// <summary>
         /// max allowed packet size
         /// </summary>
-        long maxPacketSize = 0;
+        long _maxPacketSize = 0;
 
         public Connection(ConnectionConfig userConfig)
         {
-            this.config = userConfig;
+            config = userConfig;
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             //protocol = null;
             connectionCall = false;
@@ -90,12 +81,12 @@ namespace SharpConnect.MySql.Internal
             switch ((CharSets)config.charsetNumber)
             {
                 case CharSets.UTF8_GENERAL_CI:
-                    parser = new PacketParser(Encoding.UTF8);
-                    writer = new PacketWriter(Encoding.UTF8);
+                    _parser = new PacketParser(Encoding.UTF8);
+                    _writer = new PacketWriter(Encoding.UTF8);
                     break;
                 case CharSets.ASCII:
-                    parser = new PacketParser(Encoding.ASCII);
-                    writer = new PacketWriter(Encoding.ASCII);
+                    _parser = new PacketParser(Encoding.ASCII);
+                    _writer = new PacketWriter(Encoding.ASCII);
                     break;
                 default:
                     throw new NotImplementedException();
@@ -117,89 +108,89 @@ namespace SharpConnect.MySql.Internal
             int count = socket.Receive(buffer);
             if (count > 0)
             {
-                writer.Reset();
-                parser.LoadNewBuffer(buffer, count);
-                handshake = new HandshakePacket();
-                handshake.ParsePacket(parser);
-                this.threadId = handshake.threadId;
+                _writer.Reset();
+                _parser.LoadNewBuffer(buffer, count);
+                _handshake = new HandshakePacket();
+                _handshake.ParsePacket(_parser);
+                threadId = _handshake.threadId;
 
                 byte[] token = MakeToken(config.password,
-                    GetScrollbleBuffer(handshake.scrambleBuff1, handshake.scrambleBuff2));
+                    GetScrollbleBuffer(_handshake.scrambleBuff1, _handshake.scrambleBuff2));
 
-                writer.IncrementPacketNumber();
+                _writer.IncrementPacketNumber();
 
                 //------------------------------------------
                 var authPacket = new ClientAuthenticationPacket();
-                authPacket.SetValues(config.user, token, config.database, handshake.protocol41);
-                authPacket.WritePacket(writer);
+                authPacket.SetValues(config.user, token, config.database, _handshake.protocol41);
+                authPacket.WritePacket(_writer);
 
-                byte[] sendBuff = writer.ToArray();
+                byte[] sendBuff = _writer.ToArray();
                 byte[] receiveBuff = new byte[512];
                 //-------------------------------------------
                 //send data
                 int sendNum = socket.Send(sendBuff);
                 int receiveNum = socket.Receive(receiveBuff);
 
-                parser.LoadNewBuffer(receiveBuff, receiveNum);
+                _parser.LoadNewBuffer(receiveBuff, receiveNum);
                 if (receiveBuff[4] == 255)
                 {
                     ErrPacket errPacket = new ErrPacket();
-                    errPacket.ParsePacket(parser);
+                    errPacket.ParsePacket(_parser);
                     return;
                 }
                 else
                 {
-                    OkPacket okPacket = new OkPacket(handshake.protocol41);
-                    okPacket.ParsePacket(parser);
+                    OkPacket okPacket = new OkPacket(_handshake.protocol41);
+                    okPacket.ParsePacket(_parser);
                 }
-                writer.Reset();
+                _writer.Reset();
                 GetMaxAllowedPacket();
-                writer.SetMaxAllowedPacket(maxPacketSize);
+                _writer.SetMaxAllowedPacket(_maxPacketSize);
             }
         }
 
         void GetMaxAllowedPacket()
         {
-            query = CreateQuery("SELECT @@global.max_allowed_packet", null);
-            query.Execute();
+            _query = CreateQuery("SELECT @@global.max_allowed_packet", null);
+            _query.Execute();
             //query = CreateQuery();
             //query.ExecuteQuerySql("SELECT @@global.max_allowed_packet");
-            if (query.loadError != null)
+            if (_query.LoadError != null)
             {
-                dbugConsole.WriteLine("Error Message : " + query.loadError.message);
+                dbugConsole.WriteLine("Error Message : " + _query.LoadError.message);
             }
-            else if (query.okPacket != null)
+            else if (_query.OkPacket != null)
             {
-                dbugConsole.WriteLine("OkPacket : " + query.okPacket.affectedRows);
+                dbugConsole.WriteLine("OkPacket : " + _query.OkPacket.affectedRows);
             }
             else
             {
-                if (query.ReadRow())
+                if (_query.ReadRow())
                 {
-                    maxPacketSize = query.Cells[0].myInt64;
+                    _maxPacketSize = _query.Cells[0].myInt64;
                 }
             }
-        } 
+        }
 
         public Query CreateQuery(string sql, CommandParams command)//testing
         {
             return new Query(this, sql, command);
         }
-       
+
 
         void CreateNewSocket()
         {
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            this.Connect();
+            Connect();
         }
 
         public void Disconnect()
         {
-            writer.Reset();
+            _writer.Reset();
             ComQuitPacket quitPacket = new ComQuitPacket();
-            quitPacket.WritePacket(writer);
+            quitPacket.WritePacket(_writer);
 
-            int send = socket.Send(writer.ToArray());
+            int send = socket.Send(_writer.ToArray());
             socket.Disconnect(true);
         }
         public bool IsStoredInConnPool { get; set; }
@@ -207,13 +198,13 @@ namespace SharpConnect.MySql.Internal
 
         internal PacketParser PacketParser
         {
-            get { return parser; }
+            get { return _parser; }
         }
         internal PacketWriter PacketWriter
         {
-            get { return writer; }
+            get { return _writer; }
         }
-        internal bool IsProtocol41 { get { return handshake.protocol41; } }
+        internal bool IsProtocol41 { get { return _handshake.protocol41; } }
 
         internal void ClearRemainingInputBuffer()
         {
@@ -224,14 +215,14 @@ namespace SharpConnect.MySql.Internal
             int i = 0;
             if (socket.Available > 0)
             {
-                if (tmpForClearRecvBuffer == null)
+                if (_tmpForClearRecvBuffer == null)
                 {
-                    tmpForClearRecvBuffer = new byte[300000];//in test case socket recieve lower than 300,000 bytes
+                    _tmpForClearRecvBuffer = new byte[300000];//in test case socket recieve lower than 300,000 bytes
                 }
 
                 while (socket.Available > 0)
                 {
-                    lastReceive = socket.Receive(tmpForClearRecvBuffer);
+                    lastReceive = socket.Receive(_tmpForClearRecvBuffer);
                     allReceive += lastReceive;
                     i++;
                     //TODO: review here again

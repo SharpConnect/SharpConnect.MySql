@@ -148,14 +148,14 @@ namespace SharpConnect.MySql
                 cmd2Values.AddWithValue("n2", testN2);
 
                 //query.ExecuteQuery();
-                if (query.loadError != null)
+                if (query.LoadError != null)
                 {
-                    Console.WriteLine("Error : " + query.loadError.message);
+                    Console.WriteLine("Error : " + query.LoadError.message);
                 }
-                else if (query.okPacket != null)
+                else if (query.OkPacket != null)
                 {
-                    Console.WriteLine("i : " + i + ", OkPacket : [affectedRow] >> " + query.okPacket.affectedRows);
-                    Console.WriteLine("i : " + i + ", OkPacket : [insertId] >> " + query.okPacket.insertId);
+                    Console.WriteLine("i : " + i + ", OkPacket : [affectedRow] >> " + query.OkPacket.affectedRows);
+                    Console.WriteLine("i : " + i + ", OkPacket : [insertId] >> " + query.OkPacket.insertId);
                 }
                 else
                 {

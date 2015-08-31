@@ -9,38 +9,38 @@ namespace SharpConnect.MySql.Internal
     static class ConnectionPool
     {
 
-        static readonly ConnectionPoolAgent connPoolAgent = new ConnectionPoolAgent();
-        static object queueLock = new object();
+        static readonly ConnectionPoolAgent s_connPoolAgent = new ConnectionPoolAgent();
+        static object s_queueLock = new object();
 
         public static Connection GetConnection(MySqlConnectionString connstr)
         {
-            lock (queueLock)
+            lock (s_queueLock)
             {
-                return connPoolAgent.GetConnection(connstr);
+                return s_connPoolAgent.GetConnection(connstr);
             }
         }
         public static void ReleaseConnection(MySqlConnectionString connstr, Connection conn)
         {
-            lock (queueLock)
+            lock (s_queueLock)
             {
-                connPoolAgent.ReleaseConnection(connstr, conn);
+                s_connPoolAgent.ReleaseConnection(connstr, conn);
             }
         }
         public static void ClearConnectionPool()
         {
 
-            lock (queueLock)
+            lock (s_queueLock)
             {
-                connPoolAgent.ClearAllConnections();
+                s_connPoolAgent.ClearAllConnections();
             }
         }
 
-         
+
 
 
         class ConnectionPoolAgent
         {
-            static Dictionary<string, Queue<Connection>> connQueue = new Dictionary<string, Queue<Connection>>();
+            static Dictionary<string, Queue<Connection>> s_connQueue = new Dictionary<string, Queue<Connection>>();
             public ConnectionPoolAgent()
             {
 
@@ -52,9 +52,9 @@ namespace SharpConnect.MySql.Internal
             }
             public void ClearAllConnections()
             {
-                foreach (var q in connQueue.Values)
+                foreach (var q in s_connQueue.Values)
                 {
-                    for (int i = connQueue.Count - 1; i >= 0; --i)
+                    for (int i = s_connQueue.Count - 1; i >= 0; --i)
                     {
                         try
                         {
@@ -68,7 +68,7 @@ namespace SharpConnect.MySql.Internal
                     }
                 }
 
-                connQueue.Clear();
+                s_connQueue.Clear();
 
             }
             public Connection GetConnection(MySqlConnectionString connstr)
@@ -76,7 +76,7 @@ namespace SharpConnect.MySql.Internal
 
                 Queue<Connection> found;
                 //not found
-                if (!connQueue.TryGetValue(connstr.ConnSignature, out found))
+                if (!s_connQueue.TryGetValue(connstr.ConnSignature, out found))
                 {
                     return null;
                 }
@@ -100,10 +100,10 @@ namespace SharpConnect.MySql.Internal
             {
                 Queue<Connection> found;
                 //not found
-                if (!connQueue.TryGetValue(connstr.ConnSignature, out found))
+                if (!s_connQueue.TryGetValue(connstr.ConnSignature, out found))
                 {
                     found = new Queue<Connection>();
-                    connQueue.Add(connstr.ConnSignature, found);
+                    s_connQueue.Add(connstr.ConnSignature, found);
                 }
                 conn.IsStoredInConnPool = true;
                 found.Enqueue(conn);

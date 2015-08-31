@@ -4,12 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.IO;
-
-using System.Threading;
-using System.Net;
-using System.Net.Sockets;
-
 
 namespace SharpConnect.MySql.Internal
 {
@@ -49,11 +43,30 @@ namespace SharpConnect.MySql.Internal
 #endif
     }
 
+    class SqlBoundSection : SqlSection
+    {
+
+        public FieldPacket fieldInfo;
+
+        public SqlBoundSection(string text)
+            : base(text, SqlSectionKind.ValueKey)
+        {
+
+        }
+
+
+#if DEBUG
+        public override string ToString()
+        {
+            return Text;
+        }
+#endif
+    }
 
     class SqlStringTemplate
     {
         List<SqlSection> _sqlSections = new List<SqlSection>(); //all sections 
-        List<SqlSection> _valuesKeys = new List<SqlSection>(); //only value keys        
+        List<SqlBoundSection> _valuesKeys = new List<SqlBoundSection>(); //only value keys        
         List<SqlSection> _specialKeys = new List<SqlSection>();
 
         string _userRawSql; //raw sql from user code
@@ -145,7 +158,7 @@ namespace SharpConnect.MySql.Internal
 
                             if (stBuilder.Length > 0)
                             {
-                                var valueSection = new SqlSection(stBuilder.ToString(), SqlSectionKind.ValueKey);
+                                var valueSection = new SqlBoundSection(stBuilder.ToString());
                                 _sqlSections.Add(valueSection);
                                 _valuesKeys.Add(valueSection);
 
@@ -205,7 +218,7 @@ namespace SharpConnect.MySql.Internal
                         _sqlSections.Add(new SqlSection(stBuilder.ToString(), SqlSectionKind.SqlText));
                         break;
                     case ParseState.COLLECT_MARKER_KEY:
-                        var valueSection = new SqlSection(stBuilder.ToString(), SqlSectionKind.ValueKey);
+                        var valueSection = new SqlBoundSection(stBuilder.ToString());
                         _sqlSections.Add(valueSection);
                         _valuesKeys.Add(valueSection);
                         break;
@@ -219,7 +232,7 @@ namespace SharpConnect.MySql.Internal
 
         }
 
-        public List<SqlSection> GetValueKeys()
+        public List<SqlBoundSection> GetValueKeys()
         {
             return _valuesKeys;
         }
@@ -240,21 +253,32 @@ namespace SharpConnect.MySql.Internal
                     MySqlStringToHexUtils.ConvertByteArrayToHexWithMySqlPrefix(data.myBuffer, stbuilder);
                     break;
                 case Types.DATE:
-                case Types.DATETIME:
                 case Types.NEWDATE:
+                    stbuilder.Append('\'');
+                    stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd"));
+                    stbuilder.Append('\'');
+                    break;
+                case Types.DATETIME:
+                    stbuilder.Append('\'');
+                    stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd hh:mm:ss"));
+                    stbuilder.Append('\'');
+                    break;
                 case Types.TIMESTAMP:
                 case Types.TIME:
                     //TODO: review here
-                    stbuilder.Append('`');
-                    stbuilder.Append(data.myDateTime.ToString());
-                    stbuilder.Append('`');
+                    stbuilder.Append('\'');
+                    stbuilder.Append(data.myDateTime.ToString("hh:mm:ss"));
+                    stbuilder.Append('\'');
                     break;
                 case Types.STRING:
                 case Types.VARCHAR:
                 case Types.VAR_STRING:
-                    stbuilder.Append('`');
+
+                    stbuilder.Append('\'');
+                    //TODO: check /escape string here ****
                     stbuilder.Append(data.myString);
-                    stbuilder.Append('`');
+                    stbuilder.Append('\'');
+
                     break;
                 case Types.BIT:
                     stbuilder.Append(Encoding.ASCII.GetString(new byte[] { (byte)data.myInt32 }));
@@ -284,8 +308,6 @@ namespace SharpConnect.MySql.Internal
 
             }
         }
-
-
         public string BindValues(CommandParams cmdParams, bool forPrepareStmt)
         {
 
@@ -305,7 +327,7 @@ namespace SharpConnect.MySql.Internal
                         break;
                     case SqlSectionKind.ValueKey:
 
-                        //TODO: review checking technique again 
+
                         if (forPrepareStmt)
                         {
                             strBuilder.Append('?');
