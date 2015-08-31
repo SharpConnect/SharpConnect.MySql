@@ -131,13 +131,7 @@ namespace SharpConnect.MySql
         {
             return _values.TryGetValue(key, out data);
         }
-
-        MyStructData GetData(string key)
-        {
-            MyStructData value;
-            _values.TryGetValue(key, out value);
-            return value;
-        }
+ 
         public void ClearDataValues()
         {
             _values.Clear();
@@ -173,16 +167,6 @@ namespace SharpConnect.MySql
             }
         }
         //-------------------------------------------------------
-
-        internal void ExtractBoundData(SqlStringTemplate sqlStringTemplate, MyStructData[] outputStructData)
-        {
-            //extract and arrange 
-            List<SqlSection> keys = sqlStringTemplate.GetValueKeys();
-            int j = keys.Count;
-            for (int i = 0; i < j; ++i)
-            {
-                outputStructData[i] = GetData(keys[i].Text);
-            }
-        }
+        
     }
 }

@@ -166,7 +166,7 @@ namespace SharpConnect.MySql.Internal
 
                 if (okPreparePacket.num_params > 0)
                 {
-                    var tableHeader = new TableHeader(); 
+                    var tableHeader = new TableHeader();
                     tableHeader.TypeCast = typeCast;
                     tableHeader.NestTables = nestTables;
                     tableHeader.ConnConfig = conn.config;
@@ -264,7 +264,7 @@ namespace SharpConnect.MySql.Internal
                 default:
                     {
                         if (_prepareContext != null)
-                        {   
+                        {
 
                             lastPrepareRow.ReuseSlots();
                             lastPrepareRow.ParsePacketHeader(parser);
@@ -511,7 +511,8 @@ namespace SharpConnect.MySql.Internal
         TableHeader _tableHeader;
         SqlStringTemplate _sqlStringTemplate;
         MyStructData[] _preparedValues;
-        public uint statementId;
+
+        public readonly uint statementId;
 
         public PreparedContext(uint statementId, SqlStringTemplate sqlStringTemplate)
         {
@@ -525,14 +526,20 @@ namespace SharpConnect.MySql.Internal
         }
         public MyStructData[] PrepareBoundData(CommandParams cmdParams)
         {
-            cmdParams.ExtractBoundData(_sqlStringTemplate, _preparedValues);
 
             //1. check proper type and 
-            //2. check all values are in its range
-            
-
-
-
+            //2. check all values are in its range  
+            //extract and arrange 
+            List<SqlSection> keys = _sqlStringTemplate.GetValueKeys();
+            int j = keys.Count;
+            for (int i = 0; i < j; ++i)
+            {
+                if (!cmdParams.TryGetData(keys[i].Text, out _preparedValues[i]))
+                {
+                    //not found key 
+                    throw new Exception("not found " + keys[i].Text);
+                }
+            }
 
             return _preparedValues;
         }
