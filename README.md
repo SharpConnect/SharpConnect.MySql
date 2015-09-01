@@ -1,15 +1,19 @@
 # SharpConnect.MySql
 MIT license, MySQL Connector / MySQL Driver for .NET
  
- ported from node-mysql (https://github.com/felixge/node-mysql)
-  
+ ported from node-mysql (https://github.com/felixge/node-mysql) , node-mysql2 (https://github.com/sidorares/node-mysql2)
+ 
+   
  LICENSE: MIT
 
   
  Copyright (c) 2012 Felix Geisendörfer (felix@debuggable.com) and contributors
+  
+ Copyright(c) 2013 Andrey Sidorov(sidorares @yandex.ru) and contributors
  
  Copyright (c) 2015 brezza27, EngineKit  and contributors 
 
+  
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
  in the Software without restriction, including without limitation the rights
