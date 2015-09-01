@@ -318,6 +318,8 @@ namespace SharpConnect.MySql.Internal
 
         static void WriteValueByType(PacketWriter writer, ref MyStructData dataTemp)
         {
+
+
             switch (dataTemp.type)
             {
                 case Types.VARCHAR:
@@ -325,8 +327,16 @@ namespace SharpConnect.MySql.Internal
                 case Types.STRING:
                     writer.WriteLengthCodedString(dataTemp.myString);
                     break;
+                case Types.TINY:
+                    writer.WriteUnsignedNumber(1, dataTemp.myUInt32);
+                    break;
+                case Types.SHORT:
+                    var a = dataTemp.myInt32;
+                    writer.WriteUnsignedNumber(2, dataTemp.myUInt32);
+                    break;
                 case Types.LONG:
-                    writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
+                    //writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
+                    writer.WriteUnsignedNumber(4, dataTemp.myUInt32);
                     break;
                 case Types.LONGLONG:
                     writer.WriteInt64(dataTemp.myInt64);
@@ -344,7 +354,9 @@ namespace SharpConnect.MySql.Internal
                     writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
                     break;
                 default:
-                    writer.WriteLengthCodedNull();
+                    //TODO: review here
+                    throw new NotSupportedException();
+                    //writer.WriteLengthCodedNull();
                     break;
             }
         }

@@ -305,6 +305,7 @@ namespace SharpConnect.MySql.Internal
             }
 
             //---------------------------------------------------
+            //TODO: review err handling 
             _parser.LoadNewBuffer(_receiveBuffer, receive);
             switch (_receiveBuffer[4])
             {
@@ -368,6 +369,7 @@ namespace SharpConnect.MySql.Internal
             {
                 return null;
             }
+            //TODO: review err handling here
             //---------------------------------------------------
             _parser.LoadNewBuffer(_receiveBuffer, receive);
             OkPrepareStmtPacket okPreparePacket = new OkPrepareStmtPacket();

@@ -295,5 +295,92 @@ namespace MySqlTest
             conn.Close();
             Report.WriteLine("ok");
         }
+
+
+        [Test]
+        public static void T_NumRange()
+        {
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+
+            {
+                string sql = "drop table if exists test001";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
+
+            {
+                string sql = "create table test001(col_id  int(10) unsigned not null auto_increment," +
+                    "num1 int,num2 int unsigned, " +
+                    "num3 smallint, num4 smallint unsigned, " +
+                    "num5 bigint, num6 bigint unsigned, " +
+                    "num7 tinyint, num8 tinyint unsigned, " +
+                " primary key(col_id) )";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
+
+            {
+                string sql = "insert into test001(num1,num2,num3,num4,num5,num6,num7,num8) values(?num1,?num2,?num3,?num4,?num5,?num6,?num7,?num8)";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.Prepare();
+                var pars = cmd.Parameters;
+                //ok
+                pars.AddWithValue("num1", -10);
+                pars.AddWithValue("num2", 20);
+                pars.AddWithValue("num3", -10);
+                pars.AddWithValue("num4", 20);
+                pars.AddWithValue("num5", -10);
+                pars.AddWithValue("num6", 20);
+                pars.AddWithValue("num7", -10);
+                pars.AddWithValue("num8", 20);
+                cmd.ExecuteNonQuery();
+                //---------------------------
+
+                pars.ClearDataValues();
+                pars.AddWithValue("num1", -10);
+                pars.AddWithValue("num2", 20);
+                pars.AddWithValue("num3", (short)-10);
+                pars.AddWithValue("num4", (ushort)20);
+                pars.AddWithValue("num5", (long)-10);
+                pars.AddWithValue("num6", (ulong)20);
+                pars.AddWithValue("num7", (sbyte)-10);
+                pars.AddWithValue("num8", (byte)20);
+                cmd.ExecuteNonQuery();
+
+
+
+                //---------------------------
+                pars.ClearDataValues();
+                pars.AddWithValue("num1", int.MinValue);
+                pars.AddWithValue("num2", uint.MaxValue);
+                pars.AddWithValue("num3", short.MinValue);
+                pars.AddWithValue("num4", 0); //error with ushort.MaxValue
+                pars.AddWithValue("num5", long.MinValue);
+                pars.AddWithValue("num6", 0); //error with ulong.MaxValue
+                pars.AddWithValue("num7", sbyte.MinValue);
+                pars.AddWithValue("num8", 0); //error with byte.MaxValue
+
+                cmd.ExecuteNonQuery();
+                //---------------------------
+                //expected errors ...
+                //---------------------------
+                //pars.ClearDataValues();
+                //pars.AddWithValue("num1", -10); //ok -unsigned
+                //pars.AddWithValue("num2", -20); //err -no record insert
+                //cmd.ExecuteNonQuery();
+                //---------------------------
+                //pars.ClearDataValues();
+                //pars.AddWithValue("num1", int.MinValue); //ok -unsigned
+                //pars.AddWithValue("num2", uint.MaxValue); //err -no record insert
+                //cmd.ExecuteNonQuery();
+                ////---------------------------
+            }
+
+
+            conn.Close();
+            Report.WriteLine("ok");
+        }
     }
 }

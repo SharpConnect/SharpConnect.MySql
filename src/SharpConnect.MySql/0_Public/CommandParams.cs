@@ -50,6 +50,11 @@ namespace SharpConnect.MySql
         }
         public void AddWithValue(string key, int value)
         {
+            //INT 4       min        max
+            //signed -2147483648 2147483647
+            //unsigned     0     4294967295
+            //---------------------------
+
             var data = new MyStructData();
             data.myInt32 = value;
             data.type = Types.LONG;//Types.LONG = int32
@@ -105,17 +110,12 @@ namespace SharpConnect.MySql
             data.type = Types.DATETIME;
             _values["?" + key] = data;
         }
-
-
-        //-------------------------------------------------------
-        //TODO: how about other datatype,
-        //sbyte, uint,ulong, ?
-        //-------------------------------------------------------
         public void AddWithValue(string key, sbyte value)
         {
+            //tiny int signed (-128 to 127)
             var data = new MyStructData();
             data.myInt32 = value;
-            data.type = Types.TINY; 
+            data.type = Types.TINY;
             _values["?" + key] = data;
         }
         public void AddWithValue(string key, char value)
@@ -123,28 +123,38 @@ namespace SharpConnect.MySql
             //1 unicode char => 2 bytes store
             var data = new MyStructData();
             data.myUInt32 = value;
-            data.type = Types.SHORT;//Types.SHORT = 2 bytes
+            data.type = Types.LONGLONG;
             _values["?" + key] = data;
         }
         public void AddWithValue(string key, ushort value)
         {
+
+            //INT 2       min        max
+            //signed      -32768    32767
+            //unsigned     0     65535
+            //---------------------------
+
             var data = new MyStructData();
             data.myUInt32 = value;
-            data.type = Types.SHORT;//Types.SHORT = 2 bytes
+            data.type = Types.SHORT;
             _values["?" + key] = data;
         }
         public void AddWithValue(string key, uint value)
         {
+            //INT 4       min        max
+            //signed -2147483648 2147483647
+            //unsigned     0     4294967295
+            //---------------------------
             var data = new MyStructData();
             data.myUInt32 = value;
-            data.type = Types.LONG;//Types.LONG = 4 bytes
+            data.type = Types.LONGLONG;//** 
             _values["?" + key] = data;
         }
         public void AddWithValue(string key, ulong value)
         {
             var data = new MyStructData();
             data.myUInt64 = value;
-            data.type = Types.LONGLONG;//Types.LONG = 4 bytes
+            data.type = Types.LONGLONG;
             _values["?" + key] = data;
         }
         internal bool TryGetData(string key, out MyStructData data)
