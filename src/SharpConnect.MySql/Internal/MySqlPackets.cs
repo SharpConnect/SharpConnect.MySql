@@ -486,6 +486,9 @@ namespace SharpConnect.MySql.Internal
             }
 
             message = parser.ParsePacketTerminatedString();
+#if DEBUG
+            throw new Exception(_sqlStateMarker + _sqlState + " " + message);
+#endif
         }
 
         public override void WritePacket(PacketWriter writer)
@@ -495,7 +498,7 @@ namespace SharpConnect.MySql.Internal
 
         public override string ToString()
         {
-            return message;
+            return _sqlStateMarker + _sqlState + " " + message;
         }
     }
 

@@ -37,8 +37,10 @@ namespace SharpConnect.MySql
         public void AddWithValue(string key, byte value)
         {
             var data = new MyStructData();
-            data.myInt32 = value;
-            data.type = Types.TINY;
+            data.myString = value.ToString();
+            data.type = Types.STRING;
+            //data.myInt32 = value;
+            //data.type = Types.TINY;
             _values["?" + key] = data;
         }
         public void AddWithValue(string key, short value)
@@ -135,8 +137,10 @@ namespace SharpConnect.MySql
             //---------------------------
 
             var data = new MyStructData();
-            data.myUInt32 = value;
-            data.type = Types.SHORT;
+            data.myString = value.ToString();
+            data.type = Types.STRING;
+            //data.myUInt32 = value;
+            //data.type = Types.SHORT;
             _values["?" + key] = data;
         }
         public void AddWithValue(string key, uint value)
@@ -153,8 +157,10 @@ namespace SharpConnect.MySql
         public void AddWithValue(string key, ulong value)
         {
             var data = new MyStructData();
-            data.myUInt64 = value;
-            data.type = Types.LONGLONG;
+            data.myString = value.ToString();
+            data.type = Types.STRING;
+            //data.myUInt64 = value;
+            //data.type = Types.LONGLONG;
             _values["?" + key] = data;
         }
         internal bool TryGetData(string key, out MyStructData data)

@@ -356,11 +356,14 @@ namespace MySqlTest
                 pars.AddWithValue("num1", int.MinValue);
                 pars.AddWithValue("num2", uint.MaxValue);
                 pars.AddWithValue("num3", short.MinValue);
-                pars.AddWithValue("num4", 0); //error with ushort.MaxValue
+                //pars.AddWithValue("num4", 0); //error with ushort.MaxValue
+                pars.AddWithValue("num4", ushort.MaxValue);
                 pars.AddWithValue("num5", long.MinValue);
-                pars.AddWithValue("num6", 0); //error with ulong.MaxValue
+                //pars.AddWithValue("num6", 0); //error with ulong.MaxValue
+                pars.AddWithValue("num6", ulong.MaxValue);
                 pars.AddWithValue("num7", sbyte.MinValue);
-                pars.AddWithValue("num8", 0); //error with byte.MaxValue
+                //pars.AddWithValue("num8", 0); //error with byte.MaxValue
+                pars.AddWithValue("num8", byte.MaxValue);
 
                 cmd.ExecuteNonQuery();
                 //---------------------------
@@ -378,6 +381,57 @@ namespace MySqlTest
                 ////---------------------------
             }
 
+
+            conn.Close();
+            Report.WriteLine("ok");
+        }
+
+        [Test]
+        public static void T_FloatingRange()
+        {
+            MySqlConnectionString connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+            {
+                string sql = "drop table if exists test002";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
+
+            {
+                string sql = "create table test002(col_id int(10) unsigned not null auto_increment," +
+                    "num1 float, num2 double, num3 decimal, primary key(col_id) )";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
+
+            {
+                string sql = "insert into test002 (num1, num2, num3) values (?num1, ?num2, ?num3)";
+                var cmd = new MySqlCommand(sql, conn);
+                var pars = cmd.Parameters;
+                pars.AddWithValue("num1", 10.15);
+                pars.AddWithValue("num2", -101.5);
+                pars.AddWithValue("num3", 1015.00);
+                cmd.ExecuteNonQuery();
+
+                pars.ClearDataValues();
+                pars.AddWithValue("num1", 10.15d);
+                pars.AddWithValue("num2", -101.5f);
+                pars.AddWithValue("num3", (decimal)1015.00);
+                cmd.ExecuteNonQuery();
+
+                pars.ClearDataValues();
+                pars.AddWithValue("num1", float.MaxValue);
+                pars.AddWithValue("num2", double.MaxValue);
+                pars.AddWithValue("num3", decimal.MaxValue);
+                cmd.ExecuteNonQuery();
+
+                pars.ClearDataValues();
+                pars.AddWithValue("num1", float.MinValue);
+                pars.AddWithValue("num2", double.MinValue);
+                pars.AddWithValue("num3", decimal.MinValue);
+                cmd.ExecuteNonQuery();
+            }
 
             conn.Close();
             Report.WriteLine("ok");
