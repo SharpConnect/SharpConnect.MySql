@@ -399,8 +399,10 @@ namespace MySqlTest
             }
 
             {
+                //num3 decimal(65,30) is max range is possible
+                //num3 decimal if not define range defualt is decimal(10,0)
                 string sql = "create table test002(col_id int(10) unsigned not null auto_increment," +
-                    "num1 float, num2 double, num3 decimal, primary key(col_id) )";
+                    "num1 float, num2 double, num3 decimal(65,30), primary key(col_id) )";
                 var cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
             }
@@ -408,6 +410,8 @@ namespace MySqlTest
             {
                 string sql = "insert into test002 (num1, num2, num3) values (?num1, ?num2, ?num3)";
                 var cmd = new MySqlCommand(sql, conn);
+                cmd.Prepare();
+
                 var pars = cmd.Parameters;
                 pars.AddWithValue("num1", 10.15);
                 pars.AddWithValue("num2", -101.5);
@@ -423,9 +427,10 @@ namespace MySqlTest
                 pars.ClearDataValues();
                 pars.AddWithValue("num1", float.MaxValue);
                 pars.AddWithValue("num2", double.MaxValue);
+                //decimal of C# have the number of digits to the right of the decimal point less or equal 5 digits
                 pars.AddWithValue("num3", decimal.MaxValue);
                 cmd.ExecuteNonQuery();
-
+                
                 pars.ClearDataValues();
                 pars.AddWithValue("num1", float.MinValue);
                 pars.AddWithValue("num2", double.MinValue);

@@ -86,8 +86,8 @@ namespace SharpConnect.MySql
         public void AddWithValue(string key, decimal value)
         {
             var data = new MyStructData();
-            data.myDecimal = value;
-            data.type = Types.DECIMAL;
+            data.myString = value.ToString();
+            data.type = Types.STRING;
             _values["?" + key] = data;
         }
         public void AddWithValue(string key, byte[] value)
