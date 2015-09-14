@@ -316,13 +316,14 @@ namespace MySqlTest
                     "num3 smallint, num4 smallint unsigned, " +
                     "num5 bigint, num6 bigint unsigned, " +
                     "num7 tinyint, num8 tinyint unsigned, " +
+                    "num9 decimal(32,2), num10 decimal(32,2) unsigned," +
                 " primary key(col_id) )";
                 var cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
             }
 
             {
-                string sql = "insert into test001(num1,num2,num3,num4,num5,num6,num7,num8) values(?num1,?num2,?num3,?num4,?num5,?num6,?num7,?num8)";
+                string sql = "insert into test001(num1,num2,num3,num4,num5,num6,num7,num8,num9,num10) values(?num1,?num2,?num3,?num4,?num5,?num6,?num7,?num8,?num9,?num10)";
                 var cmd = new MySqlCommand(sql, conn);
                 cmd.Prepare();
                 var pars = cmd.Parameters;
@@ -335,6 +336,8 @@ namespace MySqlTest
                 pars.AddWithValue("?num6", 20);
                 pars.AddWithValue("?num7", -10);
                 pars.AddWithValue("?num8", 20);
+                pars.AddWithValue("?num9", -10);
+                pars.AddWithValue("?num10", 20);
                 cmd.ExecuteNonQuery();
                 //---------------------------
 
@@ -347,6 +350,8 @@ namespace MySqlTest
                 pars.AddWithValue("?num6", (ulong)20);
                 pars.AddWithValue("?num7", (sbyte)-10);
                 pars.AddWithValue("?num8", (byte)20);
+                pars.AddWithValue("?num9", (decimal)-10);
+                pars.AddWithValue("?num10", (decimal)20);
                 cmd.ExecuteNonQuery();
 
 
@@ -356,15 +361,13 @@ namespace MySqlTest
                 pars.AddWithValue("?num1", int.MinValue);
                 pars.AddWithValue("?num2", uint.MaxValue);
                 pars.AddWithValue("?num3", short.MinValue);
-                //pars.AddWithValue("?num4", 0); //error with ushort.MaxValue
                 pars.AddWithValue("?num4", ushort.MaxValue);
                 pars.AddWithValue("?num5", long.MinValue);
-                //pars.AddWithValue("?num6", 0); //error with ulong.MaxValue
                 pars.AddWithValue("?num6", ulong.MaxValue);
                 pars.AddWithValue("?num7", sbyte.MinValue);
-                //pars.AddWithValue("?num8", 0); //error with byte.MaxValue
                 pars.AddWithValue("?num8", byte.MaxValue);
-
+                pars.AddWithValue("?num9", decimal.MinValue);
+                pars.AddWithValue("?num10", decimal.MaxValue);
                 cmd.ExecuteNonQuery();
                 //---------------------------
                 //expected errors ...
@@ -430,7 +433,7 @@ namespace MySqlTest
                 //decimal of C# have the number of digits to the right of the decimal point less or equal 5 digits
                 pars.AddWithValue("?num3", decimal.MaxValue);
                 cmd.ExecuteNonQuery();
-                
+
                 pars.ClearDataValues();
                 pars.AddWithValue("?num1", float.MinValue);
                 pars.AddWithValue("?num2", double.MinValue);
