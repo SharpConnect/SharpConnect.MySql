@@ -31,7 +31,7 @@ namespace SharpConnect.MySql
                 data.myString = null;
                 data.type = Types.NULL;
             }
-            _values["?" + key] = data;
+            _values[key] = data;
 
         }
         public void AddWithValue(string key, byte value)
@@ -41,14 +41,14 @@ namespace SharpConnect.MySql
             data.type = Types.STRING;
             //data.myInt32 = value;
             //data.type = Types.TINY;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, short value)
         {
             var data = new MyStructData();
             data.myInt32 = value;
             data.type = Types.SHORT;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, int value)
         {
@@ -60,35 +60,35 @@ namespace SharpConnect.MySql
             var data = new MyStructData();
             data.myInt32 = value;
             data.type = Types.LONG;//Types.LONG = int32
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, long value)
         {
             var data = new MyStructData();
             data.myInt64 = value;
             data.type = Types.LONGLONG;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, float value)
         {
             var data = new MyStructData();
             data.myDouble = value;
             data.type = Types.FLOAT;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, double value)
         {
             var data = new MyStructData();
             data.myDouble = value;
             data.type = Types.DOUBLE;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, decimal value)
         {
             var data = new MyStructData();
             data.myString = value.ToString();
             data.type = Types.STRING;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, byte[] value)
         {
@@ -103,14 +103,14 @@ namespace SharpConnect.MySql
                 data.myBuffer = null;
                 data.type = Types.NULL;
             }
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, DateTime value)
         {
             var data = new MyStructData();
             data.myDateTime = value;
             data.type = Types.DATETIME;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, sbyte value)
         {
@@ -118,7 +118,7 @@ namespace SharpConnect.MySql
             var data = new MyStructData();
             data.myInt32 = value;
             data.type = Types.TINY;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, char value)
         {
@@ -126,7 +126,7 @@ namespace SharpConnect.MySql
             var data = new MyStructData();
             data.myUInt32 = value;
             data.type = Types.LONGLONG;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, ushort value)
         {
@@ -141,7 +141,7 @@ namespace SharpConnect.MySql
             data.type = Types.STRING;
             //data.myUInt32 = value;
             //data.type = Types.SHORT;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, uint value)
         {
@@ -152,7 +152,7 @@ namespace SharpConnect.MySql
             var data = new MyStructData();
             data.myUInt32 = value;
             data.type = Types.LONGLONG;//** 
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, ulong value)
         {
@@ -161,7 +161,7 @@ namespace SharpConnect.MySql
             data.type = Types.STRING;
             //data.myUInt64 = value;
             //data.type = Types.LONGLONG;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         internal bool TryGetData(string key, out MyStructData data)
         {
@@ -183,7 +183,7 @@ namespace SharpConnect.MySql
                 _sqlParts = new Dictionary<string, string>();
             }
 
-            _sqlParts["??" + sqlBoundKey] = "`" + sqlPart + "`";
+            _sqlParts[sqlBoundKey] = "`" + sqlPart + "`";
         }
         public bool TryGetSqlPart(string sqlBoundKey, out string sqlPart)
         {
