@@ -53,7 +53,9 @@ namespace MySqlClient
         {
 
 #if DEBUG
-            dbugInternal.Test1();
+            //TestSet1.T_NumRange();
+            TestSet1.T_FloatingRange();
+            //dbugInternal.Test1();
 #endif
         }
          

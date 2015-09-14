@@ -1,5 +1,6 @@
 ﻿//LICENSE: MIT
 //Copyright(c) 2012 Felix Geisendörfer(felix @debuggable.com) and contributors 
+//Copyright(c) 2013 Andrey Sidorov(sidorares @yandex.ru) and contributors
 //Copyright(c) 2015 brezza27, EngineKit and contributors
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -324,8 +325,16 @@ namespace SharpConnect.MySql.Internal
                 case Types.STRING:
                     writer.WriteLengthCodedString(dataTemp.myString);
                     break;
+                case Types.TINY:
+                    writer.WriteUnsignedNumber(1, dataTemp.myUInt32);
+                    break;
+                case Types.SHORT:
+                    var a = dataTemp.myInt32;
+                    writer.WriteUnsignedNumber(2, dataTemp.myUInt32);
+                    break;
                 case Types.LONG:
-                    writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
+                    //writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
+                    writer.WriteUnsignedNumber(4, dataTemp.myUInt32);
                     break;
                 case Types.LONGLONG:
                     writer.WriteInt64(dataTemp.myInt64);
@@ -343,20 +352,68 @@ namespace SharpConnect.MySql.Internal
                     writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
                     break;
                 default:
-                    writer.WriteLengthCodedNull();
+                    //TODO: review here
+                    throw new NotSupportedException();
+                    //writer.WriteLengthCodedNull();
                     break;
             }
+        }
+    }
+
+    class ComStmtClose : Packet
+    {
+        uint _statementId;
+        public ComStmtClose(uint statementId)
+        {
+            _statementId = statementId;
+        }
+
+        public override void ParsePacket(PacketParser parser)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void WritePacket(PacketWriter writer)
+        {
+            writer.ReserveHeader();
+            writer.WriteByte((byte)Command.STMT_CLOSE);
+            writer.WriteUnsigned4(_statementId);
+            _header = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
+            writer.WriteHeader(_header);
+        }
+    }
+
+    class ComStmtReset : Packet
+    {
+        uint _statementId;
+        public ComStmtReset(uint statementId)
+        {
+            _statementId = statementId;
+        }
+
+        public override void ParsePacket(PacketParser parser)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void WritePacket(PacketWriter writer)
+        {
+            writer.ReserveHeader();
+            writer.WriteByte((byte)Command.STMT_RESET);
+            writer.WriteUnsigned4(_statementId);
+            _header = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
+            writer.WriteHeader(_header);
         }
     }
 
     class ComStmtSendLongData : Packet
     {
         //byte command = (byte)Command.STMT_SEND_LONG_DATA;
-        int _statement_id;
+        uint _statement_id;
         int _param_id;
         MyStructData _data;
 
-        public ComStmtSendLongData(int statement_id, int param_id, MyStructData data)
+        public ComStmtSendLongData(uint statement_id, int param_id, MyStructData data)
         {
             _statement_id = statement_id;
             _param_id = param_id;
@@ -371,7 +428,7 @@ namespace SharpConnect.MySql.Internal
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-            writer.WriteUnsigned4((uint)_statement_id);
+            writer.WriteUnsigned4(_statement_id);
             writer.WriteUnsigned2((uint)_param_id);
             WriteValueByType(writer, _data);
         }
@@ -473,6 +530,9 @@ namespace SharpConnect.MySql.Internal
             }
 
             message = parser.ParsePacketTerminatedString();
+#if DEBUG
+            throw new Exception(_sqlStateMarker + _sqlState + " " + message);
+#endif
         }
 
         public override void WritePacket(PacketWriter writer)
@@ -482,7 +542,7 @@ namespace SharpConnect.MySql.Internal
 
         public override string ToString()
         {
-            return message;
+            return _sqlStateMarker + _sqlState + " " + message;
         }
     }
 

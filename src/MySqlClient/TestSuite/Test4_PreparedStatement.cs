@@ -40,10 +40,10 @@ namespace MySqlTest
                 {
                     var pars = cmd.Parameters;
 
-                    pars.AddWithValue("col1", 10);
-                    pars.AddWithValue("col2", "AA");
-                    pars.AddWithValue("col3", "0123456789");
-                    pars.AddWithValue("col4", "0001-01-01");
+                    pars.AddWithValue("?col1", 10);
+                    pars.AddWithValue("?col2", "AA");
+                    pars.AddWithValue("?col3", "0123456789");
+                    pars.AddWithValue("?col4", "0001-01-01");
 
                     cmd.ExecuteNonQuery();
                 }

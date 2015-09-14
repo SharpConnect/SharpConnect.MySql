@@ -325,21 +325,42 @@ namespace SharpConnect.MySql.Internal
         // Manually extracted from mysql-5.5.23/include/mysql_com.h
         // some more info here: http://dev.mysql.com/doc/refman/5.5/en/c-api-prepared-statement-type-codes.html
         DECIMAL = 0x00, //exports.DECIMAL     = 0x00; // aka DECIMAL (http://dev.mysql.com/doc/refman/5.0/en/precision-math-decimal-changes.html)
+        /// <summary>
+        /// 1 byte
+        /// </summary>
         TINY,           //exports.TINY        = 0x01; // aka TINYINT, 1 byte
+        /// <summary>
+        /// 2 bytes
+        /// </summary>
         SHORT,          //exports.SHORT       = 0x02; // aka SMALLINT, 2 bytes
+        /// <summary>
+        /// 4 bytes
+        /// </summary>
         LONG,           //exports.LONG        = 0x03; // aka INT, 4 bytes
+        /// <summary>
+        /// 4-8 bytes
+        /// </summary>
         FLOAT,          //exports.FLOAT       = 0x04; // aka FLOAT, 4-8 bytes
+        /// <summary>
+        /// 8 bytes
+        /// </summary>
         DOUBLE,         //exports.DOUBLE      = 0x05; // aka DOUBLE, 8 bytes
         NULL,           //exports.NULL        = 0x06; // NULL (used for prepared statements, I think)
         TIMESTAMP,      //exports.TIMESTAMP   = 0x07; // aka TIMESTAMP
+        /// <summary>
+        /// 8 bytes
+        /// </summary>
         LONGLONG,       //exports.LONGLONG    = 0x08; // aka BIGINT, 8 bytes
+        /// <summary>
+        /// 3 bytes
+        /// </summary>
         INT24,          //exports.INT24       = 0x09; // aka MEDIUMINT, 3 bytes
         DATE,           //exports.DATE        = 0x0a; // aka DATE
         TIME,           //exports.TIME        = 0x0b; // aka TIME
         DATETIME,       //exports.DATETIME    = 0x0c; // aka DATETIME
         YEAR,           //exports.YEAR        = 0x0d; // aka YEAR, 1 byte (don't ask)
         NEWDATE,        //exports.NEWDATE     = 0x0e; // aka ?
-        VARCHAR,        //exports.VARCHAR     = 0x0f; // aka VARCHAR (?)
+        VARCHAR,        //exports.VARCHAR     = 0x0f; // aka VARCHAR (?)         
         BIT,            //exports.BIT         = 0x10; // aka BIT, 1-8 byte
 
         NEWDECIMAL = 0xf6,//exports.NEWDECIMAL= 0xf6; // aka DECIMAL

@@ -31,50 +31,64 @@ namespace SharpConnect.MySql
                 data.myString = null;
                 data.type = Types.NULL;
             }
-            _values["?" + key] = data;
+            _values[key] = data;
 
         }
         public void AddWithValue(string key, byte value)
         {
             var data = new MyStructData();
-            data.myInt32 = value;
-            data.type = Types.BIT;
-            _values["?" + key] = data;
+            data.myString = value.ToString();
+            data.type = Types.STRING;
+            //data.myInt32 = value;
+            //data.type = Types.TINY;
+            _values[key] = data;
         }
-        public void AddWithValue(string key, int value)
+        public void AddWithValue(string key, short value)
         {
             var data = new MyStructData();
             data.myInt32 = value;
+            data.type = Types.SHORT;
+            _values[key] = data;
+        }
+        public void AddWithValue(string key, int value)
+        {
+            //INT 4       min        max
+            //signed -2147483648 2147483647
+            //unsigned     0     4294967295
+            //---------------------------
+
+            var data = new MyStructData();
+            data.myInt32 = value;
             data.type = Types.LONG;//Types.LONG = int32
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, long value)
         {
             var data = new MyStructData();
             data.myInt64 = value;
             data.type = Types.LONGLONG;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, float value)
         {
             var data = new MyStructData();
             data.myDouble = value;
             data.type = Types.FLOAT;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, double value)
         {
             var data = new MyStructData();
             data.myDouble = value;
             data.type = Types.DOUBLE;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, decimal value)
         {
             var data = new MyStructData();
-            data.myDecimal = value;
-            data.type = Types.DECIMAL;
-            _values["?" + key] = data;
+            data.myString = value.ToString();
+            data.type = Types.STRING;
+            _values[key] = data;
         }
         public void AddWithValue(string key, byte[] value)
         {
@@ -89,48 +103,71 @@ namespace SharpConnect.MySql
                 data.myBuffer = null;
                 data.type = Types.NULL;
             }
-            _values["?" + key] = data;
+            _values[key] = data;
         }
         public void AddWithValue(string key, DateTime value)
         {
             var data = new MyStructData();
             data.myDateTime = value;
             data.type = Types.DATETIME;
-            _values["?" + key] = data;
+            _values[key] = data;
         }
-
-
-        //-------------------------------------------------------
-        //TODO: how about other datatype,
-        //sbyte, uint,ulong, ?
-        //-------------------------------------------------------
         public void AddWithValue(string key, sbyte value)
         {
-            throw new NotImplementedException();
+            //tiny int signed (-128 to 127)
+            var data = new MyStructData();
+            data.myInt32 = value;
+            data.type = Types.TINY;
+            _values[key] = data;
         }
         public void AddWithValue(string key, char value)
         {
-            throw new NotImplementedException();
+            //1 unicode char => 2 bytes store
+            var data = new MyStructData();
+            data.myUInt32 = value;
+            data.type = Types.LONGLONG;
+            _values[key] = data;
         }
         public void AddWithValue(string key, ushort value)
         {
-            throw new NotImplementedException();
+
+            //INT 2       min        max
+            //signed      -32768    32767
+            //unsigned     0     65535
+            //---------------------------
+
+            var data = new MyStructData();
+            data.myString = value.ToString();
+            data.type = Types.STRING;
+            //data.myUInt32 = value;
+            //data.type = Types.SHORT;
+            _values[key] = data;
         }
         public void AddWithValue(string key, uint value)
         {
-            throw new NotImplementedException();
+            //INT 4       min        max
+            //signed -2147483648 2147483647
+            //unsigned     0     4294967295
+            //---------------------------
+            var data = new MyStructData();
+            data.myUInt32 = value;
+            data.type = Types.LONGLONG;//** 
+            _values[key] = data;
         }
         public void AddWithValue(string key, ulong value)
         {
-            throw new NotImplementedException();
+            var data = new MyStructData();
+            data.myString = value.ToString();
+            data.type = Types.STRING;
+            //data.myUInt64 = value;
+            //data.type = Types.LONGLONG;
+            _values[key] = data;
         }
-
-
         internal bool TryGetData(string key, out MyStructData data)
         {
             return _values.TryGetValue(key, out data);
         }
- 
+
         public void ClearDataValues()
         {
             _values.Clear();
@@ -146,7 +183,7 @@ namespace SharpConnect.MySql
                 _sqlParts = new Dictionary<string, string>();
             }
 
-            _sqlParts["??" + sqlBoundKey] = "`" + sqlPart + "`";
+            _sqlParts[sqlBoundKey] = "`" + sqlPart + "`";
         }
         public bool TryGetSqlPart(string sqlBoundKey, out string sqlPart)
         {
@@ -166,6 +203,6 @@ namespace SharpConnect.MySql
             }
         }
         //-------------------------------------------------------
-        
+
     }
 }

@@ -1,5 +1,6 @@
 ﻿//LICENSE: MIT
 //Copyright(c) 2012 Felix Geisendörfer(felix @debuggable.com) and contributors 
+//Copyright(c) 2013 Andrey Sidorov(sidorares @yandex.ru) and contributors
 //Copyright(c) 2015 brezza27, EngineKit and contributors
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -39,6 +40,7 @@ namespace SharpConnect.MySql.Internal
         RowDataPacket _lastRow;
         RowPreparedDataPacket _lastPrepareRow;
         bool _hasSomeRow;
+        bool _executePrepared;
 
         PacketParser _parser;
         PacketWriter _writer;
@@ -123,12 +125,11 @@ namespace SharpConnect.MySql.Internal
             _prepareContext = null;
             ParseReceivePacket();
         }
+
         public void Prepare()
         {
             //prepare sql query
-
-
-            this._prepareContext = null;
+            _prepareContext = null;
 
             if (_cmdParams == null)
             {
@@ -157,6 +158,7 @@ namespace SharpConnect.MySql.Internal
                     tableHeader.ConnConfig = _conn.config;
                     for (int i = 0; i < okPreparePacket.num_params; i++)
                     {
+                        //no meaing for each field?
                         FieldPacket field = ParseColumn();
                         tableHeader.AddField(field);
                     }
@@ -169,7 +171,7 @@ namespace SharpConnect.MySql.Internal
                 }
                 if (okPreparePacket.num_columns > 0)
                 {
-                    this._tableHeader = new TableHeader();
+                    _tableHeader = new TableHeader();
                     _tableHeader.TypeCast = typeCast;
                     _tableHeader.NestTables = nestTables;
                     _tableHeader.ConnConfig = _conn.config;
@@ -203,7 +205,8 @@ namespace SharpConnect.MySql.Internal
                 throw new Exception("exec Prepare() first");
             }
             //---------------------------------------------------------------------------------
-
+            if(_executePrepared)
+                ResetPrepareStmt();
 
             _writer.Reset();
 
@@ -214,16 +217,38 @@ namespace SharpConnect.MySql.Internal
 
             SendPacket(_writer.ToArray());
             ParseReceivePacket();
-
+            _executePrepared = true;
             if (OkPacket != null || LoadError != null)
             {
                 return;
             }
             _lastPrepareRow = new RowPreparedDataPacket(_tableHeader);
-
         }
 
+        void ClosePrepareStmt()
+        {
+            if (_prepareContext != null)
+            {
+                _writer.Reset();
+                ComStmtClose closePrepare = new ComStmtClose(_prepareContext.statementId);
+                closePrepare.WritePacket(_writer);
+                SendPacket(_writer.ToArray());
+                //No response is sent back to the client.
+            }
+        }
 
+        void ResetPrepareStmt()
+        {
+            if (_prepareContext != null)
+            {
+                _writer.Reset();
+                ComStmtReset resetPacket = new ComStmtReset(_prepareContext.statementId);
+                resetPacket.WritePacket(_writer);
+                SendPacket(_writer.ToArray());
+                ParseReceivePacket();
+                //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
+            }
+        }
 
         public bool ReadRow()
         {
@@ -274,11 +299,12 @@ namespace SharpConnect.MySql.Internal
 
         public int GetColumnIndex(string colName)
         {
-            return this._tableHeader.GetFieldIndex(colName);
+            return _tableHeader.GetFieldIndex(colName);
         }
 
         public void Close()
         {
+            ClosePrepareStmt();
             if (_hasSomeRow)
             {
                 string realSql = "KILL " + _conn.threadId;
@@ -303,6 +329,7 @@ namespace SharpConnect.MySql.Internal
             }
 
             //---------------------------------------------------
+            //TODO: review err handling 
             _parser.LoadNewBuffer(_receiveBuffer, receive);
             switch (_receiveBuffer[4])
             {
@@ -366,6 +393,7 @@ namespace SharpConnect.MySql.Internal
             {
                 return null;
             }
+            //TODO: review err handling here
             //---------------------------------------------------
             _parser.LoadNewBuffer(_receiveBuffer, receive);
             OkPrepareStmtPacket okPreparePacket = new OkPrepareStmtPacket();
