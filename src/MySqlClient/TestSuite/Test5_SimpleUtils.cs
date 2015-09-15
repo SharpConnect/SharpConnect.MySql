@@ -31,12 +31,29 @@ namespace MySqlTest
                 cmd.ExecuteNonQuery();
             }
             //---------------------------------------------------
-            var insert = new SimpleInsert("test001");
-            insert.AddWithValue("?first_name", "test1_firstname");
-            insert.AddWithValue("?last_name", "test1_last_name");
-            insert.ExecuteNonQuery(conn);
-            //--------------------------------------------------- 
+            {
+                var insert = new SimpleInsert("test001");
+                insert.AddWithValue("?first_name", "test1_firstname");
+                insert.AddWithValue("?last_name", "test1_last_name");
+                insert.ExecuteNonQuery(conn);
+            }
 
+            //---------------------------------------------------
+            {
+                //prepare
+                var insert = new SimpleInsert("test001");
+                insert.AddWithValue("?first_name", "");
+                insert.AddWithValue("?last_name", "");
+                insert.Prepare(conn);
+                for (int i = 0; i < 10; ++i)
+                {
+                    insert.ClearValues();
+                    insert.AddWithValue("?first_name", "first" + i);
+                    insert.AddWithValue("?last_name", "last" + i);
+                    insert.ExecuteNonQuery();
+                }
+            }
+            //--------------------------------------------------- 
             conn.Close();
         }
 

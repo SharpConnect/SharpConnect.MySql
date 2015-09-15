@@ -70,6 +70,10 @@ namespace SharpConnect.MySql.Utils
         {
             ihasPars.Pars.AddWithValue(key, value);
         }
+        public static void ClearValues(this IHasParameters ihasPars)
+        {
+            ihasPars.Pars.ClearDataValues();
+        }
 
     }
 }

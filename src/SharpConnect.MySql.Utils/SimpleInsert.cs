@@ -5,6 +5,8 @@ namespace SharpConnect.MySql.Utils
 {
     public class SimpleInsert : IHasParameters
     {
+        MySqlCommand sqlCommand;
+        bool isPrepared;
         public SimpleInsert(string targetTableName)
         {
             TargetTableName = targetTableName;
@@ -16,17 +18,53 @@ namespace SharpConnect.MySql.Utils
             private set;
         }
         public string TargetTableName { get; private set; }
-
+        public MySqlConnection Connection { get; set; }
         public void ExecuteNonQuery(MySqlConnection conn)
+        {
+            Connection = conn;
+            ExecuteNonQuery();
+        }
+
+        public void ExecuteNonQuery()
         {
             //create insert sql
             //then exec
+            if (isPrepared)
+            {
 
-            //create sql command
-
+                sqlCommand.ExecuteNonQuery();
+            }
+            else
+            {
+                StringBuilder sql = CreateSqlText();
+                sqlCommand = new MySqlCommand(sql.ToString(), Pars, Connection);
+                sqlCommand.ExecuteNonQuery();
+            }
+        }
+        public void Prepare()
+        {
+            if (isPrepared)
+            {
+                throw new System.NotSupportedException("double prepare");
+            }
+            isPrepared = true;
+            StringBuilder sql = CreateSqlText();
+            sqlCommand = new MySqlCommand(sql.ToString(), Pars, Connection);
+            sqlCommand.Prepare();
+        }
+        public void Prepare(MySqlConnection conn)
+        {
+            if (isPrepared)
+            {
+                throw new System.NotSupportedException("double prepare");
+            }
+            Connection = conn;
+            Prepare();
+        }
+        StringBuilder CreateSqlText()
+        {
             CommandParams pars = Pars;
             string[] valueKeys = pars.GetAttachedValueKeys();
-
             var stBuilder = new StringBuilder();
             stBuilder.Append("insert into ");
             stBuilder.Append(TargetTableName);
@@ -58,17 +96,8 @@ namespace SharpConnect.MySql.Utils
                     stBuilder.Append(',');
                 }
             }
-
-
             stBuilder.Append(")");
-
-            var sqlcmd = new MySqlCommand(stBuilder.ToString(), pars, conn);
-            sqlcmd.ExecuteNonQuery();
-
-        }
-        public void Prepare(MySqlConnection conn)
-        {
-
+            return stBuilder;
         }
     }
 }
