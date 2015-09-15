@@ -12,6 +12,8 @@ namespace MySqlTest
 
     public class TestSet5_SimpleUtils : MySqlTestSet
     {
+
+
         [Test]
         public static void T_SimpleInsert_Update()
         {
@@ -73,5 +75,31 @@ namespace MySqlTest
             conn.Close();
         }
 
+        [Test]
+        public static void T_SimpleSelect()
+        {
+
+            //-----------------------------
+            //prepare data 
+            T_SimpleInsert_Update();
+            //-----------------------------
+
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+            {
+                var select = new SimpleSelect("test001");
+                select.Connection = conn;
+
+                foreach (var d in select.ExecRecordIter(
+                    (r) => new { first_name = r.str(), last_name = r.str() }))
+                {
+
+                }
+            }
+
+            conn.Close();
+
+        }
     }
 }

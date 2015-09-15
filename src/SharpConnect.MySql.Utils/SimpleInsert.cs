@@ -98,5 +98,5 @@ namespace SharpConnect.MySql.Utils
             stBuilder.Append(")");
             return stBuilder;
         }
-    } 
+    }
 }

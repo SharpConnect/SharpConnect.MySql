@@ -123,6 +123,5 @@ namespace SharpConnect.MySql.Utils
             }
             return stBuilder;
         }
-
     }
 }
