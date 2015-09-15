@@ -85,6 +85,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SharpConnect.MySql.Utils\SharpConnect.MySql.Utils.csproj">
+      <Project>{2b4090cb-beea-40cf-a6ef-db69ae65e0d2}</Project>
+      <Name>SharpConnect.MySql.Utils</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SharpConnect.MySql\SharpConnect.MySql.csproj">
       <Project>{c783e6ea-145d-4e5a-81c7-61faf2d81df4}</Project>
       <Name>SharpConnect.MySql</Name>
