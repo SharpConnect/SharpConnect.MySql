@@ -3,11 +3,13 @@ using System.Text;
 
 namespace SharpConnect.MySql.Utils
 {
-    public class SimpleInsert : IHasParameters
+    public class SimpleUpdate : IHasParameters
     {
         MySqlCommand _sqlCommand;
         bool _isPrepared;
-        public SimpleInsert(string targetTableName)
+        string _whereClause;
+
+        public SimpleUpdate(string targetTableName)
         {
             TargetTableName = targetTableName;
             Pars = new CommandParams();
@@ -60,14 +62,24 @@ namespace SharpConnect.MySql.Utils
             Connection = conn;
             Prepare();
         }
+
+
+        public void Where(string sqlWhere)
+        {
+            _whereClause = sqlWhere;
+        }
+        
+        public bool ConfirmNoWhereClause { get; set; }
+        public string Limit { get; set; }
+
         StringBuilder CreateSqlText()
         {
             CommandParams pars = Pars;
             string[] valueKeys = pars.GetAttachedValueKeys();
             var stBuilder = new StringBuilder();
-            stBuilder.Append("insert into ");
+            stBuilder.Append("update ");
             stBuilder.Append(TargetTableName);
-            stBuilder.Append('(');
+            stBuilder.Append(" set ");
 
             int j = valueKeys.Length;
             for (int i = 0; i < j; ++i)
@@ -79,23 +91,36 @@ namespace SharpConnect.MySql.Utils
                     throw new System.NotSupportedException();
                 }
                 stBuilder.Append(k.Substring(1)); //remove ?
+                stBuilder.Append('=');
+                stBuilder.Append(k);
 
                 if (i < j - 1)
                 {
                     stBuilder.Append(',');
                 }
-
             }
-            stBuilder.Append(")  values(");
-            for (int i = 0; i < j; ++i)
+
+            //this version update must specific where 
+            //if not user must confirm that no where
+
+            if (_whereClause == null)
             {
-                stBuilder.Append(valueKeys[i]);
-                if (i < j - 1)
+                if (!ConfirmNoWhereClause)
                 {
-                    stBuilder.Append(',');
+                    throw new System.NotSupportedException("no where clause, or not confirm no where clause");
                 }
             }
-            stBuilder.Append(")");
+            else
+            {
+                stBuilder.Append(" where ");
+                stBuilder.Append(_whereClause);
+            }
+
+
+            if (Limit != null)
+            {
+                stBuilder.Append(" limit " + Limit);
+            }
             return stBuilder;
         }
     }
