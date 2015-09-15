@@ -24,7 +24,6 @@ namespace SharpConnect.MySql.Utils
             Connection = conn;
             ExecuteNonQuery();
         }
-
         public void ExecuteNonQuery()
         {
             //create insert sql
@@ -100,4 +99,7 @@ namespace SharpConnect.MySql.Utils
             return stBuilder;
         }
     }
+
+
+
 }
