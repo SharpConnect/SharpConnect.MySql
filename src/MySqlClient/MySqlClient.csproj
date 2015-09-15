@@ -38,7 +38,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
@@ -57,6 +56,7 @@
     <Compile Include="TestSuite\Test3_AsyncSocket.cs" />
     <Compile Include="TestSuite\MyTestSet.cs" />
     <Compile Include="TestSuite\Test4_PreparedStatement.cs" />
+    <Compile Include="TestSuite\Test5_SimpleUtils.cs" />
     <Compile Include="TestSuite\TestSuite.cs" />
     <EmbeddedResource Include="FormTestSuite.resx">
       <DependentUpon>FormTestSuite.cs</DependentUpon>
@@ -85,6 +85,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SharpConnect.MySql.Utils\SharpConnect.MySql.Utils.csproj">
+      <Project>{2b4090cb-beea-40cf-a6ef-db69ae65e0d2}</Project>
+      <Name>SharpConnect.MySql.Utils</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SharpConnect.MySql\SharpConnect.MySql.csproj">
       <Project>{c783e6ea-145d-4e5a-81c7-61faf2d81df4}</Project>
       <Name>SharpConnect.MySql</Name>

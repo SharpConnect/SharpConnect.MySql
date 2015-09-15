@@ -117,7 +117,7 @@ namespace SharpConnect.MySql.Internal
                         break;
                     case ParseState.COLLECT_MARKER_KEY:
 
-                        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9'))
+                        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_')
                         {
                             stBuilder.Append(ch);
                         }
@@ -169,7 +169,7 @@ namespace SharpConnect.MySql.Internal
                         }
                         break;
                     case ParseState.COLLECT_SP_MARKER_KEY:
-                        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9'))
+                        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_')
                         {
                             stBuilder.Append(ch);
                         }

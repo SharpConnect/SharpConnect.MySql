@@ -163,6 +163,8 @@ namespace SharpConnect.MySql
             //data.type = Types.LONGLONG;
             _values[key] = data;
         }
+
+
         internal bool TryGetData(string key, out MyStructData data)
         {
             return _values.TryGetValue(key, out data);
@@ -204,5 +206,17 @@ namespace SharpConnect.MySql
         }
         //-------------------------------------------------------
 
+
+        public string[] GetAttachedValueKeys()
+        {
+            var keys = new string[_values.Count];
+            int i = 0;
+            foreach (string k in _values.Keys)
+            {
+                keys[i] = k;
+                i++;
+            }
+            return keys;
+        }
     }
 }
