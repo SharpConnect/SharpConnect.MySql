@@ -91,15 +91,38 @@ namespace MySqlTest
                 var select = new SimpleSelect("test001");
                 select.Connection = conn;
 
+                //------------------------------
+                //for anonyomous type
                 foreach (var d in select.ExecRecordIter(
                     (r) => new { first_name = r.str(), last_name = r.str() }))
+                {
+
+                }
+                //------------------------------
+
+                foreach (var d in select.ExecRecordIter(() => new UserInfo()))
+                {
+
+                }
+                foreach (var d in select.ExecRecordIter(() => new UserInfo2()))
                 {
 
                 }
             }
 
             conn.Close();
+        }
 
+        sealed class UserInfo
+        {
+            public string first_name;
+            public string last_name;
+        }
+
+        sealed class UserInfo2
+        {
+            public string first_name { get; set; }
+            public string last_name { get; set; }
         }
     }
 }

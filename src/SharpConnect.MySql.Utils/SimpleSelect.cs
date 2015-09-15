@@ -7,14 +7,90 @@ using System.Reflection;
 namespace SharpConnect.MySql.Utils
 {
 
-    class TypePlan
+    class DataRecordTypePlan
     {
-        public List<FieldPlan> fields = new List<FieldPlan>();
+        public TypePlanKind planKind;
+        public List<DataFieldPlan> fields = new List<DataFieldPlan>();
+
+        public void AssignData(object o, MySqlDataReader reader)
+        {
+            switch (planKind)
+            {
+                case TypePlanKind.AllFields:
+                    {
+
+                        //TODO: review here 
+                        int j = fields.Count;
+                        for (int i = 0; i < j; ++i)
+                        {
+                            //sample only ***
+                            //plan: use dynamic method ***
+                            fields[i].fieldInfo.SetValue(o, reader.GetString(i));
+                        }
+                    }
+                    break;
+                case TypePlanKind.AllProps:
+                    {
+                        //TODO: review here 
+                        int j = fields.Count;
+                        object[] invokeArgs = new object[1];
+                        for (int i = 0; i < j; ++i)
+                        {
+                            //sample only ***
+                            //plan: use dynamic method ***
+                            invokeArgs[0] = reader.GetString(i);
+                            fields[i].propSetMethodInfo.Invoke(o, invokeArgs);
+                        }
+                    }
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
+
+        }
     }
-    class FieldPlan
+    enum TypePlanKind
     {
-        public PropertyInfo propInfo;
-        public string fieldName;
+        MaybeAnonymousType,
+        AllProps,
+        AllFields
+    }
+    class DataFieldPlan
+    {
+        public readonly Type type;
+        public readonly string name;
+        public readonly FieldInfo fieldInfo;
+        public readonly MethodInfo propSetMethodInfo;
+        public DataFieldPlan(ParameterInfo pinfo)
+        {
+            name = pinfo.Name;
+            type = pinfo.ParameterType;
+
+        }
+        public DataFieldPlan(FieldInfo fieldInfo)
+        {
+            name = fieldInfo.Name;
+            type = fieldInfo.FieldType;
+            this.fieldInfo = fieldInfo;
+
+            var fieldNameAttr = fieldInfo.GetCustomAttribute(typeof(FieldNameAttribute)) as FieldNameAttribute;
+            if (fieldNameAttr != null)
+            {
+                name = fieldNameAttr.FieldName;
+            }
+        }
+        public DataFieldPlan(PropertyInfo propInfo)
+        {
+            name = propInfo.Name;
+            type = propInfo.PropertyType;
+            propSetMethodInfo = propInfo.SetMethod;
+
+            var fieldNameAttr = propInfo.GetCustomAttribute(typeof(FieldNameAttribute)) as FieldNameAttribute;
+            if (fieldNameAttr != null)
+            {
+                name = fieldNameAttr.FieldName;
+            }
+        }
     }
     public class FieldNameAttribute : Attribute
     {
@@ -106,7 +182,7 @@ namespace SharpConnect.MySql.Utils
         string _whereClause;
 
 
-        static Dictionary<Type, TypePlan> typePlanCaches = new Dictionary<Type, TypePlan>();
+        static Dictionary<Type, DataRecordTypePlan> typePlanCaches = new Dictionary<Type, DataRecordTypePlan>();
 
         public SimpleSelect(string targetTableName)
         {
@@ -131,7 +207,7 @@ namespace SharpConnect.MySql.Utils
         public IEnumerable<T> ExecRecordIter<T>(Func<SeqRecReader, T> createNewItem)
         {
 
-            TypePlan foundPlan;
+            DataRecordTypePlan foundPlan;
             Type itemType = typeof(T);
             if (!typePlanCaches.TryGetValue(itemType, out foundPlan))
             {
@@ -152,7 +228,30 @@ namespace SharpConnect.MySql.Utils
             }
             reader.Close();
         }
-        static TypePlan CreateTypePlan(Type t)
+        public IEnumerable<T> ExecRecordIter<T>(Func<T> createNewItem)
+        {
+
+            DataRecordTypePlan foundPlan;
+            Type itemType = typeof(T);
+            if (!typePlanCaches.TryGetValue(itemType, out foundPlan))
+            {
+                foundPlan = CreateTypePlan(itemType);
+                typePlanCaches.Add(itemType, foundPlan);
+            }
+            //-----------------------------
+            //create query
+            StringBuilder sql = CreateSqlText(foundPlan);
+            var cmd = new MySqlCommand(sql.ToString(), Pars, Connection);
+            MySqlDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                T d = createNewItem();
+                foundPlan.AssignData(d, reader);
+                yield return d;
+            }
+            reader.Close();
+        }
+        static DataRecordTypePlan CreateTypePlan(Type t)
         {
             if (t.IsPrimitive)
             {
@@ -162,6 +261,7 @@ namespace SharpConnect.MySql.Utils
             //check public ctor
             ConstructorInfo[] allCtors = t.GetConstructors(BindingFlags.Instance | BindingFlags.Public);
 
+            //type layout check 
             //1. find default ctor 
             int ctorCount = allCtors.Length;
             if (ctorCount == 0)
@@ -169,7 +269,7 @@ namespace SharpConnect.MySql.Utils
                 return null;
             }
 
-            var plan = new TypePlan();
+
             ConstructorInfo defaultParameterLessCtor = null;
             for (int i = 0; i < ctorCount; ++i)
             {
@@ -178,6 +278,7 @@ namespace SharpConnect.MySql.Utils
                 if (ctorParams.Length == 0)
                 {
                     defaultParameterLessCtor = ctor;
+                    break;
                 }
                 else
                 {
@@ -185,39 +286,134 @@ namespace SharpConnect.MySql.Utils
                 }
             }
 
+            //------------------------------------------------- 
+            //note, in this version we have some restriction
+            //1. must be class
+            //2. must be sealed
+            //3. have 1 ctor 
 
-            //-------------------------------------------------
-            //get public property get,set only
-            //single layer only
-            PropertyInfo[] allProps = t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
+            if (!t.IsSealed && allCtors.Length > 0)
+            {
+                return null;
+            }
 
-            int j = allProps.Length;
-            for (int i = 0; i < j; ++i)
+            if (t.IsAutoLayout)
+            {
+                if (defaultParameterLessCtor != null)
+                {
+                    //have parameter less ctor
+                    //then
+                    //more restrictions
+
+                    //1. all public fields, no properties
+                    //2. all public properties, no public fields
+
+                    //TODO: 
+                    //impl:
+
+                    PropertyInfo[] allProps = t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
+                    FieldInfo[] allFields = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
+
+                    if (allProps.Length > 0 && allFields.Length == 0)
+                    {
+                        var typePlan = new DataRecordTypePlan();
+                        int j = allProps.Length;
+                        for (int i = 0; i < j; ++i)
+                        {
+                            PropertyInfo propInfo = allProps[i];
+                            if (propInfo.GetMethod == null || propInfo.SetMethod == null)
+                            {
+                                return null;
+                            }
+                            var fieldPlan = new DataFieldPlan(propInfo);
+                            typePlan.fields.Add(fieldPlan);
+                        }
+                        typePlan.planKind = TypePlanKind.AllProps;
+                        return typePlan;
+                    }
+                    else if (allFields.Length > 0)
+                    {
+                        //not readonly field
+                        var typePlan = new DataRecordTypePlan();
+                        int j = allFields.Length;
+                        for (int i = 0; i < j; ++i)
+                        {
+                            FieldInfo fieldInfo = allFields[i];
+
+                            var fieldPlan = new DataFieldPlan(fieldInfo);
+                            typePlan.fields.Add(fieldPlan);
+                        }
+                        typePlan.planKind = TypePlanKind.AllFields;
+                        return typePlan;
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+                else
+                {
+
+                    //guess that type is anonymous type
+
+                    //no default parameter less ctro
+                    //only 1 exeption, 
+                    //for anonymous type 
+                    //-------------------------------------------------
+                    //get public property get,set only
+                    //single layer only
+                    PropertyInfo[] allProps = t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
+
+                    //all prop has no set method 
+                    int j = allProps.Length;
+                    for (int i = 0; i < j; ++i)
+                    {
+                        PropertyInfo propInfo = allProps[i];
+                        if (propInfo.SetMethod != null)
+                        {
+                            //not anonyomus type
+                            return null;
+                        }
+                    }
+                    ParameterInfo[] ctorParams = allCtors[0].GetParameters();
+                    if (ctorParams.Length != allProps.Length)
+                    {
+                        return null; //not anonyomus type
+                    }
+                    //---------------------------------------------------------
+                    //guess that this is anonymous type
+                    //since type is auto layout
+                    //so we use field order according to its ctor parameters 
+                    var typePlan = new DataRecordTypePlan();
+                    for (int i = 0; i < j; ++i)
+                    {
+                        ParameterInfo pinfo = ctorParams[i];
+                        typePlan.fields.Add(new DataFieldPlan(pinfo));
+                    }
+                    typePlan.planKind = TypePlanKind.MaybeAnonymousType;
+                    return typePlan;
+                }
+
+            }
+            else if (t.IsLayoutSequential)
             {
 
-                PropertyInfo propInfo = allProps[i];
-                FieldNameAttribute fieldNameAttr = propInfo.GetCustomAttribute(typeof(FieldNameAttribute)) as FieldNameAttribute;
-                var fieldPlan = new FieldPlan();
-                fieldPlan.propInfo = propInfo;
+                //assign by fieldname *** 
 
-                if (fieldNameAttr != null)
-                {
-                    fieldPlan.fieldName = fieldNameAttr.FieldName;
-                }
-                else
-                {
-                    fieldPlan.fieldName = propInfo.Name;
-                }
-                plan.fields.Add(fieldPlan);
+                throw new NotSupportedException();
             }
+            else
+            {
+                throw new Exception("not supported layout");
+            }
+            return null;
 
 
-            return plan;
         }
 
 
 
-        StringBuilder CreateSqlText(TypePlan typePlan)
+        StringBuilder CreateSqlText(DataRecordTypePlan typePlan)
         {
             CommandParams pars = Pars;
             string[] valueKeys = pars.GetAttachedValueKeys();
@@ -227,8 +423,8 @@ namespace SharpConnect.MySql.Utils
             int j = typePlan.fields.Count;
             for (int i = 0; i < j; ++i)
             {
-                FieldPlan fieldPlan = typePlan.fields[i];
-                stBuilder.Append(fieldPlan.fieldName);
+                DataFieldPlan fieldPlan = typePlan.fields[i];
+                stBuilder.Append(fieldPlan.name);
                 if (i < j - 1)
                 {
                     stBuilder.Append(',');
