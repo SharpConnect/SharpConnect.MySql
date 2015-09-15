@@ -5,8 +5,8 @@ namespace SharpConnect.MySql.Utils
 {
     public class SimpleInsert : IHasParameters
     {
-        MySqlCommand sqlCommand;
-        bool isPrepared;
+        MySqlCommand _sqlCommand;
+        bool _isPrepared;
         public SimpleInsert(string targetTableName)
         {
             TargetTableName = targetTableName;
@@ -28,32 +28,32 @@ namespace SharpConnect.MySql.Utils
         {
             //create insert sql
             //then exec
-            if (isPrepared)
+            if (_isPrepared)
             {
 
-                sqlCommand.ExecuteNonQuery();
+                _sqlCommand.ExecuteNonQuery();
             }
             else
             {
                 StringBuilder sql = CreateSqlText();
-                sqlCommand = new MySqlCommand(sql.ToString(), Pars, Connection);
-                sqlCommand.ExecuteNonQuery();
+                _sqlCommand = new MySqlCommand(sql.ToString(), Pars, Connection);
+                _sqlCommand.ExecuteNonQuery();
             }
         }
         public void Prepare()
         {
-            if (isPrepared)
+            if (_isPrepared)
             {
                 throw new System.NotSupportedException("double prepare");
             }
-            isPrepared = true;
+            _isPrepared = true;
             StringBuilder sql = CreateSqlText();
-            sqlCommand = new MySqlCommand(sql.ToString(), Pars, Connection);
-            sqlCommand.Prepare();
+            _sqlCommand = new MySqlCommand(sql.ToString(), Pars, Connection);
+            _sqlCommand.Prepare();
         }
         public void Prepare(MySqlConnection conn)
         {
-            if (isPrepared)
+            if (_isPrepared)
             {
                 throw new System.NotSupportedException("double prepare");
             }
@@ -98,8 +98,5 @@ namespace SharpConnect.MySql.Utils
             stBuilder.Append(")");
             return stBuilder;
         }
-    }
-
-
-
+    } 
 }
