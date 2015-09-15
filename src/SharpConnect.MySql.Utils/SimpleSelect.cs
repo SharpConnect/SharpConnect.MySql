@@ -399,8 +399,64 @@ namespace SharpConnect.MySql.Utils
             {
 
                 //assign by fieldname *** 
+                if (defaultParameterLessCtor == null)
+                {
+                    //TODO: impl here
+                    return null;
+                }
+                else;
+                {
+                    //have parameter less ctor
+                    //then
+                    //more restrictions
 
-                throw new NotSupportedException();
+                    //1. all public fields, no properties
+                    //2. all public properties, no public fields
+
+                    //TODO: 
+                    //impl:
+
+                    PropertyInfo[] allProps = t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
+                    FieldInfo[] allFields = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
+
+                    if (allProps.Length > 0 && allFields.Length == 0)
+                    {
+                        var typePlan = new DataRecordTypePlan();
+                        int j = allProps.Length;
+                        for (int i = 0; i < j; ++i)
+                        {
+                            PropertyInfo propInfo = allProps[i];
+                            if (propInfo.GetMethod == null || propInfo.SetMethod == null)
+                            {
+                                return null;
+                            }
+                            var fieldPlan = new DataFieldPlan(propInfo);
+                            typePlan.fields.Add(fieldPlan);
+                        }
+                        typePlan.planKind = TypePlanKind.AllProps;
+                        return typePlan;
+                    }
+                    else if (allFields.Length > 0)
+                    {
+                        //not readonly field
+                        var typePlan = new DataRecordTypePlan();
+                        int j = allFields.Length;
+                        for (int i = 0; i < j; ++i)
+                        {
+                            FieldInfo fieldInfo = allFields[i];
+
+                            var fieldPlan = new DataFieldPlan(fieldInfo);
+                            typePlan.fields.Add(fieldPlan);
+                        }
+                        typePlan.planKind = TypePlanKind.AllFields;
+                        return typePlan;
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+
             }
             else
             {
