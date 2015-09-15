@@ -13,7 +13,7 @@ namespace MySqlTest
     public class TestSet5_SimpleUtils : MySqlTestSet
     {
         [Test]
-        public static void T_SimpleInsert()
+        public static void T_SimpleInsert_Update()
         {
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
@@ -54,6 +54,22 @@ namespace MySqlTest
                 }
             }
             //--------------------------------------------------- 
+
+
+
+            //test update
+            //---------------------------------------------------
+            {
+                var update = new SimpleUpdate("test001");
+                update.AddWithValue("?first_name", "update_name");
+                update.Where("first_name = 'first0'");
+                update.Connection = conn;
+
+                update.ExecuteNonQuery();
+            }
+
+            //---------------------------------------------------
+
             conn.Close();
         }
 
