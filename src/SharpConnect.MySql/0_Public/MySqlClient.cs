@@ -120,6 +120,12 @@ namespace SharpConnect.MySql
             Connection = conn;
             Parameters = new CommandParams();
         }
+        public MySqlCommand(string sql, CommandParams cmds, MySqlConnection conn)
+        {
+            CommandText = sql;
+            Connection = conn;
+            Parameters = cmds;
+        }
         public CommandParams Parameters
         {
             get;
