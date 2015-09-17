@@ -43,7 +43,7 @@
     <Compile Include="SimpleUpdate.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SharpConnect.Data\SharpConnect.LiquidData.csproj">
+    <ProjectReference Include="..\SharpConnect.LiquidData\SharpConnect.LiquidData.csproj">
       <Project>{9afb3f52-d37d-4fba-ac0d-76d95ae956b0}</Project>
       <Name>SharpConnect.LiquidData</Name>
     </ProjectReference>
