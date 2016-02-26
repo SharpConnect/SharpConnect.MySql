@@ -47,7 +47,12 @@ namespace SharpConnect.MySql.Internal
     {
         public ConnectionConfig config;
         public bool connectionCall;
-        public ConnectionState state;
+        public ConnectionState State
+        {
+            get {
+                return socket.Connected ? ConnectionState.Connected : ConnectionState.Disconnected;
+            }
+        }
         public uint threadId;
         public Socket socket;
 
@@ -69,8 +74,7 @@ namespace SharpConnect.MySql.Internal
             config = userConfig;
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             //protocol = null;
-            connectionCall = false;
-            state = ConnectionState.Disconnected;
+            connectionCall = false; 
 
             //this.config = options.config;
             //this._socket        = options.socket;
@@ -95,14 +99,13 @@ namespace SharpConnect.MySql.Internal
 
         public void Connect()
         {
-            if (state == ConnectionState.Connected)
+            if (State == ConnectionState.Connected)
             {
                 throw new NotSupportedException("already connected");
             }
 
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
-            socket.Connect(endpoint);
-            state = ConnectionState.Connected;
+            socket.Connect(endpoint); 
 
             byte[] buffer = new byte[512];
             int count = socket.Receive(buffer);
