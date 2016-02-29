@@ -33,7 +33,7 @@ namespace SharpConnect.MySql.Internal
         [System.Diagnostics.Conditional("DEBUG")]
         public static void WriteLine(string str)
         {
-            Console.WriteLine(str);
+            //Console.WriteLine(str);
         }
     }
 
@@ -60,7 +60,7 @@ namespace SharpConnect.MySql.Internal
         Query _query;
         PacketParser _parser;
         PacketWriter _writer;
-
+        
         //TODO: review how to clear remaining buffer again
         byte[] _tmpForClearRecvBuffer; //for clear buffer 
 
