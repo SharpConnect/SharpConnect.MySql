@@ -46,21 +46,18 @@ namespace SharpConnect.MySql
         {
             get; set;
         }
+        public bool FromConnectionPool { get; private set; }
+
         public void Open()
         {
-            bool isFromPool;
-            Open(out isFromPool);
-        }
-        public void Open(out bool isFromPool)
-        {
-            isFromPool = false;
+            this.FromConnectionPool = false;//reset
             //get connection from pool
             if (UseConnectionPool)
             {
                 _conn = ConnectionPool.GetConnection(_connStr);
                 if (_conn != null)
                 {
-                    isFromPool = true;
+                    FromConnectionPool = true;
                 }
                 else
                 {
@@ -76,6 +73,7 @@ namespace SharpConnect.MySql
                 _conn.Connect();
             }
         }
+
         public void Close()
         {
             if (UseConnectionPool)
