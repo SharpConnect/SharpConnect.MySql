@@ -35,7 +35,6 @@
 
 
 using System;
-
 namespace SharpConnect
 {
     /// <summary>
@@ -48,7 +47,6 @@ namespace SharpConnect
     {
         public CRC32Calculator()
         {
-
         }
         /// <summary>
         /// indicates the total number of bytes read on the CRC stream.
@@ -78,7 +76,6 @@ namespace SharpConnect
         /// </summary>
         public void Reset()
         {
-
             this._RunningCrc32Result = 0xFFFFFFFF;
             this._TotalBytesRead = 0;
         }
@@ -137,8 +134,6 @@ namespace SharpConnect
                 // Often the polynomial is shown reversed as 0x04C11DB7.
                 // For more details, see http://en.wikipedia.org/wiki/Cyclic_redundancy_check
                 UInt32 dwPolynomial = 0xEDB88320;
-
-
                 crc32Table = new UInt32[256];
                 UInt32 dwCrc;
                 for (uint i = 0; i < 256; i++)
@@ -203,13 +198,10 @@ namespace SharpConnect
         {
             uint[] even = new uint[32];     // even-power-of-two zeros operator
             uint[] odd = new uint[32];      // odd-power-of-two zeros operator
-
             if (length == 0)
                 return;
-
             uint crc1 = ~_RunningCrc32Result;
             uint crc2 = (uint)crc;
-
             // put operator for one zero bit in odd
             odd[0] = 0xEDB88320;  // the CRC-32 polynomial
             uint row = 1;
@@ -221,39 +213,28 @@ namespace SharpConnect
 
             // put operator for two zero bits in even
             gf2_matrix_square(even, odd);
-
             // put operator for four zero bits in odd
             gf2_matrix_square(odd, even);
-
             uint len2 = (uint)length;
-
             // apply len2 zeros to crc1 (first square will put the operator for one
             // zero byte, eight zero bits, in even)
             do
             {
                 // apply zeros operator for this bit of len2
                 gf2_matrix_square(even, odd);
-
                 if ((len2 & 1) == 1)
                     crc1 = gf2_matrix_times(even, crc1);
                 len2 >>= 1;
-
                 if (len2 == 0)
                     break;
-
                 // another iteration of the loop with odd and even swapped
                 gf2_matrix_square(odd, even);
                 if ((len2 & 1) == 1)
                     crc1 = gf2_matrix_times(odd, crc1);
                 len2 >>= 1;
-
-
             } while (len2 != 0);
-
             crc1 ^= crc2;
-
             _RunningCrc32Result = ~crc1;
-
             //return (int) crc1;
             return;
         }
@@ -263,8 +244,13 @@ namespace SharpConnect
         // private member vars
         private Int64 _TotalBytesRead;
         private UInt32 _RunningCrc32Result = 0xFFFFFFFF;
-
         private const int BUFFER_SIZE = 8192;
         private static readonly UInt32[] crc32Table;
+        public static int CalculateCrc32(byte[] inputData)
+        {
+            CRC32Calculator cal = new CRC32Calculator();
+            cal.SlurpBlock(inputData, 0, inputData.Length);
+            return cal.Crc32Result;
+        }
     }
 }
