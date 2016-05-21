@@ -355,7 +355,6 @@ namespace SharpConnect.MySql.Internal
                     //TODO: review here
                     throw new NotSupportedException();
                     //writer.WriteLengthCodedNull();
-                    break;
             }
         }
     }
@@ -1073,9 +1072,10 @@ namespace SharpConnect.MySql.Internal
                     {
                         //store as string ?
                         //TODO: review here  again
-                        throw new NotSupportedException();
                         data.myString = numberString;
                         data.type = type;
+                        throw new NotSupportedException();
+               
                     }
                     else if (type == Types.LONGLONG)
                     {

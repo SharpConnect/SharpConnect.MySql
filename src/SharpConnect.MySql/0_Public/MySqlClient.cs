@@ -50,14 +50,23 @@ namespace SharpConnect.MySql
         {
             get; set;
         }
-
         public void Open()
         {
+            bool isFromPool;
+            Open(out isFromPool);
+        }
+        public void Open(out bool isFromPool)
+        {
+            isFromPool = false;
             //get connection from pool
             if (UseConnectionPool)
             {
                 _conn = ConnectionPool.GetConnection(_connStr);
-                if (_conn == null)
+                if (_conn != null)
+                {
+                    isFromPool = true;
+                }
+                else
                 {
                     //create new 
                     _conn = new Connection(new ConnectionConfig(_connStr.Host, _connStr.Username, _connStr.Password, _connStr.Database));

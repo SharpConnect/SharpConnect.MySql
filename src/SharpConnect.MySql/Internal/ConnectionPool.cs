@@ -86,9 +86,9 @@ namespace SharpConnect.MySql.Internal
 
                     var conn = found.Dequeue();
                     //TODO: check if conn is valid
-
                     conn.IsStoredInConnPool = false;
-                    return conn;
+
+                    return conn.State == ConnectionState.Connected ? conn : null;
                 }
                 else
                 {
