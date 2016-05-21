@@ -6,6 +6,25 @@ using System.Collections.Generic;
 using System.Reflection;
 namespace SharpConnect.MySql.Utils
 {
+#if NET20
+    static class TypeExtensionMethod
+    {
+
+        public static object GetCustomAttribute(this MemberInfo f, Type customAttrType)
+        {
+            object[] found = f.GetCustomAttributes(customAttrType, false);
+            if (found != null && found.Length == 1)
+            {
+                return found[0];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+#endif
+
     class DataRecordTypePlan
     {
         public TypePlanKind planKind;
@@ -62,11 +81,14 @@ namespace SharpConnect.MySql.Utils
             name = pinfo.Name;
             type = pinfo.ParameterType;
         }
+
+
         public DataFieldPlan(FieldInfo fieldInfo)
         {
             name = fieldInfo.Name;
             type = fieldInfo.FieldType;
             this.fieldInfo = fieldInfo;
+
             var fieldNameAttr = fieldInfo.GetCustomAttribute(typeof(FieldNameAttribute)) as FieldNameAttribute;
             if (fieldNameAttr != null)
             {
@@ -77,8 +99,14 @@ namespace SharpConnect.MySql.Utils
         {
             name = propInfo.Name;
             type = propInfo.PropertyType;
+#if NET20
+            propSetMethodInfo = propInfo.GetSetMethod();
+            var fieldNameAttr = propInfo.GetCustomAttribute(typeof(FieldNameAttribute)) as FieldNameAttribute;
+
+#else
             propSetMethodInfo = propInfo.SetMethod;
             var fieldNameAttr = propInfo.GetCustomAttribute(typeof(FieldNameAttribute)) as FieldNameAttribute;
+#endif
             if (fieldNameAttr != null)
             {
                 name = fieldNameAttr.FieldName;
@@ -304,10 +332,17 @@ namespace SharpConnect.MySql.Utils
                         for (int i = 0; i < j; ++i)
                         {
                             PropertyInfo propInfo = allProps[i];
+#if NET20
+                            if (propInfo.GetGetMethod() == null || propInfo.GetSetMethod() == null)
+                            {
+                                return null;
+                            }
+#else
                             if (propInfo.GetMethod == null || propInfo.SetMethod == null)
                             {
                                 return null;
                             }
+#endif
                             var fieldPlan = new DataFieldPlan(propInfo);
                             typePlan.fields.Add(fieldPlan);
                         }
@@ -349,11 +384,20 @@ namespace SharpConnect.MySql.Utils
                     for (int i = 0; i < j; ++i)
                     {
                         PropertyInfo propInfo = allProps[i];
-                        if (propInfo.SetMethod != null)
+#if NET20
+                        if (propInfo.GetSetMethod() != null)
                         {
                             //not anonyomus type
                             return null;
                         }
+#else
+                         if (propInfo.SetMethod != null)
+                        {
+                            //not anonyomus type
+                            return null;
+                        }
+#endif
+
                     }
                     ParameterInfo[] ctorParams = allCtors[0].GetParameters();
                     if (ctorParams.Length != allProps.Length)
@@ -403,10 +447,17 @@ namespace SharpConnect.MySql.Utils
                         for (int i = 0; i < j; ++i)
                         {
                             PropertyInfo propInfo = allProps[i];
+#if NET20
+                            if (propInfo.GetGetMethod() == null || propInfo.GetSetMethod() == null)
+                            {
+                                return null;
+                            }
+#else
                             if (propInfo.GetMethod == null || propInfo.SetMethod == null)
                             {
                                 return null;
                             }
+#endif
                             var fieldPlan = new DataFieldPlan(propInfo);
                             typePlan.fields.Add(fieldPlan);
                         }
