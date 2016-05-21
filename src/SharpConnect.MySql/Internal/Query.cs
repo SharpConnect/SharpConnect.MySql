@@ -438,7 +438,7 @@ namespace SharpConnect.MySql.Internal
             if (packetLength > remainLength)
             {
                 int packetRemainLength = (int)packetLength - remainLength;
-                int newReceiveBuffLength = (packetLength > limit) ? packetRemainLength : limit;
+                int newReceiveBuffLength = (packetRemainLength < limit) ? packetRemainLength : limit;
                 int newBufferLength = newReceiveBuffLength + remainLength;
 
                 if (newBufferLength > buffer.Length)
@@ -474,8 +474,8 @@ namespace SharpConnect.MySql.Internal
                     }
                     else
                     {
-                        Thread.Sleep(100);//sometime socket maybe receive faster than server send data
-                        timeoutCountdown -= 100;
+                        Thread.Sleep(10);//sometime socket maybe receive faster than server send data
+                        timeoutCountdown -= 10;
                         if (socket.Available > 0)
                         {
                             continue;
