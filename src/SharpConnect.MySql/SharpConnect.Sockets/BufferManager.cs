@@ -3,25 +3,21 @@
 
 using System.Collections.Generic;
 using System.Net.Sockets;
-
 namespace SharpConnect.Sockets
 {
     class BufferManager
     {
-
         int _totalBytesInBufferBlock;
         byte[] _bufferBlock;
         Stack<int> _freeIndexPool;
         int _currentIndex;
         int _totalBufferBytesInEachSocketAsyncEventArgs;
-
         public BufferManager(int totalBytes, int totalBufferBytesInEachSocketAsyncEventArgs)
         {
             _totalBytesInBufferBlock = totalBytes;
             _currentIndex = 0;
             _totalBufferBytesInEachSocketAsyncEventArgs = totalBufferBytesInEachSocketAsyncEventArgs;
             _freeIndexPool = new Stack<int>();
-
             // Allocate one large byte buffer block, which all I/O operations will 
             //use a piece of. This gaurds against memory fragmentation.
             InitBuffer();
@@ -37,7 +33,6 @@ namespace SharpConnect.Sockets
 
         internal bool SetBufferTo(SocketAsyncEventArgs args)
         {
-
             if (_freeIndexPool.Count > 0)
             {
                 //This if-statement is only true if you have called the FreeBuffer
@@ -71,6 +66,5 @@ namespace SharpConnect.Sockets
             _freeIndexPool.Push(args.Offset);
             args.SetBuffer(null, 0, 0);
         }
-
     }
 }

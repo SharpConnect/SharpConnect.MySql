@@ -1,4 +1,4 @@
-﻿//MIT 2015, brezza27, EngineKit and contributors
+﻿//MIT 2015, brezza92, EngineKit and contributors
 
 //--------------
 //experiment only 
@@ -7,7 +7,6 @@
 
 using System;
 using SharpConnect.MySql.Internal;
-
 namespace SharpConnect.MySql
 {
     public class MySqlConnectionAsync
@@ -46,7 +45,6 @@ namespace SharpConnect.MySql
                 _conn = new Connection(new ConnectionConfig(_connStr.Host, _connStr.Username, _connStr.Password, _connStr.Database));
                 _conn.ConnectAsync(onOpen);
             }
-
         }
         public void Close(Action onClosed)
         {
@@ -70,7 +68,6 @@ namespace SharpConnect.MySql
                 return _conn;
             }
         }
-
     }
 
     public class MySqlCommandAsync
@@ -91,7 +88,6 @@ namespace SharpConnect.MySql
         public MySqlConnectionAsync Connection { get; set; }
         public MySqlDataReaderAsync ExecuteReader()
         {
-
             _query = Connection.Conn.CreateQuery(CommandText, Parameters);
             var reader = new MySqlDataReaderAsync(_query);
             _query.Execute();
@@ -217,7 +213,6 @@ namespace SharpConnect.MySql
         public void Close()
         {
             _query.Close();
-
         }
     }
 }

@@ -1,16 +1,14 @@
 ﻿//2010, CPOL, Stan Kirk  
+
 using System;
 using System.Net.Sockets;
-
 namespace SharpConnect.Sockets
 {
     class ReceiveCarrier
     {
-
         readonly SocketAsyncEventArgs _recvSendArgs;
         readonly int _recvStartBufferOffset;
         internal Action _recvAction;
-
         public ReceiveCarrier(SocketAsyncEventArgs recvSendArgs)
         {
             _recvSendArgs = recvSendArgs;

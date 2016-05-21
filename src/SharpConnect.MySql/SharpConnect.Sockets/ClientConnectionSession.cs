@@ -1,12 +1,11 @@
 ﻿//2010, CPOL, Stan Kirk  
+
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
-
 namespace SharpConnect.Sockets
 {
-
     //--------------------------------------------------
     ////from http://www.codeproject.com/Articles/83102/C-SocketAsyncEventArgs-High-Performance-Socket-Cod
     //and from
@@ -31,16 +30,13 @@ namespace SharpConnect.Sockets
 
     static class GlobalSessionNumber
     {
-
         internal static int s_mainTransMissionId = 10000;
         internal static int s_mainSessionId = 1000000000;
         internal static int s_maxSimultaneousClientsThatWereConnected;
-
     }
 
     abstract class ClientConnectionSession
     {
-
         //The session ID correlates with all the data sent in a connected session.
         //It is different from the transmission ID in the DataHolder, which relates
         //to one TCP message. A connected session could have many messages, if you
@@ -51,33 +47,24 @@ namespace SharpConnect.Sockets
         ReceiveCarrier _recvCarrier;
         readonly int _startBufferOffset;
         readonly int _recvBufferSize;
-
         //send
         readonly int _initSentOffset;
         readonly int _sendBufferSize;
-
         int _sendingTargetBytes;
         int _sendingTransferredBytes;
         byte[] _currentSendingData = null;
-
         Queue<byte[]> _sendingQueue = new Queue<byte[]>();
         protected Func<ReceiveCarrier, EndReceiveState> _recvHandler;
         protected Func<ReceiveCarrier, EndSendState> _sendHandler;
-
         public ClientConnectionSession(SocketAsyncEventArgs recvSendArgs,
             int recvBufferSize, int sendBufferSize)
         {
-
             _recvCarrier = new ReceiveCarrier(recvSendArgs);
-
             _startBufferOffset = recvSendArgs.Offset;
             _recvSendArgs = recvSendArgs;
             _recvBufferSize = recvBufferSize;
-
             _initSentOffset = _startBufferOffset + recvBufferSize;
             _sendBufferSize = sendBufferSize;
-
-
             //this.KeepAlive = true;
             //Attach the SocketAsyncEventArgs object
             //to its event handler. Since this SocketAsyncEventArgs object is 
@@ -87,17 +74,12 @@ namespace SharpConnect.Sockets
         }
 
         protected abstract void ResetRecvBuffer();
-
-
         /// <summary>
         /// receive data
         /// </summary>
         /// <param name="recvCarrier"></param>
         /// <returns>return true if finished</returns>
         protected abstract EndReceiveState ProtocolRecvBuffer(ReceiveCarrier recvCarrier);
-
-
-
         EndReceiveState EndReceive()
         {
             if (_recvSendArgs.SocketError != SocketError.Success)
@@ -125,7 +107,6 @@ namespace SharpConnect.Sockets
             this._recvSendArgs.SetBuffer(this._startBufferOffset, this._recvBufferSize);
             if (!_recvSendArgs.AcceptSocket.ReceiveAsync(_recvSendArgs))
             {
-
                 ProcessReceive();
             }
         }
@@ -148,7 +129,6 @@ namespace SharpConnect.Sockets
         }
         void ProcessReceive()
         {
-
             switch (this.EndReceive())
             {
                 case EndReceiveState.Error:
@@ -166,7 +146,6 @@ namespace SharpConnect.Sockets
                 case EndReceiveState.Complete:
 
                     var conCompleteAction = this._recvCarrier._recvAction;
-
                     if (conCompleteAction != null)
                     {
                         this._recvCarrier._recvAction = null;//clear
@@ -193,12 +172,10 @@ namespace SharpConnect.Sockets
         internal void StartSend(Func<ReceiveCarrier, EndSendState> sendHandler)
         {
             this._sendHandler = sendHandler;
-
             StartSend();
         }
         internal void StartSend()
         {
-
             int remaining = _sendingTargetBytes - _sendingTransferredBytes;
             if (remaining <= _sendBufferSize)
             {
@@ -222,7 +199,6 @@ namespace SharpConnect.Sockets
                     _recvSendArgs.Buffer,
                     _initSentOffset,
                     _sendBufferSize);
-
                 //We'll change the value of sendUserToken.sendBytesRemainingCount
                 //in the ProcessSend method.
             }
@@ -237,7 +213,6 @@ namespace SharpConnect.Sockets
 
         void ProcessSend()
         {
-
             switch (EndSend())
             {
                 case EndSendState.Error:
@@ -284,7 +259,6 @@ namespace SharpConnect.Sockets
                 }
                 else
                 {
-
                     return EndSendState.Continue;
                 }
             }
@@ -301,11 +275,9 @@ namespace SharpConnect.Sockets
             _currentSendingData = null;
             _sendingTransferredBytes = 0;
             _sendingTargetBytes = 0;
-
         }
         void ReceiveSendIO_Completed(object sender, SocketAsyncEventArgs e)
         {
-
             // determine which type of operation just completed and call the associated handler
             switch (e.LastOperation)
             {
@@ -313,7 +285,6 @@ namespace SharpConnect.Sockets
                     //dbugRecvLog(e, "ReceiveSendIO_Completed , Recv");
                     ProcessReceive();
                     break;
-
                 case SocketAsyncOperation.Send: //send data to client
                     //dbugRecvLog(e, "ReceiveSendIO_Completed , Send");
                     ProcessSend();
@@ -352,7 +323,6 @@ namespace SharpConnect.Sockets
         }
         public int dbugTokenId
         {
-
             get
             {
                 return _dbugTokenId;
@@ -372,8 +342,4 @@ namespace SharpConnect.Sockets
 
 #endif 
     }
-
-
-
-
 }

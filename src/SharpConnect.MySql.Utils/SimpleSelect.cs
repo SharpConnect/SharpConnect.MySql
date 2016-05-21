@@ -1,24 +1,40 @@
-﻿//MIT 2015, brezza27, EngineKit and contributors
+﻿//MIT 2015, brezza92, EngineKit and contributors
+
 using System;
 using System.Text;
 using System.Collections.Generic;
 using System.Reflection;
-
 namespace SharpConnect.MySql.Utils
 {
+#if NET20
+    static class TypeExtensionMethod
+    {
+
+        public static object GetCustomAttribute(this MemberInfo f, Type customAttrType)
+        {
+            object[] found = f.GetCustomAttributes(customAttrType, false);
+            if (found != null && found.Length == 1)
+            {
+                return found[0];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+#endif
 
     class DataRecordTypePlan
     {
         public TypePlanKind planKind;
         public List<DataFieldPlan> fields = new List<DataFieldPlan>();
-
         public void AssignData(object o, MySqlDataReader reader)
         {
             switch (planKind)
             {
                 case TypePlanKind.AllFields:
                     {
-
                         //TODO: review here 
                         int j = fields.Count;
                         for (int i = 0; i < j; ++i)
@@ -46,7 +62,6 @@ namespace SharpConnect.MySql.Utils
                 default:
                     throw new NotSupportedException();
             }
-
         }
     }
     enum TypePlanKind
@@ -65,8 +80,9 @@ namespace SharpConnect.MySql.Utils
         {
             name = pinfo.Name;
             type = pinfo.ParameterType;
-
         }
+
+
         public DataFieldPlan(FieldInfo fieldInfo)
         {
             name = fieldInfo.Name;
@@ -83,9 +99,14 @@ namespace SharpConnect.MySql.Utils
         {
             name = propInfo.Name;
             type = propInfo.PropertyType;
-            propSetMethodInfo = propInfo.SetMethod;
-
+#if NET20
+            propSetMethodInfo = propInfo.GetSetMethod();
             var fieldNameAttr = propInfo.GetCustomAttribute(typeof(FieldNameAttribute)) as FieldNameAttribute;
+
+#else
+            propSetMethodInfo = propInfo.SetMethod;
+            var fieldNameAttr = propInfo.GetCustomAttribute(typeof(FieldNameAttribute)) as FieldNameAttribute;
+#endif
             if (fieldNameAttr != null)
             {
                 name = fieldNameAttr.FieldName;
@@ -109,7 +130,6 @@ namespace SharpConnect.MySql.Utils
     {
         int _colNumber = 0;
         MySqlDataReader _mysqlDataReader;
-
         public SeqRecReader(MySqlDataReader mysqlDataReader)
         {
             _mysqlDataReader = mysqlDataReader;
@@ -180,10 +200,7 @@ namespace SharpConnect.MySql.Utils
         MySqlCommand _sqlCommand;
         bool _isPrepared;
         string _whereClause;
-
-
         static Dictionary<Type, DataRecordTypePlan> typePlanCaches = new Dictionary<Type, DataRecordTypePlan>();
-
         public SimpleSelect(string targetTableName)
         {
             TargetTableName = targetTableName;
@@ -206,7 +223,6 @@ namespace SharpConnect.MySql.Utils
 
         public IEnumerable<T> ExecRecordIter<T>(Func<SeqRecReader, T> createNewItem)
         {
-
             DataRecordTypePlan foundPlan;
             Type itemType = typeof(T);
             if (!typePlanCaches.TryGetValue(itemType, out foundPlan))
@@ -220,7 +236,6 @@ namespace SharpConnect.MySql.Utils
             var cmd = new MySqlCommand(sql.ToString(), Pars, Connection);
             MySqlDataReader reader = cmd.ExecuteReader();
             var seqReader = new SeqRecReader(reader);
-
             while (reader.Read())
             {
                 yield return createNewItem(seqReader);
@@ -230,7 +245,6 @@ namespace SharpConnect.MySql.Utils
         }
         public IEnumerable<T> ExecRecordIter<T>(Func<T> createNewItem)
         {
-
             DataRecordTypePlan foundPlan;
             Type itemType = typeof(T);
             if (!typePlanCaches.TryGetValue(itemType, out foundPlan))
@@ -260,7 +274,6 @@ namespace SharpConnect.MySql.Utils
             //-----------------
             //check public ctor
             ConstructorInfo[] allCtors = t.GetConstructors(BindingFlags.Instance | BindingFlags.Public);
-
             //type layout check 
             //1. find default ctor 
             int ctorCount = allCtors.Length;
@@ -282,7 +295,6 @@ namespace SharpConnect.MySql.Utils
                 }
                 else
                 {
-
                 }
             }
 
@@ -313,7 +325,6 @@ namespace SharpConnect.MySql.Utils
 
                     PropertyInfo[] allProps = t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
                     FieldInfo[] allFields = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
-
                     if (allProps.Length > 0 && allFields.Length == 0)
                     {
                         var typePlan = new DataRecordTypePlan();
@@ -321,10 +332,17 @@ namespace SharpConnect.MySql.Utils
                         for (int i = 0; i < j; ++i)
                         {
                             PropertyInfo propInfo = allProps[i];
+#if NET20
+                            if (propInfo.GetGetMethod() == null || propInfo.GetSetMethod() == null)
+                            {
+                                return null;
+                            }
+#else
                             if (propInfo.GetMethod == null || propInfo.SetMethod == null)
                             {
                                 return null;
                             }
+#endif
                             var fieldPlan = new DataFieldPlan(propInfo);
                             typePlan.fields.Add(fieldPlan);
                         }
@@ -339,7 +357,6 @@ namespace SharpConnect.MySql.Utils
                         for (int i = 0; i < j; ++i)
                         {
                             FieldInfo fieldInfo = allFields[i];
-
                             var fieldPlan = new DataFieldPlan(fieldInfo);
                             typePlan.fields.Add(fieldPlan);
                         }
@@ -353,7 +370,6 @@ namespace SharpConnect.MySql.Utils
                 }
                 else
                 {
-
                     //guess that type is anonymous type
 
                     //no default parameter less ctro
@@ -363,17 +379,25 @@ namespace SharpConnect.MySql.Utils
                     //get public property get,set only
                     //single layer only
                     PropertyInfo[] allProps = t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
-
                     //all prop has no set method 
                     int j = allProps.Length;
                     for (int i = 0; i < j; ++i)
                     {
                         PropertyInfo propInfo = allProps[i];
-                        if (propInfo.SetMethod != null)
+#if NET20
+                        if (propInfo.GetSetMethod() != null)
                         {
                             //not anonyomus type
                             return null;
                         }
+#else
+                         if (propInfo.SetMethod != null)
+                        {
+                            //not anonyomus type
+                            return null;
+                        }
+#endif
+
                     }
                     ParameterInfo[] ctorParams = allCtors[0].GetParameters();
                     if (ctorParams.Length != allProps.Length)
@@ -393,18 +417,16 @@ namespace SharpConnect.MySql.Utils
                     typePlan.planKind = TypePlanKind.MaybeAnonymousType;
                     return typePlan;
                 }
-
             }
             else if (t.IsLayoutSequential)
             {
-
                 //assign by fieldname *** 
                 if (defaultParameterLessCtor == null)
                 {
                     //TODO: impl here
                     return null;
                 }
-                else 
+                else
                 {
                     //have parameter less ctor
                     //then
@@ -418,7 +440,6 @@ namespace SharpConnect.MySql.Utils
 
                     PropertyInfo[] allProps = t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
                     FieldInfo[] allFields = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
-
                     if (allProps.Length > 0 && allFields.Length == 0)
                     {
                         var typePlan = new DataRecordTypePlan();
@@ -426,10 +447,17 @@ namespace SharpConnect.MySql.Utils
                         for (int i = 0; i < j; ++i)
                         {
                             PropertyInfo propInfo = allProps[i];
+#if NET20
+                            if (propInfo.GetGetMethod() == null || propInfo.GetSetMethod() == null)
+                            {
+                                return null;
+                            }
+#else
                             if (propInfo.GetMethod == null || propInfo.SetMethod == null)
                             {
                                 return null;
                             }
+#endif
                             var fieldPlan = new DataFieldPlan(propInfo);
                             typePlan.fields.Add(fieldPlan);
                         }
@@ -444,7 +472,6 @@ namespace SharpConnect.MySql.Utils
                         for (int i = 0; i < j; ++i)
                         {
                             FieldInfo fieldInfo = allFields[i];
-
                             var fieldPlan = new DataFieldPlan(fieldInfo);
                             typePlan.fields.Add(fieldPlan);
                         }
@@ -456,14 +483,11 @@ namespace SharpConnect.MySql.Utils
                         return null;
                     }
                 }
-
             }
             else
             {
                 throw new Exception("not supported layout");
-            } 
-
-
+            }
         }
 
 
@@ -474,7 +498,6 @@ namespace SharpConnect.MySql.Utils
             string[] valueKeys = pars.GetAttachedValueKeys();
             var stBuilder = new StringBuilder();
             stBuilder.Append("select ");
-
             int j = typePlan.fields.Count;
             for (int i = 0; i < j; ++i)
             {
@@ -488,7 +511,6 @@ namespace SharpConnect.MySql.Utils
 
             stBuilder.Append(" from ");
             stBuilder.Append(TargetTableName);
-
             if (_whereClause != null)
             {
                 stBuilder.Append(" where ");

@@ -1,9 +1,9 @@
 //2010, CPOL, Stan Kirk 
+
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
-
 namespace SharpConnect.Sockets
 {
     sealed class SocketAsyncEventArgsPool
@@ -11,10 +11,8 @@ namespace SharpConnect.Sockets
         //just for assigning an ID so we can watch our objects while testing.
         int _nextTokenId = 0;
         Stack<SocketAsyncEventArgs> _pool;
-
         public SocketAsyncEventArgsPool(int capacity)
         {
-
             //#if DEBUG
             //            if (dbugLOG.watchProgramFlow)   //for testing
             //            {

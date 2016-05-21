@@ -1,17 +1,13 @@
-﻿//MIT 2015, brezza27, EngineKit and contributors
+﻿//MIT 2015, brezza92, EngineKit and contributors
+
 using System;
 using System.Collections.Generic;
-
-
 namespace SharpConnect.MySql.Internal
 {
-
     static class ConnectionPool
     {
-
         static readonly ConnectionPoolAgent s_connPoolAgent = new ConnectionPoolAgent();
         static object s_queueLock = new object();
-
         public static Connection GetConnection(MySqlConnectionString connstr)
         {
             lock (s_queueLock)
@@ -28,7 +24,6 @@ namespace SharpConnect.MySql.Internal
         }
         public static void ClearConnectionPool()
         {
-
             lock (s_queueLock)
             {
                 s_connPoolAgent.ClearAllConnections();
@@ -43,11 +38,9 @@ namespace SharpConnect.MySql.Internal
             static Dictionary<string, Queue<Connection>> s_connQueue = new Dictionary<string, Queue<Connection>>();
             public ConnectionPoolAgent()
             {
-
             }
             ~ConnectionPoolAgent()
             {
-
                 ClearAllConnections();
             }
             public void ClearAllConnections()
@@ -63,17 +56,14 @@ namespace SharpConnect.MySql.Internal
                         }
                         catch (Exception ex)
                         {
-
                         }
                     }
                 }
 
                 s_connQueue.Clear();
-
             }
             public Connection GetConnection(MySqlConnectionString connstr)
             {
-
                 Queue<Connection> found;
                 //not found
                 if (!s_connQueue.TryGetValue(connstr.ConnSignature, out found))
@@ -83,18 +73,15 @@ namespace SharpConnect.MySql.Internal
 
                 if (found.Count > 0)
                 {
-
                     var conn = found.Dequeue();
                     //TODO: check if conn is valid
                     conn.IsStoredInConnPool = false;
-
                     return conn.State == ConnectionState.Connected ? conn : null;
                 }
                 else
                 {
                     return null;
                 }
-
             }
             public void ReleaseConnection(MySqlConnectionString connstr, Connection conn)
             {
@@ -107,7 +94,6 @@ namespace SharpConnect.MySql.Internal
                 }
                 conn.IsStoredInConnPool = true;
                 found.Enqueue(conn);
-
             }
         }
     }

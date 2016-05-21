@@ -1,6 +1,6 @@
-﻿//MIT 2015, brezza27, EngineKit and contributors
-using System.Text;
+﻿//MIT 2015, brezza92, EngineKit and contributors
 
+using System.Text;
 namespace SharpConnect.MySql.Utils
 {
     public class SimpleUpdate : IHasParameters
@@ -8,7 +8,6 @@ namespace SharpConnect.MySql.Utils
         MySqlCommand _sqlCommand;
         bool _isPrepared;
         string _whereClause;
-
         public SimpleUpdate(string targetTableName)
         {
             TargetTableName = targetTableName;
@@ -32,7 +31,6 @@ namespace SharpConnect.MySql.Utils
             //then exec
             if (_isPrepared)
             {
-
                 _sqlCommand.ExecuteNonQuery();
             }
             else
@@ -68,7 +66,7 @@ namespace SharpConnect.MySql.Utils
         {
             _whereClause = sqlWhere;
         }
-        
+
         public bool ConfirmNoWhereClause { get; set; }
         public string Limit { get; set; }
 
@@ -80,7 +78,6 @@ namespace SharpConnect.MySql.Utils
             stBuilder.Append("update ");
             stBuilder.Append(TargetTableName);
             stBuilder.Append(" set ");
-
             int j = valueKeys.Length;
             for (int i = 0; i < j; ++i)
             {
@@ -93,7 +90,6 @@ namespace SharpConnect.MySql.Utils
                 stBuilder.Append(k.Substring(1)); //remove ?
                 stBuilder.Append('=');
                 stBuilder.Append(k);
-
                 if (i < j - 1)
                 {
                     stBuilder.Append(',');

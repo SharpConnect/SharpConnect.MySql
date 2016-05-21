@@ -1,14 +1,11 @@
-﻿//MIT 2015, brezza27, EngineKit and contributors
+﻿//MIT 2015, brezza92, EngineKit and contributors
 
 using System;
 using SharpConnect.MySql.Internal;
-
 namespace SharpConnect.MySql
 {
-
     public class MySqlConnectionString
     {
-
         string _signature;
         public MySqlConnectionString(string h, string u, string p, string d)
         {
@@ -16,7 +13,6 @@ namespace SharpConnect.MySql
             Username = u;
             Password = p;
             Database = d;
-
             _signature = string.Concat(h, u, p, d);
         }
 
@@ -50,21 +46,18 @@ namespace SharpConnect.MySql
         {
             get; set;
         }
+        public bool FromConnectionPool { get; private set; }
+
         public void Open()
         {
-            bool isFromPool;
-            Open(out isFromPool);
-        }
-        public void Open(out bool isFromPool)
-        {
-            isFromPool = false;
+            this.FromConnectionPool = false;//reset
             //get connection from pool
             if (UseConnectionPool)
             {
                 _conn = ConnectionPool.GetConnection(_connStr);
                 if (_conn != null)
                 {
-                    isFromPool = true;
+                    FromConnectionPool = true;
                 }
                 else
                 {
@@ -79,10 +72,8 @@ namespace SharpConnect.MySql
                 _conn = new Connection(new ConnectionConfig(_connStr.Host, _connStr.Username, _connStr.Password, _connStr.Database));
                 _conn.Connect();
             }
-
-
-
         }
+
         public void Close()
         {
             if (UseConnectionPool)
@@ -105,8 +96,6 @@ namespace SharpConnect.MySql
         //----------------------------------------------------
         //test  ...
         //async socket APIs
-
-
     }
 
 
@@ -114,11 +103,8 @@ namespace SharpConnect.MySql
 
     public class MySqlCommand
     {
-
         Query _query;
         bool _isPreparedStmt;
-
-
         public MySqlCommand()
         {
             Parameters = new CommandParams();
@@ -185,13 +171,11 @@ namespace SharpConnect.MySql
         }
         public void Prepare()
         {
-
             //prepare sql command;
             _query = Connection.Conn.CreateQuery(CommandText, Parameters);
             _query.Prepare();
             _isPreparedStmt = true;
         }
-
     }
 
 
@@ -296,7 +280,6 @@ namespace SharpConnect.MySql
         public void Close()
         {
             _query.Close();
-
         }
     }
 }
