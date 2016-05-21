@@ -1,4 +1,3 @@
-﻿//MIT 2015, brezza27, EngineKit and contributors
 using System;
 using System.Collections.Generic;
 using System.IO;
