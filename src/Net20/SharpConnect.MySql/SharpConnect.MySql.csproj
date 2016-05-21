@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{94D01EDE-0499-422F-8081-90D94AD163FA}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SharpConnect.MySql</RootNamespace>
+    <AssemblyName>SharpConnect.MySql</AssemblyName>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;NET20</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\SharpConnect.MySql\0_Public\CommandParams.cs">
+      <Link>0_Public\CommandParams.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\0_Public\debugTest1.cs">
+      <Link>0_Public\debugTest1.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\0_Public\MySqlClient.cs">
+      <Link>0_Public\MySqlClient.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\0_Public\MySqlClientAsync.cs">
+      <Link>0_Public\MySqlClientAsync.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\ConnectionPool.cs">
+      <Link>Internal\ConnectionPool.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\Connections.cs">
+      <Link>Internal\Connections.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\DataModel.cs">
+      <Link>Internal\DataModel.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlPackets.cs">
+      <Link>Internal\MySqlPackets.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlStringToHexUtils.cs">
+      <Link>Internal\MySqlStringToHexUtils.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\PacketParser.cs">
+      <Link>Internal\PacketParser.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\PacketWriter.cs">
+      <Link>Internal\PacketWriter.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\Query.cs">
+      <Link>Internal\Query.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\SqlStringTemplate.cs">
+      <Link>Internal\SqlStringTemplate.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\BufferManager.cs">
+      <Link>SharpConnect.Sockets\BufferManager.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\ClientConnectionSession.cs">
+      <Link>SharpConnect.Sockets\ClientConnectionSession.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\ConnectionAsync.cs">
+      <Link>SharpConnect.Sockets\ConnectionAsync.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\ForNet20.cs">
+      <Link>SharpConnect.Sockets\ForNet20.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\ReceiveCarrier.cs">
+      <Link>SharpConnect.Sockets\ReceiveCarrier.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\SocketAsyncEventArgsPool.cs">
+      <Link>SharpConnect.Sockets\SocketAsyncEventArgsPool.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
