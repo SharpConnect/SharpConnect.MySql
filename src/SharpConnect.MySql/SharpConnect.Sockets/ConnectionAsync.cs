@@ -1,6 +1,6 @@
 ﻿//LICENSE: MIT
 //Copyright(c) 2012 Felix Geisendörfer(felix @debuggable.com) and contributors 
-//Copyright(c) 2015 brezza27, EngineKit and contributors
+//Copyright(c) 2015 brezza92, EngineKit and contributors
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy
 //of this software and associated documentation files (the "Software"), to deal
@@ -30,35 +30,27 @@
 using System.Net;
 using System.Net.Sockets;
 using SharpConnect.Sockets;
-
 namespace SharpConnect.MySql.Internal
 {
-
     partial class Connection
     {
-
         byte[] _sockBuffer = new byte[1024 * 2];
         SocketAsyncEventArgs _saea = new SocketAsyncEventArgs();
         MySqlConnectionSession _connSession;
-
         public void ConnectAsync(Action connHandler)
         {
-
             //1. socket
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             _saea.SetBuffer(_sockBuffer, 0, _sockBuffer.Length);
-
             //2. buffer 
             _connSession = new MySqlConnectionSession(_saea, 1024, 1024);
             _saea.UserToken = _connSession;
             _saea.AcceptSocket = socket;
-
             var endPoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             //first connect 
             socket.Connect(endPoint);
             _connSession.StartReceive(recv =>
             {
-
                 //TODO: review here, don't copy, 
                 //we should use shared sockBuffer 
 
@@ -69,17 +61,14 @@ namespace SharpConnect.MySql.Internal
                 _handshake = new HandshakePacket();
                 _handshake.ParsePacket(_parser);
                 this.threadId = _handshake.threadId;
-
                 byte[] token = MakeToken(config.password,
                     GetScrollbleBuffer(_handshake.scrambleBuff1, _handshake.scrambleBuff2));
-
                 _writer.Reset();
                 _writer.IncrementPacketNumber();
                 //------------------------------------------
                 var authPacket = new ClientAuthenticationPacket();
                 authPacket.SetValues(config.user, token, config.database, _handshake.protocol41);
                 authPacket.WritePacket(_writer);
-
                 //send  
                 //do authen 
                 //handle  
@@ -92,13 +81,11 @@ namespace SharpConnect.MySql.Internal
                     //send data
                     int sendNum = socket.Send(sendBuff);
                     int receiveNum = socket.Receive(receiveBuff);
-
                     _parser.LoadNewBuffer(receiveBuff, receiveNum);
                     if (receiveBuff[4] == 255)
                     {
                         ErrPacket errPacket = new ErrPacket();
                         errPacket.ParsePacket(_parser);
-
                     }
                     else
                     {
@@ -127,18 +114,14 @@ namespace SharpConnect.MySql.Internal
             _writer.Reset();
             ComQuitPacket quitPacket = new ComQuitPacket();
             quitPacket.WritePacket(_writer);
-
             byte[] dataToSend = _writer.ToArray();
             _connSession.SetDataToSend(dataToSend, dataToSend.Length);
-
             _connSession.StartSend(recv =>
             {
                 socket.Disconnect(true);
-
                 return EndSendState.Complete;
             });
         }
-
     }
 
     class MySqlConnectionSession : ClientConnectionSession
@@ -146,7 +129,6 @@ namespace SharpConnect.MySql.Internal
         public MySqlConnectionSession(SocketAsyncEventArgs recvSendArgs, int recvBufferSize, int sendBufferSize)
             : base(recvSendArgs, recvBufferSize, sendBufferSize)
         {
-
         }
         protected override void ResetRecvBuffer()
         {

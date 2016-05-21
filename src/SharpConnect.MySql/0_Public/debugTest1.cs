@@ -3,15 +3,11 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using SharpConnect.MySql.Internal;
-
 namespace SharpConnect.MySql
 {
-
-
 #if DEBUG 
     public static class dbugInternal
     {
-
         public static void Test1()
         {
             //Test1_Select();
@@ -27,7 +23,6 @@ namespace SharpConnect.MySql
             //filename = "Colorful.jpg";//885,264 bytes
             //filename = "TestJpg.jpg";//2,066 bytes
             byte[] buffer;
-
             buffer = File.ReadAllBytes("D:\\[]Photo\\" + filename);
             //buffer = new byte[500500];
             //Stream stReader = new Stream("D:\\[]Photo\\TestJpg.jpg");
@@ -35,11 +30,8 @@ namespace SharpConnect.MySql
 
             var ss = new System.Diagnostics.Stopwatch();
             ss.Start();
-
             string sql;
             string sql2;
-
-
             //please note the 
             //field or column binding is extension, must start with ??
 
@@ -65,12 +57,10 @@ namespace SharpConnect.MySql
 
             int testN1 = 4520;
             int testN2 = 4530;
-
             sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             //sql = "select * from ?t1 where ?c1 = ?n2";
             //sql = "select ?n1+?n2 as test1";
             CommandParams cmd2Values = new CommandParams();
-
             cmd2Values.SetSqlPart("??t1", "saveimage");
             cmd2Values.SetSqlPart("??c1", "idsaveImage");
             //cmd2Values.AddField("c2", "saveImagecol");
@@ -85,7 +75,6 @@ namespace SharpConnect.MySql
 
             ConnectionConfig config = new ConnectionConfig("root", "root");
             config.database = "test";
-
             //MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             //sqlConn.UseConnectionPool = true;
             //sqlConn.Open();
@@ -109,19 +98,15 @@ namespace SharpConnect.MySql
             int count = 3;
             Query query;
             query = connection.CreateQuery(sql, cmd2Values);
-
             int fCase = 1;
             for (int i = 0; i < count; i++)
             {
                 int j = 0;
-
-
                 //query = connection.CreateQuery(sql, cmdValues);
                 //query = connection.CreateQuery(cmd2Values);
                 //query.ExecutePrepareQuery(cmd2Values);
                 query = connection.CreateQuery(sql, cmd2Values);
                 query.Execute();
-
                 //switch (fCase)
                 //{
                 //    case 0:
@@ -143,10 +128,8 @@ namespace SharpConnect.MySql
                 //Console.WriteLine("Expected Result : " + (testN1 + testN2));
                 testN1 += 10;
                 testN2 += 10;
-
                 cmd2Values.AddWithValue("?n1", testN1);
                 cmd2Values.AddWithValue("?n2", testN2);
-
                 //query.ExecuteQuery();
                 if (query.LoadError != null)
                 {
@@ -210,10 +193,8 @@ namespace SharpConnect.MySql
             }
             query.Close();
             ss.Stop();
-
             long avg = ss.ElapsedMilliseconds / count;
             Console.WriteLine("Counting : " + count + " rounds. \r\nAverage Time : " + avg + " ms");
-
             connection.Disconnect();
         }
 
@@ -221,21 +202,17 @@ namespace SharpConnect.MySql
         {
             ConnectionConfig config = new ConnectionConfig("root", "root");
             config.database = "test";
-
             MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             sqlConn.UseConnectionPool = true;
             sqlConn.Open();
-
             string sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             int testN1 = 4510;
             int testN2 = 4520;
-
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
             command.Parameters.SetSqlPart("??t1", "saveimage");
             command.Parameters.SetSqlPart("??c1", "idsaveImage");
             command.Parameters.AddWithValue("?n1", testN1);
             command.Parameters.AddWithValue("?n2", testN2);
-
             var reader = command.ExecuteReader();
             int count = 0;
             while (reader.Read())
@@ -259,19 +236,14 @@ namespace SharpConnect.MySql
             byte[] buffer = File.ReadAllBytes("D:\\[]Photo\\" + filename);
             ConnectionConfig config = new ConnectionConfig("root", "root");
             config.database = "test";
-
             MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             sqlConn.UseConnectionPool = true;
             sqlConn.Open();
-
             string sql = "INSERT INTO ??t1 SET ??c2 = ?buffer1";
-
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
             command.Parameters.SetSqlPart("??t1", "saveimage");
             command.Parameters.SetSqlPart("??c2", "saveImagecol");
-
             command.Parameters.AddWithValue("?buffer1", buffer);
-
             command.ExecuteNonQuery();
         }
 
@@ -279,19 +251,15 @@ namespace SharpConnect.MySql
         {
             ConnectionConfig config = new ConnectionConfig("root", "root");
             config.database = "test";
-
             MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             sqlConn.UseConnectionPool = true;
             sqlConn.Open();
-
             string sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             int testN1 = 4510;
             int testN2 = 4520;
-
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
             command.Parameters.SetSqlPart("??t1", "saveimage");
             command.Parameters.SetSqlPart("??c1", "idsaveImage");
-
             command.Parameters.AddWithValue("?n1", testN1);
             command.Parameters.AddWithValue("?n2", testN2);
         }
@@ -300,24 +268,20 @@ namespace SharpConnect.MySql
         {
             ConnectionConfig config = new ConnectionConfig("root", "root");
             config.database = "test";
-
             MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             sqlConn.UseConnectionPool = true;
             sqlConn.Open();
-
             string sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             int testN1 = 4510;
             int testN2 = 4520;
-
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
             command.Parameters.SetSqlPart("??t1", "saveimage");
             command.Parameters.SetSqlPart("??c1", "idsaveImage");
-
             command.Parameters.AddWithValue("?n1", testN1);
             command.Parameters.AddWithValue("?n2", testN2);
         }
 
-        
+
         static void TempHandshakeParse()
         {
             //MemoryStream ms = new MemoryStream(buffer);
@@ -458,8 +422,6 @@ namespace SharpConnect.MySql
             //    }
             //}
         }
-
     }
 #endif
-
 }

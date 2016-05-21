@@ -1,9 +1,8 @@
-﻿//MIT 2015, brezza27, EngineKit and contributors
+﻿//MIT 2015, brezza92, EngineKit and contributors
 
 using System;
 using System.Collections.Generic;
 using SharpConnect.MySql;
-
 namespace MySqlTest
 {
     public class TestSet1 : MySqlTestSet
@@ -17,7 +16,6 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             Test(n, TimeUnit.Ticks, out total, out avg, () =>
             {
-
                 var conn = new MySqlConnection(connStr);
                 conn.Open();
                 //connList.Add(conn);
@@ -35,13 +33,11 @@ namespace MySqlTest
             List<MySqlConnection> connList = new List<MySqlConnection>();
             Test(n, TimeUnit.Ticks, out total, out avg, () =>
             {
-
                 var conn = new MySqlConnection(connStr);
                 conn.Open();
                 connList.Add(conn);
             });
             Report.WriteLine("avg:" + avg);
-
             //clear
             foreach (var conn in connList)
             {
@@ -63,7 +59,6 @@ namespace MySqlTest
                 conn.Open();
                 conn.Close();
             });
-
             Report.WriteLine("avg:" + avg);
         }
 
@@ -77,7 +72,6 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
-
             Test(n, TimeUnit.Ticks, out total, out avg, () =>
             {
                 var cmd = new MySqlCommand("select sysdate()", conn);
@@ -88,17 +82,13 @@ namespace MySqlTest
                 }
                 reader.Close();
             });
-
             Report.WriteLine("avg:" + avg);
-
             conn.Close();
         }
 
         [Test]
         public static void T_CreateTable()
         {
-
-
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
@@ -111,8 +101,6 @@ namespace MySqlTest
         [Test]
         public static void T_DropCreateInsert()
         {
-
-
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
@@ -140,8 +128,6 @@ namespace MySqlTest
         [Test]
         public static void T_StringEscape()
         {
-
-
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
@@ -172,7 +158,6 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
-
             {
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
@@ -206,7 +191,6 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
-
             {
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
@@ -237,7 +221,6 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
-
             {
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
@@ -269,7 +252,6 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
-
             {
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
@@ -303,7 +285,6 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
-
             {
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
@@ -353,9 +334,6 @@ namespace MySqlTest
                 pars.AddWithValue("?num9", (decimal)-10);
                 pars.AddWithValue("?num10", (decimal)20);
                 cmd.ExecuteNonQuery();
-
-
-
                 //---------------------------
                 pars.ClearDataValues();
                 pars.AddWithValue("?num1", int.MinValue);
@@ -414,26 +392,22 @@ namespace MySqlTest
                 string sql = "insert into test002 (num1, num2, num3) values (?num1, ?num2, ?num3)";
                 var cmd = new MySqlCommand(sql, conn);
                 cmd.Prepare();
-
                 var pars = cmd.Parameters;
                 pars.AddWithValue("?num1", 10.15);
                 pars.AddWithValue("?num2", -101.5);
                 pars.AddWithValue("?num3", 1015.00);
                 cmd.ExecuteNonQuery();
-
                 pars.ClearDataValues();
                 pars.AddWithValue("?num1", 10.15d);
                 pars.AddWithValue("?num2", -101.5f);
                 pars.AddWithValue("?num3", (decimal)1015.00);
                 cmd.ExecuteNonQuery();
-
                 pars.ClearDataValues();
                 pars.AddWithValue("?num1", float.MaxValue);
                 pars.AddWithValue("?num2", double.MaxValue);
                 //decimal of C# have the number of digits to the right of the decimal point less or equal 5 digits
                 pars.AddWithValue("?num3", decimal.MaxValue);
                 cmd.ExecuteNonQuery();
-
                 pars.ClearDataValues();
                 pars.AddWithValue("?num1", float.MinValue);
                 pars.AddWithValue("?num2", double.MinValue);

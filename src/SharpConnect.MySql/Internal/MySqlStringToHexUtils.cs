@@ -3,7 +3,6 @@ namespace SharpConnect.MySql.Internal
 {
     static class MySqlStringToHexUtils
     {
-
         //-------------------------------------------------------
         //convert byte array to binary
         //from http://stackoverflow.com/questions/311165/how-do-you-convert-byte-array-to-hexadecimal-string-and-vice-versa/24343727#24343727
@@ -27,12 +26,10 @@ namespace SharpConnect.MySql.Internal
             var lookup32 = s_lookup32;
             int j = bytes.Length;
             var result = new char[(j * 2) + 2];
-
             int m = 0;
             result[0] = '0';
             result[1] = 'x';
             m = 2;
-
             for (int i = 0; i < j; i++)
             {
                 uint val = lookup32[bytes[i]];
@@ -44,5 +41,4 @@ namespace SharpConnect.MySql.Internal
             stbuilder.Append(result);
         }
     }
-
 }

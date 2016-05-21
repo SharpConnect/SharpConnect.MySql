@@ -1,4 +1,4 @@
-﻿//MIT 2015, brezza27, EngineKit and contributors
+﻿//MIT 2015, brezza92, EngineKit and contributors
 
 
 namespace SharpConnect.MySql.Utils
@@ -74,6 +74,5 @@ namespace SharpConnect.MySql.Utils
         {
             ihasPars.Pars.ClearDataValues();
         }
-
     }
 }

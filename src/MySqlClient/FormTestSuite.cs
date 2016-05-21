@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-
 using System.Diagnostics;
-
 using SharpConnect.MySql;
 using MySqlTest;
-
 namespace MySqlClient
 {
     public partial class FormTestSuite : Form
@@ -21,15 +18,12 @@ namespace MySqlClient
             this.Text = "SharpConnect";
             listboxTestCases.DoubleClick += ListboxTestCases_DoubleClick;
             LoadTestCases();
-
-          
         }
         void LoadTestCases()
         {
             testList.Clear();
             listboxTestCases.Items.Clear();
             TestCaseExtracter.ExtractTestCase(this.GetType().Assembly, testList);
-
             //load into listbox
             int j = testList.Count;
             for (int i = 0; i < j; ++i)
@@ -51,13 +45,11 @@ namespace MySqlClient
 
         private void button1_Click(object sender, EventArgs e)
         {
-
 #if DEBUG
             //TestSet1.T_NumRange();
             TestSet1.T_FloatingRange();
             //dbugInternal.Test1();
 #endif
         }
-         
     }
 }

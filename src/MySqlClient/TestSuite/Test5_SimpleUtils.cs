@@ -1,26 +1,19 @@
-﻿//MIT 2015, brezza27, EngineKit and contributors
+﻿//MIT 2015, brezza92, EngineKit and contributors
 
 using System;
 using System.Collections.Generic;
-
 using SharpConnect.MySql;
 using SharpConnect.MySql.Utils;
-
 namespace MySqlTest
 {
-
-
     public class TestSet5_SimpleUtils : MySqlTestSet
     {
-
-
         [Test]
         public static void T_SimpleInsert_Update()
         {
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
-
             {
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
@@ -66,7 +59,6 @@ namespace MySqlTest
                 update.AddWithValue("?first_name", "update_name");
                 update.Where("first_name = 'first0'");
                 update.Connection = conn;
-
                 update.ExecuteNonQuery();
             }
 
@@ -78,7 +70,6 @@ namespace MySqlTest
         [Test]
         public static void T_SimpleSelect()
         {
-
             //-----------------------------
             //prepare data 
             T_SimpleInsert_Update();
@@ -90,23 +81,19 @@ namespace MySqlTest
             {
                 var select = new SimpleSelect("test001");
                 select.Connection = conn;
-
                 //------------------------------
                 //for anonyomous type
                 foreach (var d in select.ExecRecordIter(
                     (r) => new { first_name = r.str(), last_name = r.str() }))
                 {
-
                 }
                 //------------------------------
 
                 foreach (var d in select.ExecRecordIter(() => new UserInfo()))
                 {
-
                 }
                 foreach (var d in select.ExecRecordIter(() => new UserInfo2()))
                 {
-
                 }
             }
 

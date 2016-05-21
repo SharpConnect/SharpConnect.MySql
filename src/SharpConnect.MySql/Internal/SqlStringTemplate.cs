@@ -1,10 +1,9 @@
 ﻿//LICENSE: MIT 
-//Copyright(c) 2015 brezza27, EngineKit and contributors 
+//Copyright(c) 2015 brezza92, EngineKit and contributors 
 
 using System;
 using System.Collections.Generic;
 using System.Text;
-
 namespace SharpConnect.MySql.Internal
 {
     //---------------------------------
@@ -45,13 +44,10 @@ namespace SharpConnect.MySql.Internal
 
     class SqlBoundSection : SqlSection
     {
-
         public FieldPacket fieldInfo;
-
         public SqlBoundSection(string text)
             : base(text, SqlSectionKind.ValueKey)
         {
-
         }
 
 
@@ -68,9 +64,7 @@ namespace SharpConnect.MySql.Internal
         List<SqlSection> _sqlSections = new List<SqlSection>(); //all sections 
         List<SqlBoundSection> _valuesKeys = new List<SqlBoundSection>(); //only value keys        
         List<SqlSection> _specialKeys = new List<SqlSection>();
-
         string _userRawSql; //raw sql from user code
-
         public SqlStringTemplate(string rawSql)
         {
             _userRawSql = rawSql;
@@ -79,12 +73,10 @@ namespace SharpConnect.MySql.Internal
             int length = rawSql.Length;
             ParseState state = ParseState.FIND_MARKER;
             StringBuilder stBuilder = new StringBuilder();
-
             //TODO: review parser state, escape ' or " or `
 
             char binderEscapeChar = '\0';
             char escapeChar = '\0';
-
             for (int i = 0; i < length; i++)
             {
                 char ch = rawSql[i];
@@ -98,7 +90,6 @@ namespace SharpConnect.MySql.Internal
                         if (ch == '?' || ch == '@')
                         {
                             binderEscapeChar = ch;
-
                             //found begining point of new marker
                             if (stBuilder.Length > 0)
                             {
@@ -161,7 +152,6 @@ namespace SharpConnect.MySql.Internal
                                 var valueSection = new SqlBoundSection(stBuilder.ToString());
                                 _sqlSections.Add(valueSection);
                                 _valuesKeys.Add(valueSection);
-
                                 stBuilder.Length = 0;
                             }
                             state = ParseState.FIND_MARKER;
@@ -184,7 +174,6 @@ namespace SharpConnect.MySql.Internal
                                 stBuilder.Length = 0;
                             }
                             state = ParseState.FIND_MARKER;
-
                             stBuilder.Append(ch);
                         }
                         break;
@@ -202,14 +191,12 @@ namespace SharpConnect.MySql.Internal
                             stBuilder.Append(ch);
                         }
                         break;
-
                 }//end swicth
             }//end for
 
 
             if (stBuilder.Length > 0)
             {
-
                 switch (state)
                 {
                     default:
@@ -229,7 +216,6 @@ namespace SharpConnect.MySql.Internal
                         break;
                 }
             }
-
         }
 
         public List<SqlBoundSection> GetValueKeys()
@@ -240,7 +226,6 @@ namespace SharpConnect.MySql.Internal
 
         static void FormatAndAppendData(StringBuilder stbuilder, ref MyStructData data)
         {
-
             //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             //TODO: review here , data range
             //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -278,7 +263,6 @@ namespace SharpConnect.MySql.Internal
                     //TODO: check /escape string here ****
                     stbuilder.Append(data.myString);
                     stbuilder.Append('\'');
-
                     break;
                 case Types.BIT:
                     stbuilder.Append(Encoding.ASCII.GetString(new byte[] { (byte)data.myInt32 }));
@@ -305,18 +289,14 @@ namespace SharpConnect.MySql.Internal
                 default:
                     stbuilder.Append(data.myUInt64.ToString());
                     break;
-
             }
         }
         public string BindValues(CommandParams cmdParams, bool forPrepareStmt)
         {
-
             StringBuilder strBuilder = new StringBuilder();
             int count = _sqlSections.Count;
-
             for (int i = 0; i < count; i++)
             {
-
                 var sqlSection = _sqlSections[i];
                 switch (sqlSection.sectionKind)
                 {

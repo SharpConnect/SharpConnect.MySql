@@ -1,19 +1,16 @@
-﻿//MIT 2015, brezza27, EngineKit and contributors
+﻿//MIT 2015, brezza92, EngineKit and contributors
 
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
-
 namespace SharpConnect.LiquidData
 {
-
     /// <summary>
     /// Json-like Parser
     /// </summary>
     public static class LqParser
     {
-
 #if DEBUG
         public static bool dbug_EnableLogParser = false;
         public static int dbug_file_count = 0;
@@ -21,7 +18,6 @@ namespace SharpConnect.LiquidData
 
         public static LiquidElement Parse(string jsontext)
         {
-
             return Parse(jsontext.ToCharArray());
         }
         static void NotifyError()
@@ -33,7 +29,6 @@ namespace SharpConnect.LiquidData
         }
         public static LiquidElement Parse(char[] sourceBuffer, bool reformat)
         {
-
             //#if DEBUG
             //            debugDataFormatParserLog dbugDataFormatParser = null;
             //            if (dbug_EnableLogParser)
@@ -49,7 +44,6 @@ namespace SharpConnect.LiquidData
 
             Stack<object> myVElemStack = new Stack<object>();
             Stack<string> myKeyStack = new Stack<string>();
-
             object currentObj = null;
             StringBuilder myBuffer = new StringBuilder();
             string lastestKey = "";
@@ -58,12 +52,10 @@ namespace SharpConnect.LiquidData
             bool isDoubleNumber = false;
             bool isSuccess = true;
             bool isInKeyPart = false;
-
             LiquidDoc doc = new LiquidDoc();
             if (sourceBuffer == null)
             {
                 return LiquidElementHelper.CreateXmlElementForDynamicObject(doc);
-
             }
 
 
@@ -76,7 +68,6 @@ namespace SharpConnect.LiquidData
             bool implicitComma = false;
             char openStringWithChar = '"';
             int i = 0;
-
             //int hexdigiCount = 0;
             //char hex00 = '\0';
             //char hex01 = '\0';
@@ -85,10 +76,8 @@ namespace SharpConnect.LiquidData
 
             for (i = 0; i < j; i++)
             {
-
                 if (!isSuccess)
                 {
-
                     //#if DEBUG
                     //                    if (dbug_EnableLogParser)
                     //                    {
@@ -115,7 +104,6 @@ namespace SharpConnect.LiquidData
                         {
                             if (c == '{')
                             {
-
                                 currentObj = doc.CreateElement("!j");
                                 currentState = 1;
                                 isInKeyPart = true;
@@ -123,7 +111,6 @@ namespace SharpConnect.LiquidData
                             }
                             else if (c == '[')
                             {
-
                                 currentObj = new LqArray();
                                 currentState = 5;
                                 isInKeyPart = false;
@@ -143,10 +130,8 @@ namespace SharpConnect.LiquidData
                         break;
                     case 1:
                         {
-
                             if (c == '"' || c == '\'')
                             {
-
                                 openStringWithChar = c;
                                 currentState = 2;
                             }
@@ -156,10 +141,8 @@ namespace SharpConnect.LiquidData
                             }
                             else if (c == '}')
                             {
-
                                 if (currentObj is LiquidElement)
                                 {
-
                                     if (myVElemStack.Count > 0)
                                     {
                                         object velem = myVElemStack.Pop();
@@ -176,7 +159,6 @@ namespace SharpConnect.LiquidData
                                             currentState = 7;
                                             isInKeyPart = false;
                                         }
-
                                     }
                                 }
                                 else
@@ -202,7 +184,6 @@ namespace SharpConnect.LiquidData
                         {
                             if (c == '\\')
                             {
-
                                 currentState = 3;
                             }
                             else if (c == openStringWithChar)
@@ -215,11 +196,9 @@ namespace SharpConnect.LiquidData
                                 }
                                 else
                                 {
-
                                     if (currentObj is LiquidArray)
                                     {
                                         object velem = GetVElement(myBuffer, 0);
-
                                         if (velem != null)
                                         {
                                             AddVElement((LiquidArray)currentObj, velem);
@@ -230,7 +209,6 @@ namespace SharpConnect.LiquidData
                                             NotifyError();
                                             isSuccess = false;
                                         }
-
                                     }
                                     else
                                     {
@@ -251,14 +229,12 @@ namespace SharpConnect.LiquidData
                             }
                             else
                             {
-
                                 myBuffer.Append(c);
                             }
                         }
                         break;
                     case 3:
                         {
-
                             switch (c)
                             {
                                 case '"':
@@ -327,7 +303,6 @@ namespace SharpConnect.LiquidData
                             }
                             else
                             {
-
                                 break;
                             }
                         }
@@ -353,26 +328,21 @@ namespace SharpConnect.LiquidData
                         break;
                     case 5:
                         {
-
                             if (c == '"' || c == '\'')
                             {
-
                                 openStringWithChar = c;
                                 currentState = 2;
                             }
                             else if (char.IsDigit(c) || c == '-')
                             {
-
                                 myBuffer.Append(c);
                                 currentState = 8;
                             }
                             else if (c == '{')
                             {
-
                                 myVElemStack.Push(currentObj);
                                 if (currentObj is LiquidElement)
                                 {
-
                                     myKeyStack.Push(lastestKey);
                                 }
 
@@ -382,22 +352,18 @@ namespace SharpConnect.LiquidData
                             }
                             else if (c == '[')
                             {
-
                                 myVElemStack.Push(currentObj);
                                 if (currentObj is LiquidElement)
                                 {
-
                                     myKeyStack.Push(lastestKey);
                                 }
 
                                 currentObj = new LqArray();
                                 currentState = 5;
-
                                 isInKeyPart = false;
                             }
                             else if (c == ']')
                             {
-
                                 if (currentObj is LiquidArray)
                                 {
                                     if (myVElemStack.Count > 0)
@@ -409,7 +375,6 @@ namespace SharpConnect.LiquidData
                                             AddVElement((LiquidElement)velem, lastestKey, currentObj);
                                             currentObj = velem;
                                             currentState = 7;
-
                                         }
                                         else
                                         {
@@ -430,7 +395,6 @@ namespace SharpConnect.LiquidData
                             }
                             else if (c == 'n' || c == 't' || c == 'f')
                             {
-
                                 currentState = 6;
                                 myBuffer.Append(c);
                             }
@@ -462,25 +426,21 @@ namespace SharpConnect.LiquidData
 
                                 if (c == ']')
                                 {
-
                                     if (myVElemStack.Count > 0)
                                     {
                                         currentObj = myVElemStack.Pop();
                                     }
-
                                 }
                                 else if (c == '}')
                                 {
                                     if (myVElemStack.Count > 0)
                                     {
-
                                         currentObj = myVElemStack.Pop();
                                         lastestKey = myKeyStack.Pop();
                                     }
                                 }
                                 else
                                 {
-
                                     if (currentObj is LiquidElement)
                                     {
                                         currentState = 1;
@@ -503,7 +463,6 @@ namespace SharpConnect.LiquidData
                         {
                             if (c == ',')
                             {
-
                                 if (currentObj is LiquidElement)
                                 {
                                     currentState = 1;
@@ -516,10 +475,8 @@ namespace SharpConnect.LiquidData
                             }
                             else if (c == ']')
                             {
-
                                 if (myVElemStack.Count > 0)
                                 {
-
                                     object velem = myVElemStack.Pop();
                                     if (velem is LiquidElement)
                                     {
@@ -533,13 +490,11 @@ namespace SharpConnect.LiquidData
                                         currentObj = velem;
                                     }
                                 }
-
                             }
                             else if (c == '}')
                             {
                                 if (myVElemStack.Count > 0)
                                 {
-
                                     object velem = myVElemStack.Pop();
                                     if (velem is LiquidElement)
                                     {
@@ -584,14 +539,12 @@ namespace SharpConnect.LiquidData
                         break;
                     case 8:
                         {
-
                             if (char.IsDigit(c))
                             {
                                 myBuffer.Append(c);
                             }
                             else if (c == '.')
                             {
-
                                 if (!isDoubleNumber)
                                 {
                                     myBuffer.Append(c);
@@ -608,7 +561,6 @@ namespace SharpConnect.LiquidData
                             else if (c == ']' || c == '}' || c == ',')
                             {
                                 int suggestedType = 1;
-
                                 if (isDoubleNumber)
                                 {
                                     suggestedType = 2;
@@ -621,15 +573,12 @@ namespace SharpConnect.LiquidData
                                         NotifyError();
                                         isSuccess = false;
                                         break;
-
                                     }
                                 }
                                 if (c == ']')
                                 {
-
                                     if (myVElemStack.Count > 0)
                                     {
-
                                         object velem = myVElemStack.Pop();
                                         if (velem is LiquidElement)
                                         {
@@ -648,7 +597,6 @@ namespace SharpConnect.LiquidData
                                 {
                                     if (myVElemStack.Count > 0)
                                     {
-
                                         object velem = myVElemStack.Pop();
                                         if (velem is LiquidElement)
                                         {
@@ -665,7 +613,6 @@ namespace SharpConnect.LiquidData
                                 }
                                 else
                                 {
-
                                     if (currentObj is LiquidElement)
                                     {
                                         currentState = 1;
@@ -684,19 +631,14 @@ namespace SharpConnect.LiquidData
                             }
                         }
                         break;
-
                     case 9:
                         {
-
-
                             if (char.IsLetter(c) || c == '_')
                             {
-
                                 myBuffer.Append(c);
                             }
                             else if (c == ':')
                             {
-
                                 if (isInKeyPart)
                                 {
                                     lastestKey = myBuffer.ToString();
@@ -712,7 +654,6 @@ namespace SharpConnect.LiquidData
                             }
                             else if (char.IsWhiteSpace(c))
                             {
-
                                 currentState = 4;
                             }
                             else
@@ -722,7 +663,6 @@ namespace SharpConnect.LiquidData
                             }
                         }
                         break;
-
                 }
             }
 
@@ -767,7 +707,6 @@ namespace SharpConnect.LiquidData
             uint p2 = ParseSingleChar(c2, 0x100);
             uint p3 = ParseSingleChar(c3, 0x10);
             uint p4 = ParseSingleChar(c4, 1);
-
             return p1 + p2 + p3 + p4;
         }
         /// <summary>
@@ -776,57 +715,45 @@ namespace SharpConnect.LiquidData
         /// <param name="element"></param>
         static void ReFormatLqElement(LiquidElement element)
         {
-
             LiquidAttribute childNodeAttr = null;
             LiquidAttribute nodeNameAttr = null;
-
             if (!element.HasOwnerDocument)
             {
                 return;
             }
             LiquidDoc ownerdoc = element.OwnerDocument;
-
             int found_N = element.OwnerDocument.GetStringIndex("!n");
             int found_C = element.OwnerDocument.GetStringIndex("!c");
-
             foreach (LiquidAttribute att in element.GetAttributeIterForward())
             {
                 if (found_N != 0 && att.AttributeLocalNameIndex == found_N) //!n
                 {
-
                     element.Name = att.Value.ToString();
                     nodeNameAttr = att;
                 }
                 else if (found_C != 0 && att.AttributeLocalNameIndex == found_C)
                 {
-
                     childNodeAttr = att;
                 }
             }
             //--------------------------------------
             if (nodeNameAttr != null)
             {
-
                 element.RemoveAttribute(nodeNameAttr);
             }
             //--------------------------------------
 
             if (childNodeAttr != null)
             {
-
                 if (childNodeAttr.Value is LiquidArray)
                 {
                     LiquidArray children = (LiquidArray)childNodeAttr.Value;
-
                     foreach (object child in children.GetIterForward())
                     {
-
                         if (child is LiquidElement)
                         {
-
                             ReFormatLqElement((LiquidElement)child);
                             element.AppendChild((LiquidElement)child);
-
                         }
                         else
                         {
@@ -844,11 +771,9 @@ namespace SharpConnect.LiquidData
         {
             if (terminateChar == ']')
             {
-
                 object elem = GetVElement(myBuffer, suggestedType);
                 if (currentObj is LiquidArray)
                 {
-
                     AddVElement((LiquidArray)currentObj, elem);
                     myBuffer.Length = 0;
                     return true;
@@ -888,7 +813,6 @@ namespace SharpConnect.LiquidData
         }
         static object GetVElement(StringBuilder myBuffer, int suggestedType)
         {
-
             switch (suggestedType)
             {
                 case 0:
@@ -921,9 +845,7 @@ namespace SharpConnect.LiquidData
                     }
                 case 3:
                     {
-
                         string myvalue = myBuffer.ToString();
-
                         if (myvalue == "true")
                         {
                             return true;
@@ -938,13 +860,11 @@ namespace SharpConnect.LiquidData
                         }
                     }
                     break;
-
             }
             return null;
         }
         static void AddVElement(LiquidArray dArray, object velemt)
         {
-
             dArray.AddItem(velemt);
         }
         static void AddVElement(LiquidElement dObj, string key, object velemt)

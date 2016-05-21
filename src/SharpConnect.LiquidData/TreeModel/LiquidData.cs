@@ -1,4 +1,4 @@
-﻿//MIT 2015, brezza27, EngineKit and contributors
+﻿//MIT 2015, brezza92, EngineKit and contributors
 
 using System.Collections.Generic;
 namespace SharpConnect.LiquidData
@@ -14,7 +14,6 @@ namespace SharpConnect.LiquidData
         void AppendChild(LiquidElement element);
         void AppendAttribute(LiquidAttribute attr);
         LiquidAttribute AppendAttribute(string key, object value);
-
         object GetAttributeValue(string key);
         LiquidAttribute GetAttributeElement(string key);
         int ChildCount { get; }
