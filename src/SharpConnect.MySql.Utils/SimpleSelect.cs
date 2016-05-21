@@ -110,7 +110,7 @@ namespace SharpConnect.MySql.Utils
         int _colNumber = 0;
         MySqlDataReader _mysqlDataReader;
 
-        internal SeqRecReader(MySqlDataReader mysqlDataReader)
+        public SeqRecReader(MySqlDataReader mysqlDataReader)
         {
             _mysqlDataReader = mysqlDataReader;
         }
@@ -170,7 +170,7 @@ namespace SharpConnect.MySql.Utils
             return _mysqlDataReader.GetDecimal(_colNumber++);
         }
 
-        internal void ResetColumnPos()
+        public void ResetColumnPos()
         {
             _colNumber = 0;
         }
@@ -404,7 +404,7 @@ namespace SharpConnect.MySql.Utils
                     //TODO: impl here
                     return null;
                 }
-                else;
+                else 
                 {
                     //have parameter less ctor
                     //then
@@ -461,8 +461,7 @@ namespace SharpConnect.MySql.Utils
             else
             {
                 throw new Exception("not supported layout");
-            }
-            return null;
+            } 
 
 
         }
