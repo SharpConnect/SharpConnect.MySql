@@ -3,11 +3,8 @@
 using System;
 using System.Collections.Generic;
 using SharpConnect.MySql;
-
 namespace MySqlTest
 {
-
-
     public class TestSet3_AsyncSocket : MySqlTestSet
     {
         [Test]
@@ -17,13 +14,10 @@ namespace MySqlTest
             var conn = new MySqlConnectionAsync(connStr);
             conn.Open(() =>
             {
-
                 //do something 
                 //close
                 conn.Close(() =>
                 {
-
-
                 });
             });
         }

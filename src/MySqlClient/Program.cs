@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Collections.Generic; 
+using System.Collections.Generic;
 using System.Windows.Forms;
-
 namespace MySqlClient
 {
     static class Program
@@ -15,7 +14,6 @@ namespace MySqlClient
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new FormTestSuite());
-
         }
     }
 }

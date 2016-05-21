@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
-
 namespace MySqlTest
 {
     public enum TimeUnit
@@ -16,11 +15,9 @@ namespace MySqlTest
 
     public class TestAttribute : Attribute
     {
-
         public TestAttribute() { }
         public TestAttribute(string desc) { Description = desc; }
         public string Description { get; set; }
-
     }
 
 
@@ -39,7 +36,6 @@ namespace MySqlTest
         {
             return s_stbuilder.ToString();
         }
-
     }
 
     public class TestCase
@@ -91,11 +87,9 @@ namespace MySqlTest
                 ExtractTestCase(type, output);
             }
         }
-
     }
 
     public delegate void TestAction();
-
     public abstract class MySqlTesterBase
     {
         public static void Test(int n, TimeUnit timeUnit, out long total, out long avg, TestAction ac)
@@ -110,9 +104,5 @@ namespace MySqlTest
             total = sw.ElapsedTicks;
             avg = total / n;
         }
-
     }
-
-
-
 }
