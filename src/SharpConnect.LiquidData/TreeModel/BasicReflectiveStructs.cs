@@ -1,5 +1,5 @@
 ﻿//MIT 2015, brezza92, EngineKit and contributors
- 
+
 namespace SharpConnect.LiquidData
 {
     public struct SimpleStruct<T1, T2>
@@ -129,7 +129,6 @@ namespace SharpConnect.LiquidData
         public T7 m7;
         public T8 m8;
         public T9 m9;
-
         public SimpleStruct(T1 m1, T2 m2, T3 m3, T4 m4, T5 m5, T6 m6, T7 m7, T8 m8, T9 m9)
         {
             this.m1 = m1;
@@ -202,7 +201,6 @@ namespace SharpConnect.LiquidData
     {
         public Table()
         {
-
         }
     }
 }

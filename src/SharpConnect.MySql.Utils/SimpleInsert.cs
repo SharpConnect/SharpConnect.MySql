@@ -1,6 +1,6 @@
 ﻿//MIT 2015, brezza92, EngineKit and contributors
-using System.Text;
 
+using System.Text;
 namespace SharpConnect.MySql.Utils
 {
     public class SimpleInsert : IHasParameters
@@ -30,7 +30,6 @@ namespace SharpConnect.MySql.Utils
             //then exec
             if (_isPrepared)
             {
-
                 _sqlCommand.ExecuteNonQuery();
             }
             else
@@ -68,7 +67,6 @@ namespace SharpConnect.MySql.Utils
             stBuilder.Append("insert into ");
             stBuilder.Append(TargetTableName);
             stBuilder.Append('(');
-
             int j = valueKeys.Length;
             for (int i = 0; i < j; ++i)
             {
@@ -79,12 +77,10 @@ namespace SharpConnect.MySql.Utils
                     throw new System.NotSupportedException();
                 }
                 stBuilder.Append(k.Substring(1)); //remove ?
-
                 if (i < j - 1)
                 {
                     stBuilder.Append(',');
                 }
-
             }
             stBuilder.Append(")  values(");
             for (int i = 0; i < j; ++i)

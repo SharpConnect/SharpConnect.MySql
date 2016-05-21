@@ -25,8 +25,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-
-
 namespace SharpConnect.MySql.Internal
 {
     //packet reader
@@ -40,7 +38,6 @@ namespace SharpConnect.MySql.Internal
         long _packetLength;
         Encoding _encoding = Encoding.UTF8;
         List<byte> _bList = new List<byte>();
-
         public PacketParser(Encoding encoding)
         {
             _encoding = encoding;
@@ -56,7 +53,6 @@ namespace SharpConnect.MySql.Internal
         public long Position
         {
             get { return _stream.Position; }
-
         }
         public long Length
         {
@@ -236,7 +232,6 @@ namespace SharpConnect.MySql.Internal
             //    var bits = this._buffer[this._offset++];
 
             byte bits = _reader.ReadByte();
-
             //    if (bits <= 250)
             //    {
             //        return bits;
@@ -307,10 +302,8 @@ namespace SharpConnect.MySql.Internal
 
         public uint ParseUnsigned2()
         {
-
             uint b0 = _reader.ReadByte(); //low bit
             uint b1 = _reader.ReadByte(); //high bit
-
             return (b1 << 8) | (b0);
         }
 
@@ -319,8 +312,6 @@ namespace SharpConnect.MySql.Internal
             uint b0 = _reader.ReadByte(); //low bit
             uint b1 = _reader.ReadByte();
             uint b2 = _reader.ReadByte(); //high bit
-
-
             return (b2 << 16) | (b1 << 8) | (b0);
         }
 
@@ -370,7 +361,6 @@ namespace SharpConnect.MySql.Internal
                         uint b0 = _reader.ReadByte(); //low bit
                         uint b1 = _reader.ReadByte();
                         uint b2 = _reader.ReadByte(); //high bit
-
                         return (b2 << 16) | (b1 << 8) | (b0);
                     }
                 case 4:
@@ -383,7 +373,6 @@ namespace SharpConnect.MySql.Internal
                     }
                 default:
                     throw new Exception("parseUnsignedNumber: Supports only up to 4 bytes");
-
             }
             //if (bytes === 1)
             //{
@@ -466,7 +455,6 @@ namespace SharpConnect.MySql.Internal
 
             //return parseGeometry();
             ParseGeometry(result, buffer, byteOrder, wkbType, offset);
-
             return result;
         }
 
@@ -514,7 +502,6 @@ namespace SharpConnect.MySql.Internal
                 case 3:// WKBPolygon
                     int numRings = byteOrder != 0 ? ReadInt32LE(buffer, offset) : ReadInt32BE(buffer, offset);
                     offset += 4;
-
                     for (int i = numRings; i > 0; i--)
                     {
                         numPoints = byteOrder != 0 ? ReadInt32LE(buffer, offset) : ReadInt32BE(buffer, offset);

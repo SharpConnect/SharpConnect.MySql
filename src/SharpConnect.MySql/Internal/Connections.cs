@@ -25,7 +25,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-
 namespace SharpConnect.MySql.Internal
 {
     static class dbugConsole
@@ -49,33 +48,29 @@ namespace SharpConnect.MySql.Internal
         public bool connectionCall;
         public ConnectionState State
         {
-            get {
+            get
+            {
                 return socket.Connected ? ConnectionState.Connected : ConnectionState.Disconnected;
             }
         }
         public uint threadId;
         public Socket socket;
-
         HandshakePacket _handshake;
         Query _query;
         PacketParser _parser;
         PacketWriter _writer;
-        
         //TODO: review how to clear remaining buffer again
         byte[] _tmpForClearRecvBuffer; //for clear buffer 
-
         /// <summary>
         /// max allowed packet size
         /// </summary>
         long _maxPacketSize = 0;
-
         public Connection(ConnectionConfig userConfig)
         {
             config = userConfig;
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             //protocol = null;
-            connectionCall = false; 
-
+            connectionCall = false;
             //this.config = options.config;
             //this._socket        = options.socket;
             //this._protocol      = new Protocol({config: this.config, connection: this});
@@ -105,8 +100,7 @@ namespace SharpConnect.MySql.Internal
             }
 
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
-            socket.Connect(endpoint); 
-
+            socket.Connect(endpoint);
             byte[] buffer = new byte[512];
             int count = socket.Receive(buffer);
             if (count > 0)
@@ -116,24 +110,19 @@ namespace SharpConnect.MySql.Internal
                 _handshake = new HandshakePacket();
                 _handshake.ParsePacket(_parser);
                 threadId = _handshake.threadId;
-
                 byte[] token = MakeToken(config.password,
                     GetScrollbleBuffer(_handshake.scrambleBuff1, _handshake.scrambleBuff2));
-
                 _writer.IncrementPacketNumber();
-
                 //------------------------------------------
                 var authPacket = new ClientAuthenticationPacket();
                 authPacket.SetValues(config.user, token, config.database, _handshake.protocol41);
                 authPacket.WritePacket(_writer);
-
                 byte[] sendBuff = _writer.ToArray();
                 byte[] receiveBuff = new byte[512];
                 //-------------------------------------------
                 //send data
                 int sendNum = socket.Send(sendBuff);
                 int receiveNum = socket.Receive(receiveBuff);
-
                 _parser.LoadNewBuffer(receiveBuff, receiveNum);
                 if (receiveBuff[4] == 255)
                 {
@@ -192,7 +181,6 @@ namespace SharpConnect.MySql.Internal
             _writer.Reset();
             ComQuitPacket quitPacket = new ComQuitPacket();
             quitPacket.WritePacket(_writer);
-
             int send = socket.Send(_writer.ToArray());
             socket.Disconnect(true);
         }
@@ -249,7 +237,6 @@ namespace SharpConnect.MySql.Internal
             //var stage3 = sha1(scramble.toString('binary') + stage2);
             //return xor(stage3, stage1);
             var buff1 = Encoding.UTF8.GetBytes(password.ToCharArray());
-
             var sha = new System.Security.Cryptography.SHA1Managed();
             // This is one implementation of the abstract class SHA1.
             //scramble = new byte[] { 52, 78, 110, 96, 117, 75, 85, 75, 87, 83, 121, 44, 106, 82, 62, 123, 113, 73, 84, 77 };
@@ -258,7 +245,6 @@ namespace SharpConnect.MySql.Internal
             //merge scramble and stage2 again
             byte[] combineFor3 = ConcatBuffer(scramble, stage2);
             byte[] stage3 = sha.ComputeHash(combineFor3);
-
             return xor(stage3, stage1);
         }
 
@@ -280,8 +266,6 @@ namespace SharpConnect.MySql.Internal
             }
             return result;
         }
-
-
     }
 
     class ConnectionConfig
@@ -312,7 +296,6 @@ namespace SharpConnect.MySql.Internal
         public int charsetNumber;
         public int defaultFlags;
         public int clientFlags;
-
         public ConnectionConfig()
         {
             SetDefault();
@@ -402,5 +385,4 @@ namespace SharpConnect.MySql.Internal
             this.database = database;
         }
     }
-
 }

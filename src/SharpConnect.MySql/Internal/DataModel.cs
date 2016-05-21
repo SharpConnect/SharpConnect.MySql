@@ -22,7 +22,6 @@
 
 using System;
 using System.Collections.Generic;
-
 namespace SharpConnect.MySql.Internal
 {
     enum CharSets
@@ -37,18 +36,15 @@ namespace SharpConnect.MySql.Internal
         LATIN1_SWEDISH_CI,  //exports.LATIN1_SWEDISH_CI            = 8;
         LATIN2_GENERAL_CI,  //exports.LATIN2_GENERAL_CI            = 9;
         SWE7_SWEDISH_CI,    //exports.SWE7_SWEDISH_CI              = 10;
-
         ASCII_GENERAL_CI,   //exports.ASCII_GENERAL_CI             = 11;
         UJIS_JAPANESE_CI,   //exports.UJIS_JAPANESE_CI             = 12;
         SJIS_JAPANESE_CI,   //exports.SJIS_JAPANESE_CI             = 13;
         CP1251_BULGARIAN_CI,//exports.CP1251_BULGARIAN_CI          = 14;
         LATIN1_DANISH_CI,   //exports.LATIN1_DANISH_CI             = 15;
         HEBREW_GENERAL_CI,  //exports.HEBREW_GENERAL_CI            = 16;
-
         TIS620_THAI_CI = 18,//exports.TIS620_THAI_CI               = 18;
         EUCKR_KOREAN_CI,    //exports.EUCKR_KOREAN_CI              = 19;
         LATIN7_ESTONIAN_CS, //exports.LATIN7_ESTONIAN_CS           = 20;
-
         LATIN2_HUNGARIAN_CI,//exports.LATIN2_HUNGARIAN_CI          = 21;
         KOI8U_GENERAL_CI,   //exports.KOI8U_GENERAL_CI             = 22;
         CP1251_UKRAINIAN_CI,//exports.CP1251_UKRAINIAN_CI          = 23;
@@ -59,7 +55,6 @@ namespace SharpConnect.MySql.Internal
         GBK_CHINESE_CI,     //exports.GBK_CHINESE_CI               = 28;
         CP1257_LITHUANIAN_CI,//exports.CP1257_LITHUANIAN_CI        = 29;
         LATIN5_TURKISH_CI,  //exports.LATIN5_TURKISH_CI            = 30;
-
         LATIN1_GERMAN2_CI,  //exports.LATIN1_GERMAN2_CI            = 31;
         ARMSCII8_GENERAL_CI,//exports.ARMSCII8_GENERAL_CI          = 32;
         UTF8_GENERAL_CI,    //exports.UTF8_GENERAL_CI              = 33;
@@ -70,7 +65,6 @@ namespace SharpConnect.MySql.Internal
         MACCE_GENERAL_CI,   //exports.MACCE_GENERAL_CI             = 38;
         MACROMAN_GENERAL_CI,//exports.MACROMAN_GENERAL_CI          = 39;
         CP852_GENERAL_CI,   //exports.CP852_GENERAL_CI             = 40;
-
         LATIN7_GENERAL_CI,  //exports.LATIN7_GENERAL_CI            = 41;
         LATIN7_GENERAL_CS,  //exports.LATIN7_GENERAL_CS            = 42;
         MACCE_BIN,          //exports.MACCE_BIN                    = 43;
@@ -81,7 +75,6 @@ namespace SharpConnect.MySql.Internal
         LATIN1_GENERAL_CI,  //exports.LATIN1_GENERAL_CI            = 48;
         LATIN1_GENERAL_CS,  //exports.LATIN1_GENERAL_CS            = 49;
         CP1251_BIN,         //exports.CP1251_BIN                   = 50;
-
         CP1251_GENERAL_CI,  //exports.CP1251_GENERAL_CI            = 51;
         CP1251_GENERAL_CS,  //exports.CP1251_GENERAL_CS            = 52;
         MACROMAN_BIN,       //exports.MACROMAN_BIN                 = 53;
@@ -92,7 +85,6 @@ namespace SharpConnect.MySql.Internal
         CP1257_BIN,         //exports.CP1257_BIN                   = 58;
         CP1257_GENERAL_CI,  //exports.CP1257_GENERAL_CI            = 59;
         UTF32_GENERAL_CI,   //exports.UTF32_GENERAL_CI             = 60;
-
         UTF32_BIN,          //exports.UTF32_BIN                    = 61;
         UTF16LE_BIN,        //exports.UTF16LE_BIN                  = 62;
         BINARY,             //exports.BINARY                       = 63;
@@ -103,18 +95,15 @@ namespace SharpConnect.MySql.Internal
         CP866_BIN,          //exports.CP866_BIN                    = 68;
         DEC8_BIN,           //exports.DEC8_BIN                     = 69;
         GREEK_BIN,          //exports.GREEK_BIN                    = 70;
-
         HEBREW_BIN,         //exports.HEBREW_BIN                   = 71;
         HP8_BIN,            //exports.HP8_BIN                      = 72;
         KEYBCS2_BIN,        //exports.KEYBCS2_BIN                  = 73;
         KOI8R_BIN,          //exports.KOI8R_BIN                    = 74;
         KOI8U_BIN,          //exports.KOI8U_BIN                    = 75;
-
         LATIN2_BIN = 77,    //exports.LATIN2_BIN                   = 77;
         LATIN5_BIN,         //exports.LATIN5_BIN                   = 78;
         LATIN7_BIN,         //exports.LATIN7_BIN                   = 79;
         CP850_BIN,          //exports.CP850_BIN                    = 80;
-
         CP852_BIN,          //exports.CP852_BIN                    = 81;
         SWE7_BIN,           //exports.SWE7_BIN                     = 82;
         UTF8_BIN,           //exports.UTF8_BIN                     = 83;
@@ -125,7 +114,6 @@ namespace SharpConnect.MySql.Internal
         SJIS_BIN,           //exports.SJIS_BIN                     = 88;
         TIS620_BIN,         //exports.TIS620_BIN                   = 89;
         UCS2_BIN,           //exports.UCS2_BIN                     = 90;
-
         UJIS_BIN,           //exports.UJIS_BIN                     = 91;
         GEOSTD8_GENERAL_CI, //exports.GEOSTD8_GENERAL_CI           = 92;
         GEOSTD8_BIN,        //exports.GEOSTD8_BIN                  = 93;
@@ -135,7 +123,6 @@ namespace SharpConnect.MySql.Internal
         EUCJPMS_JAPANESE_CI,//exports.EUCJPMS_JAPANESE_CI          = 97;
         EUCJPMS_BIN,        //exports.EUCJPMS_BIN                  = 98;
         CP1250_POLISH_CI,   //exports.CP1250_POLISH_CI             = 99;
-
         UTF16_UNICODE_CI = 101,//exports.UTF16_UNICODE_CI          = 101;
         UTF16_ICELANDIC_CI, //exports.UTF16_ICELANDIC_CI           = 102;
         UTF16_LATVIAN_CI,   //exports.UTF16_LATVIAN_CI             = 103;
@@ -146,7 +133,6 @@ namespace SharpConnect.MySql.Internal
         UTF16_SPANISH_CI,   //exports.UTF16_SPANISH_CI             = 108;
         UTF16_SWEDISH_CI,   //exports.UTF16_SWEDISH_CI             = 109;
         UTF16_TURKISH_CI,   //exports.UTF16_TURKISH_CI             = 110;
-
         UTF16_CZECH_CI,     //exports.UTF16_CZECH_CI               = 111;
         UTF16_DANISH_CI,    //exports.UTF16_DANISH_CI              = 112;
         UTF16_LITHUANIAN_CI,//exports.UTF16_LITHUANIAN_CI          = 113;
@@ -157,16 +143,13 @@ namespace SharpConnect.MySql.Internal
         UTF16_ESPERANTO_CI, //exports.UTF16_ESPERANTO_CI           = 118;
         UTF16_HUNGARIAN_CI, //exports.UTF16_HUNGARIAN_CI           = 119;
         UTF16_SINHALA_CI,   //exports.UTF16_SINHALA_CI             = 120;
-
         UTF16_GERMAN2_CI,   //exports.UTF16_GERMAN2_CI             = 121;
         UTF16_CROATIAN_MYSQL561_CI,//exports.UTF16_CROATIAN_MYSQL561_CI = 122;
         UTF16_UNICODE_520_CI,//exports.UTF16_UNICODE_520_CI        = 123;
         UTF16_VIETNAMESE_CI,//exports.UTF16_VIETNAMESE_CI          = 124;
-
         UCS2_UNICODE_CI = 128,//exports.UCS2_UNICODE_CI            = 128;
         UCS2_ICELANDIC_CI,  //exports.UCS2_ICELANDIC_CI            = 129;
         UCS2_LATVIAN_CI,    //exports.UCS2_LATVIAN_CI              = 130;
-
         UCS2_ROMANIAN_CI,   //exports.UCS2_ROMANIAN_CI             = 131;
         UCS2_SLOVENIAN_CI,  //exports.UCS2_SLOVENIAN_CI            = 132;
         UCS2_POLISH_CI,     //exports.UCS2_POLISH_CI               = 133;
@@ -177,7 +160,6 @@ namespace SharpConnect.MySql.Internal
         UCS2_CZECH_CI,      //exports.UCS2_CZECH_CI                = 138;
         UCS2_DANISH_CI,     //exports.UCS2_DANISH_CI               = 139;
         UCS2_LITHUANIAN_CI, //exports.UCS2_LITHUANIAN_CI           = 140;
-
         UCS2_SLOVAK_CI,     //exports.UCS2_SLOVAK_CI               = 141;
         UCS2_SPANISH2_CI,   //exports.UCS2_SPANISH2_CI             = 142;
         UCS2_ROMAN_CI,      //exports.UCS2_ROMAN_CI                = 143;
@@ -188,12 +170,9 @@ namespace SharpConnect.MySql.Internal
         UCS2_GERMAN2_CI,    //exports.UCS2_GERMAN2_CI              = 148;
         UCS2_CROATIAN_MYSQL561_CI,//exports.UCS2_CROATIAN_MYSQL561_CI = 149;
         UCS2_UNICODE_520_CI,//exports.UCS2_UNICODE_520_CI          = 150;
-
         UCS2_VIETNAMESE_CI, //exports.UCS2_VIETNAMESE_CI           = 151;
-
         UCS2_GENERAL_MYSQL500_CI = 159,//exports.UCS2_GENERAL_MYSQL500_CI= 159;
         UTF32_UNICODE_CI,   //exports.UTF32_UNICODE_CI             = 160;
-
         UTF32_ICELANDIC_CI, //exports.UTF32_ICELANDIC_CI           = 161;
         UTF32_LATVIAN_CI,   //exports.UTF32_LATVIAN_CI             = 162;
         UTF32_ROMANIAN_CI,  //exports.UTF32_ROMANIAN_CI            = 163;
@@ -204,7 +183,6 @@ namespace SharpConnect.MySql.Internal
         UTF32_SWEDISH_CI,   //exports.UTF32_SWEDISH_CI             = 168;
         UTF32_TURKISH_CI,   //exports.UTF32_TURKISH_CI             = 169;
         UTF32_CZECH_CI,     //exports.UTF32_CZECH_CI               = 170;
-
         UTF32_DANISH_CI,    //exports.UTF32_DANISH_CI              = 171;
         UTF32_LITHUANIAN_CI,//exports.UTF32_LITHUANIAN_CI          = 172;
         UTF32_SLOVAK_CI,    //exports.UTF32_SLOVAK_CI              = 173;
@@ -215,11 +193,9 @@ namespace SharpConnect.MySql.Internal
         UTF32_HUNGARIAN_CI, //exports.UTF32_HUNGARIAN_CI           = 178;
         UTF32_SINHALA_CI,   //exports.UTF32_SINHALA_CI             = 179;
         UTF32_GERMAN2_CI,   //exports.UTF32_GERMAN2_CI             = 180;
-
         UTF32_CROATIAN_MYSQL561_CI,//exports.UTF32_CROATIAN_MYSQL561_CI= 181;
         UTF32_UNICODE_520_CI,//exports.UTF32_UNICODE_520_CI        = 182;
         UTF32_VIETNAMESE_CI,//exports.UTF32_VIETNAMESE_CI          = 183;
-
         UTF8_UNICODE_CI = 192,    //exports.UTF8_UNICODE_CI        = 192;
         UTF8_ICELANDIC_CI,  //exports.UTF8_ICELANDIC_CI            = 193;
         UTF8_LATVIAN_CI,    //exports.UTF8_LATVIAN_CI              = 194;
@@ -229,7 +205,6 @@ namespace SharpConnect.MySql.Internal
         UTF8_ESTONIAN_CI,   //exports.UTF8_ESTONIAN_CI             = 198;
         UTF8_SPANISH_CI,    //exports.UTF8_SPANISH_CI              = 199;
         UTF8_SWEDISH_CI,    //exports.UTF8_SWEDISH_CI              = 200;
-
         UTF8_TURKISH_CI,    //exports.UTF8_TURKISH_CI              = 201;
         UTF8_CZECH_CI,      //exports.UTF8_CZECH_CI                = 202;
         UTF8_DANISH_CI,     //exports.UTF8_DANISH_CI               = 203;
@@ -240,13 +215,11 @@ namespace SharpConnect.MySql.Internal
         UTF8_PERSIAN_CI,    //exports.UTF8_PERSIAN_CI              = 208;
         UTF8_ESPERANTO_CI,  //exports.UTF8_ESPERANTO_CI            = 209;
         UTF8_HUNGARIAN_CI,  //exports.UTF8_HUNGARIAN_CI            = 210;
-
         UTF8_SINHALA_CI,    //exports.UTF8_SINHALA_CI              = 211;
         UTF8_GERMAN2_CI,    //exports.UTF8_GERMAN2_CI              = 212;
         UTF8_CROATIAN_MYSQL561_CI,//exports.UTF8_CROATIAN_MYSQL561_CI = 213;
         UTF8_UNICODE_520_CI,//exports.UTF8_UNICODE_520_CI          = 214;
         UTF8_VIETNAMESE_CI, //exports.UTF8_VIETNAMESE_CI           = 215;
-
         UTF8_GENERAL_MYSQL500_CI = 223,//exports.UTF8_GENERAL_MYSQL500_CI = 223;
         UTF8MB4_UNICODE_CI, //exports.UTF8MB4_UNICODE_CI           = 224;
         UTF8MB4_ICELANDIC_CI,//exports.UTF8MB4_ICELANDIC_CI        = 225;
@@ -255,7 +228,6 @@ namespace SharpConnect.MySql.Internal
         UTF8MB4_SLOVENIAN_CI,//exports.UTF8MB4_SLOVENIAN_CI        = 228;
         UTF8MB4_POLISH_CI,  //exports.UTF8MB4_POLISH_CI            = 229;
         UTF8MB4_ESTONIAN_CI,//exports.UTF8MB4_ESTONIAN_CI          = 230;
-
         UTF8MB4_SPANISH_CI, //exports.UTF8MB4_SPANISH_CI           = 231;
         UTF8MB4_SWEDISH_CI, //exports.UTF8MB4_SWEDISH_CI           = 232;
         UTF8MB4_TURKISH_CI, //exports.UTF8MB4_TURKISH_CI           = 233;
@@ -266,7 +238,6 @@ namespace SharpConnect.MySql.Internal
         UTF8MB4_SPANISH2_CI,//exports.UTF8MB4_SPANISH2_CI          = 238;
         UTF8MB4_ROMAN_CI,   //exports.UTF8MB4_ROMAN_CI             = 239;
         UTF8MB4_PERSIAN_CI, //exports.UTF8MB4_PERSIAN_CI           = 240;
-
         UTF8MB4_ESPERANTO_CI,//exports.UTF8MB4_ESPERANTO_CI        = 241;
         UTF8MB4_HUNGARIAN_CI,//exports.UTF8MB4_HUNGARIAN_CI        = 242;
         UTF8MB4_SINHALA_CI, //exports.UTF8MB4_SINHALA_CI           = 243;
@@ -274,9 +245,7 @@ namespace SharpConnect.MySql.Internal
         UTF8MB4_CROATIAN_MYSQL561_CI,//exports.UTF8MB4_CROATIAN_MYSQL561_CI = 245;
         UTF8MB4_UNICODE_520_CI,//exports.UTF8MB4_UNICODE_520_CI    = 246;
         UTF8MB4_VIETNAMESE_CI,//exports.UTF8MB4_VIETNAMESE_CI      = 247;
-
         UTF8_GENERAL50_CI = 253,  //exports.UTF8_GENERAL50_CI      = 253;
-
         //// short aliases
         ARMSCII8 = ARMSCII8_GENERAL_CI, //exports.ARMSCII8 = exports.ARMSCII8_GENERAL_CI;
         ASCII = ASCII_GENERAL_CI,       //exports.ASCII    = exports.ASCII_GENERAL_CI;
@@ -362,7 +331,6 @@ namespace SharpConnect.MySql.Internal
         NEWDATE,        //exports.NEWDATE     = 0x0e; // aka ?
         VARCHAR,        //exports.VARCHAR     = 0x0f; // aka VARCHAR (?)         
         BIT,            //exports.BIT         = 0x10; // aka BIT, 1-8 byte
-
         NEWDECIMAL = 0xf6,//exports.NEWDECIMAL= 0xf6; // aka DECIMAL
         ENUM,           //exports.ENUM        = 0xf7; // aka ENUM
         SET,            //exports.SET         = 0xf8; // aka SET
@@ -422,7 +390,6 @@ namespace SharpConnect.MySql.Internal
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
     struct MyStructData
     {
-
         [System.Runtime.InteropServices.FieldOffset(0)]
         public int myInt32;
         [System.Runtime.InteropServices.FieldOffset(0)]
@@ -446,10 +413,8 @@ namespace SharpConnect.MySql.Internal
         public byte[] myBuffer;
         [System.Runtime.InteropServices.FieldOffset(16)]
         public string myString;
-
         [System.Runtime.InteropServices.FieldOffset(24)]
         public Types type;
-
         public override string ToString()
         {
             switch (type)
@@ -485,7 +450,6 @@ namespace SharpConnect.MySql.Internal
                 case Types.GEOMETRY:
                 default: return base.ToString();
             }
-
         }
     }
 
@@ -493,7 +457,6 @@ namespace SharpConnect.MySql.Internal
     {
         double _x;
         double _y;
-
         List<Geometry> geoValues;
         public Geometry()
         {

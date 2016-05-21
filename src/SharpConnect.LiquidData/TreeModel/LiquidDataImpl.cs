@@ -1,9 +1,9 @@
 ﻿//MIT 2015, brezza92, EngineKit and contributors
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
-
 namespace SharpConnect.LiquidData
 {
     class LqArray : List<object>, LiquidArray
@@ -35,10 +35,8 @@ namespace SharpConnect.LiquidData
         string _name;
         int _nameIndex;
         LiquidDoc _owner;
-
         List<LiquidElement> _childNodes;
         Dictionary<string, LiquidAttribute> _attributeDic01 = new Dictionary<string, LiquidAttribute>();
-
         public LqElement(string elementName, LiquidDoc ownerdoc)
         {
             _name = elementName;
@@ -111,7 +109,6 @@ namespace SharpConnect.LiquidData
                 _childNodes = new List<LiquidElement>();
             }
             _childNodes.Add(element);
-
         }
         public void RemoveAttribute(LiquidAttribute attr)
         {
@@ -119,9 +116,7 @@ namespace SharpConnect.LiquidData
         }
         public void AppendAttribute(LiquidAttribute attr)
         {
-
             _attributeDic01.Add(attr.Name, attr);
-
         }
         public LiquidAttribute AppendAttribute(string key, object value)
         {
@@ -148,7 +143,6 @@ namespace SharpConnect.LiquidData
             _attributeDic01.TryGetValue(key, out existing);
             return existing;
         }
-
     }
     class LqAttribute : LiquidAttribute
     {
@@ -187,7 +181,6 @@ namespace SharpConnect.LiquidData
 
     public static class LiquidExtensionMethods
     {
-
         public static string GetAttributeValueAsString(this LiquidElement lqElement, string attrName)
         {
             return lqElement.GetAttributeValue(attrName) as string;
@@ -285,7 +278,6 @@ namespace SharpConnect.LiquidData
                     stBuilder.Append('"');
                     stBuilder.Append(':');
                     WriteJson(attr.Value, stBuilder);
-
                     attrCount++;
                 }
                 //-------------------
@@ -311,9 +303,7 @@ namespace SharpConnect.LiquidData
             }
             else
             {
-
             }
-
         }
         //-----------------------------------------------------------------------
         public static void WriteXml(this LiquidDoc lqdoc, StringBuilder stbuiolder)

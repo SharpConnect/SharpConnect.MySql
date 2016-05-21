@@ -22,18 +22,15 @@
 //THE SOFTWARE.
 
 using System;
-using System.Collections.Generic; 
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
-
 namespace SharpConnect.MySql.Internal
 {
     class Query
     {
-
         public bool typeCast;
         public bool nestTables;
-
         CommandParams _cmdParams;
         Connection _conn;
         TableHeader _tableHeader;
@@ -41,21 +38,16 @@ namespace SharpConnect.MySql.Internal
         RowPreparedDataPacket _lastPrepareRow;
         bool _hasSomeRow;
         bool _executePrepared;
-
         PacketParser _parser;
         PacketWriter _writer;
         SqlStringTemplate _sqlStrTemplate;
-        PreparedContext _prepareContext; 
+        PreparedContext _prepareContext;
         byte[] _receiveBuffer;
-
-
         const int DEFAULT_BUFFER_SIZE = 512;
         const byte ERROR_CODE = 255;
         const byte EOF_CODE = 0xfe;
         const byte OK_CODE = 0;
         const int MAX_PACKET_LENGTH = (1 << 24) - 1;//(int)Math.Pow(2, 24) - 1; 
-
-
         public Query(Connection conn, string sql, CommandParams cmdParams)//testing
         {
             if (sql == null)
@@ -63,23 +55,17 @@ namespace SharpConnect.MySql.Internal
                 throw new Exception("Sql command can not null.");
             }
             this._conn = conn;
-
             this._cmdParams = cmdParams;
-
             typeCast = conn.config.typeCast;
             nestTables = false;
-
             //index = 0;
             LoadError = null;
-
             //*** query use conn resource such as parser,writer
             //so 1 query 1 connection
             _parser = conn.PacketParser;
             _writer = conn.PacketWriter;
             _receiveBuffer = null;
-
             _sqlStrTemplate = new SqlStringTemplate(sql);
-
         }
 
         public ErrPacket LoadError { get; private set; }
@@ -115,13 +101,10 @@ namespace SharpConnect.MySql.Internal
         void ExecuteNonPrepare()
         {
             _writer.Reset();
-
             string realSql = _sqlStrTemplate.BindValues(_cmdParams, false);
-
             var queryPacket = new ComQueryPacket(realSql);
             queryPacket.WritePacket(_writer);
             SendPacket(_writer.ToArray());
-
             _prepareContext = null;
             ParseReceivePacket();
         }
@@ -130,26 +113,21 @@ namespace SharpConnect.MySql.Internal
         {
             //prepare sql query
             _prepareContext = null;
-
             if (_cmdParams == null)
             {
                 return;
             }
 
             _writer.Reset();
-
             string realSql = _sqlStrTemplate.BindValues(_cmdParams, true);
             ComPrepareStatementPacket preparePacket = new ComPrepareStatementPacket(realSql);
-
             preparePacket.WritePacket(_writer);
             SendPacket(_writer.ToArray());
-
             OkPrepareStmtPacket okPreparePacket = new OkPrepareStmtPacket();
             okPreparePacket = ParsePrepareResponse();
             if (okPreparePacket != null)
             {
                 _prepareContext = new PreparedContext(okPreparePacket.statement_id, _sqlStrTemplate);
-
                 if (okPreparePacket.num_params > 0)
                 {
                     var tableHeader = new TableHeader();
@@ -165,9 +143,7 @@ namespace SharpConnect.MySql.Internal
 
                     //set table after the table is ready!
                     _prepareContext.Setup(tableHeader);
-
                     ParseEOF();
-
                 }
                 if (okPreparePacket.num_columns > 0)
                 {
@@ -175,7 +151,6 @@ namespace SharpConnect.MySql.Internal
                     _tableHeader.TypeCast = typeCast;
                     _tableHeader.NestTables = nestTables;
                     _tableHeader.ConnConfig = _conn.config;
-
                     for (int i = 0; i < okPreparePacket.num_columns; i++)
                     {
                         FieldPacket field = ParseColumn();
@@ -183,9 +158,7 @@ namespace SharpConnect.MySql.Internal
                     }
                     ParseEOF();
                 }
-
             }
-
         }
         void ExecutePrepareQuery()
         {
@@ -205,16 +178,12 @@ namespace SharpConnect.MySql.Internal
                 throw new Exception("exec Prepare() first");
             }
             //---------------------------------------------------------------------------------
-            if(_executePrepared)
+            if (_executePrepared)
                 ResetPrepareStmt();
-
             _writer.Reset();
-
             //fill prepared values 
             var excute = new ComExecutePrepareStatement(_prepareContext.statementId, _prepareContext.PrepareBoundData(_cmdParams));
-
             excute.WritePacket(_writer);
-
             SendPacket(_writer.ToArray());
             ParseReceivePacket();
             _executePrepared = true;
@@ -268,17 +237,14 @@ namespace SharpConnect.MySql.Internal
                 case EOF_CODE:
                     {
                         EofPacket rowDataEof = ParseEOF();
-
                         return _hasSomeRow = false;
                     }
                 default:
                     {
                         if (_prepareContext != null)
                         {
-
                             _lastPrepareRow.ReuseSlots();
                             _lastPrepareRow.ParsePacketHeader(_parser);
-
                             _receiveBuffer = CheckLimit(_lastPrepareRow.GetPacketLength(), _receiveBuffer, DEFAULT_BUFFER_SIZE);
                             _lastPrepareRow.ParsePacket(_parser);
                             CheckBeforeParseHeader(_receiveBuffer);
@@ -287,7 +253,6 @@ namespace SharpConnect.MySql.Internal
                         {
                             _lastRow.ReuseSlots();
                             _lastRow.ParsePacketHeader(_parser);
-
                             _receiveBuffer = CheckLimit(_lastRow.GetPacketLength(), _receiveBuffer, DEFAULT_BUFFER_SIZE);
                             _lastRow.ParsePacket(_parser);
                             CheckBeforeParseHeader(_receiveBuffer);
@@ -352,14 +317,11 @@ namespace SharpConnect.MySql.Internal
         {
             ResultSetHeaderPacket resultPacket = new ResultSetHeaderPacket();
             resultPacket.ParsePacket(_parser);
-
             this._tableHeader = new TableHeader();
             _tableHeader.TypeCast = typeCast;
             _tableHeader.NestTables = nestTables;
             _tableHeader.ConnConfig = _conn.config;
-
             bool protocol41 = _conn.IsProtocol41;
-
             while (_receiveBuffer[_parser.Position + 4] != EOF_CODE)
             {
                 FieldPacket fieldPacket = ParseColumn();
@@ -376,7 +338,6 @@ namespace SharpConnect.MySql.Internal
             int sent = 0;
             int packetLength = packetBuffer.Length;
             var socket = _conn.socket;
-
             while (sent < packetLength)
             {//if packet is large
                 sent += socket.Send(packetBuffer, sent, packetLength - sent, SocketFlags.None);
@@ -427,7 +388,6 @@ namespace SharpConnect.MySql.Internal
             eofPacket.ParsePacketHeader(_parser);
             _receiveBuffer = CheckLimit(eofPacket.GetPacketLength(), _receiveBuffer, DEFAULT_BUFFER_SIZE);
             eofPacket.ParsePacket(_parser);
-
             CheckBeforeParseHeader(_receiveBuffer);
             return eofPacket;
         }
@@ -440,7 +400,6 @@ namespace SharpConnect.MySql.Internal
                 int packetRemainLength = (int)packetLength - remainLength;
                 int newReceiveBuffLength = (packetRemainLength < limit) ? packetRemainLength : limit;
                 int newBufferLength = newReceiveBuffLength + remainLength;
-
                 if (newBufferLength > buffer.Length)
                 {
                     var tmpBuffer = new byte[newBufferLength];
@@ -509,26 +468,21 @@ namespace SharpConnect.MySql.Internal
                     return;
                 }
                 int expectedReceive = (available < bufferRemain ? available : bufferRemain);
-
                 int realReceive = socket.Receive(buffer, remainLength, expectedReceive, SocketFlags.None);
                 int newBufferLength = remainLength + realReceive;//sometime realReceive != expectedReceive
                 _parser.LoadNewBuffer(buffer, newBufferLength);
                 dbugConsole.WriteLine("CheckBeforeParseHeader : LoadNewBuffer");
             }
         }
-
     }
 
     class PreparedContext
     {
         public readonly uint statementId;
-
         TableHeader _tableHeader;
         SqlStringTemplate _sqlStringTemplate;
         MyStructData[] _preparedValues;
         List<SqlBoundSection> _keys;
-        
-
         public PreparedContext(uint statementId, SqlStringTemplate sqlStringTemplate)
         {
             this.statementId = statementId;
@@ -538,11 +492,8 @@ namespace SharpConnect.MySql.Internal
         public void Setup(TableHeader tableHeader)
         {
             _tableHeader = tableHeader;
-
             int fieldCount = tableHeader.ColumnCount;
             _preparedValues = new MyStructData[fieldCount];
-
-
             if (_keys.Count != fieldCount)
             {
                 throw new Exception("key num not matched!");
@@ -554,11 +505,9 @@ namespace SharpConnect.MySql.Internal
             {
                 _keys[i].fieldInfo = fields[i];
             }
-
         }
         public MyStructData[] PrepareBoundData(CommandParams cmdParams)
         {
-
             //1. check proper type and 
             //2. check all values are in its range  
             //extract and arrange 
@@ -567,7 +516,6 @@ namespace SharpConnect.MySql.Internal
             for (int i = 0; i < j; ++i)
             {
                 SqlBoundSection key = _keys[i];
-
                 if (!cmdParams.TryGetData(key.Text, out _preparedValues[i]))
                 {
                     //not found key 
@@ -604,8 +552,6 @@ namespace SharpConnect.MySql.Internal
 
             return _preparedValues;
         }
-
-
     }
 
 
@@ -615,7 +561,6 @@ namespace SharpConnect.MySql.Internal
     {
         List<FieldPacket> _fields;
         Dictionary<string, int> _fieldNamePosMap;
-
         public TableHeader()
         {
             this._fields = new List<FieldPacket>();

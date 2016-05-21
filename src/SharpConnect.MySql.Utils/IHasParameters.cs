@@ -74,6 +74,5 @@ namespace SharpConnect.MySql.Utils
         {
             ihasPars.Pars.ClearDataValues();
         }
-
     }
 }

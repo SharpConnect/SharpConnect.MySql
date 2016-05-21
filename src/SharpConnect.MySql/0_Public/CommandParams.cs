@@ -3,12 +3,10 @@
 using System;
 using System.Collections.Generic;
 using SharpConnect.MySql.Internal;
-
 namespace SharpConnect.MySql
 {
     public class CommandParams
     {
-
         Dictionary<string, MyStructData> _values = new Dictionary<string, MyStructData>(); //user bound values
         Dictionary<string, string> _sqlParts;//null at first, special  extension
         public CommandParams()
@@ -32,7 +30,6 @@ namespace SharpConnect.MySql
                 data.type = Types.NULL;
             }
             _values[key] = data;
-
         }
         public void AddWithValue(string key, byte value)
         {
@@ -130,7 +127,6 @@ namespace SharpConnect.MySql
         }
         public void AddWithValue(string key, ushort value)
         {
-
             //INT 2       min        max
             //signed      -32768    32767
             //unsigned     0     65535

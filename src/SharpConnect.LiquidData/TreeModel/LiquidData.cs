@@ -14,7 +14,6 @@ namespace SharpConnect.LiquidData
         void AppendChild(LiquidElement element);
         void AppendAttribute(LiquidAttribute attr);
         LiquidAttribute AppendAttribute(string key, object value);
-
         object GetAttributeValue(string key);
         LiquidAttribute GetAttributeElement(string key);
         int ChildCount { get; }

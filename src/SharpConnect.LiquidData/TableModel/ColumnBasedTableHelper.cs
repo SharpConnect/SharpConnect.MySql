@@ -1,14 +1,13 @@
 ﻿//MIT 2015, brezza92, EngineKit and contributors
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-
 namespace SharpConnect.LiquidData
 {
     public static class ColumnBasedTableHelper
     {
-
         public static ColumnBasedTable CreateColumnBaseTableFromCsv(string file, Encoding enc)
         {
             var table = new ColumnBasedTable();
@@ -19,7 +18,6 @@ namespace SharpConnect.LiquidData
                 string firstline = reader.ReadLine();
                 string[] col_names = ParseCsvLine(firstline);
                 int col_count = col_names.Length;
-
                 DataColumn[] columns = new DataColumn[col_count];
                 for (int i = 0; i < col_count; ++i)
                 {
@@ -34,7 +32,7 @@ namespace SharpConnect.LiquidData
                     if (cells.Length != col_count)
                     {
                         throw new NotSupportedException("column count not match!");
-                    } 
+                    }
                     for (int i = 0; i < col_count; ++i)
                     {
                         columns[i].AddData(cells[i]);
@@ -57,7 +55,6 @@ namespace SharpConnect.LiquidData
             int state = 0;
             //TODO: optimize currentBuffer
             List<char> currentBuffer = new List<char>();
-
             for (int i = 0; i < j; ++i)
             {
                 char c = buffer[i];
@@ -79,7 +76,6 @@ namespace SharpConnect.LiquidData
                                 state = 2;
                                 currentBuffer.Add(c);
                             }
-
                         }
                         break;
                     case 1:  //string escape
@@ -121,7 +117,6 @@ namespace SharpConnect.LiquidData
                 output.Add(new string(currentBuffer.ToArray()));
             }
             return output.ToArray();
-
         }
     }
 }

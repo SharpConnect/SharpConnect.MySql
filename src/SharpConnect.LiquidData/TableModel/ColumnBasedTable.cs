@@ -1,7 +1,7 @@
 ﻿//MIT 2015, brezza92, EngineKit and contributors
+
 using System;
 using System.Collections.Generic;
-
 namespace SharpConnect.LiquidData
 {
     /// <summary>
@@ -75,7 +75,6 @@ namespace SharpConnect.LiquidData
             {
                 throw new Exception("duplicate coloumn name " + colName);
             }
-
         }
 
         public int GetColumnIndex(string colname)
@@ -92,11 +91,9 @@ namespace SharpConnect.LiquidData
                 found = -1; //not found
             }
             return found;
-
         }
         void ValidateColumnNames()
         {
-
             _colNames.Clear();
             int j = _dataColumns.Count;
             for (int i = 0; i < j; ++i)
@@ -106,7 +103,6 @@ namespace SharpConnect.LiquidData
             }
 
             _columnNameState = ColumnNameState.OK;
-
         }
         internal void InvalidateColumnNameState()
         {
@@ -140,7 +136,6 @@ namespace SharpConnect.LiquidData
             set
             {
                 _name = value;
-
             }
         }
         public ColumnTypeHint TypeHint
@@ -168,6 +163,4 @@ namespace SharpConnect.LiquidData
         Double,
         Boolean
     }
-
-
 }
