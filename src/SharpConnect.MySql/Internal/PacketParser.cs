@@ -50,11 +50,19 @@ namespace SharpConnect.MySql.Internal
         {
             Dispose();
         }
-        public long Position
+
+        /// <summary>
+        /// current stream's paring position
+        /// </summary>
+        public long ReadPosition
         {
             get { return _stream.Position; }
         }
-        public long Length
+
+        /// <summary>
+        /// buffer length
+        /// </summary>
+        public long BufferLength
         {
             get
             {
@@ -69,12 +77,15 @@ namespace SharpConnect.MySql.Internal
             _stream.Dispose();
         }
 
-        void Reset()
+        public void Reset()
         {
             _stream.Position = 0;
             _myLength = 0;
         }
-
+        public void SetPosition(int pos)
+        {
+            _stream.Position = pos;
+        }
         public void LoadNewBuffer(byte[] newBuffer, int count)
         {
             Reset();
@@ -180,11 +191,20 @@ namespace SharpConnect.MySql.Internal
             }
             return dateTime;
         }
-
+#if DEBUG
+        static int debugLastPacketNum = 1;
+#endif
         public PacketHeader ParsePacketHeader()
         {
             _startPosition = _stream.Position;
             PacketHeader header = new PacketHeader(ParseUnsigned3(), ParseByte());
+#if DEBUG
+            if (header.PacketNumber > debugLastPacketNum + 1)
+            {
+                Console.WriteLine(header.PacketNumber);
+            }
+            debugLastPacketNum = header.PacketNumber;
+#endif
             _packetLength = header.Length + 4;
             return header;
         }
@@ -225,7 +245,7 @@ namespace SharpConnect.MySql.Internal
             //        err.code = 'PARSER_READ_PAST_END';
             //        throw err;
             //    }
-            if (Position >= Length)
+            if (ReadPosition >= BufferLength)
             {
                 throw new Exception("Parser: read past end");
             }
@@ -271,28 +291,32 @@ namespace SharpConnect.MySql.Internal
             //    var value;
             uint low = ParseUnsigned4();
             uint high = ParseUnsigned4();
-            return 0;
-            //    if (high >>> 21)
+            if ((uint)(high >> 21) > 0)
+            {
+                long value = low + ((2 << 32) * high);
+            }
+            return low + ((2 << 32) * high);
+            //if (high >>> 21)
+            //{
+            //    value = (new BigNumber(low)).plus((new BigNumber(MUL_32BIT)).times(high)).toString();
+
+            //    if (this._supportBigNumbers)
             //    {
-            //        value = (new BigNumber(low)).plus((new BigNumber(MUL_32BIT)).times(high)).toString();
-
-            //        if (this._supportBigNumbers)
-            //        {
-            //            return value;
-            //        }
-
-            //        var err = new Error(
-            //          'parseLengthCodedNumber: JS precision range exceeded, ' +
-            //          'number is >= 53 bit: "' + value + '"'
-            //        );
-            //        err.offset = (this._offset - this._packetOffset - 8);
-            //        err.code = 'PARSER_JS_PRECISION_RANGE_EXCEEDED';
-            //        throw err;
+            //        return value;
             //    }
 
-            //    value = low + (MUL_32BIT * high);
+            //    var err = new Error(
+            //      'parseLengthCodedNumber: JS precision range exceeded, ' +
+            //      'number is >= 53 bit: "' + value + '"'
+            //    );
+            //    err.offset = (this._offset - this._packetOffset - 8);
+            //    err.code = 'PARSER_JS_PRECISION_RANGE_EXCEEDED';
+            //    throw err;
+            //}
 
-            //    return value;
+            //value = low + (MUL_32BIT * high);
+
+            //return value;
         }
 
         public byte ParseUnsigned1()
@@ -409,7 +433,7 @@ namespace SharpConnect.MySql.Internal
 
         public string ParsePacketTerminatedString()
         {
-            long distance = (_startPosition + _packetLength) - Position;
+            long distance = (_startPosition + _packetLength) - ReadPosition;
             if (distance > 0)
             {
                 return new string(_reader.ReadChars((int)distance));
@@ -593,7 +617,7 @@ namespace SharpConnect.MySql.Internal
 
         public bool ReachedPacketEnd()
         {
-            return this.Position == _startPosition + _packetLength;
+            return this.ReadPosition == _startPosition + _packetLength;
         }
 
         public byte[] ToArray()
