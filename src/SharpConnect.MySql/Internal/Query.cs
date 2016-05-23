@@ -226,7 +226,7 @@ namespace SharpConnect.MySql.Internal
                 return _hasSomeRow = false;
             }
 
-            switch (_receiveBuffer[_parser.Position + 4])
+            switch (_receiveBuffer[_parser.ReadPosition + 4])
             {
                 case ERROR_CODE:
                     {
@@ -243,17 +243,50 @@ namespace SharpConnect.MySql.Internal
                     {
                         if (_prepareContext != null)
                         {
-                            _lastPrepareRow.ReuseSlots();
-                            _lastPrepareRow.ParsePacketHeader(_parser);
-                            _receiveBuffer = CheckLimit(_lastPrepareRow.GetPacketLength(), _receiveBuffer, DEFAULT_BUFFER_SIZE);
-                            _lastPrepareRow.ParsePacket(_parser);
-                            CheckBeforeParseHeader(_receiveBuffer);
+                            bool doMore = false;
+#if DEBUG
+                            uint dbug_total = 0;
+#endif
+                            List<MyStructData[]> waitingDataForMerge = null;
+                            try
+                            {
+                                doMore = false;//reset;
+                                do
+                                {
+                                    _lastPrepareRow.ReuseSlots();
+                                    _lastPrepareRow.ParsePacketHeader(_parser);
+                                    uint packetHeaderLength = _lastPrepareRow.GetPacketLength();
+                                    _receiveBuffer = CheckLimit(packetHeaderLength, _receiveBuffer, _receiveBuffer.Length);
+                                    _lastPrepareRow.ParsePacket(_parser);
+                                    if (packetHeaderLength >= Packet.MAX_PACKET_LENGTH)
+                                    {
+                                        //we need another packet
+                                        doMore = true;
+                                        if (waitingDataForMerge == null)
+                                        {
+                                            waitingDataForMerge = new List<MyStructData[]>();
+                                        }
+                                        MyStructData[] internalDataArr = _lastPrepareRow.GetInternalStructData();
+                                        MyStructData[] copy = new MyStructData[internalDataArr.Length];
+                                        dbug_total += (uint)internalDataArr[0].myBuffer.Length;
+                                        Array.Copy(internalDataArr, copy, internalDataArr.Length);
+                                        waitingDataForMerge.Add(copy);
+                                        _parser.Reset();
+                                    }
+
+                                    CheckBeforeParseHeader(_receiveBuffer);
+                                } while (doMore);
+
+                            }
+                            catch (Exception ex)
+                            {
+                            }
                         }
                         else
                         {
                             _lastRow.ReuseSlots();
                             _lastRow.ParsePacketHeader(_parser);
-                            _receiveBuffer = CheckLimit(_lastRow.GetPacketLength(), _receiveBuffer, DEFAULT_BUFFER_SIZE);
+                            _receiveBuffer = CheckLimit(_lastRow.GetPacketLength(), _receiveBuffer, _receiveBuffer.Length);
                             _lastRow.ParsePacket(_parser);
                             CheckBeforeParseHeader(_receiveBuffer);
                         }
@@ -322,7 +355,7 @@ namespace SharpConnect.MySql.Internal
             _tableHeader.NestTables = nestTables;
             _tableHeader.ConnConfig = _conn.config;
             bool protocol41 = _conn.IsProtocol41;
-            while (_receiveBuffer[_parser.Position + 4] != EOF_CODE)
+            while (_receiveBuffer[_parser.ReadPosition + 4] != EOF_CODE)
             {
                 FieldPacket fieldPacket = ParseColumn();
                 _tableHeader.AddField(fieldPacket);
@@ -376,7 +409,7 @@ namespace SharpConnect.MySql.Internal
         {
             FieldPacket fieldPacket = new FieldPacket(_conn.IsProtocol41);
             fieldPacket.ParsePacketHeader(_parser);
-            _receiveBuffer = CheckLimit(fieldPacket.GetPacketLength(), _receiveBuffer, DEFAULT_BUFFER_SIZE);
+            _receiveBuffer = CheckLimit(fieldPacket.GetPacketLength(), _receiveBuffer, _receiveBuffer.Length);
             fieldPacket.ParsePacket(_parser);
             CheckBeforeParseHeader(_receiveBuffer);
             return fieldPacket;
@@ -386,37 +419,140 @@ namespace SharpConnect.MySql.Internal
         {
             EofPacket eofPacket = new EofPacket(_conn.IsProtocol41);//if temp[4]=0xfe then eof packet
             eofPacket.ParsePacketHeader(_parser);
-            _receiveBuffer = CheckLimit(eofPacket.GetPacketLength(), _receiveBuffer, DEFAULT_BUFFER_SIZE);
+            _receiveBuffer = CheckLimit(eofPacket.GetPacketLength(), _receiveBuffer, _receiveBuffer.Length);
             eofPacket.ParsePacket(_parser);
             CheckBeforeParseHeader(_receiveBuffer);
             return eofPacket;
         }
 
-        byte[] CheckLimit(uint packetLength, byte[] buffer, int limit)
+        byte[] CheckLimit(uint completePacketLength, byte[] buffer, int limit)
         {
-            int remainLength = (int)(_parser.Length - _parser.Position);
-            if (packetLength > remainLength)
+            //int availableBufferLength = (int)(_parser.BufferLength - _parser.ReadPosition);
+            int availableBufferLength = (int)(buffer.Length - _parser.ReadPosition);
+            if (availableBufferLength < completePacketLength)
             {
-                int packetRemainLength = (int)packetLength - remainLength;
-                int newReceiveBuffLength = (packetRemainLength < limit) ? packetRemainLength : limit;
-                int newBufferLength = newReceiveBuffLength + remainLength;
+                int needMoreLength = (int)completePacketLength - availableBufferLength;
+                int read_count = 0;
+                int remainingBytes = 0;
+                if (needMoreLength < limit)
+                {
+                    //use same buffer
+                    //just shift buffer to left (at the begining, pos 0)
+                    Buffer.BlockCopy(buffer, (int)_parser.ReadPosition, buffer, 0, availableBufferLength);
+                    // _parser.Reset();
+                    read_count = availableBufferLength;
+                    remainingBytes = (int)completePacketLength - read_count;
+                }
+                else
+                {
+                    //we need to expand current buffer to a bigger one
+                    var tmpBuffer = new byte[completePacketLength + 4];
+                    Buffer.BlockCopy(buffer, (int)_parser.ReadPosition, tmpBuffer, 0, availableBufferLength);
+                    // _parser.ResetStreamPos();
+                    buffer = tmpBuffer;
+                    read_count = availableBufferLength;
+                    remainingBytes = (int)completePacketLength - read_count;
+                }
+                remainingBytes -= 12;
+
+                try
+                {
+                    var socket = _conn.socket;
+                    int actualReceiveBytes = socket.Receive(buffer, read_count, remainingBytes, SocketFlags.None);
+                    read_count += actualReceiveBytes;
+                    remainingBytes -= actualReceiveBytes;
+                    int timeoutCountdown = 10000;
+                    while (remainingBytes > 0)
+                    {
+                        // Console.WriteLine(remainingBytes.ToString());
+
+                        int available = socket.Available;
+                        if (available > 0)
+                        {
+                            //read 
+
+                            if (read_count + available <= completePacketLength)
+                            {
+                                actualReceiveBytes = socket.Receive(buffer, read_count, remainingBytes, SocketFlags.None);
+                            }
+                            else
+                            {
+                                int x = (int)completePacketLength - read_count;
+                                if (read_count + x > buffer.Length)
+                                {
+                                    int diff = (read_count + x) - buffer.Length;
+                                }
+
+                                actualReceiveBytes = socket.Receive(buffer, read_count, (int)completePacketLength - read_count, SocketFlags.None);
+                            }
+
+
+                            read_count += actualReceiveBytes;
+                            remainingBytes -= actualReceiveBytes;
+                            timeoutCountdown = 10000;//reset, timeoutCountdown maybe < 10000 when socket receive faster than server send data
+                        }
+                        else
+                        {
+                            //TODO: review here !!!
+                            Thread.Sleep(10);//sometime socket maybe receive faster than server send data
+                            timeoutCountdown -= 10;
+                            if (socket.Available > 0)
+                            {
+                                continue;
+                            }
+                            if (timeoutCountdown <= 0)//sometime server maybe error
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                }
+
+#if DEBUG
+                var dbugView = new dbugBufferView(buffer, 11, read_count - 11);
+                dbugView.viewIndex = dbugView.CheckNoDulpicateBytes();
+
+#endif
+                _parser.LoadNewBuffer(buffer, read_count);
+            }
+            return buffer;
+        }
+        byte[] CheckLimit2(uint completePacketLength, byte[] buffer, int limit)
+        {
+            int availableBufferLength = (int)(_parser.BufferLength - _parser.ReadPosition);
+            if (availableBufferLength < completePacketLength)
+            {
+                int needMoreLength = (int)completePacketLength - availableBufferLength;
+                if (needMoreLength < limit)
+                {
+                }
+                else
+                {
+                }
+
+                int receiveLengthThisRound = (needMoreLength < limit) ? needMoreLength : limit;
+                int newBufferLength = receiveLengthThisRound + availableBufferLength;
                 if (newBufferLength > buffer.Length)
                 {
+                    //we need to expand current buffer to a bigger one
                     var tmpBuffer = new byte[newBufferLength];
-                    Buffer.BlockCopy(buffer, (int)_parser.Position, tmpBuffer, 0, remainLength);
+                    Buffer.BlockCopy(buffer, (int)_parser.ReadPosition, tmpBuffer, 0, availableBufferLength);
                     buffer = tmpBuffer;
                 }
                 else
                 {
                     //use same buffer
                     //just move
-                    Buffer.BlockCopy(buffer, (int)_parser.Position, buffer, 0, remainLength);
+                    Buffer.BlockCopy(buffer, (int)_parser.ReadPosition, buffer, 0, availableBufferLength);
                 }
 
                 var socket = _conn.socket;
-                int newReceive = remainLength + socket.Receive(buffer, remainLength, newReceiveBuffLength, SocketFlags.None);
+                int newReceive = availableBufferLength + socket.Receive(buffer, availableBufferLength, receiveLengthThisRound, SocketFlags.None);
                 int timeoutCountdown = 10000;
-                while (newReceive < newBufferLength)
+                while (newReceive <= newBufferLength)
                 {
                     int available = socket.Available;
                     if (available > 0)
@@ -433,6 +569,7 @@ namespace SharpConnect.MySql.Internal
                     }
                     else
                     {
+                        //TODO: review here !!!
                         Thread.Sleep(10);//sometime socket maybe receive faster than server send data
                         timeoutCountdown -= 10;
                         if (socket.Available > 0)
@@ -453,12 +590,15 @@ namespace SharpConnect.MySql.Internal
         void CheckBeforeParseHeader(byte[] buffer)
         {
             //todo: check memory mx again
-            int remainLength = (int)(_parser.Length - _parser.Position);
+            int remainLength = (int)(_parser.BufferLength - _parser.ReadPosition);
             if (remainLength < 5)//5 bytes --> 4 bytes from header and 1 byte for find packet type
             {
                 //byte[] remainBuff = new byte[remainLength];
-                Buffer.BlockCopy(buffer, (int)_parser.Position, buffer, 0, remainLength);
-                //remainBuff.CopyTo(buffer, 0);
+                if (remainLength > 0)
+                {
+                    Buffer.BlockCopy(buffer, (int)_parser.ReadPosition, buffer, 0, remainLength);
+                    //remainBuff.CopyTo(buffer, 0);
+                }
 
                 var socket = _conn.socket;
                 int bufferRemain = buffer.Length - remainLength;
