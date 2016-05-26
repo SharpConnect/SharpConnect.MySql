@@ -241,58 +241,93 @@ namespace SharpConnect.MySql.Internal
                     }
                 default:
                     {
-                        if (_prepareContext != null)
-                        {
-                            bool doMore = false;
-#if DEBUG
-                            uint dbug_total = 0;
-#endif
-                            List<MyStructData[]> waitingDataForMerge = null;
-                            try
-                            {
-                                doMore = false;//reset;
-                                do
-                                {
-                                    _lastPrepareRow.ReuseSlots();
-                                    _lastPrepareRow.ParsePacketHeader(_parser);
-                                    uint packetHeaderLength = _lastPrepareRow.GetPacketLength();
-                                    _receiveBuffer = CheckLimit(packetHeaderLength, _receiveBuffer, _receiveBuffer.Length);
-                                    _lastPrepareRow.ParsePacket(_parser);
-                                    if (packetHeaderLength >= Packet.MAX_PACKET_LENGTH)
-                                    {
-                                        //we need another packet
-                                        doMore = true;
-                                        if (waitingDataForMerge == null)
-                                        {
-                                            waitingDataForMerge = new List<MyStructData[]>();
-                                        }
-                                        MyStructData[] internalDataArr = _lastPrepareRow.GetInternalStructData();
-                                        MyStructData[] copy = new MyStructData[internalDataArr.Length];
-                                        dbug_total += (uint)internalDataArr[0].myBuffer.Length;
-                                        Array.Copy(internalDataArr, copy, internalDataArr.Length);
-                                        waitingDataForMerge.Add(copy);
-                                        _parser.Reset();
-                                    }
-
-                                    CheckBeforeParseHeader(_receiveBuffer);
-                                } while (doMore);
-
-                            }
-                            catch (Exception ex)
-                            {
-                            }
-                        }
-                        else
-                        {
-                            _lastRow.ReuseSlots();
-                            _lastRow.ParsePacketHeader(_parser);
-                            _receiveBuffer = CheckLimit(_lastRow.GetPacketLength(), _receiveBuffer, _receiveBuffer.Length);
-                            _lastRow.ParsePacket(_parser);
-                            CheckBeforeParseHeader(_receiveBuffer);
-                        }
-                        return _hasSomeRow = true;
+                        //return ReadRowPacket_O();
+                        return ReadRowPacket_N();
                     }
             }
+        }
+
+        bool ReadRowPacket_O()
+        {
+            if (_prepareContext != null)
+            {
+                bool doMore = false;
+#if DEBUG
+                uint dbug_total = 0;
+#endif
+                List<MyStructData[]> waitingDataForMerge = null;
+                try
+                {
+                    doMore = false;//reset;
+                    do
+                    {
+                        _lastPrepareRow.ReuseSlots();
+                        _lastPrepareRow.ParsePacketHeader(_parser);
+                        uint packetHeaderLength = _lastPrepareRow.GetPacketLength();
+                        _receiveBuffer = CheckLimit(packetHeaderLength, _receiveBuffer, _receiveBuffer.Length);
+                        _lastPrepareRow.ParsePacket(_parser);
+                        if (packetHeaderLength >= Packet.MAX_PACKET_LENGTH)
+                        {
+                            //we need another packet
+                            doMore = true;
+                            if (waitingDataForMerge == null)
+                            {
+                                waitingDataForMerge = new List<MyStructData[]>();
+                            }
+                            MyStructData[] internalDataArr = _lastPrepareRow.GetInternalStructData();
+                            MyStructData[] copy = new MyStructData[internalDataArr.Length];
+                            dbug_total += (uint)internalDataArr[0].myBuffer.Length;
+                            Array.Copy(internalDataArr, copy, internalDataArr.Length);
+                            waitingDataForMerge.Add(copy);
+                            _parser.Reset();
+                        }
+
+                        CheckBeforeParseHeader(_receiveBuffer);
+                    } while (doMore);
+
+                }
+                catch (Exception ex)
+                {
+                }
+            }
+            else
+            {
+                _lastRow.ReuseSlots();
+                _lastRow.ParsePacketHeader(_parser);
+                _receiveBuffer = CheckLimit(_lastRow.GetPacketLength(), _receiveBuffer, _receiveBuffer.Length);
+                _lastRow.ParsePacket(_parser);
+                CheckBeforeParseHeader(_receiveBuffer);
+            }
+            return _hasSomeRow = true;
+        }
+
+        bool ReadRowPacket_N()
+        {
+            if (_prepareContext != null)
+            {
+                try
+                {
+                    _lastPrepareRow.ReuseSlots();
+                    _lastPrepareRow.ParsePacketHeader(_parser);
+                    uint packetHeaderLength = _lastPrepareRow.GetPacketLength();
+                    _receiveBuffer = ReadPacket(_receiveBuffer, _lastPrepareRow.Header, _parser);
+                    _lastPrepareRow.ParsePacket(_parser);
+                    CheckBeforeParseHeader(_receiveBuffer);
+                }
+                catch (Exception ex)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                _lastRow.ReuseSlots();
+                _lastRow.ParsePacketHeader(_parser);
+                _receiveBuffer = CheckLimit(_lastRow.GetPacketLength(), _receiveBuffer, _receiveBuffer.Length);
+                _lastRow.ParsePacket(_parser);
+                CheckBeforeParseHeader(_receiveBuffer);
+            }
+            return _hasSomeRow = true;
         }
 
         public int GetColumnIndex(string colName)
@@ -376,8 +411,7 @@ namespace SharpConnect.MySql.Internal
                 sent += socket.Send(packetBuffer, sent, packetLength - sent, SocketFlags.None);
             }
         }
-
-
+        
         OkPrepareStmtPacket ParsePrepareResponse()
         {
             _receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
@@ -520,71 +554,85 @@ namespace SharpConnect.MySql.Internal
             }
             return buffer;
         }
-        byte[] CheckLimit2(uint completePacketLength, byte[] buffer, int limit)
+
+        byte[] ReadPacket(byte[] recieveBuffer, PacketHeader header, PacketParser parser)
         {
-            int availableBufferLength = (int)(_parser.BufferLength - _parser.ReadPosition);
-            if (availableBufferLength < completePacketLength)
+            if (!header.IsEmpty())
             {
-                int needMoreLength = (int)completePacketLength - availableBufferLength;
-                if (needMoreLength < limit)
+                int recievedData = (int)(parser.BufferLength - parser.ReadPosition);
+                uint remainRecieve = header.Length - (uint)recievedData;
+                byte[] buffer = new byte[header.Length];
+                Buffer.BlockCopy(recieveBuffer, (int)parser.ReadPosition, buffer, 0, recievedData);
+                if (remainRecieve > 0)
                 {
+                    byte[] newRecieve = RecieveData((int)remainRecieve);
+                    byte[] end = new byte[100];
+                    Buffer.BlockCopy(newRecieve, newRecieve.Length - 101, end, 0, 100);
+                    parser.LoadNewBuffer(newRecieve, newRecieve.Length);
+                    Buffer.BlockCopy(newRecieve, 0, buffer, recievedData, newRecieve.Length);
                 }
-                else
+                while (header.Length >= MAX_PACKET_LENGTH)
                 {
-                }
+                    byte[] temp = RecieveData(4);//for header
+                    parser.Reset();
+                    parser.LoadNewBuffer(temp, temp.Length);
+                    header = parser.ParsePacketHeader();
+                    parser.Reset();//reset header
 
-                int receiveLengthThisRound = (needMoreLength < limit) ? needMoreLength : limit;
-                int newBufferLength = receiveLengthThisRound + availableBufferLength;
-                if (newBufferLength > buffer.Length)
-                {
-                    //we need to expand current buffer to a bigger one
-                    var tmpBuffer = new byte[newBufferLength];
-                    Buffer.BlockCopy(buffer, (int)_parser.ReadPosition, tmpBuffer, 0, availableBufferLength);
-                    buffer = tmpBuffer;
-                }
-                else
-                {
-                    //use same buffer
-                    //just move
-                    Buffer.BlockCopy(buffer, (int)_parser.ReadPosition, buffer, 0, availableBufferLength);
-                }
+                    temp = (byte[])buffer.Clone();//prevent copy by reference
+                    buffer = new byte[buffer.Length + header.Length];
+                    Buffer.BlockCopy(temp, 0, buffer, 0, temp.Length);
 
+                    int lastPosition = temp.Length;
+                    temp = RecieveData((int)header.Length);
+                    byte[] end = new byte[100];
+                    Buffer.BlockCopy(temp, temp.Length - 101, end, 0, 100);
+                    parser.LoadNewBuffer(temp, temp.Length);
+                    Buffer.BlockCopy(temp, 0, buffer, lastPosition, temp.Length);
+                }
+                parser.LoadNewBuffer(buffer, buffer.Length);
+                return buffer;
+            }
+            else
+            {
+                throw new Exception("Expected non empty header");
+            }
+        }
+
+        byte[] RecieveData(int n)
+        {
+            if (n > 0)
+            {
                 var socket = _conn.socket;
-                int newReceive = availableBufferLength + socket.Receive(buffer, availableBufferLength, receiveLengthThisRound, SocketFlags.None);
-                int timeoutCountdown = 10000;
-                while (newReceive <= newBufferLength)
+                byte[] recieved = new byte[n];
+                int actualRecieve = socket.Receive(recieved);
+                int socketEmptyCount = 0;
+                while (actualRecieve < n)
                 {
-                    int available = socket.Available;
-                    if (available > 0)
+                    if (socket.Available > 0)
                     {
-                        if (newReceive + available < newBufferLength)
-                        {
-                            newReceive += socket.Receive(buffer, newReceive, available, SocketFlags.None);
-                        }
-                        else
-                        {
-                            newReceive += socket.Receive(buffer, newReceive, newBufferLength - newReceive, SocketFlags.None);
-                        }
-                        timeoutCountdown = 10000;//timeoutCountdown maybe < 10000 when socket receive faster than server send data
+                        actualRecieve += socket.Receive(recieved, actualRecieve, n - actualRecieve, SocketFlags.None);
+                        socketEmptyCount = 0;
                     }
                     else
                     {
-                        //TODO: review here !!!
-                        Thread.Sleep(10);//sometime socket maybe receive faster than server send data
-                        timeoutCountdown -= 10;
-                        if (socket.Available > 0)
+                        if (socketEmptyCount >= 1000)
                         {
-                            continue;
+                            throw new Exception("Socket Not Available!!");
                         }
-                        if (timeoutCountdown <= 0)//sometime server maybe error
+                        else
                         {
-                            break;
+                            socketEmptyCount++;
+                            Thread.Sleep(10);
                         }
                     }
                 }
-                _parser.LoadNewBuffer(buffer, newBufferLength);
+                return recieved;
             }
-            return buffer;
+            else
+            {
+                return null;
+            }
         }
 
         void CheckBeforeParseHeader(byte[] buffer)
