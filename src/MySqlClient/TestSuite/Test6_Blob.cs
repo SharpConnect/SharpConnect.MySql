@@ -13,31 +13,31 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
-            //{
-            //    string sql = "drop table if exists test001";
-            //    var cmd = new MySqlCommand(sql, conn);
-            //    cmd.ExecuteNonQuery();
-            //}
+            {
+                string sql = "drop table if exists test001";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
 
-            //{
-            //    string sql = "create table test001(col_id int(10) unsigned not null auto_increment, mydata longblob,primary key(col_id)) ENGINE=MyISAM DEFAULT CHARSET=latin1";
-            //    var cmd = new MySqlCommand(sql, conn);
-            //    cmd.ExecuteNonQuery();
-            //}
+            {
+                string sql = "create table test001(col_id int(10) unsigned not null auto_increment, mydata longblob,primary key(col_id)) ENGINE=MyISAM DEFAULT CHARSET=latin1";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
             //create sample blob
             byte[] data = CreateTestData();
-            uint lastInsertId = 2;
+            uint lastInsertId = 0;
             //int testdata_crc32 = 0;
-            //{
-            //    string sql = "insert into test001(mydata) values(?mydata)";
-            //    var cmd = new MySqlCommand(sql, conn);
-            //    cmd.Prepare();
+            {
+                string sql = "insert into test001(mydata) values(?mydata)";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.Prepare();
 
-            //    testdata_crc32 = SharpConnect.CRC32Calculator.CalculateCrc32(data);
-            //    cmd.Parameters.AddWithValue("?mydata", data);
-            //    cmd.ExecuteNonQuery();
-            //    lastInsertId = cmd.LastInsertId;
-            //}
+                //testdata_crc32 = SharpConnect.CRC32Calculator.CalculateCrc32(data);
+                cmd.Parameters.AddWithValue("?mydata", data);
+                cmd.ExecuteNonQuery();
+                lastInsertId = cmd.LastInsertId;
+            }
 
             {
                 if (lastInsertId > 0)
@@ -98,7 +98,7 @@ namespace MySqlTest
         static byte[] CreateTestData()
         {
             int datasize = 1024 * 1000 * 45;
-            byte[] data = new byte[1024 * 1000 * 45];
+            byte[] data = new byte[datasize];
             int count = 0;
             for (int i = datasize - 1; i >= 0; --i)
             {

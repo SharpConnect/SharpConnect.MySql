@@ -282,7 +282,6 @@ namespace SharpConnect.MySql.Internal
                 writer.WriteUnsignedNumber(2, (byte)_prepareValues[i].type);
             }
 
-
             //write value of each parameter
             //example:
             //for(int i = 0; i < param.Length; i++)
@@ -299,9 +298,7 @@ namespace SharpConnect.MySql.Internal
             {
                 WriteValueByType(writer, ref _prepareValues[i]);
             }
-
-            _header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
-            writer.WriteHeader(_header);
+            writer.WriteHeader(new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber()));
         }
 
         static void WriteValueByType(PacketWriter writer, ref MyStructData dataTemp)

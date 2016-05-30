@@ -94,7 +94,7 @@ namespace SharpConnect.MySql.Internal
 
             long curPacketLength = CurrentPacketLength();
             dbugConsole.WriteLine("Current Packet Length = " + curPacketLength);
-            int packets = (int)(curPacketLength / Packet.MAX_PACKET_LENGTH) + 1;
+            int packets = (int)((curPacketLength - 4) / Packet.MAX_PACKET_LENGTH) + 1;//-4 bytes of reserve header
             if (packets == 1)
             {
                 if (header.Length > _maxAllowedLength)
@@ -107,20 +107,20 @@ namespace SharpConnect.MySql.Internal
             }
             else //>1 
             {
+                _packetNumber = header.PacketNumber;//set start current packet number
                 long allDataLength = (curPacketLength - 4) + (packets * 4);
                 if (allDataLength > _maxAllowedLength)
                 {
                     throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
                 }
                 byte[] allBuffer = new byte[allDataLength];
-                int startContentPos = (int)(_startPacketPosition + 4);
+                byte[] dataBuffer = new byte[allDataLength - 4];//remove header
+                _writer.Read(dataBuffer, 4, (int)allDataLength - 4);//skip reserve header bytes
+
                 int offset = 0;
-                byte startPacketNum = header.PacketNumber;
-                byte[] currentPacketBuff = new byte[Packet.MAX_PACKET_LENGTH];
                 for (int packet = 0; packet < packets; packet++)
                 {
-                    //    this._offset = packet * (MAX_PACKET_LENGTH + 4);
-                    offset = packet * Packet.MAX_PACKET_LENGTH + startContentPos;
+                    offset = (packet * Packet.MAX_PACKET_LENGTH);
                     //    var isLast = (packet + 1 === packets);
                     //    var packetLength = (isLast)
                     //      ? buffer.length % MAX_PACKET_LENGTH
@@ -137,19 +137,12 @@ namespace SharpConnect.MySql.Internal
                     //    var end   = start + packetLength;
 
                     //    this.writeBuffer(buffer.slice(start, end));
-                    int start = packet * (Packet.MAX_PACKET_LENGTH + 4);//+4 for add header
+                    int start = packet * (Packet.MAX_PACKET_LENGTH + 4);
                     //byte[] encodeData = new byte[4];
                     EncodeUnsignedNumber0_3(_headerBuffer, (uint)packetLength);
-                    _headerBuffer[3] = startPacketNum++;
-                    _headerBuffer.CopyTo(allBuffer, start);
-                    _writer.RewindAndWriteAt(_headerBuffer, start);
-                    //startPacketNum = 0;
-                    if (packetLength < currentPacketBuff.Length)
-                    {
-                        currentPacketBuff = new byte[packetLength];
-                    }
-                    _writer.Read(currentPacketBuff, offset, packetLength);
-                    currentPacketBuff.CopyTo(allBuffer, start + 4);
+                    _headerBuffer[3] = IncrementPacketNumber();
+                    Buffer.BlockCopy(_headerBuffer, 0, allBuffer, start, 4);
+                    Buffer.BlockCopy(dataBuffer, offset, allBuffer, start + 4, packetLength);
                 }
                 _writer.RewindAndWriteAt(allBuffer, (int)_startPacketPosition);
             }
