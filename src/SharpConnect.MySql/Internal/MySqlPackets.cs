@@ -52,13 +52,17 @@ namespace SharpConnect.MySql.Internal
                 _header = parser.ParsePacketHeader();
             }
         }
-
+        public PacketHeader Header { get { return _header; } }
         public virtual uint GetPacketLength()
         {
             return _header.Length;
         }
 
         public abstract void WritePacket(PacketWriter writer);
+        // The maximum precision JS Numbers can hold precisely
+        // Don't panic: Good enough to represent byte values up to 8192 TB
+        public const long IEEE_754_BINARY_64_PRECISION = (long)1 << 53;
+        public const int MAX_PACKET_LENGTH = (int)(1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
     }
 
     class ClientAuthenticationPacket : Packet
@@ -278,7 +282,6 @@ namespace SharpConnect.MySql.Internal
                 writer.WriteUnsignedNumber(2, (byte)_prepareValues[i].type);
             }
 
-
             //write value of each parameter
             //example:
             //for(int i = 0; i < param.Length; i++)
@@ -295,9 +298,7 @@ namespace SharpConnect.MySql.Internal
             {
                 WriteValueByType(writer, ref _prepareValues[i]);
             }
-
-            _header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
-            writer.WriteHeader(_header);
+            writer.WriteHeader(new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber()));
         }
 
         static void WriteValueByType(PacketWriter writer, ref MyStructData dataTemp)
@@ -650,7 +651,7 @@ namespace SharpConnect.MySql.Internal
                 filler2 = parser.ParseBuffer(13);
             }
 
-            if (parser.Position == parser.Length)
+            if (parser.ReadPosition == parser.BufferLength)
             {
                 return;
             }
@@ -1108,6 +1109,88 @@ namespace SharpConnect.MySql.Internal
         }
     }
 
+#if DEBUG
+    public struct dbugBufferView
+    {
+        public readonly byte[] buffer;
+        public readonly int start;
+        public readonly int length;
+        public int viewIndex;
+        public dbugBufferView(byte[] buffer, int start, int length)
+        {
+            this.buffer = buffer;
+            this.start = start;
+            this.length = length;
+            viewIndex = 0;
+        }
+        public int CheckNoDulpicateBytes()
+        {
+            //for test byte content in longblob testcase
+            byte prevByte = buffer[length - 1];
+            for (int i = length - 2; i >= start; --i)
+            {
+                byte test = buffer[i];
+                if (prevByte == test)
+                {
+                    return i;
+                }
+                prevByte = test;
+            }
+            return 0;
+        }
+        public override string ToString()
+        {
+            var stbuilder = new StringBuilder();
+            if (viewIndex > 10)
+            {
+                //before view,
+                int s = viewIndex - 10;
+                if (s < 0)
+                {
+                    s = 0;
+                }
+                for (int i = s; i < viewIndex; ++i)
+                {
+                    stbuilder.Append(buffer[i] + ", ");
+                }
+                stbuilder.Append(" {" + viewIndex + ":" + buffer[viewIndex] + "} ");
+
+                //after view index
+                int e = viewIndex + 10;
+                if (e > length)
+                {
+                    e = length;
+                }
+                for (int i = viewIndex + 1; i < e; ++i)
+                {
+                    stbuilder.Append(buffer[i] + ", ");
+                }
+
+            }
+            else
+            {
+                if (length > 10)
+                {
+                    stbuilder.Append("s:[");
+                    for (int i = 0; i < 10; ++i)
+                    {
+                        stbuilder.Append(buffer[i] + ", ");
+                    }
+
+                    stbuilder.Append("]");
+                    //show last 10                
+                    stbuilder.Append(" end:[");
+                    for (int i = length - 10; i < length; ++i)
+                    {
+                        stbuilder.Append(buffer[i] + ", ");
+                    }
+                    stbuilder.Append(']');
+                }
+            }
+            return stbuilder.ToString();
+        }
+    }
+#endif
     class RowPreparedDataPacket : Packet
     {
         MyStructData[] _myDataList;
@@ -1126,7 +1209,10 @@ namespace SharpConnect.MySql.Internal
             _header = PacketHeader.Empty;
             Array.Clear(_myDataList, 0, _myDataList.Length);
         }
-
+        internal MyStructData[] GetInternalStructData()
+        {
+            return _myDataList;
+        }
         public override void ParsePacket(PacketParser parser)
         {
             var fieldInfos = _tableHeader.GetFields();
@@ -1137,6 +1223,11 @@ namespace SharpConnect.MySql.Internal
             for (int i = 0; i < columnCount; i++)
             {
                 ParseValues(parser, fieldInfos[i], ref _myDataList[i]);
+#if DEBUG
+                byte[] mybuffer = _myDataList[i].myBuffer;
+                dbugBufferView view = new dbugBufferView(mybuffer, 0, mybuffer.Length);
+                view.viewIndex = view.CheckNoDulpicateBytes();                
+#endif 
             }
         }
 
