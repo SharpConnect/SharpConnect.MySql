@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpConnect.MySql.Utils", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpConnect.LiquidData", "Net20\SharpConnect.LiquidData\SharpConnect.LiquidData.csproj", "{2C54C555-3C8B-4226-8606-8A3716B576BB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MySqlClient", "Net20\MySqlClient\MySqlClient.csproj", "{4C9B28FE-9C9E-4CA3-9D23-4861BFDDA1E5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +55,10 @@ Global
 		{2C54C555-3C8B-4226-8606-8A3716B576BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2C54C555-3C8B-4226-8606-8A3716B576BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2C54C555-3C8B-4226-8606-8A3716B576BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4C9B28FE-9C9E-4CA3-9D23-4861BFDDA1E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C9B28FE-9C9E-4CA3-9D23-4861BFDDA1E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C9B28FE-9C9E-4CA3-9D23-4861BFDDA1E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C9B28FE-9C9E-4CA3-9D23-4861BFDDA1E5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -61,5 +67,6 @@ Global
 		{94D01EDE-0499-422F-8081-90D94AD163FA} = {A2CBFDE7-2CFE-4FCE-963C-6910580D566B}
 		{F46FFA6B-DDD8-478D-99F4-5C1BE499258C} = {A2CBFDE7-2CFE-4FCE-963C-6910580D566B}
 		{2C54C555-3C8B-4226-8606-8A3716B576BB} = {A2CBFDE7-2CFE-4FCE-963C-6910580D566B}
+		{4C9B28FE-9C9E-4CA3-9D23-4861BFDDA1E5} = {A2CBFDE7-2CFE-4FCE-963C-6910580D566B}
 	EndGlobalSection
 EndGlobal

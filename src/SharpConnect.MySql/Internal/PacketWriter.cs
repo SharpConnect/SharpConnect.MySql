@@ -31,15 +31,11 @@ namespace SharpConnect.MySql.Internal
         MyBinaryWriter _writer;
         byte _packetNumber;
         long _startPacketPosition;
-        long _maxAllowedLength = MAX_PACKET_LENGTH;
+        long _maxAllowedLength = Packet.MAX_PACKET_LENGTH;
         Encoding _encoding;
         byte[] _headerBuffer = new byte[4];//reusable header buffer
         const int BIT_16 = (int)1 << 16;//(int)Math.Pow(2, 16);
         const int BIT_24 = (int)1 << 24;//(int)Math.Pow(2, 24);
-        // The maximum precision JS Numbers can hold precisely
-        // Don't panic: Good enough to represent byte values up to 8192 TB
-        const long IEEE_754_BINARY_64_PRECISION = (long)1 << 53;
-        const int MAX_PACKET_LENGTH = (int)(1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
         public PacketWriter(Encoding encoding)
         {
             _writer = new MyBinaryWriter();
@@ -98,7 +94,7 @@ namespace SharpConnect.MySql.Internal
 
             long curPacketLength = CurrentPacketLength();
             dbugConsole.WriteLine("Current Packet Length = " + curPacketLength);
-            int packets = (int)(curPacketLength / MAX_PACKET_LENGTH) + 1;
+            int packets = (int)((curPacketLength - 4) / Packet.MAX_PACKET_LENGTH) + 1;//-4 bytes of reserve header
             if (packets == 1)
             {
                 if (header.Length > _maxAllowedLength)
@@ -111,27 +107,27 @@ namespace SharpConnect.MySql.Internal
             }
             else //>1 
             {
+                _packetNumber = header.PacketNumber;//set start current packet number
                 long allDataLength = (curPacketLength - 4) + (packets * 4);
                 if (allDataLength > _maxAllowedLength)
                 {
                     throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
                 }
                 byte[] allBuffer = new byte[allDataLength];
-                int startContentPos = (int)(_startPacketPosition + 4);
+                byte[] dataBuffer = new byte[allDataLength - 4];//remove header
+                _writer.Read(dataBuffer, 4, (int)allDataLength - 4);//skip reserve header bytes
+
                 int offset = 0;
-                byte startPacketNum = header.PacketNumber;
-                byte[] currentPacketBuff = new byte[MAX_PACKET_LENGTH];
                 for (int packet = 0; packet < packets; packet++)
                 {
-                    //    this._offset = packet * (MAX_PACKET_LENGTH + 4);
-                    offset = packet * MAX_PACKET_LENGTH + startContentPos;
+                    offset = (packet * Packet.MAX_PACKET_LENGTH);
                     //    var isLast = (packet + 1 === packets);
                     //    var packetLength = (isLast)
                     //      ? buffer.length % MAX_PACKET_LENGTH
                     //      : MAX_PACKET_LENGTH;
                     int packetLength = (packet + 1 == packets)
-                        ? (int)((curPacketLength - 4) % MAX_PACKET_LENGTH)
-                        : MAX_PACKET_LENGTH;
+                        ? (int)((curPacketLength - 4) % Packet.MAX_PACKET_LENGTH)
+                        : Packet.MAX_PACKET_LENGTH;
                     //    var packetNumber = parser.incrementPacketNumber();
 
                     //    this.writeUnsignedNumber(3, packetLength);
@@ -141,19 +137,12 @@ namespace SharpConnect.MySql.Internal
                     //    var end   = start + packetLength;
 
                     //    this.writeBuffer(buffer.slice(start, end));
-                    int start = packet * (MAX_PACKET_LENGTH + 4);//+4 for add header
+                    int start = packet * (Packet.MAX_PACKET_LENGTH + 4);
                     //byte[] encodeData = new byte[4];
                     EncodeUnsignedNumber0_3(_headerBuffer, (uint)packetLength);
-                    _headerBuffer[3] = startPacketNum++;
-                    _headerBuffer.CopyTo(allBuffer, start);
-                    _writer.RewindAndWriteAt(_headerBuffer, start);
-                    //startPacketNum = 0;
-                    if (packetLength < currentPacketBuff.Length)
-                    {
-                        currentPacketBuff = new byte[packetLength];
-                    }
-                    _writer.Read(currentPacketBuff, offset, packetLength);
-                    currentPacketBuff.CopyTo(allBuffer, start + 4);
+                    _headerBuffer[3] = IncrementPacketNumber();
+                    Buffer.BlockCopy(_headerBuffer, 0, allBuffer, start, 4);
+                    Buffer.BlockCopy(dataBuffer, offset, allBuffer, start + 4, packetLength);
                 }
                 _writer.RewindAndWriteAt(allBuffer, (int)_startPacketPosition);
             }
@@ -312,29 +301,31 @@ namespace SharpConnect.MySql.Internal
 
         public void WriteLengthCodedNumber(long value)
         {
-            if (value <= 250)
+            //http://dev.mysql.com/doc/internals/en/overview.html#length-encoded-integer
+
+            if (value < 251)//0xfb
             {
                 _writer.Write((byte)value);
                 return;
             }
-            if (value > IEEE_754_BINARY_64_PRECISION)
+            if (value > Packet.IEEE_754_BINARY_64_PRECISION)
             {
                 throw new Exception("writeLengthCodedNumber: JS precision range exceeded, your" +
                   "number is > 53 bit: " + value);
             }
 
-            if (value <= BIT_16)
+            if (value < 0xffff)
             {
-                _writer.Write((byte)252); //endcode
+                _writer.Write((byte)252); //encode  0xfc
                 //// 16 Bit
                 //this._buffer[this._offset++] = value & 0xff;
                 //this._buffer[this._offset++] = (value >> 8) & 0xff;
                 _writer.Write((byte)(value & 0xff));
                 _writer.Write((byte)((value >> 8) & 0xff));
             }
-            else if (value <= BIT_24)
+            else if (value < 0xffffff)
             {
-                _writer.Write((byte)253); //encode
+                _writer.Write((byte)253); //encode 0xfd
                 _writer.Write((byte)(value & 0xff));
                 _writer.Write((byte)((value >> 8) & 0xff));
                 _writer.Write((byte)((value >> 16) & 0xff));
@@ -358,17 +349,15 @@ namespace SharpConnect.MySql.Internal
                 _writer.Write((byte)0);
             }
         }
-
         public void WriteLengthCodedBuffer(byte[] value)
         {
             var bytes = value.Length;
             WriteLengthCodedNumber(bytes);
             _writer.Write(value);
         }
-
         public void WriteLengthCodedString(string value)
         {
-            //          if (value === null) {
+            //if (value === null) {
             //  this.writeLengthCodedNumber(null);
             //  return;
             //}
