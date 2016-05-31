@@ -23,8 +23,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net.Sockets;
 using System.Threading;
+
 namespace SharpConnect.MySql.Internal
 {
     class Query
@@ -32,7 +32,7 @@ namespace SharpConnect.MySql.Internal
         public bool typeCast;
         public bool nestTables;
         CommandParams _cmdParams;
-        Connection _conn;
+        readonly Connection _conn;
         TableHeader _tableHeader;
         RowDataPacket _lastRow;
         RowPreparedDataPacket _lastPrepareRow;
@@ -43,6 +43,7 @@ namespace SharpConnect.MySql.Internal
         SqlStringTemplate _sqlStrTemplate;
         PreparedContext _prepareContext;
         byte[] _receiveBuffer;
+
         const int DEFAULT_BUFFER_SIZE = 512;
         const byte ERROR_CODE = 255;
         const byte EOF_CODE = 0xfe;
@@ -136,7 +137,7 @@ namespace SharpConnect.MySql.Internal
                     tableHeader.ConnConfig = _conn.config;
                     for (int i = 0; i < okPreparePacket.num_params; i++)
                     {
-                        //no meaing for each field?
+                        //no meaning for each field?
                         FieldPacket field = ParseColumn();
                         tableHeader.AddField(field);
                     }
@@ -240,11 +241,13 @@ namespace SharpConnect.MySql.Internal
                         return _hasSomeRow = false;
                     }
                 default:
-                    {   
+                    {
+                        //sync version
                         return ReadRowPacket();
                     }
             }
-        } 
+        }
+        
         bool ReadRowPacket()
         {
             if (_prepareContext != null)
@@ -256,7 +259,8 @@ namespace SharpConnect.MySql.Internal
                     uint packetHeaderLength = _lastPrepareRow.GetPacketLength();
                     _receiveBuffer = ReadPacket(_receiveBuffer, _lastPrepareRow.Header, _parser);
                     _lastPrepareRow.ParsePacket(_parser);
-                    CheckBeforeParseHeader(_receiveBuffer);
+
+                    LoadDataForNextPackets(_receiveBuffer);
                 }
                 catch (Exception ex)
                 {
@@ -269,7 +273,8 @@ namespace SharpConnect.MySql.Internal
                 _lastRow.ParsePacketHeader(_parser);
                 _receiveBuffer = CheckLimit(_lastRow.GetPacketLength(), _receiveBuffer, _receiveBuffer.Length);
                 _lastRow.ParsePacket(_parser);
-                CheckBeforeParseHeader(_receiveBuffer);
+
+                LoadDataForNextPackets(_receiveBuffer);
             }
             return _hasSomeRow = true;
         }
@@ -358,7 +363,6 @@ namespace SharpConnect.MySql.Internal
         OkPrepareStmtPacket ParsePrepareResponse()
         {
             _receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
-
             int receive = _conn.ReceiveData(_receiveBuffer);
             if (receive == 0)
             {
@@ -388,7 +392,7 @@ namespace SharpConnect.MySql.Internal
             fieldPacket.ParsePacketHeader(_parser);
             _receiveBuffer = CheckLimit(fieldPacket.GetPacketLength(), _receiveBuffer, _receiveBuffer.Length);
             fieldPacket.ParsePacket(_parser);
-            CheckBeforeParseHeader(_receiveBuffer);
+            LoadDataForNextPackets(_receiveBuffer);
             return fieldPacket;
         }
 
@@ -398,15 +402,13 @@ namespace SharpConnect.MySql.Internal
             eofPacket.ParsePacketHeader(_parser);
             _receiveBuffer = CheckLimit(eofPacket.GetPacketLength(), _receiveBuffer, _receiveBuffer.Length);
             eofPacket.ParsePacket(_parser);
-            CheckBeforeParseHeader(_receiveBuffer);
+            LoadDataForNextPackets(_receiveBuffer);
             return eofPacket;
         }
 
-
-
         byte[] CheckLimit(uint completePacketLength, byte[] buffer, int limit)
         {
-            //int availableBufferLength = (int)(_parser.BufferLength - _parser.ReadPosition);
+
             int availableBufferLength = (int)(buffer.Length - _parser.ReadPosition);
             if (availableBufferLength < completePacketLength)
             {
@@ -578,7 +580,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        void CheckBeforeParseHeader(byte[] buffer)
+        void LoadDataForNextPackets(byte[] buffer)
         {
             //todo: check memory mx again
             int remainLength = (int)(_parser.BufferLength - _parser.ReadPosition);

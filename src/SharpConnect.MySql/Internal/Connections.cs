@@ -147,6 +147,7 @@ namespace SharpConnect.MySql.Internal
         {
             _query = CreateQuery("SELECT @@global.max_allowed_packet", null);
             _query.Execute();
+
             //query = CreateQuery();
             //query.ExecuteQuerySql("SELECT @@global.max_allowed_packet");
             if (_query.LoadError != null)

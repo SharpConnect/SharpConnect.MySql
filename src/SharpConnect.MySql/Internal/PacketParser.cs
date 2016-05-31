@@ -27,8 +27,10 @@ using System.IO;
 using System.Text;
 namespace SharpConnect.MySql.Internal
 {
-    //packet reader
 
+    /// <summary>
+    /// mysql packet stream parser
+    /// </summary>
     class PacketParser
     {
         BinaryReader _reader;
