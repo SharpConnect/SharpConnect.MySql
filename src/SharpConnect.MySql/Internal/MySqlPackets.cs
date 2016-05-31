@@ -651,7 +651,7 @@ namespace SharpConnect.MySql.Internal
                 filler2 = parser.ParseBuffer(13);
             }
 
-            if (parser.ReadPosition == parser.BufferLength)
+            if (parser.ReadPosition == parser.CurrentInputLength)
             {
                 return;
             }

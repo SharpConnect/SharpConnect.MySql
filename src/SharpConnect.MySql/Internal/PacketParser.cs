@@ -35,7 +35,7 @@ namespace SharpConnect.MySql.Internal
     {
         BinaryReader _reader;
         MemoryStream _stream;
-        int _myLength;
+        int _currentInputLength;
         long _startPosition;
         long _packetLength;
         Encoding _encoding = Encoding.UTF8;
@@ -62,13 +62,13 @@ namespace SharpConnect.MySql.Internal
         }
 
         /// <summary>
-        /// buffer length
+        /// actual buffer length
         /// </summary>
-        public long BufferLength
+        public long CurrentInputLength
         {
             get
             {
-                return _myLength;
+                return _currentInputLength;
             }
         }
 
@@ -82,7 +82,7 @@ namespace SharpConnect.MySql.Internal
         public void Reset()
         {
             _stream.Position = 0;
-            _myLength = 0;
+            _currentInputLength = 0;
         }
         public void SetPosition(int pos)
         {
@@ -94,7 +94,7 @@ namespace SharpConnect.MySql.Internal
             _stream.Write(newBuffer, 0, count);
             _stream.Position = 0;
             _startPosition = 0;
-            _myLength = count;
+            _currentInputLength = count;
         }
 
         public string ParseNullTerminatedString()
@@ -247,7 +247,7 @@ namespace SharpConnect.MySql.Internal
             //        err.code = 'PARSER_READ_PAST_END';
             //        throw err;
             //    }
-            if (ReadPosition >= BufferLength)
+            if (ReadPosition >= CurrentInputLength)
             {
                 throw new Exception("Parser: read past end");
             }
