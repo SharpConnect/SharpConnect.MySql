@@ -53,6 +53,8 @@ namespace SharpConnect.MySql.Internal
                 return socket.Connected ? ConnectionState.Connected : ConnectionState.Disconnected;
             }
         }
+
+        
         public uint threadId;
         Socket socket;
         HandshakePacket _handshake;
