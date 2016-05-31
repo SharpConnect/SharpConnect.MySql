@@ -240,67 +240,11 @@ namespace SharpConnect.MySql.Internal
                         return _hasSomeRow = false;
                     }
                 default:
-                    {
-                        //return ReadRowPacket_O();
+                    {   
                         return ReadRowPacket_N();
                     }
             }
-        }
-
-        bool ReadRowPacket_O()
-        {
-            if (_prepareContext != null)
-            {
-                bool doMore = false;
-#if DEBUG
-                uint dbug_total = 0;
-#endif
-                List<MyStructData[]> waitingDataForMerge = null;
-                try
-                {
-                    doMore = false;//reset;
-                    do
-                    {
-                        _lastPrepareRow.ReuseSlots();
-                        _lastPrepareRow.ParsePacketHeader(_parser);
-                        uint packetHeaderLength = _lastPrepareRow.GetPacketLength();
-                        _receiveBuffer = CheckLimit(packetHeaderLength, _receiveBuffer, _receiveBuffer.Length);
-                        _lastPrepareRow.ParsePacket(_parser);
-                        if (packetHeaderLength >= Packet.MAX_PACKET_LENGTH)
-                        {
-                            //we need another packet
-                            doMore = true;
-                            if (waitingDataForMerge == null)
-                            {
-                                waitingDataForMerge = new List<MyStructData[]>();
-                            }
-                            MyStructData[] internalDataArr = _lastPrepareRow.GetInternalStructData();
-                            MyStructData[] copy = new MyStructData[internalDataArr.Length];
-                            dbug_total += (uint)internalDataArr[0].myBuffer.Length;
-                            Array.Copy(internalDataArr, copy, internalDataArr.Length);
-                            waitingDataForMerge.Add(copy);
-                            _parser.Reset();
-                        }
-
-                        CheckBeforeParseHeader(_receiveBuffer);
-                    } while (doMore);
-
-                }
-                catch (Exception ex)
-                {
-                }
-            }
-            else
-            {
-                _lastRow.ReuseSlots();
-                _lastRow.ParsePacketHeader(_parser);
-                _receiveBuffer = CheckLimit(_lastRow.GetPacketLength(), _receiveBuffer, _receiveBuffer.Length);
-                _lastRow.ParsePacket(_parser);
-                CheckBeforeParseHeader(_receiveBuffer);
-            }
-            return _hasSomeRow = true;
-        }
-
+        } 
         bool ReadRowPacket_N()
         {
             if (_prepareContext != null)
@@ -457,6 +401,8 @@ namespace SharpConnect.MySql.Internal
             CheckBeforeParseHeader(_receiveBuffer);
             return eofPacket;
         }
+
+
 
         byte[] CheckLimit(uint completePacketLength, byte[] buffer, int limit)
         {
