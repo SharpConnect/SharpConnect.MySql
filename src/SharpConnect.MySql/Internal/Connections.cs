@@ -54,7 +54,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
         public uint threadId;
-        public Socket socket;
+        Socket socket;
         HandshakePacket _handshake;
         Query _query;
         PacketParser _parser;
@@ -224,6 +224,25 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
+        public int SendData(byte[] sendBuffer, int start, int len)
+        {
+            return socket.Send(sendBuffer, start, len, SocketFlags.None);
+        }
+        public int ReceiveData(byte[] recvBuffer)
+        {
+            return socket.Receive(recvBuffer);
+        }
+        public int ReceiveData(byte[] recvBuffer, int writePos, int reqLength)
+        {
+            return socket.Receive(recvBuffer,writePos,reqLength, SocketFlags.None);
+        }
+        public int Available
+        {
+            get
+            {
+                return socket.Available;
+            }
+        }
         static byte[] GetScrollbleBuffer(byte[] part1, byte[] part2)
         {
             return ConcatBuffer(part1, part2);

@@ -354,8 +354,7 @@ namespace SharpConnect.MySql.Internal
         {
             //TODO: review here, optimized buffer
             _receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
-            var socket = _conn.socket;
-            int receive = socket.Receive(_receiveBuffer);
+            int receive = _conn.ReceiveData(_receiveBuffer);
             if (receive == 0)
             {
                 return;
@@ -405,18 +404,18 @@ namespace SharpConnect.MySql.Internal
         {
             int sent = 0;
             int packetLength = packetBuffer.Length;
-            var socket = _conn.socket;
             while (sent < packetLength)
-            {//if packet is large
-                sent += socket.Send(packetBuffer, sent, packetLength - sent, SocketFlags.None);
+            {
+                //if packet is large                   
+                sent += _conn.SendData(packetBuffer, sent, packetLength - sent);
             }
         }
-        
+
         OkPrepareStmtPacket ParsePrepareResponse()
         {
             _receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
-            var socket = _conn.socket;
-            int receive = socket.Receive(_receiveBuffer);
+
+            int receive = _conn.ReceiveData(_receiveBuffer);
             if (receive == 0)
             {
                 return null;
@@ -491,8 +490,8 @@ namespace SharpConnect.MySql.Internal
 
                 try
                 {
-                    var socket = _conn.socket;
-                    int actualReceiveBytes = socket.Receive(buffer, read_count, remainingBytes, SocketFlags.None);
+
+                    int actualReceiveBytes = _conn.ReceiveData(buffer, read_count, remainingBytes);
                     read_count += actualReceiveBytes;
                     remainingBytes -= actualReceiveBytes;
                     int timeoutCountdown = 10000;
@@ -500,14 +499,13 @@ namespace SharpConnect.MySql.Internal
                     {
                         // Console.WriteLine(remainingBytes.ToString());
 
-                        int available = socket.Available;
+                        int available = _conn.Available;
                         if (available > 0)
                         {
                             //read 
-
                             if (read_count + available <= completePacketLength)
                             {
-                                actualReceiveBytes = socket.Receive(buffer, read_count, remainingBytes, SocketFlags.None);
+                                actualReceiveBytes = _conn.ReceiveData(buffer, read_count, remainingBytes);
                             }
                             else
                             {
@@ -517,7 +515,7 @@ namespace SharpConnect.MySql.Internal
                                     int diff = (read_count + x) - buffer.Length;
                                 }
 
-                                actualReceiveBytes = socket.Receive(buffer, read_count, (int)completePacketLength - read_count, SocketFlags.None);
+                                actualReceiveBytes = _conn.ReceiveData(buffer, read_count, (int)completePacketLength - read_count);
                             }
 
 
@@ -530,7 +528,7 @@ namespace SharpConnect.MySql.Internal
                             //TODO: review here !!!
                             Thread.Sleep(10);//sometime socket maybe receive faster than server send data
                             timeoutCountdown -= 10;
-                            if (socket.Available > 0)
+                            if (_conn.Available > 0)
                             {
                                 continue;
                             }
@@ -603,15 +601,14 @@ namespace SharpConnect.MySql.Internal
         {
             if (n > 0)
             {
-                var socket = _conn.socket;
                 byte[] recieved = new byte[n];
-                int actualRecieve = socket.Receive(recieved);
+                int actualRecieve = _conn.ReceiveData(recieved);
                 int socketEmptyCount = 0;
                 while (actualRecieve < n)
                 {
-                    if (socket.Available > 0)
+                    if (_conn.Available > 0)
                     {
-                        actualRecieve += socket.Receive(recieved, actualRecieve, n - actualRecieve, SocketFlags.None);
+                        actualRecieve += _conn.ReceiveData(recieved, actualRecieve, n - actualRecieve);
                         socketEmptyCount = 0;
                     }
                     else
@@ -647,16 +644,14 @@ namespace SharpConnect.MySql.Internal
                     Buffer.BlockCopy(buffer, (int)_parser.ReadPosition, buffer, 0, remainLength);
                     //remainBuff.CopyTo(buffer, 0);
                 }
-
-                var socket = _conn.socket;
                 int bufferRemain = buffer.Length - remainLength;
-                int available = socket.Available;
+                int available = _conn.Available;// socket.Available;
                 if (available == 0)//it finished
                 {
                     return;
                 }
                 int expectedReceive = (available < bufferRemain ? available : bufferRemain);
-                int realReceive = socket.Receive(buffer, remainLength, expectedReceive, SocketFlags.None);
+                int realReceive = _conn.ReceiveData(buffer, remainLength, expectedReceive);
                 int newBufferLength = remainLength + realReceive;//sometime realReceive != expectedReceive
                 _parser.LoadNewBuffer(buffer, newBufferLength);
                 dbugConsole.WriteLine("CheckBeforeParseHeader : LoadNewBuffer");
