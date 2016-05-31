@@ -241,11 +241,11 @@ namespace SharpConnect.MySql.Internal
                     }
                 default:
                     {   
-                        return ReadRowPacket_N();
+                        return ReadRowPacket();
                     }
             }
         } 
-        bool ReadRowPacket_N()
+        bool ReadRowPacket()
         {
             if (_prepareContext != null)
             {
