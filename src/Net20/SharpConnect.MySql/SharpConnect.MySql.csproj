@@ -42,9 +42,6 @@
     <Compile Include="..\..\SharpConnect.MySql\0_Public\MySqlClient.cs">
       <Link>0_Public\MySqlClient.cs</Link>
     </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\0_Public\MySqlClientAsync.cs">
-      <Link>0_Public\MySqlClientAsync.cs</Link>
-    </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\ConnectionPool.cs">
       <Link>Internal\ConnectionPool.cs</Link>
     </Compile>
@@ -77,9 +74,6 @@
     </Compile>
     <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\ClientConnectionSession.cs">
       <Link>SharpConnect.Sockets\ClientConnectionSession.cs</Link>
-    </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\ConnectionAsync.cs">
-      <Link>SharpConnect.Sockets\ConnectionAsync.cs</Link>
     </Compile>
     <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\ForNet20.cs">
       <Link>SharpConnect.Sockets\ForNet20.cs</Link>
