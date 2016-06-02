@@ -48,7 +48,7 @@ namespace SharpConnect.MySql
         }
         public bool FromConnectionPool { get; private set; }
 
-        public void Open()
+        public void Open(Action onComplete = null)
         {
             this.FromConnectionPool = false;//reset
             //get connection from pool
@@ -63,16 +63,21 @@ namespace SharpConnect.MySql
                 {
                     //create new 
                     _conn = new Connection(new ConnectionConfig(_connStr.Host, _connStr.Username, _connStr.Password, _connStr.Database));
-                    _conn.Connect();
+                    _conn.Connect(onComplete);
                 }
             }
             else
             {
                 //new connection
                 _conn = new Connection(new ConnectionConfig(_connStr.Host, _connStr.Username, _connStr.Password, _connStr.Database));
-                _conn.Connect();
+                _conn.Connect(onComplete);
             }
         }
+        public void UpdateMaxAllowPacket()
+        {
+            _conn.GetMaxAllowedPacket();
+        }
+
 
         public void Close()
         {

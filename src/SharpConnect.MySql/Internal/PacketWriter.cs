@@ -97,11 +97,11 @@ namespace SharpConnect.MySql.Internal
             int packets = (int)((curPacketLength - 4) / Packet.MAX_PACKET_LENGTH) + 1;//-4 bytes of reserve header
             if (packets == 1)
             {
-                if (header.Length > _maxAllowedLength)
+                if (header.ContentLength > _maxAllowedLength)
                 {
                     throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
                 }
-                EncodeUnsignedNumber0_3(_headerBuffer, header.Length);
+                EncodeUnsignedNumber0_3(_headerBuffer, header.ContentLength);
                 _headerBuffer[3] = header.PacketNumber;
                 _writer.RewindAndWriteAt(_headerBuffer, (int)_startPacketPosition);
             }

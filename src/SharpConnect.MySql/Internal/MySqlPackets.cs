@@ -27,16 +27,16 @@ namespace SharpConnect.MySql.Internal
 {
     struct PacketHeader
     {
-        public readonly uint Length;
+        public readonly uint ContentLength;
         public readonly byte PacketNumber;
         public PacketHeader(uint length, byte number)
         {
-            Length = length;
+            ContentLength = length;
             PacketNumber = number;
         }
         public bool IsEmpty()
         {
-            return PacketNumber == 0 && Length == 0;
+            return PacketNumber == 0 && ContentLength == 0;
         }
         public static readonly PacketHeader Empty = new PacketHeader();
     }
@@ -45,17 +45,25 @@ namespace SharpConnect.MySql.Internal
     {
         protected PacketHeader _header;
         public abstract void ParsePacket(PacketParser parser);
-        public virtual void ParsePacketHeader(PacketParser parser)
+        public void ParsePacketHeader(PacketParser parser)
         {
             if (_header.IsEmpty())
             {
                 _header = parser.ParsePacketHeader();
             }
         }
-        public PacketHeader Header { get { return _header; } }
-        public virtual uint GetPacketLength()
+
+        public PacketHeader Header
         {
-            return _header.Length;
+            get { return _header; }
+            set
+            {
+                _header = value;
+            }
+        }
+        public uint GetPacketLength()
+        {
+            return _header.ContentLength;
         }
 
         public abstract void WritePacket(PacketWriter writer);
@@ -246,7 +254,7 @@ namespace SharpConnect.MySql.Internal
             writer.WriteUnsignedNumber(4, _statementId);
             writer.WriteByte((byte)CursorFlags.CURSOR_TYPE_NO_CURSOR);
             writer.WriteUnsignedNumber(4, 1);//iteration-count, always 1
-                                             //write NULL-bitmap, length: (num-params+7)/8
+            //write NULL-bitmap, length: (num-params+7)/8
 
             MyStructData[] fillValues = _prepareValues;
             int paramNum = _prepareValues.Length;
@@ -339,7 +347,7 @@ namespace SharpConnect.MySql.Internal
                 default:
                     //TODO: review here
                     throw new NotSupportedException();
-                    //writer.WriteLengthCodedNull();
+                //writer.WriteLengthCodedNull();
             }
         }
     }
@@ -494,12 +502,13 @@ namespace SharpConnect.MySql.Internal
         char _sqlStateMarker;
         string _sqlState;
         public string message;
+
         public override void ParsePacket(PacketParser parser)
         {
             ParsePacketHeader(parser);
             _fieldCount = parser.ParseByte();
             _errno = parser.ParseUnsigned2();//2
-            if (parser.Peak() == 0x23)
+            if (parser.PeekByte() == 0x23)
             {
                 _sqlStateMarker = parser.ParseChar();
                 _sqlState = parser.ParseString(5);
@@ -628,7 +637,8 @@ namespace SharpConnect.MySql.Internal
         public string pluginData;
         public override void ParsePacket(PacketParser parser)
         {
-            ParsePacketHeader(parser);
+            ParsePacketHeader(parser); //4
+
             protocolVersion = parser.ParseUnsigned1();//1
             serverVertion = parser.ParseNullTerminatedString();
             threadId = parser.ParseUnsigned4();//4
@@ -756,6 +766,10 @@ namespace SharpConnect.MySql.Internal
         long _fieldCount;
         uint _extraNumber;
         string _extraStr;
+        public ResultSetHeaderPacket()
+        {
+
+        }
         public override void ParsePacket(PacketParser parser)
         {
             ParsePacketHeader(parser);
@@ -776,8 +790,7 @@ namespace SharpConnect.MySql.Internal
         public override void WritePacket(PacketWriter writer)
         {
             writer.ReserveHeader();
-            //writer.WriteLengthCodedNumber(this.fieldCount);
-
+            //writer.WriteLengthCodedNumber(this.fieldCount); 
             //if (this.extra !== undefined) {
             //  writer.WriteLengthCodedNumber(this.extra);
             //}
@@ -1226,8 +1239,8 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
                 byte[] mybuffer = _myDataList[i].myBuffer;
                 dbugBufferView view = new dbugBufferView(mybuffer, 0, mybuffer.Length);
-                view.viewIndex = view.CheckNoDulpicateBytes();                
-#endif 
+                view.viewIndex = view.CheckNoDulpicateBytes();
+#endif
             }
         }
 

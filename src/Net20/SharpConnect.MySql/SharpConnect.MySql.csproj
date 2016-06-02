@@ -66,6 +66,9 @@
     <Compile Include="..\..\SharpConnect.MySql\Internal\Query.cs">
       <Link>Internal\Query.cs</Link>
     </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\SendIO_RecvIO.cs">
+      <Link>Internal\SendIO_RecvIO.cs</Link>
+    </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\SqlStringTemplate.cs">
       <Link>Internal\SqlStringTemplate.cs</Link>
     </Compile>

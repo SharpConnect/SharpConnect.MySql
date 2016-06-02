@@ -49,6 +49,7 @@ namespace SharpConnect.MySql.Internal
         const byte EOF_CODE = 0xfe;
         const byte OK_CODE = 0;
         const int MAX_PACKET_LENGTH = (1 << 24) - 1;//(int)Math.Pow(2, 24) - 1; 
+
         public Query(Connection conn, string sql, CommandParams cmdParams)//testing
         {
             if (sql == null)
@@ -86,7 +87,6 @@ namespace SharpConnect.MySql.Internal
                 }
             }
         }
-
         public void Execute()
         {
             if (_prepareContext != null)
@@ -99,15 +99,31 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
+        bool execComplete = false;
         void ExecuteNonPrepare()
         {
             _writer.Reset();
             string realSql = _sqlStrTemplate.BindValues(_cmdParams, false);
             var queryPacket = new ComQueryPacket(realSql);
             queryPacket.WritePacket(_writer);
-            SendPacket(_writer.ToArray());
-            _prepareContext = null;
-            ParseReceivePacket();
+
+            SendPacketAsync(_writer.ToArray(), o =>
+            {
+                //send complete 
+                //then recev result  
+                _conn.StartReceive(pck =>
+                {
+                    //when recv complete ...
+                    ParseRecvPacketAsync();
+                    execComplete = true; 
+                });
+
+            });
+
+            while (!execComplete) { }
+            //----------------------
+            // _prepareContext = null;
+            // ParseReceivePacket();
         }
 
         public void Prepare()
@@ -299,6 +315,14 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
+        void ParseRecvPacketAsync()
+        {
+
+        }
+
+        /// <summary>
+        /// this method is called after send data to server
+        /// </summary>
         void ParseReceivePacket()
         {
             //TODO: review here, optimized buffer
@@ -308,10 +332,10 @@ namespace SharpConnect.MySql.Internal
             {
                 return;
             }
-
             //---------------------------------------------------
             //TODO: review err handling 
             _parser.LoadNewBuffer(_receiveBuffer, receive);
+
             switch (_receiveBuffer[4])
             {
                 case ERROR_CODE:
@@ -359,7 +383,12 @@ namespace SharpConnect.MySql.Internal
                 sent += _conn.SendData(packetBuffer, sent, packetLength - sent);
             }
         }
+        void SendPacketAsync(byte[] packetBuffer, Action<object> whenSendComplete)
+        {
+            //send all to 
+            _conn.SendDataAsync(packetBuffer, 0, packetBuffer.Length, whenSendComplete);
 
+        }
         OkPrepareStmtPacket ParsePrepareResponse()
         {
             _receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
@@ -434,7 +463,7 @@ namespace SharpConnect.MySql.Internal
                     read_count = availableBufferLength;
                     remainingBytes = (int)completePacketLength - read_count;
                 }
-                remainingBytes -= 12;
+                remainingBytes -= 12; //why?
 
                 try
                 {
@@ -494,7 +523,6 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
                 var dbugView = new dbugBufferView(buffer, 11, read_count - 11);
                 dbugView.viewIndex = dbugView.CheckNoDulpicateBytes();
-
 #endif
                 _parser.LoadNewBuffer(buffer, read_count);
             }
@@ -506,18 +534,18 @@ namespace SharpConnect.MySql.Internal
             if (!header.IsEmpty())
             {
                 int recievedData = (int)(parser.CurrentInputLength - parser.ReadPosition);
-                uint remainRecieve = header.Length - (uint)recievedData;
-                byte[] buffer = new byte[header.Length];
+                uint remainRecieve = header.ContentLength - (uint)recievedData;
+                byte[] buffer = new byte[header.ContentLength];
                 Buffer.BlockCopy(recieveBuffer, (int)parser.ReadPosition, buffer, 0, recievedData);
                 if (remainRecieve > 0)
                 {
                     byte[] newRecieve = RecieveData((int)remainRecieve);
-                    byte[] end = new byte[100];
+                    byte[] end = new byte[100];//?
                     Buffer.BlockCopy(newRecieve, newRecieve.Length - 101, end, 0, 100);
                     parser.LoadNewBuffer(newRecieve, newRecieve.Length);
                     Buffer.BlockCopy(newRecieve, 0, buffer, recievedData, newRecieve.Length);
                 }
-                while (header.Length >= MAX_PACKET_LENGTH)
+                while (header.ContentLength >= MAX_PACKET_LENGTH)
                 {
                     byte[] temp = RecieveData(4);//for header
                     parser.Reset();
@@ -526,11 +554,11 @@ namespace SharpConnect.MySql.Internal
                     parser.Reset();//reset header
 
                     temp = (byte[])buffer.Clone();//prevent copy by reference
-                    buffer = new byte[buffer.Length + header.Length];
+                    buffer = new byte[buffer.Length + header.ContentLength];
                     Buffer.BlockCopy(temp, 0, buffer, 0, temp.Length);
 
                     int lastPosition = temp.Length;
-                    temp = RecieveData((int)header.Length);
+                    temp = RecieveData((int)header.ContentLength);
                     byte[] end = new byte[100];
                     Buffer.BlockCopy(temp, temp.Length - 101, end, 0, 100);
                     parser.LoadNewBuffer(temp, temp.Length);
@@ -590,9 +618,10 @@ namespace SharpConnect.MySql.Internal
                 //byte[] remainBuff = new byte[remainLength];
                 if (remainLength > 0)
                 {
+                    //shift current data in buffer to the left most
                     Buffer.BlockCopy(buffer, (int)_parser.ReadPosition, buffer, 0, remainLength);
-                    //remainBuff.CopyTo(buffer, 0);
                 }
+
                 int bufferRemain = buffer.Length - remainLength;
                 int available = _conn.Available;// socket.Available;
                 if (available == 0)//it finished
