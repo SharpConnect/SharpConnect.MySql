@@ -11,15 +11,13 @@ namespace MySqlTest
         public static void T_AsyncSocket1()
         {
             var connStr = GetMySqlConnString();
-            var conn = new MySqlConnectionAsync(connStr);
+            var conn = new MySqlConnection(connStr);
             conn.Open(() =>
             {
-                //do something 
-                //close
-                conn.Close(() =>
-                {
-                });
+                conn.UpdateMaxAllowPacket();
             });
+        
+            //conn.Close();
         }
     }
 }

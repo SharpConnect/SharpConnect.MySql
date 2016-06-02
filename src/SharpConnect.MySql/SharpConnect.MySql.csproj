@@ -41,9 +41,8 @@
     <Compile Include="Internal\MySqlStringToHexUtils.cs" />
     <Compile Include="Internal\PacketParser.cs" />
     <Compile Include="Internal\PacketWriter.cs" />
+    <Compile Include="Internal\SendIO_RecvIO.cs" />
     <Compile Include="Internal\SqlStringTemplate.cs" />
-    <Compile Include="0_Public\MySqlClientAsync.cs" />
-    <Compile Include="SharpConnect.Sockets\ConnectionAsync.cs" />
     <Compile Include="SharpConnect.Sockets\BufferManager.cs" />
     <Compile Include="SharpConnect.Sockets\ForNet20.cs" />
     <Compile Include="SharpConnect.Sockets\ReceiveCarrier.cs" />
