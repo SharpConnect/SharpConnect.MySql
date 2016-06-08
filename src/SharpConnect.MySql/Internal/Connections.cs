@@ -172,6 +172,7 @@ namespace SharpConnect.MySql.Internal
 
                         tableHeader = new TableHeader();
                         tableHeader.ConnConfig = this.config;
+                        tableHeader.TypeCast = this.config.typeCast;
                         this.parsingState = ResultPacketState.Expect_FieldHeader;
                         rows = new List<RowDataPacket>();
 

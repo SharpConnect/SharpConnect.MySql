@@ -16,7 +16,6 @@ namespace MySqlTest
             {
                 conn.UpdateMaxAllowPacket();
             });
-        
             //conn.Close();
         }
     }
