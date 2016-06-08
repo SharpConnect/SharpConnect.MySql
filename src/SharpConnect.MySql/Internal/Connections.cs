@@ -698,6 +698,7 @@ namespace SharpConnect.MySql.Internal
                     throw new Exception("err1");
                 }
                 var handshake_packet = handShakeResult.packet;
+                this.threadId= handshake_packet.threadId;
                 byte[] token = MakeToken(config.password,
                    GetScrollbleBuffer(handshake_packet.scrambleBuff1, handshake_packet.scrambleBuff2));
                 _writer.IncrementPacketNumber();
@@ -819,6 +820,7 @@ namespace SharpConnect.MySql.Internal
                 if (_query.ReadRow())
                 {
                     _maxPacketSize = _query.Cells[0].myInt64;
+                    _writer.SetMaxAllowedPacket(_maxPacketSize);
                 }
             }
         }
