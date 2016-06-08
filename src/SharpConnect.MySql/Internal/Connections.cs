@@ -197,11 +197,11 @@ namespace SharpConnect.MySql.Internal
                                 {
                                     //after field
                                     //expected field eof  
-                                    var okPacket = new EofPacket(this.isProtocol41);
-                                    okPacket.Header = header;
-                                    uint packetLen = okPacket.GetPacketLength();
-                                    currentPacket = okPacket;
-                                    okPacket.ParsePacket(_parser);
+                                    var eofPacket = new EofPacket(this.isProtocol41);
+                                    eofPacket.Header = header;
+                                    uint packetLen = eofPacket.GetPacketLength();
+                                    currentPacket = eofPacket;
+                                    eofPacket.ParsePacket(_parser);
 
                                     this.parsingState = ResultPacketState.Expect_RowHeader;
 
@@ -371,7 +371,7 @@ namespace SharpConnect.MySql.Internal
     }
     class MySqlError : MySqlResult
     {
-        ErrPacket errPacket;
+        public readonly ErrPacket errPacket;
         public MySqlError(ErrPacket errPacket)
         {
             this.errPacket = errPacket;
@@ -380,7 +380,7 @@ namespace SharpConnect.MySql.Internal
     }
     class MySqlOk : MySqlResult
     {
-        OkPacket okpacket;
+        public readonly OkPacket okpacket;
         public MySqlOk(OkPacket okpacket)
         {
             this.okpacket = okpacket;
@@ -511,6 +511,7 @@ namespace SharpConnect.MySql.Internal
         Action<object> whenSendComplete;
         bool connectedIsComplete = false;
         MySqlPacketParser packetParser = null;
+        internal MySqlParserMx SqlPacketParser { get { return _mysqlParserMx; } }
         bool isProtocol41;
 
 

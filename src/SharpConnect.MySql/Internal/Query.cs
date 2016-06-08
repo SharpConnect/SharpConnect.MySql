@@ -39,6 +39,7 @@ namespace SharpConnect.MySql.Internal
         bool _hasSomeRow;
         bool _executePrepared;
         PacketParser _parser;
+        MySqlParserMx _sqlParser;
         PacketWriter _writer;
         SqlStringTemplate _sqlStrTemplate;
         PreparedContext _prepareContext;
@@ -65,6 +66,7 @@ namespace SharpConnect.MySql.Internal
             //*** query use conn resource such as parser,writer
             //so 1 query 1 connection
             _parser = conn.PacketParser;
+            _sqlParser = conn.SqlPacketParser;
             _writer = conn.PacketWriter;
             _receiveBuffer = null;
             _sqlStrTemplate = new SqlStringTemplate(sql);
@@ -114,6 +116,8 @@ namespace SharpConnect.MySql.Internal
                 _conn.StartReceive(pck =>
                 {
                     //when recv complete ...
+                    //_prepareContext = null;
+                    //ParseReceivePacket();
                     ParseRecvPacketAsync();
                     execComplete = true; 
                 });
@@ -242,26 +246,63 @@ namespace SharpConnect.MySql.Internal
             {
                 return _hasSomeRow = false;
             }
-
-            switch (_receiveBuffer[_parser.ReadPosition + 4])
+            if (_receiveBuffer != null)
             {
-                case ERROR_CODE:
-                    {
-                        LoadError = new ErrPacket();
-                        LoadError.ParsePacket(_parser);
-                        return _hasSomeRow = false;
-                    }
-                case EOF_CODE:
-                    {
-                        EofPacket rowDataEof = ParseEOF();
-                        return _hasSomeRow = false;
-                    }
-                default:
-                    {
-                        //sync version
-                        return ReadRowPacket();
-                    }
+                switch (_receiveBuffer[_parser.ReadPosition + 4])
+                {
+                    case ERROR_CODE:
+                        {
+                            LoadError = new ErrPacket();
+                            LoadError.ParsePacket(_parser);
+                            return _hasSomeRow = false;
+                        }
+                    case EOF_CODE:
+                        {
+                            EofPacket rowDataEof = ParseEOF();
+                            return _hasSomeRow = false;
+                        }
+                    default:
+                        {
+                            //sync version
+                            return ReadRowPacket();
+                        }
+                }
             }
+            else
+            {
+                return ReadRowAsync();
+            }
+        }
+
+        public bool ReadRowAsync()
+        {
+            if (_tableHeader == null)
+            {
+                return _hasSomeRow = false;
+            }
+            LoadData();
+            MySqlResult result = _sqlParser.ResultPacket;
+            if(result is MySqlOk)
+            {
+                MySqlOk ok = result as MySqlOk;
+                OkPacket = ok.okpacket;
+                return _hasSomeRow = false;
+            }
+            else if(result is MySqlError)
+            {
+                MySqlError error = result as MySqlError;
+                LoadError = error.errPacket;
+                return _hasSomeRow = false;
+            }
+            else
+            {
+                LoadData();
+                MySqlTableResult result2 = _sqlParser.ResultPacket as MySqlTableResult;
+                var lastRow = result2.rows[result2.rows.Count - 1];
+                _lastRow = lastRow;
+                _hasSomeRow = true;
+            }
+            return true;
         }
 
         bool ReadRowPacket()
@@ -317,9 +358,33 @@ namespace SharpConnect.MySql.Internal
 
         void ParseRecvPacketAsync()
         {
-
+            LoadData();
+            MySqlResult result = _sqlParser.ResultPacket;
+            if(result is MySqlOk)
+            {
+                MySqlOk ok = result as MySqlOk;
+                OkPacket = ok.okpacket;
+            }
+            else if(_sqlParser.ResultPacket is MySqlError)
+            {
+                MySqlError error = result as MySqlError;
+                LoadError = error.errPacket;
+            }
+            else
+            {
+                MySqlTableResult tableResult = result as MySqlTableResult;
+                _tableHeader = tableResult.tableHeader;
+                LoadData();//Parse EOF
+            }
         }
 
+        void LoadData()
+        {
+            do
+            {
+                _sqlParser.LoadData();
+            } while (!_sqlParser.IsComplete);
+        }
         /// <summary>
         /// this method is called after send data to server
         /// </summary>
