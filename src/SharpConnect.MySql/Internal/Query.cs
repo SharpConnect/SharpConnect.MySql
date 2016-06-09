@@ -248,25 +248,26 @@ namespace SharpConnect.MySql.Internal
             }
             if (_receiveBuffer != null)
             {
-                switch (_receiveBuffer[_parser.ReadPosition + 4])
-                {
-                    case ERROR_CODE:
-                        {
-                            LoadError = new ErrPacket();
-                            LoadError.ParsePacket(_parser);
-                            return _hasSomeRow = false;
-                        }
-                    case EOF_CODE:
-                        {
-                            EofPacket rowDataEof = ParseEOF();
-                            return _hasSomeRow = false;
-                        }
-                    default:
-                        {
-                            //sync version
-                            return ReadRowPacket();
-                        }
-                }
+                return ReadRowAsync();
+                //switch (_receiveBuffer[_parser.ReadPosition + 4])
+                //{
+                //    case ERROR_CODE:
+                //        {
+                //            LoadError = new ErrPacket();
+                //            LoadError.ParsePacket(_parser);
+                //            return _hasSomeRow = false;
+                //        }
+                //    case EOF_CODE:
+                //        {
+                //            EofPacket rowDataEof = ParseEOF();
+                //            return _hasSomeRow = false;
+                //        }
+                //    default:
+                //        {
+                //            //sync version
+                //            return ReadRowPacket();
+                //        }
+                //}
             }
             else
             {
@@ -274,7 +275,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public bool ReadRowAsync()
+        bool ReadRowAsync()
         {
             if (_tableHeader == null)
             {
@@ -391,31 +392,32 @@ namespace SharpConnect.MySql.Internal
         void ParseReceivePacket()
         {
             //TODO: review here, optimized buffer
-            _receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
-            int receive = _conn.ReceiveData(_receiveBuffer);
-            if (receive == 0)
-            {
-                return;
-            }
-            //---------------------------------------------------
-            //TODO: review err handling 
-            _parser.LoadNewBuffer(_receiveBuffer, receive);
+            ParseRecvPacketAsync();
+            //_receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
+            //int receive = _conn.ReceiveData(_receiveBuffer);
+            //if (receive == 0)
+            //{
+            //    return;
+            //}
+            ////---------------------------------------------------
+            ////TODO: review err handling 
+            //_parser.LoadNewBuffer(_receiveBuffer, receive);
 
-            switch (_receiveBuffer[4])
-            {
-                case ERROR_CODE:
-                    LoadError = new ErrPacket();
-                    LoadError.ParsePacket(_parser);
-                    break;
-                case 0xfe://0x00 or 0xfe the OK packet header
-                case OK_CODE:
-                    OkPacket = new OkPacket(_conn.IsProtocol41);
-                    OkPacket.ParsePacket(_parser);
-                    break;
-                default:
-                    ParseResultSet();
-                    break;
-            }
+            //switch (_receiveBuffer[4])
+            //{
+            //    case ERROR_CODE:
+            //        LoadError = new ErrPacket();
+            //        LoadError.ParsePacket(_parser);
+            //        break;
+            //    case 0xfe://0x00 or 0xfe the OK packet header
+            //    case OK_CODE:
+            //        OkPacket = new OkPacket(_conn.IsProtocol41);
+            //        OkPacket.ParsePacket(_parser);
+            //        break;
+            //    default:
+            //        ParseResultSet();
+            //        break;
+            //}
         }
 
         void ParseResultSet()
@@ -440,13 +442,14 @@ namespace SharpConnect.MySql.Internal
 
         void SendPacket(byte[] packetBuffer)
         {
-            int sent = 0;
-            int packetLength = packetBuffer.Length;
-            while (sent < packetLength)
-            {
-                //if packet is large                   
-                sent += _conn.SendData(packetBuffer, sent, packetLength - sent);
-            }
+            _conn.SendDataAsync(packetBuffer, 0, packetBuffer.Length, null);
+            //int sent = 0;
+            //int packetLength = packetBuffer.Length;
+            //while (sent < packetLength)
+            //{
+            //    //if packet is large                   
+            //    sent += _conn.SendData(packetBuffer, sent, packetLength - sent);
+            //}
         }
         void SendPacketAsync(byte[] packetBuffer, Action<object> whenSendComplete)
         {
