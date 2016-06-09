@@ -47,16 +47,6 @@ namespace SharpConnect.MySql.Internal
         Connected
     }
 
-    //enum ReadStepCode
-    //{
-    //    Connection,
-    //    ReadColumn,
-    //    ReadRow,
-    //    ReadEOF,
-    //    ReadErrOrOk,
-    //}
-
-
     abstract class MySqlPacketParser
     {
 
@@ -116,182 +106,213 @@ namespace SharpConnect.MySql.Internal
             {
                 case ResultPacketState.ExpectedResultSetHeader:
                     {
-                        if (!_parser.Ensure(PACKET_HEADER_LENGTH + 1)) //check if length is enough to parse 
-                        {
-                            needMoreBuffer = true;
-                            return;
-                        }
-                        //-------------------------------- 
-                        header = _parser.ParsePacketHeader();
-                        byte packetType = _parser.PeekByte();
-                        switch (packetType)
-                        {
-                            case ERROR_CODE:
-                                {
-                                    var errPacket = new ErrPacket();
-                                    errPacket.Header = header;
-                                    uint packetLen = errPacket.GetPacketLength();
-                                    currentPacket = errPacket;
-                                    errPacket.ParsePacket(_parser);
-                                    //------------------------
-                                    this._finalResult = new MySqlError(errPacket);
-
-                                } break;
-                            case EOF_CODE:
-                            case OK_CODE:
-                                {
-                                    var okPacket = new OkPacket(this.isProtocol41);
-                                    okPacket.Header = header;
-                                    uint packetLen = okPacket.GetPacketLength();
-                                    currentPacket = okPacket;
-                                    okPacket.ParsePacket(_parser);
-                                    this._finalResult = new MySqlOk(okPacket);
-                                    this.parsingState = ResultPacketState.Should_End;
-                                } break;
-                            default:
-                                {
-                                    //resultset packet
-                                    var resultPacket = new ResultSetHeaderPacket();
-                                    currentPacket = resultPacket;
-                                    resultPacket.Header = header;
-                                    this.parsingState = ResultPacketState.ResultSet_Content;
-                                } break;
-                        }
+                        ParseResultsetHeader();
                     } break;
                 case ResultPacketState.ResultSet_Content:
                     {
-                        if (!_parser.Ensure(header.ContentLength))
-                        {
-                            needMoreBuffer = true;
-                            return;
-                        }
-
-
-                        //can parse
-                        currentPacket.ParsePacket(_parser);
-
-                        tableHeader = new TableHeader();
-                        tableHeader.ConnConfig = this.config;
-                        tableHeader.TypeCast = this.config.typeCast;
-                        this.parsingState = ResultPacketState.Expect_FieldHeader;
-                        rows = new List<RowDataPacket>();
-
-
+                        ParseResultSetContent();
                     } break;
                 case ResultPacketState.Expect_FieldHeader:
                     {
-                        if (!_parser.Ensure(PACKET_HEADER_LENGTH + 1)) //check if length is enough to parse 
-                        {
-                            needMoreBuffer = true;
-                            return;
-                        }
-
-                        header = _parser.ParsePacketHeader();
-                        byte packetType = _parser.PeekByte();
-                        switch (packetType)
-                        {
-                            case ERROR_CODE:
-                                {
-                                } break;
-                            case EOF_CODE:
-                            case OK_CODE:
-                                {
-                                    //after field
-                                    //expected field eof  
-                                    var eofPacket = new EofPacket(this.isProtocol41);
-                                    eofPacket.Header = header;
-                                    uint packetLen = eofPacket.GetPacketLength();
-                                    currentPacket = eofPacket;
-                                    eofPacket.ParsePacket(_parser);
-
-                                    this.parsingState = ResultPacketState.Expect_RowHeader;
-
-                                } break;
-                            default:
-                                {
-                                    FieldPacket fieldPacket = new FieldPacket(this.isProtocol41);
-                                    fieldPacket.Header = header;
-                                    tableHeader.AddField(fieldPacket);
-                                    currentPacket = fieldPacket;
-                                    this.parsingState = ResultPacketState.Field_Content;
-
-                                } break;
-                        }
-
+                        ParseFieldHeader();
                     } break;
 
                 case ResultPacketState.Field_Content:
                     {
-                        if (!_parser.Ensure(header.ContentLength)) //check if length is enough to parse 
-                        {
-                            needMoreBuffer = true;
-                            return;
-                        }
-
-                        //can parse
-                        currentPacket.ParsePacket(_parser);
-                        this.parsingState = ResultPacketState.Expect_FieldHeader;
+                        ParseFieldContent();
                     }
                     break;
                 case ResultPacketState.Expect_RowHeader:
                     {
-                        if (!_parser.Ensure(PACKET_HEADER_LENGTH + 1))
-                        {
-                            needMoreBuffer = true;
-                            return;
-                        }
-
-                        header = _parser.ParsePacketHeader();
-                        byte packetType = _parser.PeekByte();
-                        switch (packetType)
-                        {
-                            case ERROR_CODE:
-                                {
-                                    //found error
-
-                                } break;
-                            case EOF_CODE://0x00 or 0xfe the OK packet header
-                            case OK_CODE:
-                                {
-                                    //finish
-                                    EofPacket eofPacket = new EofPacket(this.isProtocol41);
-                                    eofPacket.Header = header;
-                                    currentPacket = eofPacket;
-                                    eofPacket.ParsePacket(_parser);
-
-                                    this.parsingState = ResultPacketState.Should_End;
-                                    //table result?
-                                    _finalResult = new MySqlTableResult(tableHeader, rows);
-                                    rows = null;
-
-                                } break;
-                            default:
-                                {
-                                    RowDataPacket rowPacket = new RowDataPacket(tableHeader);
-                                    rowPacket.Header = header;
-                                    currentPacket = rowPacket;
-                                    rows.Add(rowPacket);
-                                    this.parsingState = ResultPacketState.Row_Content;
-                                } break;
-                        }
-
+                        ParseRowHeader();
                     } break;
                 case ResultPacketState.Row_Content:
                     {
-                        if (!_parser.Ensure(header.ContentLength))
-                        {
-                            needMoreBuffer = true;
-                            return;
-                        }
-
-                        //can parse
-                        currentPacket.ParsePacket(_parser);
-                        this.parsingState = ResultPacketState.Expect_RowHeader;
-
+                        ParseRowContent();
                     } break;
                 
             }
         }
+        void ParseResultsetHeader()
+        {
+            if (!_parser.Ensure(PACKET_HEADER_LENGTH + 1)) //check if length is enough to parse 
+            {
+                needMoreBuffer = true;
+                return;
+            }
+            //-------------------------------- 
+            header = _parser.ParsePacketHeader();
+            byte packetType = _parser.PeekByte();
+            switch (packetType)
+            {
+                case ERROR_CODE:
+                    {
+                        ParseErrorPacket();
+                    }
+                    break;
+                case EOF_CODE:
+                case OK_CODE:
+                    {
+                        ParseOkPacket();
+                        this.parsingState = ResultPacketState.Should_End;
+                    }
+                    break;
+                default:
+                    {
+                        //resultset packet
+                        var resultPacket = new ResultSetHeaderPacket();
+                        currentPacket = resultPacket;
+                        resultPacket.Header = header;
+                        this.parsingState = ResultPacketState.ResultSet_Content;
+                    }
+                    break;
+            }
+        }
+        void ParseResultSetContent()
+        {
+            if (!_parser.Ensure(header.ContentLength))
+            {
+                needMoreBuffer = true;
+                return;
+            }
+            //can parse
+            currentPacket.ParsePacket(_parser);
+
+            tableHeader = new TableHeader();
+            tableHeader.ConnConfig = this.config;
+            tableHeader.TypeCast = this.config.typeCast;
+            this.parsingState = ResultPacketState.Expect_FieldHeader;
+            rows = new List<RowDataPacket>();
+        }
+        void ParseFieldHeader()
+        {
+            if (!_parser.Ensure(PACKET_HEADER_LENGTH + 1)) //check if length is enough to parse 
+            {
+                needMoreBuffer = true;
+                return;
+            }
+
+            header = _parser.ParsePacketHeader();
+            byte packetType = _parser.PeekByte();
+            switch (packetType)
+            {
+                case ERROR_CODE:
+                    {
+                        ParseErrorPacket();
+                    }
+                    break;
+                case EOF_CODE:
+                case OK_CODE:
+                    {
+                        //after field
+                        //expected field eof  
+                        ParseEOFPacket();
+                        this.parsingState = ResultPacketState.Expect_RowHeader;
+                    }
+                    break;
+                default:
+                    {
+                        FieldPacket fieldPacket = new FieldPacket(this.isProtocol41);
+                        fieldPacket.Header = header;
+                        tableHeader.AddField(fieldPacket);
+                        currentPacket = fieldPacket;
+                        this.parsingState = ResultPacketState.Field_Content;
+                    }
+                    break;
+            }
+        }
+        void ParseFieldContent()
+        {
+            if (!_parser.Ensure(header.ContentLength)) //check if length is enough to parse 
+            {
+                needMoreBuffer = true;
+                return;
+            }
+
+            //can parse
+            currentPacket.ParsePacket(_parser);
+            this.parsingState = ResultPacketState.Expect_FieldHeader;
+        }
+        void ParseRowHeader()
+        {
+            if (!_parser.Ensure(PACKET_HEADER_LENGTH + 1))
+            {
+                needMoreBuffer = true;
+                return;
+            }
+
+            header = _parser.ParsePacketHeader();
+            byte packetType = _parser.PeekByte();
+            switch (packetType)
+            {
+                case ERROR_CODE:
+                    {
+                        //found error
+                        ParseErrorPacket();
+                    }
+                    break;
+                case EOF_CODE://0x00 or 0xfe the OK packet header
+                case OK_CODE:
+                    {
+                        //finish
+                        ParseEOFPacket();
+                        this.parsingState = ResultPacketState.Should_End;
+                        //table result?
+                        _finalResult = new MySqlTableResult(tableHeader, rows);
+                        rows = null;
+                    }
+                    break;
+                default:
+                    {
+                        RowDataPacket rowPacket = new RowDataPacket(tableHeader);
+                        rowPacket.Header = header;
+                        currentPacket = rowPacket;
+                        rows.Add(rowPacket);
+                        this.parsingState = ResultPacketState.Row_Content;
+                    }
+                    break;
+            }
+        }
+        void ParseRowContent()
+        {
+            if (!_parser.Ensure(header.ContentLength))
+            {
+                needMoreBuffer = true;
+                return;
+            }
+
+            //can parse
+            currentPacket.ParsePacket(_parser);
+            this.parsingState = ResultPacketState.Expect_RowHeader;
+        }
+
+        void ParseErrorPacket()
+        {
+            var errPacket = new ErrPacket();
+            errPacket.Header = header;
+            uint packetLen = errPacket.GetPacketLength();
+            currentPacket = errPacket;
+            errPacket.ParsePacket(_parser);
+            //------------------------
+            this._finalResult = new MySqlError(errPacket);
+        }
+        void ParseOkPacket()
+        {
+            var okPacket = new OkPacket(this.isProtocol41);
+            okPacket.Header = header;
+            uint packetLen = okPacket.GetPacketLength();
+            currentPacket = okPacket;
+            okPacket.ParsePacket(_parser);
+            this._finalResult = new MySqlOk(okPacket);
+        }
+        void ParseEOFPacket()
+        {
+            EofPacket eofPacket = new EofPacket(this.isProtocol41);
+            eofPacket.Header = header;
+            currentPacket = eofPacket;
+            eofPacket.ParsePacket(_parser);
+        }
+
         public override void Parse(byte[] buffer, int count)
         {
             _finalResult = null;
