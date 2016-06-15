@@ -105,6 +105,7 @@ namespace SharpConnect.MySql.Internal
         public void AppendBuffer(byte[] buffer, int count)
         {
             long saved_pos = _stream.Position;
+            _stream.Position = _currentInputLength;
             _stream.Write(buffer, 0, count);
             _stream.Position = saved_pos;
             _currentInputLength += count;
