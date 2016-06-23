@@ -91,6 +91,7 @@ namespace SharpConnect.MySql.Internal
         }
         public void Execute()
         {
+            readingIndex = 0;
             if (_prepareContext != null)
             {
                 ExecutePrepareQuery();
@@ -104,35 +105,48 @@ namespace SharpConnect.MySql.Internal
         bool execComplete = false;
         void ExecuteNonPrepare()
         {
+            _sqlParser.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41);
             _writer.Reset();
             string realSql = _sqlStrTemplate.BindValues(_cmdParams, false);
             var queryPacket = new ComQueryPacket(realSql);
             queryPacket.WritePacket(_writer);
-
             SendPacketAsync(_writer.ToArray(), o =>
             {
                 //send complete 
-                //then recev result  
-                _conn.StartReceive(pck =>
-                {
-                    //when recv complete ...
-                    //_prepareContext = null;
-                    //ParseReceivePacket();
-                    ParseRecvPacketAsync();
-                    execComplete = true; 
-                });
+                //then recev result
+                ParseRecvPacketAsync(true);
+                _prepareContext = null;
+                execComplete = true;
+                //_conn.StartReceive(result =>
+                //{
+                //    if (result is MySqlOk)
+                //    {
+                //        MySqlOk ok = result as MySqlOk;
+                //        OkPacket = ok.okpacket;
+                //    }
+                //    else if (result is MySqlError)
+                //    {
+                //        MySqlError error = result as MySqlError;
+                //        LoadError = error.errPacket;
+                //    }
+                //    else
+                //    {
+                //        MySqlTableResult tableResult = result as MySqlTableResult;
+                //        _tableHeader = tableResult.tableHeader;
+                //    }
+                //    _prepareContext = null;
+                //    execComplete = true;
+                //});
 
             });
 
-            while (!execComplete) { }
-            //----------------------
-            // _prepareContext = null;
-            // ParseReceivePacket();
+            while (!execComplete) ;
         }
 
         public void Prepare()
         {
             //prepare sql query
+            _sqlParser.CurrentPacketParser = new PrepareResponsePacketParser(_conn.IsProtocol41);
             _prepareContext = null;
             if (_cmdParams == null)
             {
@@ -143,43 +157,30 @@ namespace SharpConnect.MySql.Internal
             string realSql = _sqlStrTemplate.BindValues(_cmdParams, true);
             ComPrepareStatementPacket preparePacket = new ComPrepareStatementPacket(realSql);
             preparePacket.WritePacket(_writer);
-            SendPacket(_writer.ToArray());
-            OkPrepareStmtPacket okPreparePacket = new OkPrepareStmtPacket();
-            okPreparePacket = ParsePrepareResponse();
-            if (okPreparePacket != null)
+            //SendPacket(_writer.ToArray());
+            bool parseEnd = false;
+            SendPacketAsync(_writer.ToArray(), obj =>
             {
-                _prepareContext = new PreparedContext(okPreparePacket.statement_id, _sqlStrTemplate);
-                if (okPreparePacket.num_params > 0)
+                _conn.StartReceive(result =>
                 {
-                    var tableHeader = new TableHeader();
-                    tableHeader.TypeCast = typeCast;
-                    tableHeader.NestTables = nestTables;
-                    tableHeader.ConnConfig = _conn.config;
-                    for (int i = 0; i < okPreparePacket.num_params; i++)
-                    {
-                        //no meaning for each field?
-                        FieldPacket field = ParseColumn();
-                        tableHeader.AddField(field);
-                    }
 
-                    //set table after the table is ready!
-                    _prepareContext.Setup(tableHeader);
-                    ParseEOF();
-                }
-                if (okPreparePacket.num_columns > 0)
-                {
-                    _tableHeader = new TableHeader();
-                    _tableHeader.TypeCast = typeCast;
-                    _tableHeader.NestTables = nestTables;
-                    _tableHeader.ConnConfig = _conn.config;
-                    for (int i = 0; i < okPreparePacket.num_columns; i++)
+                    //_prepareContext = new PreparedContext(okPreparePacket.statement_id, _sqlStrTemplate);
+                    if(result is MySqlPrepareResponse)
                     {
-                        FieldPacket field = ParseColumn();
-                        _tableHeader.AddField(field);
+                        MySqlPrepareResponse response = result as MySqlPrepareResponse;
+                        _prepareContext = new PreparedContext(response.okPacket.statement_id, _sqlStrTemplate);
+                        _tableHeader = response.tableHeader;
+                        _prepareContext.Setup(_tableHeader);
                     }
-                    ParseEOF();
-                }
-            }
+                    else//error
+                    {
+                        throw new Exception("Prepare Error");
+                    }
+                    parseEnd = true;
+                });
+                
+            });
+            while (!parseEnd) ;
         }
         void ExecutePrepareQuery()
         {
@@ -202,17 +203,49 @@ namespace SharpConnect.MySql.Internal
             if (_executePrepared)
                 ResetPrepareStmt();
             _writer.Reset();
+            _sqlParser.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41, true);
             //fill prepared values 
             var excute = new ComExecutePrepareStatement(_prepareContext.statementId, _prepareContext.PrepareBoundData(_cmdParams));
             excute.WritePacket(_writer);
-            SendPacket(_writer.ToArray());
-            ParseReceivePacket();
-            _executePrepared = true;
-            if (OkPacket != null || LoadError != null)
+            bool recieveComplete = false;
+            SendPacketAsync(_writer.ToArray(), obj =>
             {
-                return;
-            }
-            _lastPrepareRow = new RowPreparedDataPacket(_tableHeader);
+                //LoadData();
+                ParseRecvPacketAsync(true);
+                _executePrepared = true;
+                //MySqlResult result = _sqlParser.ResultPacket;
+                //if (result is MySqlOk)
+                //{
+                //    MySqlOk ok = result as MySqlOk;
+                //    OkPacket = ok.okpacket;
+                //    Console.WriteLine("Prepare Ok");
+                //}
+                //else if (result is MySqlError)
+                //{
+                //    MySqlError error = result as MySqlError;
+                //    LoadError = error.errPacket;
+                //}
+                //else if (result is MySqlPrepareTableResult)
+                //{
+                //    MySqlPrepareTableResult r = result as MySqlPrepareTableResult;
+                //    _tableHeader = r.tableHeader;
+                //}
+                recieveComplete = true;
+                //_conn.StartReceive(result =>
+                //{
+                    
+                //});
+                
+            });
+            while (!recieveComplete) ;
+            //SendPacket(_writer.ToArray());
+            //ParseReceivePacket();
+            //_executePrepared = true;
+            //if (OkPacket != null || LoadError != null)
+            //{
+            //    return;
+            //}
+            //_lastPrepareRow = new RowPreparedDataPacket(_tableHeader);
         }
 
         void ClosePrepareStmt()
@@ -223,7 +256,10 @@ namespace SharpConnect.MySql.Internal
                 ComStmtClose closePrepare = new ComStmtClose(_prepareContext.statementId);
                 closePrepare.WritePacket(_writer);
                 SendPacket(_writer.ToArray());
-                //No response is sent back to the client.
+                //SendPacketAsync(_writer.ToArray(), obj =>
+                //{
+                //    //No response is sent back to the client.
+                //});
             }
         }
 
@@ -232,10 +268,17 @@ namespace SharpConnect.MySql.Internal
             if (_prepareContext != null)
             {
                 _writer.Reset();
+                _sqlParser.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41, false);
                 ComStmtReset resetPacket = new ComStmtReset(_prepareContext.statementId);
                 resetPacket.WritePacket(_writer);
-                SendPacket(_writer.ToArray());
-                ParseReceivePacket();
+                //SendPacket(_writer.ToArray());
+                bool parseEnd = false;
+                SendPacketAsync(_writer.ToArray(), obj =>
+                {
+                    ParseRecvPacketAsync(true);
+                    parseEnd = true;
+                });
+                while (!parseEnd) ;
                 //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
             }
         }
@@ -274,14 +317,14 @@ namespace SharpConnect.MySql.Internal
                 return ReadRowAsync();
             }
         }
-
+        int readingIndex = 0;
         bool ReadRowAsync()
         {
             if (_tableHeader == null)
             {
                 return _hasSomeRow = false;
             }
-            LoadData();
+            //LoadData();
             MySqlResult result = _sqlParser.ResultPacket;
             if(result is MySqlOk)
             {
@@ -297,13 +340,35 @@ namespace SharpConnect.MySql.Internal
             }
             else
             {
-                LoadData();
-                MySqlTableResult result2 = _sqlParser.ResultPacket as MySqlTableResult;
-                var lastRow = result2.rows[result2.rows.Count - 1];
-                _lastRow = lastRow;
-                _hasSomeRow = true;
+                //LoadData();
+                try
+                {
+                    if (result is MySqlTableResult)
+                    {
+                        MySqlTableResult tableResult = _sqlParser.ResultPacket as MySqlTableResult;
+                        var lastRow = tableResult.rows[readingIndex++];
+                        _lastRow = lastRow;
+                        _hasSomeRow = true;
+                    }
+                    else if (result is MySqlPrepareTableResult)
+                    {
+                        MySqlPrepareTableResult prepareResult = _sqlParser.ResultPacket as MySqlPrepareTableResult;
+                        var lastRow = prepareResult.rows[readingIndex++];
+                        _lastPrepareRow = lastRow;
+                        _hasSomeRow = true;
+                    }
+                    else
+                    {
+                        throw new NotSupportedException("Unexpected Result Type");
+                    }
+                    
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    _hasSomeRow = false;
+                }
             }
-            return true;
+            return _hasSomeRow;
         }
 
         bool ReadRowPacket()
@@ -357,34 +422,48 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        void ParseRecvPacketAsync()
+        void ParseRecvPacketAsync(bool wait)
         {
-            LoadData();
-            MySqlResult result = _sqlParser.ResultPacket;
-            if(result is MySqlOk)
+            bool recvComplete = false;
+            _conn.StartReceive(result =>
             {
-                MySqlOk ok = result as MySqlOk;
-                OkPacket = ok.okpacket;
-            }
-            else if(_sqlParser.ResultPacket is MySqlError)
+                if (result is MySqlOk)
+                {
+                    MySqlOk ok = result as MySqlOk;
+                    OkPacket = ok.okpacket;
+                }
+                else if (result is MySqlError)
+                {
+                    MySqlError error = result as MySqlError;
+                    LoadError = error.errPacket;
+                }
+                else if (result is MySqlTableResult)
+                {
+                    MySqlTableResult tableResult = result as MySqlTableResult;
+                    _tableHeader = tableResult.tableHeader;
+                    //LoadData();//Parse EOF
+                }
+                else if (result is MySqlPrepareTableResult)
+                {
+                    MySqlPrepareTableResult prepareResult = result as MySqlPrepareTableResult;
+                    _tableHeader = prepareResult.tableHeader;
+                }
+                else
+                {
+                    throw new NotSupportedException();
+                }
+                recvComplete = true;
+            });
+            //MySqlResult result = _sqlParser.ResultPacket;
+            if (wait)
             {
-                MySqlError error = result as MySqlError;
-                LoadError = error.errPacket;
-            }
-            else
-            {
-                MySqlTableResult tableResult = result as MySqlTableResult;
-                _tableHeader = tableResult.tableHeader;
-                LoadData();//Parse EOF
+                while (!recvComplete) ;
             }
         }
 
         void LoadData()
         {
-            do
-            {
-                _sqlParser.LoadData();
-            } while (!_sqlParser.IsComplete);
+            _sqlParser.LoadData();
         }
         /// <summary>
         /// this method is called after send data to server
@@ -392,7 +471,7 @@ namespace SharpConnect.MySql.Internal
         void ParseReceivePacket()
         {
             //TODO: review here, optimized buffer
-            ParseRecvPacketAsync();
+            ParseRecvPacketAsync(true);
             //_receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
             //int receive = _conn.ReceiveData(_receiveBuffer);
             //if (receive == 0)
@@ -442,14 +521,14 @@ namespace SharpConnect.MySql.Internal
 
         void SendPacket(byte[] packetBuffer)
         {
-            _conn.SendDataAsync(packetBuffer, 0, packetBuffer.Length, null);
-            //int sent = 0;
-            //int packetLength = packetBuffer.Length;
-            //while (sent < packetLength)
-            //{
-            //    //if packet is large                   
-            //    sent += _conn.SendData(packetBuffer, sent, packetLength - sent);
-            //}
+            //_conn.SendDataAsync(packetBuffer, 0, packetBuffer.Length, null);
+            int sent = 0;
+            int packetLength = packetBuffer.Length;
+            while (sent < packetLength)
+            {
+                //if packet is large                   
+                sent += _conn.SendData(packetBuffer, sent, packetLength - sent);
+            }
         }
         void SendPacketAsync(byte[] packetBuffer, Action<object> whenSendComplete)
         {
