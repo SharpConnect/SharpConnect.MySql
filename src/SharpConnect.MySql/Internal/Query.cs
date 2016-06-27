@@ -254,99 +254,98 @@ namespace SharpConnect.MySql.Internal
         }
         public bool ReadRow()
         {
-            return ReadRowAsync();
+            //-------------------
+            //blocking method***
+            //wait until execute finish 
+            //------------------- 
+            _hasSomeRow = false;
+            while (!InternalReadRow())
+            {
+                //note that load waiting data may not complete in first round       
+                //we wait here          
+                //** tight loop**
+            }
+
+            return _hasSomeRow;
         }
 
         int _rowReadIndex = 0;
 
-        bool ReadRowAsync()
+        bool InternalReadRow()
         {
+            //****
+            //return true when we finish
+            //**** 
             if (_tableHeader == null)
             {
-                return _hasSomeRow = false;
+                return true; //ok,finish
             }
 
             MySqlResult result = _sqlParser.ResultPacket;
-            if (result is MySqlOk)
+            if (result == null)
             {
-                MySqlOk ok = result as MySqlOk;
-                OkPacket = ok.okpacket;
-                return _hasSomeRow = false;
-            }
-            else if (result is MySqlError)
-            {
-                MySqlError error = result as MySqlError;
-                LoadError = error.errPacket;
-                return _hasSomeRow = false;
-            }
-            else
-            {
-
-                try
+                if (!_sqlParser.IsComplete)
                 {
-                    if (result is MySqlTableResult)
+                    //data in sql parser is not complete 
+                    return false; //need data for next round *** 
+                }
+                else
+                {
+                    throw new NotSupportedException("Unexpected Result Type");
+                }
+            }
+
+            //has some result
+            switch (result.Kind)
+            {
+                case MySqlResultKind.Ok:
+                    MySqlOk ok = result as MySqlOk;
+                    OkPacket = ok.okpacket;
+                    break;
+                case MySqlResultKind.Error:
+                    MySqlError error = result as MySqlError;
+                    LoadError = error.errPacket;
+                    break;
+                case MySqlResultKind.TableResult:
                     {
                         MySqlTableResult tableResult = _sqlParser.ResultPacket as MySqlTableResult;
-                        var lastRow = tableResult.rows[_rowReadIndex++];
-                        _lastRow = lastRow;
-                        _hasSomeRow = true;
-                    }
-                    else if (result is MySqlPrepareTableResult)
-                    {
-                        MySqlPrepareTableResult prepareResult = _sqlParser.ResultPacket as MySqlPrepareTableResult;
-                        var lastRow = prepareResult.rows[_rowReadIndex++];
-                        _lastPrepareRow = lastRow;
-                        _hasSomeRow = true;
-                    }
-                    else
-                    {
-                        if (result == null && !_sqlParser.IsComplete)
+                        //TODO: review here
+                        if (_rowReadIndex >= tableResult.rows.Count)
                         {
-                            _sqlParser.LoadData();
                         }
                         else
                         {
-                            throw new NotSupportedException("Unexpected Result Type");
+                            var lastRow = tableResult.rows[_rowReadIndex];
+                            _rowReadIndex++;
+                            _lastRow = lastRow;
+                            _hasSomeRow = true; //***
                         }
                     }
-                }
-                catch (ArgumentOutOfRangeException)
-                {
-                    _hasSomeRow = false;
-                }
-            }
-            return _hasSomeRow;
-        }
+                    break;
+                case MySqlResultKind.PrepareTableResult:
+                    {
+                        MySqlPrepareTableResult prepareResult = _sqlParser.ResultPacket as MySqlPrepareTableResult;
+                        if (_rowReadIndex >= prepareResult.rows.Count)
+                        {
 
-        bool ReadRowPacket()
-        {
-            if (_prepareContext != null)
-            {
-                try
-                {
-                    _lastPrepareRow.ReuseSlots();
-                    _lastPrepareRow.ParsePacketHeader(_parser);
-                    uint packetHeaderLength = _lastPrepareRow.GetPacketLength();
-                    _receiveBuffer = ReadPacket(_receiveBuffer, _lastPrepareRow.Header, _parser);
-                    _lastPrepareRow.ParsePacket(_parser);
-
-                    LoadDataForNextPackets();
-                }
-                catch (Exception ex)
-                {
-                    return false;
-                }
+                        }
+                        else
+                        {
+                            var lastRow = prepareResult.rows[_rowReadIndex];
+                            _rowReadIndex++;
+                            _lastPrepareRow = lastRow;
+                            _hasSomeRow = true;
+                        }
+                    }
+                    break;
+                default:
+                    {
+                        //unknown result kind
+                        throw new NotSupportedException();
+                    }
             }
-            else
-            {
-                _lastRow.ReuseSlots();
-                _lastRow.ParsePacketHeader(_parser);
-                _receiveBuffer = CheckLimit(_lastRow.GetPacketLength(), _receiveBuffer, _receiveBuffer.Length);
-                _lastRow.ParsePacket(_parser);
 
-                LoadDataForNextPackets();
-            }
-            return _hasSomeRow = true;
+            return true;//ok,finish
         }
 
         public int GetColumnIndex(string colName)
@@ -373,30 +372,42 @@ namespace SharpConnect.MySql.Internal
         {
             _conn.StartReceive(result =>
             {
-                if (result is MySqlOk)
-                {
-                    MySqlOk ok = result as MySqlOk;
-                    OkPacket = ok.okpacket;
-                }
-                else if (result is MySqlError)
-                {
-                    MySqlError error = result as MySqlError;
-                    LoadError = error.errPacket;
-                }
-                else if (result is MySqlTableResult)
-                {
-                    MySqlTableResult tableResult = result as MySqlTableResult;
-                    _tableHeader = tableResult.tableHeader;
-                }
-                else if (result is MySqlPrepareTableResult)
-                {
-                    MySqlPrepareTableResult prepareResult = result as MySqlPrepareTableResult;
-                    _tableHeader = prepareResult.tableHeader;
-                }
-                else
+                if (result == null)
                 {
                     throw new NotSupportedException();
                 }
+                else
+                {
+                    switch (result.Kind)
+                    {
+                        default: throw new NotSupportedException();//unknown
+                        case MySqlResultKind.Ok:
+                            {
+                                MySqlOk ok = result as MySqlOk;
+                                OkPacket = ok.okpacket;
+                            }
+                            break;
+                        case MySqlResultKind.Error:
+                            {
+                                MySqlError error = result as MySqlError;
+                                LoadError = error.errPacket;
+                            }
+                            break;
+                        case MySqlResultKind.TableResult:
+                            {
+                                MySqlTableResult tableResult = result as MySqlTableResult;
+                                _tableHeader = tableResult.tableHeader;
+                            }
+                            break;
+                        case MySqlResultKind.PrepareTableResult:
+                            {
+                                MySqlPrepareTableResult prepareResult = result as MySqlPrepareTableResult;
+                                _tableHeader = prepareResult.tableHeader;
+                            }
+                            break;
+                    }
+                }
+
                 //-----------------
                 //recv complete
                 whenFinish();
