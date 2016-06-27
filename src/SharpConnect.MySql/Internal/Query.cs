@@ -89,9 +89,13 @@ namespace SharpConnect.MySql.Internal
                 }
             }
         }
+
         public void Execute()
         {
-            readingIndex = 0;
+            //blocking mehod 
+            //wait until execute finish
+
+            _rowReadIndex = 0;
             if (_prepareContext != null)
             {
                 ExecutePrepareQuery();
@@ -117,27 +121,6 @@ namespace SharpConnect.MySql.Internal
                 ParseRecvPacketAsync(true);
                 _prepareContext = null;
                 execComplete = true;
-                //_conn.StartReceive(result =>
-                //{
-                //    if (result is MySqlOk)
-                //    {
-                //        MySqlOk ok = result as MySqlOk;
-                //        OkPacket = ok.okpacket;
-                //    }
-                //    else if (result is MySqlError)
-                //    {
-                //        MySqlError error = result as MySqlError;
-                //        LoadError = error.errPacket;
-                //    }
-                //    else
-                //    {
-                //        MySqlTableResult tableResult = result as MySqlTableResult;
-                //        _tableHeader = tableResult.tableHeader;
-                //    }
-                //    _prepareContext = null;
-                //    execComplete = true;
-                //});
-
             });
 
             while (!execComplete) ;
@@ -165,7 +148,7 @@ namespace SharpConnect.MySql.Internal
                 {
 
                     //_prepareContext = new PreparedContext(okPreparePacket.statement_id, _sqlStrTemplate);
-                    if(result is MySqlPrepareResponse)
+                    if (result is MySqlPrepareResponse)
                     {
                         MySqlPrepareResponse response = result as MySqlPrepareResponse;
                         _prepareContext = new PreparedContext(response.okPacket.statement_id, _sqlStrTemplate);
@@ -178,7 +161,7 @@ namespace SharpConnect.MySql.Internal
                     }
                     parseEnd = true;
                 });
-                
+
             });
             while (!parseEnd) ;
         }
@@ -201,7 +184,9 @@ namespace SharpConnect.MySql.Internal
             }
             //---------------------------------------------------------------------------------
             if (_executePrepared)
+            {
                 ResetPrepareStmt();
+            }
             _writer.Reset();
             _sqlParser.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41, true);
             //fill prepared values 
@@ -213,39 +198,9 @@ namespace SharpConnect.MySql.Internal
                 //LoadData();
                 ParseRecvPacketAsync(true);
                 _executePrepared = true;
-                //MySqlResult result = _sqlParser.ResultPacket;
-                //if (result is MySqlOk)
-                //{
-                //    MySqlOk ok = result as MySqlOk;
-                //    OkPacket = ok.okpacket;
-                //    Console.WriteLine("Prepare Ok");
-                //}
-                //else if (result is MySqlError)
-                //{
-                //    MySqlError error = result as MySqlError;
-                //    LoadError = error.errPacket;
-                //}
-                //else if (result is MySqlPrepareTableResult)
-                //{
-                //    MySqlPrepareTableResult r = result as MySqlPrepareTableResult;
-                //    _tableHeader = r.tableHeader;
-                //}
                 recieveComplete = true;
-                //_conn.StartReceive(result =>
-                //{
-                    
-                //});
-                
             });
             while (!recieveComplete) ;
-            //SendPacket(_writer.ToArray());
-            //ParseReceivePacket();
-            //_executePrepared = true;
-            //if (OkPacket != null || LoadError != null)
-            //{
-            //    return;
-            //}
-            //_lastPrepareRow = new RowPreparedDataPacket(_tableHeader);
         }
 
         void ClosePrepareStmt()
@@ -285,54 +240,24 @@ namespace SharpConnect.MySql.Internal
 
         public bool ReadRow()
         {
-            if (_tableHeader == null)
-            {
-                return _hasSomeRow = false;
-            }
-            if (_receiveBuffer != null)
-            {
-                return ReadRowAsync();
-                //switch (_receiveBuffer[_parser.ReadPosition + 4])
-                //{
-                //    case ERROR_CODE:
-                //        {
-                //            LoadError = new ErrPacket();
-                //            LoadError.ParsePacket(_parser);
-                //            return _hasSomeRow = false;
-                //        }
-                //    case EOF_CODE:
-                //        {
-                //            EofPacket rowDataEof = ParseEOF();
-                //            return _hasSomeRow = false;
-                //        }
-                //    default:
-                //        {
-                //            //sync version
-                //            return ReadRowPacket();
-                //        }
-                //}
-            }
-            else
-            {
-                return ReadRowAsync();
-            }
+            return ReadRowAsync();
         }
-        int readingIndex = 0;
+        int _rowReadIndex = 0;
         bool ReadRowAsync()
         {
             if (_tableHeader == null)
             {
                 return _hasSomeRow = false;
             }
-            //LoadData();
+
             MySqlResult result = _sqlParser.ResultPacket;
-            if(result is MySqlOk)
+            if (result is MySqlOk)
             {
                 MySqlOk ok = result as MySqlOk;
                 OkPacket = ok.okpacket;
                 return _hasSomeRow = false;
             }
-            else if(result is MySqlError)
+            else if (result is MySqlError)
             {
                 MySqlError error = result as MySqlError;
                 LoadError = error.errPacket;
@@ -340,20 +265,20 @@ namespace SharpConnect.MySql.Internal
             }
             else
             {
-                //LoadData();
+
                 try
                 {
                     if (result is MySqlTableResult)
                     {
                         MySqlTableResult tableResult = _sqlParser.ResultPacket as MySqlTableResult;
-                        var lastRow = tableResult.rows[readingIndex++];
+                        var lastRow = tableResult.rows[_rowReadIndex++];
                         _lastRow = lastRow;
                         _hasSomeRow = true;
                     }
                     else if (result is MySqlPrepareTableResult)
                     {
                         MySqlPrepareTableResult prepareResult = _sqlParser.ResultPacket as MySqlPrepareTableResult;
-                        var lastRow = prepareResult.rows[readingIndex++];
+                        var lastRow = prepareResult.rows[_rowReadIndex++];
                         _lastPrepareRow = lastRow;
                         _hasSomeRow = true;
                     }
@@ -368,7 +293,6 @@ namespace SharpConnect.MySql.Internal
                             throw new NotSupportedException("Unexpected Result Type");
                         }
                     }
-                    
                 }
                 catch (ArgumentOutOfRangeException)
                 {
@@ -460,46 +384,46 @@ namespace SharpConnect.MySql.Internal
                 }
                 recvComplete = true;
             });
-            //MySqlResult result = _sqlParser.ResultPacket;
+
             if (wait)
             {
                 while (!recvComplete) ;
             }
         }
-        
-        /// <summary>
-        /// this method is called after send data to server
-        /// </summary>
-        void ParseReceivePacket()
-        {
-            //TODO: review here, optimized buffer
-            ParseRecvPacketAsync(true);
-            //_receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
-            //int receive = _conn.ReceiveData(_receiveBuffer);
-            //if (receive == 0)
-            //{
-            //    return;
-            //}
-            ////---------------------------------------------------
-            ////TODO: review err handling 
-            //_parser.LoadNewBuffer(_receiveBuffer, receive);
 
-            //switch (_receiveBuffer[4])
-            //{
-            //    case ERROR_CODE:
-            //        LoadError = new ErrPacket();
-            //        LoadError.ParsePacket(_parser);
-            //        break;
-            //    case 0xfe://0x00 or 0xfe the OK packet header
-            //    case OK_CODE:
-            //        OkPacket = new OkPacket(_conn.IsProtocol41);
-            //        OkPacket.ParsePacket(_parser);
-            //        break;
-            //    default:
-            //        ParseResultSet();
-            //        break;
-            //}
-        }
+        ///// <summary>
+        ///// this method is called after send data to server
+        ///// </summary>
+        //void ParseReceivePacket()
+        //{
+        //    //TODO: review here, optimized buffer
+        //    ParseRecvPacketAsync(true);
+        //    //_receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
+        //    //int receive = _conn.ReceiveData(_receiveBuffer);
+        //    //if (receive == 0)
+        //    //{
+        //    //    return;
+        //    //}
+        //    ////---------------------------------------------------
+        //    ////TODO: review err handling 
+        //    //_parser.LoadNewBuffer(_receiveBuffer, receive);
+
+        //    //switch (_receiveBuffer[4])
+        //    //{
+        //    //    case ERROR_CODE:
+        //    //        LoadError = new ErrPacket();
+        //    //        LoadError.ParsePacket(_parser);
+        //    //        break;
+        //    //    case 0xfe://0x00 or 0xfe the OK packet header
+        //    //    case OK_CODE:
+        //    //        OkPacket = new OkPacket(_conn.IsProtocol41);
+        //    //        OkPacket.ParsePacket(_parser);
+        //    //        break;
+        //    //    default:
+        //    //        ParseResultSet();
+        //    //        break;
+        //    //}
+        //}
 
         void ParseResultSet()
         {
