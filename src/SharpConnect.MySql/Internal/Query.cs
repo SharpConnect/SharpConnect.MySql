@@ -441,7 +441,6 @@ namespace SharpConnect.MySql.Internal
                 {
                     MySqlTableResult tableResult = result as MySqlTableResult;
                     _tableHeader = tableResult.tableHeader;
-                    //LoadData();//Parse EOF
                 }
                 else if (result is MySqlPrepareTableResult)
                 {
@@ -460,11 +459,7 @@ namespace SharpConnect.MySql.Internal
                 while (!recvComplete) ;
             }
         }
-
-        void LoadData()
-        {
-            _sqlParser.LoadData();
-        }
+        
         /// <summary>
         /// this method is called after send data to server
         /// </summary>

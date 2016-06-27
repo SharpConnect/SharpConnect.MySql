@@ -1033,9 +1033,10 @@ namespace SharpConnect.MySql.Internal
                     recvIO.ReadTo(startIndex, buffer, count);
                     startIndex += count;
                     //TODO: check large buffer
-                    if (startIndex >= (maxBuffer - 1))
+                    if (startIndex >= maxBuffer)
                     {
                         startIndex = 0;
+                        recvIO.StartReceive();
                     }
                 }
                 catch (Exception)
@@ -1053,19 +1054,9 @@ namespace SharpConnect.MySql.Internal
                 currentPacketParser.ParseRow(buffer, count, (result) =>
                 {
                     ResultPacket = result;
-                    Console.WriteLine("Row Result : " + result.ToString());
+                    _isCompleted = ResultPacket != null;
                 });
-                //Console.WriteLine("After ParseRow : " + Thread.CurrentThread.ManagedThreadId);
             }
-            else if(_isCompleted)
-            {
-                Console.WriteLine("Result Packet : " + ResultPacket.ToString());
-            }
-            else
-            {
-                Console.WriteLine("Not Complete");
-            }
-            
         }
         public void Dispose()
         {

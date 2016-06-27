@@ -14,13 +14,13 @@ namespace MySqlTest
             var conn = new MySqlConnection(connStr);
             conn.Open();
             conn.UpdateMaxAllowPacket();
-            DropIfExist(conn);
-            CreateNewTable(conn);
-            InsertMore(conn);
-            if (ReadAll(conn))
-            {
-                return;
-            }
+            //DropIfExist(conn);
+            //CreateNewTable(conn);
+            //InsertMore(conn);
+            //if (ReadAll(conn))
+            //{
+            //    return;
+            //}
             {
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
