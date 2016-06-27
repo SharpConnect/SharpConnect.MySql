@@ -24,7 +24,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-
 namespace SharpConnect.MySql.Internal
 {
     class Query
@@ -44,13 +43,11 @@ namespace SharpConnect.MySql.Internal
         SqlStringTemplate _sqlStrTemplate;
         PreparedContext _prepareContext;
         byte[] _receiveBuffer;
-
         const int DEFAULT_BUFFER_SIZE = 512;
         const byte ERROR_CODE = 255;
         const byte EOF_CODE = 0xfe;
         const byte OK_CODE = 0;
         const int MAX_PACKET_LENGTH = (1 << 24) - 1;//(int)Math.Pow(2, 24) - 1; 
-
         public Query(Connection conn, string sql, CommandParams cmdParams)//testing
         {
             if (sql == null)
@@ -115,7 +112,6 @@ namespace SharpConnect.MySql.Internal
             {
                 _conn.StartReceive(result =>
                 {
-
                     //_prepareContext = new PreparedContext(okPreparePacket.statement_id, _sqlStrTemplate);
                     if (result is MySqlPrepareResponse)
                     {
@@ -270,7 +266,6 @@ namespace SharpConnect.MySql.Internal
         }
 
         int _rowReadIndex = 0;
-
         bool InternalReadRow()
         {
             //****
@@ -327,7 +322,6 @@ namespace SharpConnect.MySql.Internal
                         MySqlPrepareTableResult prepareResult = _sqlParser.ResultPacket as MySqlPrepareTableResult;
                         if (_rowReadIndex >= prepareResult.rows.Count)
                         {
-
                         }
                         else
                         {
@@ -413,42 +407,8 @@ namespace SharpConnect.MySql.Internal
                 whenFinish();
                 //-----------------
             });
-
         }
 
-        ///// <summary>
-        ///// this method is called after send data to server
-        ///// </summary>
-        //void ParseReceivePacket()
-        //{
-        //    //TODO: review here, optimized buffer
-        //    ParseRecvPacketAsync(true);
-        //    //_receiveBuffer = new byte[DEFAULT_BUFFER_SIZE];
-        //    //int receive = _conn.ReceiveData(_receiveBuffer);
-        //    //if (receive == 0)
-        //    //{
-        //    //    return;
-        //    //}
-        //    ////---------------------------------------------------
-        //    ////TODO: review err handling 
-        //    //_parser.LoadNewBuffer(_receiveBuffer, receive);
-
-        //    //switch (_receiveBuffer[4])
-        //    //{
-        //    //    case ERROR_CODE:
-        //    //        LoadError = new ErrPacket();
-        //    //        LoadError.ParsePacket(_parser);
-        //    //        break;
-        //    //    case 0xfe://0x00 or 0xfe the OK packet header
-        //    //    case OK_CODE:
-        //    //        OkPacket = new OkPacket(_conn.IsProtocol41);
-        //    //        OkPacket.ParsePacket(_parser);
-        //    //        break;
-        //    //    default:
-        //    //        ParseResultSet();
-        //    //        break;
-        //    //}
-        //}
 
         void ParseResultSet()
         {
@@ -485,7 +445,6 @@ namespace SharpConnect.MySql.Internal
         {
             //send all to 
             _conn.SendDataAsync(packetBuffer, 0, packetBuffer.Length, whenSendComplete);
-
         }
         OkPrepareStmtPacket ParsePrepareResponse()
         {
@@ -535,7 +494,6 @@ namespace SharpConnect.MySql.Internal
 
         byte[] CheckLimit(uint completePacketLength, byte[] buffer, int limit)
         {
-
             int availableBufferLength = (int)(buffer.Length - _parser.ReadPosition);
             if (availableBufferLength < completePacketLength)
             {
@@ -562,10 +520,8 @@ namespace SharpConnect.MySql.Internal
                     remainingBytes = (int)completePacketLength - read_count;
                 }
                 remainingBytes -= 12; //why?
-
                 try
                 {
-
                     int actualReceiveBytes = _conn.ReceiveData(buffer, read_count, remainingBytes);
                     read_count += actualReceiveBytes;
                     remainingBytes -= actualReceiveBytes;
@@ -650,11 +606,9 @@ namespace SharpConnect.MySql.Internal
                     parser.LoadNewBuffer(temp, temp.Length);
                     header = parser.ParsePacketHeader();
                     parser.Reset();//reset header
-
                     temp = (byte[])buffer.Clone();//prevent copy by reference
                     buffer = new byte[buffer.Length + header.ContentLength];
                     Buffer.BlockCopy(temp, 0, buffer, 0, temp.Length);
-
                     int lastPosition = temp.Length;
                     temp = RecieveData((int)header.ContentLength);
                     byte[] end = new byte[100];
@@ -708,7 +662,6 @@ namespace SharpConnect.MySql.Internal
         void LoadDataForNextPackets()
         {
             byte[] buffer = _receiveBuffer;
-
             //todo: check memory mx again
             int remainLength = (int)(_parser.CurrentInputLength - _parser.ReadPosition);
             if (remainLength < 5)//5 bytes --> 4 bytes from header and 1 byte for find packet type
@@ -730,7 +683,6 @@ namespace SharpConnect.MySql.Internal
                 int realReceive = _conn.ReceiveData(buffer, remainLength, expectedReceive);
                 int newBufferLength = remainLength + realReceive;//sometime realReceive != expectedReceive
                 _parser.LoadNewBuffer(buffer, newBufferLength);
-
                 dbugConsole.WriteLine("CheckBeforeParseHeader : LoadNewBuffer");
             }
         }

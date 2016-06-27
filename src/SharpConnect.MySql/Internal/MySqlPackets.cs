@@ -347,7 +347,7 @@ namespace SharpConnect.MySql.Internal
                 default:
                     //TODO: review here
                     throw new NotSupportedException();
-                //writer.WriteLengthCodedNull();
+                    //writer.WriteLengthCodedNull();
             }
         }
     }
@@ -502,7 +502,6 @@ namespace SharpConnect.MySql.Internal
         char _sqlStateMarker;
         string _sqlState;
         public string message;
-
         public override void ParsePacket(PacketParser parser)
         {
             ParsePacketHeader(parser);
@@ -638,7 +637,6 @@ namespace SharpConnect.MySql.Internal
         public override void ParsePacket(PacketParser parser)
         {
             ParsePacketHeader(parser); //4
-
             protocolVersion = parser.ParseUnsigned1();//1
             serverVertion = parser.ParseNullTerminatedString();
             threadId = parser.ParseUnsigned4();//4
@@ -768,7 +766,6 @@ namespace SharpConnect.MySql.Internal
         string _extraStr;
         public ResultSetHeaderPacket()
         {
-
         }
         public override void ParsePacket(PacketParser parser)
         {
@@ -1167,7 +1164,6 @@ namespace SharpConnect.MySql.Internal
                     stbuilder.Append(buffer[i] + ", ");
                 }
                 stbuilder.Append(" {" + viewIndex + ":" + buffer[viewIndex] + "} ");
-
                 //after view index
                 int e = viewIndex + 10;
                 if (e > length)
@@ -1178,7 +1174,6 @@ namespace SharpConnect.MySql.Internal
                 {
                     stbuilder.Append(buffer[i] + ", ");
                 }
-
             }
             else
             {
