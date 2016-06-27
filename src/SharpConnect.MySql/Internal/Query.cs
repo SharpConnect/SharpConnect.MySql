@@ -106,14 +106,17 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        bool execComplete = false;
+
         void ExecuteNonPrepare()
         {
             _sqlParser.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41);
             _writer.Reset();
             string realSql = _sqlStrTemplate.BindValues(_cmdParams, false);
+
             var queryPacket = new ComQueryPacket(realSql);
             queryPacket.WritePacket(_writer);
+
+            bool execComplete = false;
             SendPacketAsync(_writer.ToArray(), o =>
             {
                 //send complete 
@@ -122,7 +125,6 @@ namespace SharpConnect.MySql.Internal
                 _prepareContext = null;
                 execComplete = true;
             });
-
             while (!execComplete) ;
         }
 
