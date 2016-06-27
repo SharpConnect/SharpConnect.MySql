@@ -14,13 +14,13 @@ namespace MySqlTest
             var conn = new MySqlConnection(connStr);
             conn.Open();
             conn.UpdateMaxAllowPacket();
-            //DropIfExist(conn);
-            //CreateNewTable(conn);
-            //InsertMore(conn);
-            //if (ReadAll(conn))
-            //{
-            //    return;
-            //}
+            DropIfExist(conn);
+            CreateNewTable(conn);
+            InsertMore(conn);
+            if (ReadAll(conn))
+            {
+                return;
+            }
             {
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
@@ -98,14 +98,14 @@ namespace MySqlTest
         {
             string data = "a";//1 char
             data = "aaaaaaaaaa";//10 char
-            //data += data + data + data + data;//50 char
-            //data += data;//100 char
+            data += data + data + data + data;//50 char
+            data += data;//100 char
             uint lastInsertId = 0;
             {
                 string sql = "insert into testmore(mydata) values(?mydata)";
                 var cmd = new MySqlCommand(sql, conn);
                 cmd.Prepare();
-                for (int i = 0; i < 10; i++)
+                for (int i = 0; i < 50; i++)
                 {
                     cmd.Parameters.AddWithValue("?mydata", data);
                     //cmd = new MySqlCommand(sql, conn);
@@ -124,10 +124,11 @@ namespace MySqlTest
             //cmd.Prepare();
             var reader = cmd.ExecuteReader();
             string data = "";
+            int count = 0;
             while (reader.Read())
             {
                 data = reader.GetString(0);
-                Console.WriteLine("data : " + data);
+                Console.WriteLine("data["+(++count)+"] : " + data);
             }
             reader.Close();
             return true;

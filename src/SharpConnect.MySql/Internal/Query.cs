@@ -359,7 +359,14 @@ namespace SharpConnect.MySql.Internal
                     }
                     else
                     {
-                        throw new NotSupportedException("Unexpected Result Type");
+                        if (result == null && !_sqlParser.IsComplete)
+                        {
+                            _sqlParser.LoadData();
+                        }
+                        else
+                        {
+                            throw new NotSupportedException("Unexpected Result Type");
+                        }
                     }
                     
                 }

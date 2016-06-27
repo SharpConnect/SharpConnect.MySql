@@ -265,7 +265,6 @@ namespace SharpConnect.MySql.Internal
                     }
                     break;
                 case EOF_CODE://0x00 or 0xfe the OK packet header
-                case OK_CODE:
                     {
                         //finish
                         ParseEOFPacket();
@@ -305,6 +304,8 @@ namespace SharpConnect.MySql.Internal
                     break;
             }
         }
+        byte[] largeDataBuffer = new byte[0];
+        bool isLargeData = false;
         void ParseRowContent()
         {
             if (!_parser.Ensure(header.ContentLength))
@@ -312,7 +313,24 @@ namespace SharpConnect.MySql.Internal
                 needMoreBuffer = true;
                 return;
             }
-
+            if(header.ContentLength >= Packet.MAX_PACKET_LENGTH)
+            {
+                StoreBuffer((int)header.ContentLength);
+                isLargeData = true;
+                //recieve new buffer
+                parsingState = ResultPacketState.Expect_RowHeader;
+                return;
+            }
+            else
+            {
+                if (isLargeData)
+                {
+                    StoreBuffer((int)header.ContentLength);
+                    int remain = (int)(_parser.CurrentInputLength - _parser.ReadPosition);
+                    StoreBuffer(remain);
+                    _parser.LoadNewBuffer(largeDataBuffer, largeDataBuffer.Length);
+                }
+            }
             //can parse
             currentPacket.ParsePacket(_parser);
             this.parsingState = ResultPacketState.Expect_RowHeader;
@@ -326,8 +344,19 @@ namespace SharpConnect.MySql.Internal
                 _finalResult = new MySqlTableResult(tableHeader, rows);
             }
             ResultAssign(_finalResult);
+            //reset value
+            isLargeData = false;
         }
+        void StoreBuffer(int length)
+        {
+            byte[] dataTemp = _parser.ParseBuffer((int)length);
 
+            byte[] newData = new byte[largeDataBuffer.Length + dataTemp.Length];
+            Buffer.BlockCopy(largeDataBuffer, 0, newData, 0, largeDataBuffer.Length);
+            Buffer.BlockCopy(dataTemp, 0, newData, largeDataBuffer.Length, dataTemp.Length);
+
+            largeDataBuffer = newData;
+        }
         void ParseErrorPacket()
         {
             var errPacket = new ErrPacket();
@@ -411,7 +440,7 @@ namespace SharpConnect.MySql.Internal
             {
                 //loop
                 Parse();
-                if (needMoreBuffer || hasSomeRow)
+                if (needMoreBuffer)
                 {
                     return;
                 }
@@ -974,41 +1003,6 @@ namespace SharpConnect.MySql.Internal
         {
             get { return _isCompleted; }
         }
-        public void StartParseRow()
-        {
-            if (currentPacketParser.Parsing)
-            {
-                byte[] buffer = new byte[5120];
-                int count = 0;
-                if (currentPacketParser.NeedMoreBuffer)
-                {
-                    count = recvIO.BytesTransferred;
-                    if (count > 0)
-                    {
-                        if (count > 5120)
-                        {
-                            count = 5120;
-                        }
-                        try
-                        {
-                            recvIO.ReadTo(startIndex, buffer, count);
-                            startIndex += count;
-                        }
-                        catch (ArgumentException)
-                        {
-                            count = 0;
-                        }
-                    }
-                }
-                currentPacketParser.ParseRow(buffer, count, (result) =>
-                {
-                    ResultPacket = result;
-                    Console.WriteLine("StartParseRow : " + Thread.CurrentThread.ManagedThreadId);
-                });
-                Console.WriteLine("After ParseRow : " + Thread.CurrentThread.ManagedThreadId);
-            }
-
-        }
         int startIndex = 0;
         public void LoadData()
         {
@@ -1020,23 +1014,23 @@ namespace SharpConnect.MySql.Internal
             //copy all to stream
             //---------------  
             int maxBuffer = 20480;
+            maxBuffer = 512;
             byte[] buffer = new byte[maxBuffer];
             int count = recvIO.BytesTransferred;
             if (count > 0)
             {
                 if (count > maxBuffer)
                 {
-                    count = maxBuffer;
+                    throw new Exception();
                 }
                 try
                 {
                     recvIO.ReadTo(startIndex, buffer, count);
                     startIndex += count;
                     //TODO: check large buffer
-                    if (startIndex >= maxBuffer)
+                    if (startIndex > maxBuffer)
                     {
-                        startIndex = 0;
-                        recvIO.StartReceive();
+
                     }
                 }
                 catch (Exception)
@@ -1048,14 +1042,18 @@ namespace SharpConnect.MySql.Internal
             currentPacketParser.Parse(buffer, count);
             ResultPacket = currentPacketParser.ResultPacket;
             _isCompleted = ResultPacket != null;
-            //StartParseRow();
-            if (currentPacketParser.Parsing)
+            if (startIndex == maxBuffer)
             {
-                currentPacketParser.ParseRow(buffer, count, (result) =>
-                {
-                    ResultPacket = result;
-                    _isCompleted = ResultPacket != null;
-                });
+                startIndex = 0;
+                recvIO.StartReceive();
+            }
+            else if (startIndex > maxBuffer)
+            {
+                throw new Exception();
+            }
+            while (!_isCompleted)
+            {
+                Thread.Sleep(1);
             }
         }
         public void Dispose()
@@ -1111,7 +1109,7 @@ namespace SharpConnect.MySql.Internal
         readonly SendIO sendIO;
         MySqlParserMx _mysqlParserMx;
 
-        readonly int recvBufferSize = 20480; //set this a config
+        readonly int recvBufferSize = 512; //set this a config
         readonly int sendBufferSize = 5120;
 
         Action<MySqlResult> whenRecvComplete;
