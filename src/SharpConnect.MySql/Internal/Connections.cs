@@ -996,12 +996,11 @@ namespace SharpConnect.MySql.Internal
         MySqlPacketParser currentPacketParser; //current parser
         PacketWriter _writer;
         bool _isCompleted;
-        RecvIO recvIO;
-        public MySqlParserMx(RecvIO recvIO, PacketWriter _writer)
+
+        public MySqlParserMx(PacketWriter _writer)
         {
             ms = new MemoryStream();
             this._writer = _writer;
-            this.recvIO = recvIO;
         }
         public bool Parsing
         {
@@ -1026,7 +1025,7 @@ namespace SharpConnect.MySql.Internal
             get { return _isCompleted; }
         }
         int startIndex = 0;
-        public void LoadMoreAndParseData()
+        public void ParseData(RecvIO recvIO)
         {
             //we need to parse some data here 
             //load incomming data into ms 
@@ -1066,7 +1065,7 @@ namespace SharpConnect.MySql.Internal
             _isCompleted = ResultPacket != null;
             if (startIndex == maxBuffer)
             {
-                startIndex = 0;
+                startIndex = 0;//reset
                 //***
                 recvIO.StartReceive();
             }
@@ -1175,7 +1174,7 @@ namespace SharpConnect.MySql.Internal
             recvSendArgs.SetBuffer(new byte[recvBufferSize + sendBufferSize], 0, recvBufferSize + sendBufferSize);
             recvIO = new RecvIO(recvSendArgs, recvSendArgs.Offset, recvBufferSize, HandleReceive);
             sendIO = new SendIO(recvSendArgs, recvSendArgs.Offset + recvBufferSize, sendBufferSize, HandleSend);
-            _mysqlParserMx = new MySqlParserMx(recvIO, _writer);
+            _mysqlParserMx = new MySqlParserMx(_writer);
 
             //common(shared) event listener***
             recvSendArgs.Completed += (object sender, SocketAsyncEventArgs e) =>
@@ -1221,7 +1220,7 @@ namespace SharpConnect.MySql.Internal
                         //process some data
                         //there some data to process  
                         //parse the data  
-                        _mysqlParserMx.LoadMoreAndParseData();
+                        _mysqlParserMx.ParseData(recvIO);
                         //please note that: result packet may not ready in first round
                         if (_mysqlParserMx.ResultPacket != null)
                         {
@@ -1273,12 +1272,7 @@ namespace SharpConnect.MySql.Internal
                     break;
             }
         }
-        internal void StartReceive()
-        {
-            whenRecvComplete = null;
-            recvIO.StartReceive();
-        }
-
+    
 
         internal void StartReceive(Action<MySqlResult> whenCompleteAction)
         {
