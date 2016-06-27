@@ -119,15 +119,18 @@ namespace SharpConnect.MySql.Internal
                 case ResultPacketState.ExpectedResultSetHeader:
                     {
                         ParseResultsetHeader();
-                    } break;
+                    }
+                    break;
                 case ResultPacketState.ResultSet_Content:
                     {
                         ParseResultSetContent();
-                    } break;
+                    }
+                    break;
                 case ResultPacketState.Expect_FieldHeader:
                     {
                         ParseFieldHeader();
-                    } break;
+                    }
+                    break;
 
                 case ResultPacketState.Field_Content:
                     {
@@ -137,12 +140,14 @@ namespace SharpConnect.MySql.Internal
                 case ResultPacketState.Expect_RowHeader:
                     {
                         ParseRowHeader();
-                    } break;
+                    }
+                    break;
                 case ResultPacketState.Row_Content:
                     {
                         ParseRowContent();
-                    } break;
-                
+                    }
+                    break;
+
             }
         }
         void ParseResultsetHeader()
@@ -298,7 +303,7 @@ namespace SharpConnect.MySql.Internal
                             currentPacket = rowPacket;
                             rows.Add(rowPacket);
                         }
-                        
+
                         this.parsingState = ResultPacketState.Row_Content;
                     }
                     break;
@@ -313,7 +318,7 @@ namespace SharpConnect.MySql.Internal
                 needMoreBuffer = true;
                 return;
             }
-            if(header.ContentLength >= Packet.MAX_PACKET_LENGTH)
+            if (header.ContentLength >= Packet.MAX_PACKET_LENGTH)
             {
                 StoreBuffer((int)header.ContentLength);
                 isLargeData = true;
@@ -436,7 +441,7 @@ namespace SharpConnect.MySql.Internal
             _finalResult = null;
             hasSomeRow = false;
             _parser.AppendBuffer(buffer, count);
-            for (; ; )
+            for (;;)
             {
                 //loop
                 Parse();
@@ -903,9 +908,19 @@ namespace SharpConnect.MySql.Internal
         }
     }
 
+    enum MySqlResultKind
+    {
+        Handshake,
+        Error,
+        Ok,
+        TableResult,
+        PrepareResponse,
+        PrepareTableResult
+    }
     abstract class MySqlResult
     {
         public bool IsError { get; protected set; }
+        public abstract MySqlResultKind Kind { get; }
     }
     class MySqlHandshakeResult : MySqlResult
     {
@@ -914,6 +929,7 @@ namespace SharpConnect.MySql.Internal
         {
             this.packet = packet;
         }
+        public override MySqlResultKind Kind { get { return MySqlResultKind.Handshake; } }
     }
     class MySqlError : MySqlResult
     {
@@ -923,6 +939,7 @@ namespace SharpConnect.MySql.Internal
             this.errPacket = errPacket;
             this.IsError = true;
         }
+        public override MySqlResultKind Kind { get { return MySqlResultKind.Error; } }
     }
     class MySqlOk : MySqlResult
     {
@@ -935,6 +952,7 @@ namespace SharpConnect.MySql.Internal
         {
             return "<Insert ID : " + okpacket.insertId + " >";
         }
+        public override MySqlResultKind Kind { get { return MySqlResultKind.Ok; } }
     }
     class MySqlTableResult : MySqlResult
     {
@@ -945,6 +963,7 @@ namespace SharpConnect.MySql.Internal
             this.tableHeader = tableHeader;
             this.rows = rows;
         }
+        public override MySqlResultKind Kind { get { return MySqlResultKind.TableResult; } }
     }
 
     class MySqlPrepareResponse : MySqlResult
@@ -956,35 +975,36 @@ namespace SharpConnect.MySql.Internal
             this.okPacket = okPrepare;
             this.tableHeader = tableHeader;
         }
+        public override MySqlResultKind Kind { get { return MySqlResultKind.PrepareResponse; } }
     }
     class MySqlPrepareTableResult : MySqlResult
     {
         public readonly TableHeader tableHeader;
         public readonly List<RowPreparedDataPacket> rows;
-        public MySqlPrepareTableResult(TableHeader tableHeader,List<RowPreparedDataPacket> rows)
+        public MySqlPrepareTableResult(TableHeader tableHeader, List<RowPreparedDataPacket> rows)
         {
             this.tableHeader = tableHeader;
             this.rows = rows;
         }
+        public override MySqlResultKind Kind { get { return MySqlResultKind.PrepareTableResult; } }
     }
 
     class MySqlParserMx : IDisposable
     {
         MemoryStream ms;
-        RecvIO recvIO;
-        int state = 0;
+
         MySqlPacketParser currentPacketParser; //current parser
         PacketWriter _writer;
         bool _isCompleted;
+
+        public MySqlParserMx(PacketWriter _writer)
+        {
+            ms = new MemoryStream();
+            this._writer = _writer;
+        }
         public bool Parsing
         {
             get { return currentPacketParser.Parsing; }
-        }
-        public MySqlParserMx(RecvIO recvIO, PacketWriter _writer)
-        {
-            ms = new MemoryStream();
-            this.recvIO = recvIO;
-            this._writer = _writer;
         }
         public MySqlResult ResultPacket
         {
@@ -994,7 +1014,8 @@ namespace SharpConnect.MySql.Internal
         public MySqlPacketParser CurrentPacketParser
         {
             get { return currentPacketParser; }
-            set {
+            set
+            {
                 currentPacketParser = value;
                 startIndex = 0;
             }
@@ -1004,7 +1025,7 @@ namespace SharpConnect.MySql.Internal
             get { return _isCompleted; }
         }
         int startIndex = 0;
-        public void LoadData()
+        public void ParseData(RecvIO recvIO)
         {
             //we need to parse some data here 
             //load incomming data into ms 
@@ -1044,17 +1065,19 @@ namespace SharpConnect.MySql.Internal
             _isCompleted = ResultPacket != null;
             if (startIndex == maxBuffer)
             {
-                startIndex = 0;
+                startIndex = 0;//reset
+                //***
+                //TODO: review here
                 recvIO.StartReceive();
             }
             else if (startIndex > maxBuffer)
             {
                 throw new Exception();
             }
-            while (!_isCompleted)
-            {
-                Thread.Sleep(1);
-            }
+            //--------------------
+            //not need to wait here
+            //just return *** 
+            //--------------------
         }
         public void Dispose()
         {
@@ -1152,7 +1175,7 @@ namespace SharpConnect.MySql.Internal
             recvSendArgs.SetBuffer(new byte[recvBufferSize + sendBufferSize], 0, recvBufferSize + sendBufferSize);
             recvIO = new RecvIO(recvSendArgs, recvSendArgs.Offset, recvBufferSize, HandleReceive);
             sendIO = new SendIO(recvSendArgs, recvSendArgs.Offset + recvBufferSize, sendBufferSize, HandleSend);
-            _mysqlParserMx = new MySqlParserMx(recvIO, _writer);
+            _mysqlParserMx = new MySqlParserMx(_writer);
 
             //common(shared) event listener***
             recvSendArgs.Completed += (object sender, SocketAsyncEventArgs e) =>
@@ -1197,11 +1220,13 @@ namespace SharpConnect.MySql.Internal
                     {
                         //process some data
                         //there some data to process  
-                        //parse the data  
-                        _mysqlParserMx.LoadData();
+                        //parse the data   
 
+                        _mysqlParserMx.ParseData(recvIO);
+                        //please note that: result packet may not ready in first round
                         if (_mysqlParserMx.ResultPacket != null)
                         {
+
                             if (whenRecvComplete != null)
                             {
                                 whenRecvComplete(_mysqlParserMx.ResultPacket);
@@ -1213,26 +1238,9 @@ namespace SharpConnect.MySql.Internal
                         }
                         else
                         {
-                            //no result packet
+                            //no result packet in this round
                         }
-                        //switch (incommingStream.LoadData())
-                        //{
-                        //    case ProcessReceiveBufferResult.Complete:
 
-                        //        if (whenRecvComplete != null)
-                        //        {
-                        //            whenRecvComplete(incommingStream.ResultPacket);
-                        //        }
-                        //        else
-                        //        {
-                        //            connectedIsComplete = true;
-                        //        }
-                        //        break;
-                        //    case ProcessReceiveBufferResult.Continue:
-                        //        break;
-                        //    case ProcessReceiveBufferResult.Error:
-                        //        break;
-                        //}
                     }
                     break;
             }
@@ -1266,11 +1274,6 @@ namespace SharpConnect.MySql.Internal
                     break;
             }
         }
-        internal void StartReceive()
-        {
-            whenRecvComplete = null;
-            recvIO.StartReceive();
-        }
 
 
         internal void StartReceive(Action<MySqlResult> whenCompleteAction)
@@ -1278,8 +1281,7 @@ namespace SharpConnect.MySql.Internal
             this.whenRecvComplete = whenCompleteAction;
             recvIO.StartReceive();
         }
-
-
+ 
         public void Connect(Action onAsyncComplete = null)
         {
             if (State == ConnectionState.Connected)
@@ -1302,7 +1304,7 @@ namespace SharpConnect.MySql.Internal
                     throw new Exception("err1");
                 }
                 var handshake_packet = handShakeResult.packet;
-                this.threadId= handshake_packet.threadId;
+                this.threadId = handshake_packet.threadId;
                 byte[] token = MakeToken(config.password,
                    GetScrollbleBuffer(handshake_packet.scrambleBuff1, handshake_packet.scrambleBuff2));
                 _writer.IncrementPacketNumber();
@@ -1350,7 +1352,7 @@ namespace SharpConnect.MySql.Internal
                 //exec as sync
                 //so wait until complete
                 //-------------------------------
-                while (!connectedIsComplete) ;  //wait, or use thread sleep
+                while (!connectedIsComplete) ;  //tight loop,*** wait, or use thread sleep
                 //-------------------------------
             }
 
