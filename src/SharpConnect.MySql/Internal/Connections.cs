@@ -1076,11 +1076,8 @@ namespace SharpConnect.MySql.Internal
             }
             //--------------------
             //not need to wait here
-            //just return ***
-            //while (!_isCompleted)
-            //{
-            //    Thread.Sleep(1);
-            //}
+            //just return *** 
+            //--------------------
         }
         public void Dispose()
         {
@@ -1224,11 +1221,11 @@ namespace SharpConnect.MySql.Internal
                         //process some data
                         //there some data to process  
                         //parse the data  
-
                         _mysqlParserMx.LoadMoreAndParseData();
-
+                        //please note that: result packet may not ready in first round
                         if (_mysqlParserMx.ResultPacket != null)
                         {
+
                             if (whenRecvComplete != null)
                             {
                                 whenRecvComplete(_mysqlParserMx.ResultPacket);
@@ -1360,7 +1357,7 @@ namespace SharpConnect.MySql.Internal
                 //exec as sync
                 //so wait until complete
                 //-------------------------------
-                while (!connectedIsComplete) ;  //wait, or use thread sleep
+                while (!connectedIsComplete) ;  //tight loop,*** wait, or use thread sleep
                 //-------------------------------
             }
 
