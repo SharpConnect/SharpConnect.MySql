@@ -1067,6 +1067,7 @@ namespace SharpConnect.MySql.Internal
             {
                 startIndex = 0;//reset
                 //***
+                //TODO: review here
                 recvIO.StartReceive();
             }
             else if (startIndex > maxBuffer)
@@ -1219,7 +1220,8 @@ namespace SharpConnect.MySql.Internal
                     {
                         //process some data
                         //there some data to process  
-                        //parse the data  
+                        //parse the data   
+
                         _mysqlParserMx.ParseData(recvIO);
                         //please note that: result packet may not ready in first round
                         if (_mysqlParserMx.ResultPacket != null)
@@ -1272,15 +1274,14 @@ namespace SharpConnect.MySql.Internal
                     break;
             }
         }
-    
+
 
         internal void StartReceive(Action<MySqlResult> whenCompleteAction)
         {
             this.whenRecvComplete = whenCompleteAction;
             recvIO.StartReceive();
         }
-
-
+ 
         public void Connect(Action onAsyncComplete = null)
         {
             if (State == ConnectionState.Connected)
