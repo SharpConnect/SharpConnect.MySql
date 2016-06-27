@@ -27,7 +27,6 @@ using System.IO;
 using System.Text;
 namespace SharpConnect.MySql.Internal
 {
-
     /// <summary>
     /// mysql packet stream parser
     /// </summary>
@@ -85,8 +84,7 @@ namespace SharpConnect.MySql.Internal
 
         public void Reset()
         {
-
-            _stream.Position = 0;           
+            _stream.Position = 0;
             _startPosition = 0;
             _currentInputLength = 0;
         }
@@ -109,7 +107,6 @@ namespace SharpConnect.MySql.Internal
             _stream.Write(buffer, 0, count);
             _stream.Position = saved_pos;
             _currentInputLength += count;
-
         }
         public string ParseNullTerminatedString()
         {
@@ -588,7 +585,7 @@ namespace SharpConnect.MySql.Internal
                     //        result.push(parseGeometry());
                     //      }
                     break;
-                //return reult;
+                    //return reult;
             }
         }
 

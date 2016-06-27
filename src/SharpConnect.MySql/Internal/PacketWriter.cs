@@ -116,7 +116,6 @@ namespace SharpConnect.MySql.Internal
                 byte[] allBuffer = new byte[allDataLength];
                 byte[] dataBuffer = new byte[allDataLength - 4];//remove header
                 _writer.Read(dataBuffer, 4, (int)allDataLength - 4);//skip reserve header bytes
-
                 int offset = 0;
                 for (int packet = 0; packet < packets; packet++)
                 {
