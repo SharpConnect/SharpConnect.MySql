@@ -332,6 +332,7 @@ namespace SharpConnect.MySql.Internal
                 rows.Add((RowDataPacket)currentPacket);
                 _finalResult = new MySqlTableResult(tableHeader, rows);
             }
+            largeDataBuffer = new byte[0];
             ResultAssign(_finalResult);
             //reset value
             isLargeData = false;
@@ -849,14 +850,13 @@ namespace SharpConnect.MySql.Internal
             set
             {
                 currentPacketParser = value;
-                startIndex = 0;
             }
         }
         public bool IsComplete
         {
             get { return _isCompleted; }
         }
-        int startIndex = 0;
+
         public void ParseData(RecvIO recvIO)
         {
             //we need to parse some data here 
@@ -877,12 +877,8 @@ namespace SharpConnect.MySql.Internal
                 }
                 try
                 {
-                    recvIO.ReadTo(startIndex, buffer, count);
-                    startIndex += count;
-                    //TODO: check large buffer
-                    if (startIndex > maxBuffer)
-                    {
-                    }
+                    //start index always 0
+                    recvIO.ReadTo(0, buffer, count);
                 }
                 catch (Exception)
                 {
@@ -893,16 +889,11 @@ namespace SharpConnect.MySql.Internal
             currentPacketParser.Parse(buffer, count);
             ResultPacket = currentPacketParser.ResultPacket;
             _isCompleted = ResultPacket != null;
-            if (startIndex == maxBuffer)
+            if (currentPacketParser.NeedMoreBuffer)
             {
-                startIndex = 0;//reset
                 //***
                 //TODO: review here
                 recvIO.StartReceive();
-            }
-            else if (startIndex > maxBuffer)
-            {
-                throw new Exception();
             }
             //--------------------
             //not need to wait here
