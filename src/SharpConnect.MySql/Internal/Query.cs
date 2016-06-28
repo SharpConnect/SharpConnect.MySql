@@ -276,8 +276,9 @@ namespace SharpConnect.MySql.Internal
             {
                 if (!_sqlParser.IsComplete)
                 {
-                    //data in sql parser is not complete 
-                    return false; //need data for next round *** 
+                    //waiting for parse
+                    while (_sqlParser.ResultPacket == null) ;
+                    result = _sqlParser.ResultPacket;
                 }
                 else
                 {

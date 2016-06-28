@@ -43,8 +43,10 @@ namespace MySqlTest
 
                 //testdata_crc32 = SharpConnect.CRC32Calculator.CalculateCrc32(data);
                 cmd.Parameters.AddWithValue("?mydata", data);
-                cmd.ExecuteNonQuery();
-                cmd.ExecuteNonQuery();
+                for(int i = 0; i < 5; i++)
+                {
+                    cmd.ExecuteNonQuery();
+                }
                 lastInsertId = cmd.LastInsertId;
             }
 
@@ -60,10 +62,6 @@ namespace MySqlTest
                     while (reader.Read())
                     {
                         byte[] dataBuffer = reader.GetBuffer(0);
-                        //test return back check sum
-                        //if (testdata_crc32 != SharpConnect.CRC32Calculator.CalculateCrc32(dataBuffer))
-                        //{
-                        //}
                         if (Match(data, dataBuffer))
                         {
                             Console.WriteLine("All Matching!!!");

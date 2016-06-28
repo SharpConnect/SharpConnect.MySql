@@ -98,7 +98,6 @@ namespace SharpConnect.MySql.Internal
         void Parse()
         {
             needMoreBuffer = false;
-            _finalResult = null;
             switch (parsingState)
             {
                 case ResultPacketState.ExpectedResultSetHeader:
@@ -384,7 +383,6 @@ namespace SharpConnect.MySql.Internal
         public override void Parse(byte[] buffer, int count)
         {
             _finalResult = null;
-            //hasSomeRow = false;
             _parser.AppendBuffer(buffer, count);
             for (;;)
             {
@@ -849,6 +847,7 @@ namespace SharpConnect.MySql.Internal
             get { return currentPacketParser; }
             set
             {
+                ResultPacket = null;
                 currentPacketParser = value;
             }
         }
@@ -862,7 +861,6 @@ namespace SharpConnect.MySql.Internal
             //we need to parse some data here 
             //load incomming data into ms 
             //load data from recv buffer into the ms
-            ResultPacket = null;
             //---------------
             //copy all to stream
             //---------------  
@@ -888,12 +886,16 @@ namespace SharpConnect.MySql.Internal
             //may not complete in first round *** 
             currentPacketParser.Parse(buffer, count);
             ResultPacket = currentPacketParser.ResultPacket;
-            _isCompleted = ResultPacket != null;
             if (currentPacketParser.NeedMoreBuffer)
             {
                 //***
                 //TODO: review here
+                _isCompleted = false;
                 recvIO.StartReceive();
+            }
+            else
+            {
+                _isCompleted = true;
             }
             //--------------------
             //not need to wait here
