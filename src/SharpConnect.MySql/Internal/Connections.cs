@@ -369,46 +369,6 @@ namespace SharpConnect.MySql.Internal
             eofPacket.ParsePacket(_parser);
         }
 
-        void StartParseRow()
-        {
-            needMoreBuffer = false;
-            //_finalResult = null;
-
-            switch (parsingState)
-            {
-                case ResultPacketState.ExpectedResultSetHeader:
-                    {
-                        ParseResultsetHeader();
-                    }
-                    break;
-                case ResultPacketState.ResultSet_Content:
-                    {
-                        ParseResultSetContent();
-                    }
-                    break;
-                case ResultPacketState.Expect_FieldHeader:
-                    {
-                        ParseFieldHeader();
-                    }
-                    break;
-                case ResultPacketState.Field_Content:
-                    {
-                        ParseFieldContent();
-                    }
-                    break;
-                case ResultPacketState.Expect_RowHeader:
-                    {
-                        ParseRowHeader();
-                    }
-                    break;
-                case ResultPacketState.Row_Content:
-                    {
-                        ParseRowContent();
-                    }
-                    break;
-            }
-        }
-
         void ResultAssign(MySqlResult result)
         {
             if (_whenResultAssign != null)
