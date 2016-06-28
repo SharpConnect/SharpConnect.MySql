@@ -51,7 +51,7 @@ namespace SharpConnect.MySql.Internal
         //public abstract void Parse(byte[] buffer, int count, Action<MySqlResult> whenResultAssign);
         //public abstract void ParseRow(byte[] buffer, int count, Action<MySqlResult> whenRowAssign);
         public abstract MySqlResult ResultPacket { get; }
-        public abstract bool Parsing { get; }
+        //public abstract bool Parsing { get; }
         public abstract bool NeedMoreBuffer { get; }
     }
 
@@ -87,15 +87,15 @@ namespace SharpConnect.MySql.Internal
         List<RowDataPacket> rows = new List<RowDataPacket>();
         List<RowPreparedDataPacket> rowsPrepare = new List<RowPreparedDataPacket>();
         Action<MySqlResult> _whenResultAssign;
-        public override bool Parsing
-        {
-            get
-            {
-                return parsingState != ResultPacketState.Should_End;
-            }
-        }
+        //public override bool Parsing
+        //{
+        //    get
+        //    {
+        //        return parsingState != ResultPacketState.Should_End;
+        //    }
+        //}
         const int PACKET_HEADER_LENGTH = 4;
-        bool hasSomeRow = false;
+        //bool hasSomeRow = false;
         public ResultPacketParser(ConnectionConfig config, bool isProtocol41, bool isPrepare = false)
         {
             this.config = config;
@@ -329,7 +329,7 @@ namespace SharpConnect.MySql.Internal
             //can parse
             currentPacket.ParsePacket(_parser);
             this.parsingState = ResultPacketState.Expect_RowHeader;
-            hasSomeRow = true;
+            //hasSomeRow = true;
             if (isPrepare)
             {
                 _finalResult = new MySqlPrepareTableResult(tableHeader, rowsPrepare);
@@ -425,7 +425,7 @@ namespace SharpConnect.MySql.Internal
         public override void Parse(byte[] buffer, int count)
         {
             _finalResult = null;
-            hasSomeRow = false;
+            //hasSomeRow = false;
             _parser.AppendBuffer(buffer, count);
             for (;;)
             {
@@ -546,13 +546,13 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override bool Parsing
-        {
-            get
-            {
-                return parsingState != PrepareResponseParseState.Should_End;
-            }
-        }
+        //public override bool Parsing
+        //{
+        //    get
+        //    {
+        //        return parsingState != PrepareResponseParseState.Should_End;
+        //    }
+        //}
 
         public override MySqlResult ResultPacket
         {
@@ -835,13 +835,13 @@ namespace SharpConnect.MySql.Internal
             }
         }
         bool _parsing;
-        public override bool Parsing
-        {
-            get
-            {
-                return _parsing;
-            }
-        }
+        //public override bool Parsing
+        //{
+        //    get
+        //    {
+        //        return _parsing;
+        //    }
+        //}
 
         public override bool NeedMoreBuffer
         {
@@ -975,10 +975,10 @@ namespace SharpConnect.MySql.Internal
             ms = new MemoryStream();
             this._writer = _writer;
         }
-        public bool Parsing
-        {
-            get { return currentPacketParser.Parsing; }
-        }
+        //public bool Parsing
+        //{
+        //    get { return currentPacketParser.Parsing; }
+        //}
         public MySqlResult ResultPacket
         {
             get;
