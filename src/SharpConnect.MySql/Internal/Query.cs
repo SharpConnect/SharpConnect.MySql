@@ -214,11 +214,16 @@ namespace SharpConnect.MySql.Internal
             if (_prepareContext != null)
             {
                 _writer.Reset();
+                _sqlParser.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41, false);
                 ComStmtClose closePrepare = new ComStmtClose(_prepareContext.statementId);
                 closePrepare.WritePacket(_writer);
                 //TODO: review here
                 SendPacket_A(_writer.ToArray(), o => nextAction());
                 //SendPacket(_writer.ToArray()); //***
+            }
+            else
+            {
+                nextAction();
             }
         }
 
