@@ -1087,7 +1087,7 @@ namespace SharpConnect.MySql.Internal
         public uint threadId;
         Socket socket;
         Query _query;
-        PacketParser _parser;
+        //PacketParser _parser;
         PacketWriter _writer;
         //TODO: review how to clear remaining buffer again
         byte[] _tmpForClearRecvBuffer; //for clear buffer 
@@ -1124,11 +1124,11 @@ namespace SharpConnect.MySql.Internal
             switch ((CharSets)config.charsetNumber)
             {
                 case CharSets.UTF8_GENERAL_CI:
-                    _parser = new PacketParser(Encoding.UTF8);
+                    //_parser = new PacketParser(Encoding.UTF8);
                     _writer = new PacketWriter(Encoding.UTF8);
                     break;
                 case CharSets.ASCII:
-                    _parser = new PacketParser(Encoding.ASCII);
+                    //_parser = new PacketParser(Encoding.ASCII);
                     _writer = new PacketWriter(Encoding.ASCII);
                     break;
                 default:
@@ -1403,10 +1403,10 @@ namespace SharpConnect.MySql.Internal
         public bool IsStoredInConnPool { get; set; }
         public bool IsInUsed { get; set; }
 
-        internal PacketParser PacketParser
-        {
-            get { return _parser; }
-        }
+        //internal PacketParser PacketParser
+        //{
+        //    get { return _parser; }
+        //}
         internal PacketWriter PacketWriter
         {
             get { return _writer; }
