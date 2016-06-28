@@ -48,8 +48,8 @@ namespace SharpConnect.MySql.Internal
     abstract class MySqlPacketParser
     {
         public abstract void Parse(byte[] buffer, int count);
-        public abstract void Parse(byte[] buffer, int count, Action<MySqlResult> whenResultAssign);
-        public abstract void ParseRow(byte[] buffer, int count, Action<MySqlResult> whenRowAssign);
+        //public abstract void Parse(byte[] buffer, int count, Action<MySqlResult> whenResultAssign);
+        //public abstract void ParseRow(byte[] buffer, int count, Action<MySqlResult> whenRowAssign);
         public abstract MySqlResult ResultPacket { get; }
         public abstract bool Parsing { get; }
         public abstract bool NeedMoreBuffer { get; }
@@ -445,53 +445,53 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override void Parse(byte[] buffer, int count, Action<MySqlResult> whenResultAssign)
-        {
-            _whenResultAssign = whenResultAssign;
-            _finalResult = null;
-            _parser.AppendBuffer(buffer, count);
-            for (;;)
-            {
-                //loop
-                Parse();
-                if (needMoreBuffer)
-                {
-                    return;
-                }
-                else if (parsingState == ResultPacketState.Should_End)
-                {
-                    //reset
-                    this._parser.Reset();
-                    this.parsingState = ResultPacketState.ExpectedResultSetHeader;
-                    ResultAssign(_finalResult);
-                    return;
-                }
-            }
-        }
+        //public override void Parse(byte[] buffer, int count, Action<MySqlResult> whenResultAssign)
+        //{
+        //    _whenResultAssign = whenResultAssign;
+        //    _finalResult = null;
+        //    _parser.AppendBuffer(buffer, count);
+        //    for (;;)
+        //    {
+        //        //loop
+        //        Parse();
+        //        if (needMoreBuffer)
+        //        {
+        //            return;
+        //        }
+        //        else if (parsingState == ResultPacketState.Should_End)
+        //        {
+        //            //reset
+        //            this._parser.Reset();
+        //            this.parsingState = ResultPacketState.ExpectedResultSetHeader;
+        //            ResultAssign(_finalResult);
+        //            return;
+        //        }
+        //    }
+        //}
 
-        public override void ParseRow(byte[] buffer, int count, Action<MySqlResult> whenRowAssign)
-        {
-            _whenResultAssign = whenRowAssign;
-            //_finalResult = null;
-            _parser.AppendBuffer(buffer, count);
-            for (;;)
-            {
-                //loop
-                StartParseRow();
-                if (needMoreBuffer)
-                {
-                    return;
-                }
-                else if (parsingState == ResultPacketState.Should_End)
-                {
-                    //reset
-                    this._parser.Reset();
-                    //this.parsingState = ResultPacketState.ExpectedResultSetHeader;
-                    ResultAssign(_finalResult);
-                    return;
-                }
-            }
-        }
+        //public override void ParseRow(byte[] buffer, int count, Action<MySqlResult> whenRowAssign)
+        //{
+        //    _whenResultAssign = whenRowAssign;
+        //    //_finalResult = null;
+        //    _parser.AppendBuffer(buffer, count);
+        //    for (;;)
+        //    {
+        //        //loop
+        //        StartParseRow();
+        //        if (needMoreBuffer)
+        //        {
+        //            return;
+        //        }
+        //        else if (parsingState == ResultPacketState.Should_End)
+        //        {
+        //            //reset
+        //            this._parser.Reset();
+        //            //this.parsingState = ResultPacketState.ExpectedResultSetHeader;
+        //            ResultAssign(_finalResult);
+        //            return;
+        //        }
+        //    }
+        //}
 
         public override MySqlResult ResultPacket
         {
@@ -588,15 +588,15 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override void Parse(byte[] buffer, int count, Action<MySqlResult> whenResultAssign)
-        {
-            throw new NotImplementedException();
-        }
+        //public override void Parse(byte[] buffer, int count, Action<MySqlResult> whenResultAssign)
+        //{
+        //    throw new NotImplementedException();
+        //}
 
-        public override void ParseRow(byte[] buffer, int count, Action<MySqlResult> whenRowAssign)
-        {
-            throw new NotSupportedException("Prepare statement response packet don't have any row.");
-        }
+        //public override void ParseRow(byte[] buffer, int count, Action<MySqlResult> whenRowAssign)
+        //{
+        //    throw new NotSupportedException("Prepare statement response packet don't have any row.");
+        //}
 
         void Parse()
         {
@@ -826,9 +826,7 @@ namespace SharpConnect.MySql.Internal
         MySqlHandshakeResult _finalResult;
         public MySqlConnectionPacketParser()
         {
-        }
-
-
+        } 
         public override MySqlResult ResultPacket
         {
             get
@@ -866,24 +864,23 @@ namespace SharpConnect.MySql.Internal
             _parsing = false;
         }
 
-        public override void Parse(byte[] buffer, int count, Action<MySqlResult> whenResultAssign)
-        {
-            _parsing = true;
-            _finalResult = null;
-            //1.create connection frame  
-            //_writer.Reset();  
-            _parser.LoadNewBuffer(buffer, count);
-            _handshake = new HandshakePacket();
-            _handshake.ParsePacket(_parser);
-            _finalResult = new MySqlHandshakeResult(_handshake);
-            _parsing = false;
-            whenResultAssign(_finalResult);
-        }
-
-        public override void ParseRow(byte[] buffer, int count, Action<MySqlResult> whenRowAssign)
-        {
-            throw new NotSupportedException();
-        }
+        //public override void Parse(byte[] buffer, int count, Action<MySqlResult> whenResultAssign)
+        //{
+        //    _parsing = true;
+        //    _finalResult = null;
+        //    //1.create connection frame  
+        //    //_writer.Reset();  
+        //    _parser.LoadNewBuffer(buffer, count);
+        //    _handshake = new HandshakePacket();
+        //    _handshake.ParsePacket(_parser);
+        //    _finalResult = new MySqlHandshakeResult(_handshake);
+        //    _parsing = false;
+        //    whenResultAssign(_finalResult);
+        //} 
+        //public override void ParseRow(byte[] buffer, int count, Action<MySqlResult> whenRowAssign)
+        //{
+        //    throw new NotSupportedException();
+        //}
     }
 
     enum MySqlResultKind
