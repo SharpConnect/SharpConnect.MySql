@@ -14,13 +14,13 @@ namespace MySqlTest
             var conn = new MySqlConnection(connStr);
             conn.Open();
             conn.UpdateMaxAllowPacket();
-            DropIfExist(conn);
-            CreateNewTable(conn);
-            InsertMore(conn);
-            if (ReadAll(conn))
-            {
-                return;
-            }
+            //DropIfExist(conn);
+            //CreateNewTable(conn);
+            //InsertMore(conn);
+            //if (ReadAll(conn))
+            //{
+            //    return;
+            //}
             {
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
@@ -44,6 +44,7 @@ namespace MySqlTest
                 //testdata_crc32 = SharpConnect.CRC32Calculator.CalculateCrc32(data);
                 cmd.Parameters.AddWithValue("?mydata", data);
                 cmd.ExecuteNonQuery();
+                cmd.ExecuteNonQuery();
                 lastInsertId = cmd.LastInsertId;
             }
 
@@ -51,12 +52,12 @@ namespace MySqlTest
                 if (lastInsertId > 0)
                 {
                     //test download back
-                    string sql = "select mydata from test001 where col_id=?col_id";
+                    string sql = "select mydata from test001 where col_id<=?col_id";
                     var cmd = new MySqlCommand(sql, conn);
                     cmd.Prepare();
                     cmd.Parameters.AddWithValue("?col_id", lastInsertId);
                     var reader = cmd.ExecuteReader();
-                    if (reader.Read())
+                    while (reader.Read())
                     {
                         byte[] dataBuffer = reader.GetBuffer(0);
                         //test return back check sum
