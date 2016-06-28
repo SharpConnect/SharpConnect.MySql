@@ -23,7 +23,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
 namespace SharpConnect.MySql.Internal
 {
     partial class Query
@@ -37,12 +36,10 @@ namespace SharpConnect.MySql.Internal
         RowPreparedDataPacket _lastPrepareRow;
         bool _hasSomeRow;
         bool _executePrepared;
-
         MySqlParserMx _sqlParser;
         PacketWriter _writer;
         SqlStringTemplate _sqlStrTemplate;
         PreparedContext _prepareContext;
-
         public Query(Connection conn, string sql, CommandParams cmdParams)//testing
         {
             if (sql == null)
@@ -82,7 +79,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        //***
+        //*** blocking
         public void Prepare()
         {
             //-------------------
@@ -126,7 +123,7 @@ namespace SharpConnect.MySql.Internal
             while (!finished) ;//wait *** tight loop
             //-------------------------------------------------------------
         }
-        //***
+        //*** blocking
         public void Execute()
         {
             //-------------------
@@ -244,6 +241,8 @@ namespace SharpConnect.MySql.Internal
                 nextAction();
             }
         }
+
+        //*** blocking
         public bool ReadRow()
         {
             //-------------------
@@ -343,6 +342,7 @@ namespace SharpConnect.MySql.Internal
             return _tableHeader.GetFieldIndex(colName);
         }
 
+        //*** blocking
         public void Close()
         {
             //-------------------
@@ -423,7 +423,7 @@ namespace SharpConnect.MySql.Internal
         {
             //send all to 
             _conn.SendDataAsync(packetBuffer, 0, packetBuffer.Length, whenSendComplete);
-        } 
+        }
     }
 
     class PreparedContext
