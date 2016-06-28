@@ -864,8 +864,7 @@ namespace SharpConnect.MySql.Internal
             //---------------
             //copy all to stream
             //---------------  
-            int maxBuffer = 20480;
-            maxBuffer = 512;
+            int maxBuffer = 265000;
             byte[] buffer = new byte[maxBuffer];
             int count = recvIO.BytesTransferred;
             if (count > 0)
@@ -946,8 +945,8 @@ namespace SharpConnect.MySql.Internal
         readonly RecvIO recvIO;
         readonly SendIO sendIO;
         MySqlParserMx _mysqlParserMx;
-        readonly int recvBufferSize = 512; //set this a config
-        readonly int sendBufferSize = 5120;
+        readonly int recvBufferSize = 265000; //set this a config
+        readonly int sendBufferSize = 51200;
         Action<MySqlResult> whenRecvComplete;
         Action<object> whenSendComplete;
         bool connectedIsComplete = false;
