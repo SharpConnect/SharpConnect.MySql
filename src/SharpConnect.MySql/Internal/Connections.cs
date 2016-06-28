@@ -276,14 +276,14 @@ namespace SharpConnect.MySql.Internal
                             RowPreparedDataPacket rowPacket = new RowPreparedDataPacket(tableHeader);
                             rowPacket.Header = header;
                             currentPacket = rowPacket;
-                            rowsPrepare.Add(rowPacket);
+                            //rowsPrepare.Add(rowPacket);
                         }
                         else
                         {
                             RowDataPacket rowPacket = new RowDataPacket(tableHeader);
                             rowPacket.Header = header;
                             currentPacket = rowPacket;
-                            rows.Add(rowPacket);
+                            //rows.Add(rowPacket);
                         }
 
                         this.parsingState = ResultPacketState.Row_Content;
@@ -324,10 +324,12 @@ namespace SharpConnect.MySql.Internal
             //hasSomeRow = true;
             if (isPrepare)
             {
+                rowsPrepare.Add((RowPreparedDataPacket)currentPacket);
                 _finalResult = new MySqlPrepareTableResult(tableHeader, rowsPrepare);
             }
             else
             {
+                rows.Add((RowDataPacket)currentPacket);
                 _finalResult = new MySqlTableResult(tableHeader, rows);
             }
             ResultAssign(_finalResult);
