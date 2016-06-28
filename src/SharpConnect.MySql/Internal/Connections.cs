@@ -316,12 +316,15 @@ namespace SharpConnect.MySql.Internal
                     int remain = (int)(_parser.CurrentInputLength - _parser.ReadPosition);
                     StoreBuffer(remain);
                     _parser.LoadNewBuffer(largeDataBuffer, largeDataBuffer.Length);
+
+                    //reset value
+                    largeDataBuffer = new byte[0];
+                    isLargeData = false;
                 }
             }
             //can parse
             currentPacket.ParsePacket(_parser);
             this.parsingState = ResultPacketState.Expect_RowHeader;
-            //hasSomeRow = true;
             if (isPrepare)
             {
                 rowsPrepare.Add((RowPreparedDataPacket)currentPacket);
@@ -332,10 +335,7 @@ namespace SharpConnect.MySql.Internal
                 rows.Add((RowDataPacket)currentPacket);
                 _finalResult = new MySqlTableResult(tableHeader, rows);
             }
-            largeDataBuffer = new byte[0];
             ResultAssign(_finalResult);
-            //reset value
-            isLargeData = false;
         }
         void StoreBuffer(int length)
         {
