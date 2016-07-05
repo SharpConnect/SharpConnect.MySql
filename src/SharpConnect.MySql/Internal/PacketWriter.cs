@@ -1,7 +1,7 @@
 ﻿//LICENSE: MIT
 //Copyright(c) 2012 Felix Geisendörfer(felix @debuggable.com) and contributors 
 //Copyright(c) 2013 Andrey Sidorov(sidorares @yandex.ru) and contributors
-//Copyright(c) 2015 brezza92, EngineKit and contributors
+//MIT, 2015-2016, brezza92, EngineKit and contributors
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy
 //of this software and associated documentation files (the "Software"), to deal
@@ -97,11 +97,11 @@ namespace SharpConnect.MySql.Internal
             int packets = (int)((curPacketLength - 4) / Packet.MAX_PACKET_LENGTH) + 1;//-4 bytes of reserve header
             if (packets == 1)
             {
-                if (header.Length > _maxAllowedLength)
+                if (header.ContentLength > _maxAllowedLength)
                 {
                     throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
                 }
-                EncodeUnsignedNumber0_3(_headerBuffer, header.Length);
+                EncodeUnsignedNumber0_3(_headerBuffer, header.ContentLength);
                 _headerBuffer[3] = header.PacketNumber;
                 _writer.RewindAndWriteAt(_headerBuffer, (int)_startPacketPosition);
             }
@@ -116,7 +116,6 @@ namespace SharpConnect.MySql.Internal
                 byte[] allBuffer = new byte[allDataLength];
                 byte[] dataBuffer = new byte[allDataLength - 4];//remove header
                 _writer.Read(dataBuffer, 4, (int)allDataLength - 4);//skip reserve header bytes
-
                 int offset = 0;
                 for (int packet = 0; packet < packets; packet++)
                 {
