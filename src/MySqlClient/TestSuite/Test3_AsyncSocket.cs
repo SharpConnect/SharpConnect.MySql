@@ -1,4 +1,4 @@
-﻿//MIT 2015, brezza92, EngineKit and contributors
+﻿//MIT, 2015-2016, brezza92, EngineKit and contributors
 
 using System;
 using System.Collections.Generic;
@@ -11,15 +11,12 @@ namespace MySqlTest
         public static void T_AsyncSocket1()
         {
             var connStr = GetMySqlConnString();
-            var conn = new MySqlConnectionAsync(connStr);
+            var conn = new MySqlConnection(connStr);
             conn.Open(() =>
             {
-                //do something 
-                //close
-                conn.Close(() =>
-                {
-                });
+                conn.UpdateMaxAllowPacket();
             });
+            //conn.Close();
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿//LICENSE: MIT
 //Copyright(c) 2012 Felix Geisendörfer(felix @debuggable.com) and contributors 
 //Copyright(c) 2013 Andrey Sidorov(sidorares @yandex.ru) and contributors
-//Copyright(c) 2015 brezza92, EngineKit and contributors
+//MIT, 2015-2016, brezza92, EngineKit and contributors
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy
 //of this software and associated documentation files (the "Software"), to deal
@@ -27,13 +27,14 @@ using System.IO;
 using System.Text;
 namespace SharpConnect.MySql.Internal
 {
-    //packet reader
-
+    /// <summary>
+    /// mysql packet stream parser
+    /// </summary>
     class PacketParser
     {
         BinaryReader _reader;
         MemoryStream _stream;
-        int _myLength;
+        int _currentInputLength;
         long _startPosition;
         long _packetLength;
         Encoding _encoding = Encoding.UTF8;
@@ -59,14 +60,18 @@ namespace SharpConnect.MySql.Internal
             get { return _stream.Position; }
         }
 
+        public bool Ensure(uint len)
+        {
+            return _stream.Position + len <= _currentInputLength;
+        }
         /// <summary>
-        /// buffer length
+        /// actual buffer length
         /// </summary>
-        public long BufferLength
+        public long CurrentInputLength
         {
             get
             {
-                return _myLength;
+                return _currentInputLength;
             }
         }
 
@@ -80,7 +85,8 @@ namespace SharpConnect.MySql.Internal
         public void Reset()
         {
             _stream.Position = 0;
-            _myLength = 0;
+            _startPosition = 0;
+            _currentInputLength = 0;
         }
         public void SetPosition(int pos)
         {
@@ -92,9 +98,16 @@ namespace SharpConnect.MySql.Internal
             _stream.Write(newBuffer, 0, count);
             _stream.Position = 0;
             _startPosition = 0;
-            _myLength = count;
+            _currentInputLength = count;
         }
-
+        public void AppendBuffer(byte[] buffer, int count)
+        {
+            long saved_pos = _stream.Position;
+            _stream.Position = _currentInputLength;
+            _stream.Write(buffer, 0, count);
+            _stream.Position = saved_pos;
+            _currentInputLength += count;
+        }
         public string ParseNullTerminatedString()
         {
             _bList.Clear();
@@ -205,7 +218,7 @@ namespace SharpConnect.MySql.Internal
             }
             debugLastPacketNum = header.PacketNumber;
 #endif
-            _packetLength = header.Length + 4;
+            _packetLength = header.ContentLength + 4;
             return header;
         }
 
@@ -245,7 +258,7 @@ namespace SharpConnect.MySql.Internal
             //        err.code = 'PARSER_READ_PAST_END';
             //        throw err;
             //    }
-            if (ReadPosition >= BufferLength)
+            if (ReadPosition >= CurrentInputLength)
             {
                 throw new Exception("Parser: read past end");
             }
@@ -610,9 +623,12 @@ namespace SharpConnect.MySql.Internal
             return 0;
         }
 
-        public int Peak()
+        public byte PeekByte()
         {
-            return _reader.PeekChar();
+            byte result = _reader.ReadByte();
+            _reader.BaseStream.Position--;
+            return result;
+            //return (byte)_reader.PeekChar();
         }
 
         public bool ReachedPacketEnd()

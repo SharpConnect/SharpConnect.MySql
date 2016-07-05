@@ -1,4 +1,4 @@
-﻿//MIT 2015, brezza92, EngineKit and contributors
+﻿//MIT, 2015-2016, brezza92, EngineKit and contributors
 
 using System;
 using System.Collections.Generic;
@@ -13,6 +13,14 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
+            conn.UpdateMaxAllowPacket();
+            //DropIfExist(conn);
+            //CreateNewTable(conn);
+            //InsertMore(conn);
+            //if (ReadAll(conn))
+            //{
+            //    return;
+            //}
             {
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
@@ -35,7 +43,10 @@ namespace MySqlTest
 
                 //testdata_crc32 = SharpConnect.CRC32Calculator.CalculateCrc32(data);
                 cmd.Parameters.AddWithValue("?mydata", data);
-                cmd.ExecuteNonQuery();
+                for(int i = 0; i < 5; i++)
+                {
+                    cmd.ExecuteNonQuery();
+                }
                 lastInsertId = cmd.LastInsertId;
             }
 
@@ -43,18 +54,14 @@ namespace MySqlTest
                 if (lastInsertId > 0)
                 {
                     //test download back
-                    string sql = "select mydata from test001 where col_id=?col_id";
+                    string sql = "select mydata from test001 where col_id<=?col_id";
                     var cmd = new MySqlCommand(sql, conn);
                     cmd.Prepare();
                     cmd.Parameters.AddWithValue("?col_id", lastInsertId);
                     var reader = cmd.ExecuteReader();
-                    if (reader.Read())
+                    while (reader.Read())
                     {
                         byte[] dataBuffer = reader.GetBuffer(0);
-                        //test return back check sum
-                        //if (testdata_crc32 != SharpConnect.CRC32Calculator.CalculateCrc32(dataBuffer))
-                        //{
-                        //}
                         if (Match(data, dataBuffer))
                         {
                             Console.WriteLine("All Matching!!!");
@@ -71,6 +78,61 @@ namespace MySqlTest
             conn.Close();
             Report.WriteLine("ok");
         }
+
+        static void DropIfExist(MySqlConnection conn)
+        {
+            string sql = "drop table if exists testmore";
+            var cmd = new MySqlCommand(sql, conn);
+            cmd.ExecuteNonQuery();
+        }
+
+        static void CreateNewTable(MySqlConnection conn)
+        {
+            string sql = "create table testmore(col_id int(10) unsigned not null auto_increment, mydata text,primary key(col_id)) ENGINE=MyISAM DEFAULT CHARSET=latin1";
+            var cmd = new MySqlCommand(sql, conn);
+            cmd.ExecuteNonQuery();
+        }
+
+        static void InsertMore(MySqlConnection conn)
+        {
+            string data = "a";//1 char
+            data = "aaaaaaaaaa";//10 char
+            data += data + data + data + data;//50 char
+            data += data;//100 char
+            uint lastInsertId = 0;
+            {
+                string sql = "insert into testmore(mydata) values(?mydata)";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.Prepare();
+                for (int i = 0; i < 50; i++)
+                {
+                    cmd.Parameters.AddWithValue("?mydata", data);
+                    //cmd = new MySqlCommand(sql, conn);
+                    cmd.ExecuteNonQuery();
+                    data += "a";
+                    //sql = "insert into testmore(mydata) values(\"" + data + "\")";
+                }
+                lastInsertId = cmd.LastInsertId;
+            }
+        }
+
+        static bool ReadAll(MySqlConnection conn)
+        {
+            string sql = "select mydata from testmore";
+            var cmd = new MySqlCommand(sql, conn);
+            //cmd.Prepare();
+            var reader = cmd.ExecuteReader();
+            string data = "";
+            int count = 0;
+            while (reader.Read())
+            {
+                data = reader.GetString(0);
+                Console.WriteLine("data["+(++count)+"] : " + data);
+            }
+            reader.Close();
+            return true;
+        }
+
         static bool Match(byte[] input1, byte[] input2)
         {
             if (input1.Length != input2.Length)
@@ -79,7 +141,7 @@ namespace MySqlTest
             }
             int errCount = 0;
             bool result = true;
-            for(int i = 0; i < input1.Length; i++)
+            for (int i = 0; i < input1.Length; i++)
             {
                 if (input1[i] != input2[i])
                 {

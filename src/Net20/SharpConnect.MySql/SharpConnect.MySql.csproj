@@ -39,11 +39,11 @@
     <Compile Include="..\..\SharpConnect.MySql\0_Public\debugTest1.cs">
       <Link>0_Public\debugTest1.cs</Link>
     </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\0_Public\ForNet20.cs">
+      <Link>0_Public\ForNet20.cs</Link>
+    </Compile>
     <Compile Include="..\..\SharpConnect.MySql\0_Public\MySqlClient.cs">
       <Link>0_Public\MySqlClient.cs</Link>
-    </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\0_Public\MySqlClientAsync.cs">
-      <Link>0_Public\MySqlClientAsync.cs</Link>
     </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\ConnectionPool.cs">
       <Link>Internal\ConnectionPool.cs</Link>
@@ -69,26 +69,11 @@
     <Compile Include="..\..\SharpConnect.MySql\Internal\Query.cs">
       <Link>Internal\Query.cs</Link>
     </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\SendIO_RecvIO.cs">
+      <Link>Internal\SendIO_RecvIO.cs</Link>
+    </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\SqlStringTemplate.cs">
       <Link>Internal\SqlStringTemplate.cs</Link>
-    </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\BufferManager.cs">
-      <Link>SharpConnect.Sockets\BufferManager.cs</Link>
-    </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\ClientConnectionSession.cs">
-      <Link>SharpConnect.Sockets\ClientConnectionSession.cs</Link>
-    </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\ConnectionAsync.cs">
-      <Link>SharpConnect.Sockets\ConnectionAsync.cs</Link>
-    </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\ForNet20.cs">
-      <Link>SharpConnect.Sockets\ForNet20.cs</Link>
-    </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\ReceiveCarrier.cs">
-      <Link>SharpConnect.Sockets\ReceiveCarrier.cs</Link>
-    </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\SharpConnect.Sockets\SocketAsyncEventArgsPool.cs">
-      <Link>SharpConnect.Sockets\SocketAsyncEventArgsPool.cs</Link>
     </Compile>
   </ItemGroup>
   <ItemGroup>
