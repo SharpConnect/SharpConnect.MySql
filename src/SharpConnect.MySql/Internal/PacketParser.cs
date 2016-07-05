@@ -1,7 +1,7 @@
 ﻿//LICENSE: MIT
 //Copyright(c) 2012 Felix Geisendörfer(felix @debuggable.com) and contributors 
 //Copyright(c) 2013 Andrey Sidorov(sidorares @yandex.ru) and contributors
-//Copyright(c) 2015 brezza92, EngineKit and contributors
+//MIT, 2015-2016, brezza92, EngineKit and contributors
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy
 //of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,6 @@ using System.IO;
 using System.Text;
 namespace SharpConnect.MySql.Internal
 {
-
     /// <summary>
     /// mysql packet stream parser
     /// </summary>
@@ -85,8 +84,7 @@ namespace SharpConnect.MySql.Internal
 
         public void Reset()
         {
-
-            _stream.Position = 0;           
+            _stream.Position = 0;
             _startPosition = 0;
             _currentInputLength = 0;
         }
@@ -105,10 +103,10 @@ namespace SharpConnect.MySql.Internal
         public void AppendBuffer(byte[] buffer, int count)
         {
             long saved_pos = _stream.Position;
+            _stream.Position = _currentInputLength;
             _stream.Write(buffer, 0, count);
             _stream.Position = saved_pos;
             _currentInputLength += count;
-
         }
         public string ParseNullTerminatedString()
         {
@@ -587,7 +585,7 @@ namespace SharpConnect.MySql.Internal
                     //        result.push(parseGeometry());
                     //      }
                     break;
-                //return reult;
+                    //return reult;
             }
         }
 

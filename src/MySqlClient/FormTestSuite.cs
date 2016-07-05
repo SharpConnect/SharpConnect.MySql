@@ -47,8 +47,8 @@ namespace MySqlClient
         {
 #if DEBUG
             //TestSet1.T_NumRange();
-            //TestSet1.T_FloatingRange();
-            TestSet_Blob.T_InsertBlobData();
+            TestSet1.T_FloatingRange();
+           // TestSet_Blob.T_InsertBlobData();
             //dbugInternal.Test1();
 #endif
         }

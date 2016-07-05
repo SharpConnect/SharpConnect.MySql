@@ -1,4 +1,4 @@
-﻿//MIT 2015, brezza92, EngineKit and contributors
+﻿//MIT, 2015-2016, brezza92, EngineKit and contributors
 
 using System;
 using SharpConnect.MySql.Internal;
@@ -177,9 +177,9 @@ namespace SharpConnect.MySql
         public void Prepare()
         {
             //prepare sql command;
+            _isPreparedStmt = true;
             _query = Connection.Conn.CreateQuery(CommandText, Parameters);
             _query.Prepare();
-            _isPreparedStmt = true;
         }
     }
 

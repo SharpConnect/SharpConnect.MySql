@@ -1,11 +1,10 @@
 ﻿//2010, CPOL, Stan Kirk
-//2015-2016, MIT, EngineKit
+//MIT, 2015-2016, EngineKit and contributors
 
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
-
 namespace SharpConnect.Internal
 {
     enum RecvEventCode
@@ -13,7 +12,6 @@ namespace SharpConnect.Internal
         SocketError,
         HasSomeData,
         NoMoreReceiveData,
-
     }
     class RecvIO
     {
@@ -23,7 +21,6 @@ namespace SharpConnect.Internal
         readonly int recvBufferSize;
         readonly SocketAsyncEventArgs recvArgs;
         Action<RecvEventCode> recvNotify;
-
         public RecvIO(SocketAsyncEventArgs recvArgs, int recvStartOffset, int recvBufferSize, Action<RecvEventCode> recvNotify)
         {
             this.recvArgs = recvArgs;
@@ -63,12 +60,10 @@ namespace SharpConnect.Internal
         {
             int bytesTransfer = recvArgs.BytesTransferred;
             byte[] destBuffer = new byte[bytesTransfer];
-
             Buffer.BlockCopy(recvArgs.Buffer,
                 recvStartOffset,
                 destBuffer,
                 0, bytesTransfer);
-
             return destBuffer;
         }
 #endif
@@ -148,8 +143,6 @@ namespace SharpConnect.Internal
         Action<SendIOEventCode> notify;
         object stateLock = new object();
         SendIOState _sendingState = SendIOState.ReadyNextSend;
-
-
         public SendIO(SocketAsyncEventArgs sendArgs,
             int sendStartOffset,
             int sendBufferSize,
@@ -175,7 +168,6 @@ namespace SharpConnect.Internal
                         {
                             if (value != SendIOState.ReadyNextSend)
                             {
-
                             }
                             else
                             {
@@ -186,7 +178,6 @@ namespace SharpConnect.Internal
                         {
                             if (value != SendIOState.Sending)
                             {
-
                             }
                             else
                             {
@@ -203,7 +194,6 @@ namespace SharpConnect.Internal
                             }
                         }
                         break;
-
                 }
                 _sendingState = value;
             }
@@ -245,11 +235,9 @@ namespace SharpConnect.Internal
             {
                 if (this.sendingQueue.Count > 0)
                 {
-
                     this.currentSendingData = sendingQueue.Dequeue();
-                    remaining =  this.sendingTargetBytes = currentSendingData.Length;
+                    remaining = this.sendingTargetBytes = currentSendingData.Length;
                     this.sendingTransferredBytes = 0;
-                    
                 }
                 else
                 {   //no data to send ?
@@ -308,10 +296,8 @@ namespace SharpConnect.Internal
             //after IO completed, what to do next....
 
             sendingState = SendIOState.ProcessSending;
-
             if (sendArgs.SocketError == SocketError.Success)
             {
-
                 this.sendingTransferredBytes += sendArgs.BytesTransferred;
                 int remainingBytes = this.sendingTargetBytes - sendingTransferredBytes;
                 if (remainingBytes > 0)
@@ -333,11 +319,9 @@ namespace SharpConnect.Internal
                         this.currentSendingData = sendingQueue.Dequeue();
                         if (this.currentSendingData == null)
                         {
-
                         }
                         this.sendingTargetBytes = currentSendingData.Length;
                         this.sendingTransferredBytes = 0;
-
                         //****
                         sendingState = SendIOState.ReadyNextSend;
                         StartSendAsync();
@@ -369,7 +353,5 @@ namespace SharpConnect.Internal
                 //manage socket errors here
             }
         }
-
     }
-
 }
