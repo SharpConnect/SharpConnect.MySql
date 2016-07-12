@@ -1232,9 +1232,12 @@ namespace SharpConnect.MySql.Internal
             {
                 ParseValues(parser, fieldInfos[i], ref _myDataList[i]);
 #if DEBUG
-                byte[] mybuffer = _myDataList[i].myBuffer;
-                dbugBufferView view = new dbugBufferView(mybuffer, 0, mybuffer.Length);
-                view.viewIndex = view.CheckNoDulpicateBytes();
+                //-------------------------------------------------
+                //this code affect on performance when debug
+                //byte[] mybuffer = _myDataList[i].myBuffer;
+                //dbugBufferView view = new dbugBufferView(mybuffer, 0, mybuffer.Length);
+                //view.viewIndex = view.CheckNoDulpicateBytes();
+                //-------------------------------------------------
 #endif
             }
         }
@@ -1248,7 +1251,7 @@ namespace SharpConnect.MySql.Internal
                 case Types.DATE://
                 case Types.DATETIME://
                 case Types.NEWDATE://
-                    myData.myDateTime = parser.ParseLengthCodedDateTime();
+                    parser.ParseLengthCodedDateTime(out myData.myDateTime);
                     myData.type = fieldType;
                     break;
                 case Types.TINY://length = 1;

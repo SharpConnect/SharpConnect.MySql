@@ -32,13 +32,18 @@ namespace SharpConnect.MySql.Internal
     /// </summary>
     class PacketParser
     {
-        BinaryReader _reader;
-        MemoryStream _stream;
+        readonly BinaryReader _reader;
+        readonly MemoryStream _stream;
         int _currentInputLength;
         long _startPosition;
         long _packetLength;
         Encoding _encoding = Encoding.UTF8;
         List<byte> _bList = new List<byte>();
+
+#if DEBUG
+        static int dbugTotalId;
+        public readonly int dbugId = dbugTotalId++;
+#endif
         public PacketParser(Encoding encoding)
         {
             _encoding = encoding;
@@ -148,10 +153,11 @@ namespace SharpConnect.MySql.Internal
                 return null;
         }
 
-        public DateTime ParseLengthCodedDateTime()
+        public bool ParseLengthCodedDateTime(out DateTime result)
         {
-            DateTime dateTime;
-            byte dateLength = ParseByte();
+
+            byte dateLength = ParseByte(); //***     
+
             int year = 0;
             int month = 0;
             int day = 0;
@@ -159,50 +165,82 @@ namespace SharpConnect.MySql.Internal
             int minute = 0;
             int second = 0;
             int micro_second = 0;
-            if (dateLength == 0)
+
+            //0, 4,7,11
+            switch (dateLength)
             {
-                //all values 0
-                dateTime = new DateTime(year, month, day, hour, minute, second, micro_second);
-            }
-            else
-            {
-                if (dateLength >= 4)
-                {
+                default:
+                case 0:
+                    result = DateTime.MinValue;
+                    return false;
+                case 4:
                     year = (int)ParseUnsigned2();
                     month = ParseUnsigned1();
                     day = ParseUnsigned1();
-                    dateTime = new DateTime(year, month, day);
-                }
-                if (dateLength >= 7)
-                {
+                    result = new DateTime(year, month, day);
+                    return true;
+                case 7:
+                    year = (int)ParseUnsigned2();
+                    month = ParseUnsigned1();
+                    day = ParseUnsigned1();
                     hour = ParseUnsigned1();
                     minute = ParseUnsigned1();
                     second = ParseUnsigned1();
-                    dateTime = new DateTime(year, month, day, hour, minute, second);
-                }
-                if (dateLength == 11)
-                {
+                    result = new DateTime(year, month, day, hour, minute, second);
+                    return true;
+                case 11:
+                    year = (int)ParseUnsigned2();
+                    month = ParseUnsigned1();
+                    day = ParseUnsigned1();
+                    hour = ParseUnsigned1();
+                    minute = ParseUnsigned1();
+                    second = ParseUnsigned1();
                     micro_second = (int)ParseUnsignedNumber(4);
-                    int milli_second = micro_second / 1000;
-                    dateTime = new DateTime(year, month, day, hour, minute, second, milli_second);
-                }
-                else
-                {
-                    if (dateLength == 7)
-                    {
-                        dateTime = new DateTime(year, month, day, hour, minute, second);
-                    }
-                    else if (dateLength == 4)
-                    {
-                        dateTime = new DateTime(year, month, day);
-                    }
-                    else
-                    {
-                        dateTime = new DateTime(0, 0, 0, 0, 0, 0, 0, 0);
-                    }
-                }
+                    result = new DateTime(year, month, day, hour, minute, second, micro_second / 1000);
+                    return true;
             }
-            return dateTime;
+            //if (dateLength == 0)
+            //{
+            //    result = DateTime.MinValue;
+            //    return false;
+            //} 
+            //if (dateLength >= 4)
+            //{
+            //    year = (int)ParseUnsigned2();
+            //    month = ParseUnsigned1();
+            //    day = ParseUnsigned1();
+            //    dateTime = new DateTime(year, month, day);
+            //}
+            //if (dateLength >= 7)
+            //{
+            //    hour = ParseUnsigned1();
+            //    minute = ParseUnsigned1();
+            //    second = ParseUnsigned1();
+            //    dateTime = new DateTime(year, month, day, hour, minute, second);
+            //} 
+            //if (dateLength == 11)
+            //{
+            //    micro_second = (int)ParseUnsignedNumber(4);
+            //    int milli_second = micro_second / 1000;
+            //    dateTime = new DateTime(year, month, day, hour, minute, second, milli_second);
+            //}
+            //else
+            //{
+            //    if (dateLength == 7)
+            //    {
+            //        dateTime = new DateTime(year, month, day, hour, minute, second);
+            //    }
+            //    else if (dateLength == 4)
+            //    {
+            //        dateTime = new DateTime(year, month, day);
+            //    }
+            //    else
+            //    {
+            //        dateTime = new DateTime(0, 0, 0, 0, 0, 0, 0, 0);
+            //    }
+            //}
+
+            //return dateTime;
         }
 #if DEBUG
         static int debugLastPacketNum = 1;
@@ -214,7 +252,7 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             if (header.PacketNumber > debugLastPacketNum + 1)
             {
-                Console.WriteLine(header.PacketNumber);
+                Console.WriteLine("header.PacketNumber : " + header.PacketNumber + " > lastPacketNumber :" + debugLastPacketNum);
             }
             debugLastPacketNum = header.PacketNumber;
 #endif
