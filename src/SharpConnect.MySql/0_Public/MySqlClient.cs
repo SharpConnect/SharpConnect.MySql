@@ -151,7 +151,6 @@ namespace SharpConnect.MySql
         }
         public void ExecuteNonQuery(Action nextAction = null)
         {
-
             if (_isPreparedStmt)
             {
                 _query.Execute(nextAction);
@@ -184,9 +183,6 @@ namespace SharpConnect.MySql
             _query = Connection.Conn.CreateQuery(CommandText, Parameters);
             _query.Prepare();
         }
-
-
-
     }
 
     public class MySqlDataReader

@@ -104,7 +104,6 @@ namespace SharpConnect.MySql.Internal
             {
                 _conn.StartReceive(result =>
                 {
-
                     if (result is MySqlPrepareResponse)
                     {
                         MySqlPrepareResponse response = result as MySqlPrepareResponse;
@@ -178,13 +177,11 @@ namespace SharpConnect.MySql.Internal
                 }
                 //-------------------------------------------------------------
                 while (!finished) ; //wait *** tight loop 
-
             }
         }
 
         void ExecuteNonPrepare_A(Action whenFinish)
         {
-
             _sqlParserMx.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41);
             _writer.Reset();
             string realSql = _sqlStrTemplate.BindValues(_cmdParams, false);
@@ -282,7 +279,6 @@ namespace SharpConnect.MySql.Internal
             return _hasSomeRow;
         }
         int _rowReadIndex = 0;
-
         //*** blocking
         void InternalReadRow()
         {
@@ -305,7 +301,6 @@ namespace SharpConnect.MySql.Internal
                     //waiting for parse
                     while (_sqlParserMx.ResultPacket == null)
                     {
-
                     }
                     //exit loop when has result packet
                     result = _sqlParserMx.ResultPacket;
@@ -366,7 +361,6 @@ namespace SharpConnect.MySql.Internal
                         throw new NotSupportedException();
                     }
             }
-
         }
 
         public int GetColumnIndex(string colName)

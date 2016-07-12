@@ -39,7 +39,6 @@ namespace SharpConnect.MySql.Internal
         long _packetLength;
         Encoding _encoding = Encoding.UTF8;
         List<byte> _bList = new List<byte>();
-
 #if DEBUG
         static int dbugTotalId;
         public readonly int dbugId = dbugTotalId++;
@@ -155,9 +154,7 @@ namespace SharpConnect.MySql.Internal
 
         public bool ParseLengthCodedDateTime(out DateTime result)
         {
-
             byte dateLength = ParseByte(); //***     
-
             int year = 0;
             int month = 0;
             int day = 0;
@@ -165,7 +162,6 @@ namespace SharpConnect.MySql.Internal
             int minute = 0;
             int second = 0;
             int micro_second = 0;
-
             //0, 4,7,11
             switch (dateLength)
             {

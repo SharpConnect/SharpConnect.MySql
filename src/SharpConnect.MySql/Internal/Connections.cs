@@ -315,7 +315,6 @@ namespace SharpConnect.MySql.Internal
                     int remain = (int)(_parser.CurrentInputLength - _parser.ReadPosition);
                     StoreBuffer(remain);
                     _parser.LoadNewBuffer(largeDataBuffer, largeDataBuffer.Length);
-
                     //reset value
                     largeDataBuffer = new byte[0];
                     isLargeData = false;
@@ -929,11 +928,9 @@ namespace SharpConnect.MySql.Internal
     {
         bool isProtocol41;
         public ConnectionConfig config;
-
         public uint threadId;
         Socket socket;
         Query _query;
-
         PacketWriter _writer;
         //TODO: review how to clear remaining buffer again
         byte[] _tmpForClearRecvBuffer; //for clear buffer 
@@ -946,17 +943,12 @@ namespace SharpConnect.MySql.Internal
         readonly SocketAsyncEventArgs recvSendArgs;
         readonly RecvIO recvIO;
         readonly SendIO sendIO;
-        
-
         readonly int recvBufferSize = 265000; //set this a config
         readonly int sendBufferSize = 51200;
-
         Action<MySqlResult> whenRecvComplete;
-        Action whenSendCompleted; 
+        Action whenSendCompleted;
         MySqlPacketParser packetParser = null;
         MySqlParserMx _mysqlParserMx;
-
-        
         public Connection(ConnectionConfig userConfig)
         {
             config = userConfig;
@@ -1122,7 +1114,6 @@ namespace SharpConnect.MySql.Internal
                 authPacket.SetValues(config.user, token, config.database, isProtocol41 = handshake_packet.protocol41);
                 authPacket.WritePacket(_writer);
                 byte[] sendBuff = _writer.ToArray();
-
                 SendData(sendBuff, 0, sendBuff.Length);
                 _mysqlParserMx.CurrentPacketParser = packetParser = new ResultPacketParser(this.config, isProtocol41);
                 StartReceive(mysql_result2 =>
