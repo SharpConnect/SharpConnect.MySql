@@ -163,7 +163,7 @@ namespace SharpConnect.MySql
             }
             else
             {
-                _query = Connection.Conn.CreateQuery(this.CommandText, Parameters);
+                _query = new Query(this.Connection.Conn, this.CommandText, Parameters);
                 var reader = new MySqlDataReader(_query);
                 _query.Execute();
                 return reader;
@@ -177,11 +177,17 @@ namespace SharpConnect.MySql
             }
             else
             {
-                _query = Connection.Conn.CreateQuery(CommandText, Parameters);
+                _query = new Query(Connection.Conn, CommandText, Parameters);
                 _query.Execute(nextAction);
             }
         }
-
+        public void Prepare()
+        {
+            //prepare sql command;
+            _isPreparedStmt = true;
+            _query = new Query(Connection.Conn, CommandText, Parameters);
+            _query.Prepare();
+        }
         public uint LastInsertedId
         {
             get
@@ -196,13 +202,7 @@ namespace SharpConnect.MySql
                 return _query.OkPacket.affectedRows;
             }
         }
-        public void Prepare()
-        {
-            //prepare sql command;
-            _isPreparedStmt = true;
-            _query = Connection.Conn.CreateQuery(CommandText, Parameters);
-            _query.Prepare();
-        }
+     
     }
 
     public class MySqlDataReader
