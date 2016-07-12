@@ -926,29 +926,31 @@ namespace SharpConnect.MySql.Internal
     /// </summary>
     class Connection
     {
-        bool isProtocol41;
         public ConnectionConfig config;
-        public uint threadId;
-        Socket socket;
-        Query _query;
-        PacketWriter _writer;
-        //TODO: review how to clear remaining buffer again
-        byte[] _tmpForClearRecvBuffer; //for clear buffer 
-        /// <summary>
-        /// max allowed packet size
-        /// </summary>
-        long _maxPacketSize = 0;
-        //------------------------
 
+        //---------------------------------
+        //core socket connection, send/recv io
+        Socket socket;
         readonly SocketAsyncEventArgs recvSendArgs;
         readonly RecvIO recvIO;
         readonly SendIO sendIO;
-        readonly int recvBufferSize = 265000; //set this a config
+        readonly int recvBufferSize = 265000; //TODO: review here
         readonly int sendBufferSize = 51200;
         Action<MySqlResult> whenRecvComplete;
         Action whenSendCompleted;
-        MySqlPacketParser packetParser = null;
+        //---------------------------------
+        //packet parser mx (read data),         
         MySqlParserMx _mysqlParserMx;
+        PacketWriter _writer;
+
+        //---------------------------------
+        bool isProtocol41;
+        public uint threadId;
+
+        //TODO: review how to clear remaining buffer again
+        byte[] _tmpForClearRecvBuffer; //for clear buffer      
+
+
         public Connection(ConnectionConfig userConfig)
         {
             config = userConfig;
@@ -1091,7 +1093,7 @@ namespace SharpConnect.MySql.Internal
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             socket.Connect(endpoint); //start listen after connect***
             //1. 
-            _mysqlParserMx.CurrentPacketParser = packetParser = new MySqlConnectionPacketParser();
+            _mysqlParserMx.CurrentPacketParser = new MySqlConnectionPacketParser();
             bool connectionIsCompleted = false;
             StartReceive(mysql_result =>
             {
@@ -1115,7 +1117,7 @@ namespace SharpConnect.MySql.Internal
                 authPacket.WritePacket(_writer);
                 byte[] sendBuff = _writer.ToArray();
                 SendData(sendBuff, 0, sendBuff.Length);
-                _mysqlParserMx.CurrentPacketParser = packetParser = new ResultPacketParser(this.config, isProtocol41);
+                _mysqlParserMx.CurrentPacketParser = new ResultPacketParser(this.config, isProtocol41);
                 StartReceive(mysql_result2 =>
                 {
                     var ok = mysql_result2 as MySqlOk;
@@ -1197,39 +1199,9 @@ namespace SharpConnect.MySql.Internal
             get;
             private set;
         }
-
-        public void GetMaxAllowedPacket()
-        {
-            _query = CreateQuery("SELECT @@global.max_allowed_packet", null);
-            _query.Execute();
-            if (_query.LoadError != null)
-            {
-                dbugConsole.WriteLine("Error Message : " + _query.LoadError.message);
-            }
-            else if (_query.OkPacket != null)
-            {
-                dbugConsole.WriteLine("OkPacket : " + _query.OkPacket.affectedRows);
-            }
-            else
-            {
-                if (_query.ReadRow())
-                {
-                    _maxPacketSize = _query.Cells[0].myInt64;
-                    _writer.SetMaxAllowedPacket(_maxPacketSize);
-                }
-            }
-        }
-
         public Query CreateQuery(string sql, CommandParams command)//testing
         {
             return new Query(this, sql, command);
-        }
-
-
-        void CreateNewSocket()
-        {
-            socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            Connect();
         }
 
         public void Disconnect()

@@ -76,9 +76,26 @@ namespace SharpConnect.MySql
         }
         public void UpdateMaxAllowPacket()
         {
-            _conn.GetMaxAllowedPacket();
-        }
+            Query _query = _conn.CreateQuery("SELECT @@global.max_allowed_packet", null);
+            _query.Execute();
+            if (_query.LoadError != null)
+            {
+                dbugConsole.WriteLine("Error Message : " + _query.LoadError.message);
+            }
+            else if (_query.OkPacket != null)
+            {
+                dbugConsole.WriteLine("OkPacket : " + _query.OkPacket.affectedRows);
+            }
+            else
+            {
+                if (_query.ReadRow())
+                {
+                    long _maxAllowedPacketSize = _query.Cells[0].myInt64;
+                    _conn.PacketWriter.SetMaxAllowedPacket(_maxAllowedPacketSize);
+                }
+            }
 
+        }
 
         public void Close()
         {
