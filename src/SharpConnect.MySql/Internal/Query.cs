@@ -104,7 +104,7 @@ namespace SharpConnect.MySql.Internal
             {
                 _conn.StartReceive(result =>
                 {
-                    //_prepareContext = new PreparedContext(okPreparePacket.statement_id, _sqlStrTemplate);
+
                     if (result is MySqlPrepareResponse)
                     {
                         MySqlPrepareResponse response = result as MySqlPrepareResponse;
@@ -124,45 +124,67 @@ namespace SharpConnect.MySql.Internal
             //-------------------------------------------------------------
         }
         //*** blocking
-        public void Execute()
+        public void Execute(Action nextAction = null)
         {
             //-------------------
             //blocking method***
             //wait until execute finish 
             //------------------- 
             _rowReadIndex = 0;
-            bool finished = false;
-            if (_prepareContext != null)
+            //------------------- 
+            if (nextAction != null)
             {
-                if (_cmdParams == null)
+                //not block
+                if (_prepareContext != null)
                 {
-                    return;
+                    if (_cmdParams == null)
+                    {
+                        nextAction();
+                        return;
+                    }
+                    ExecutePrepareQuery_A(nextAction);
                 }
-
-                ExecutePrepareQuery_A(() =>
+                else
                 {
-                    finished = true;
-                });
+                    _prepareContext = null; //***
+                    ExecuteNonPrepare_A(nextAction);
+                }
             }
             else
             {
-                //TODO: review here
-
-                _prepareContext = null; //***
-                ExecuteNonPrepare_A(() =>
+                //block
+                bool finished = false;
+                if (_prepareContext != null)
                 {
-                    finished = true;
-                });
-            }
+                    if (_cmdParams == null)
+                    {
+                        return;
+                    }
 
-            //-------------------------------------------------------------
-            while (!finished) ; //wait *** tight loop
-            //-------------------------------------------------------------
+                    ExecutePrepareQuery_A(() =>
+                    {
+                        finished = true;
+                    });
+                }
+                else
+                {
+                    //TODO: review here
+
+                    _prepareContext = null; //***
+                    ExecuteNonPrepare_A(() =>
+                    {
+                        finished = true;
+                    });
+                }
+                //-------------------------------------------------------------
+                while (!finished) ; //wait *** tight loop 
+               
+            }
         }
 
         void ExecuteNonPrepare_A(Action whenFinish)
         {
-            //blocking method
+
             _sqlParser.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41);
             _writer.Reset();
             string realSql = _sqlStrTemplate.BindValues(_cmdParams, false);
@@ -177,13 +199,13 @@ namespace SharpConnect.MySql.Internal
         }
 
 
-        void ExecutePrepareQuery_A(Action whenFinish)
+        void ExecutePrepareQuery_A(Action nextAction)
         {
             //make sure that when Finished is called
             //when this complete
             if (_prepareContext == null)
             {
-                ExecuteNonPrepare_A(whenFinish);
+                ExecuteNonPrepare_A(nextAction);
                 return;
             }
 
@@ -203,7 +225,7 @@ namespace SharpConnect.MySql.Internal
                 excute.WritePacket(_writer);
                 SendPacket_A(_writer.ToArray(), obj =>
                 {
-                    ParseRecvPacket_A(whenFinish);
+                    ParseRecvPacket_A(nextAction);
                 });
             });
         }
@@ -253,27 +275,24 @@ namespace SharpConnect.MySql.Internal
             //-------------------
             //blocking method***
             //wait until execute finish 
-            //------------------- 
-            _hasSomeRow = false;
-            while (!InternalReadRow())
-            {
-                //note that load waiting data may not complete in first round       
-                //we wait here          
-                //** tight loop**
-            }
-
+            //-------------------  
+            InternalReadRow(); //blocking with tight loop
+            //note that load waiting data may not complete in first round       
+            //we wait here   
             return _hasSomeRow;
         }
-
         int _rowReadIndex = 0;
-        bool InternalReadRow()
+
+        //*** blocking
+        void InternalReadRow()
         {
+            _hasSomeRow = false;
             //****
             //return true when we finish
             //**** 
             if (_tableHeader == null)
             {
-                return true; //ok,finish
+                return; //ok,finish
             }
 
             MySqlResult result = _sqlParser.ResultPacket;
@@ -281,9 +300,16 @@ namespace SharpConnect.MySql.Internal
             {
                 if (!_sqlParser.IsComplete)
                 {
+                    //---------------------------------------------------
+                    //** tight loop**
                     //waiting for parse
-                    while (_sqlParser.ResultPacket == null) ;
+                    while (_sqlParser.ResultPacket == null)
+                    {
+
+                    }
+                    //exit loop when has result packet
                     result = _sqlParser.ResultPacket;
+                    //---------------------------------------------------
                 }
                 else
                 {
@@ -321,6 +347,7 @@ namespace SharpConnect.MySql.Internal
                 case MySqlResultKind.PrepareTableResult:
                     {
                         MySqlPrepareTableResult prepareResult = _sqlParser.ResultPacket as MySqlPrepareTableResult;
+                        //TODO: review here
                         if (_rowReadIndex >= prepareResult.rows.Count)
                         {
                         }
@@ -340,7 +367,6 @@ namespace SharpConnect.MySql.Internal
                     }
             }
 
-            return true;//ok,finish
         }
 
         public int GetColumnIndex(string colName)
