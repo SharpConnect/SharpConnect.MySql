@@ -97,7 +97,7 @@ namespace SharpConnect.MySql
                     _conn.PacketWriter.SetMaxAllowedPacket(_maxAllowedPacketSize);
                 }
             }
-
+            _query.Close();
         }
 
         public void Close()
@@ -202,7 +202,7 @@ namespace SharpConnect.MySql
                 return _query.OkPacket.affectedRows;
             }
         }
-     
+
     }
 
     public class MySqlDataReader
