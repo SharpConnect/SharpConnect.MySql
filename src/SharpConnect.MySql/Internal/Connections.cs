@@ -1130,7 +1130,6 @@ namespace SharpConnect.MySql.Internal
                             //error 
                             ConnectedSuccess = false;
                         }
-
                         //ok
                         _writer.Reset();
                         //set max allow of the server ***
@@ -1143,7 +1142,6 @@ namespace SharpConnect.MySql.Internal
                     });
 
                 });
-
             });
             if (nextAction == null)
             {
@@ -1153,47 +1151,6 @@ namespace SharpConnect.MySql.Internal
                 while (!connectionIsCompleted) ;  //tight loop,*** wait, or use thread sleep
                 //-------------------------------
             }
-
-            //create authen packet and send data back
-
-            //byte[] buffer = new byte[512];
-            //int count = socket.Receive(buffer);
-            //if (count > 0)
-            //{
-            //    _writer.Reset();
-            //    _parser.LoadNewBuffer(buffer, count);
-            //    _handshake = new HandshakePacket();
-            //    _handshake.ParsePacket(_parser);
-            //    threadId = _handshake.threadId;
-            //    byte[] token = MakeToken(config.password,
-            //        GetScrollbleBuffer(_handshake.scrambleBuff1, _handshake.scrambleBuff2));
-            //    _writer.IncrementPacketNumber();
-            //    //------------------------------------------
-            //    var authPacket = new ClientAuthenticationPacket();
-            //    authPacket.SetValues(config.user, token, config.database, _handshake.protocol41);
-            //    authPacket.WritePacket(_writer);
-            //    byte[] sendBuff = _writer.ToArray();
-            //    byte[] receiveBuff = new byte[512];
-            //    //-------------------------------------------
-            //    //send data
-            //    int sendNum = socket.Send(sendBuff);
-            //    int receiveNum = socket.Receive(receiveBuff);
-            //    _parser.LoadNewBuffer(receiveBuff, receiveNum);
-            //    if (receiveBuff[4] == 255)
-            //    {
-            //        ErrPacket errPacket = new ErrPacket();
-            //        errPacket.ParsePacket(_parser);
-            //        return;
-            //    }
-            //    else
-            //    {
-            //        OkPacket okPacket = new OkPacket(_handshake.protocol41);
-            //        okPacket.ParsePacket(_parser);
-            //    }
-            //    _writer.Reset();
-            //    GetMaxAllowedPacket();
-            //    _writer.SetMaxAllowedPacket(_maxPacketSize);
-            //}
         }
 
         public bool ConnectedSuccess
@@ -1201,10 +1158,7 @@ namespace SharpConnect.MySql.Internal
             get;
             private set;
         }
-        public Query CreateQuery(string sql, CommandParams command)//testing
-        {
-            return new Query(this, sql, command);
-        }
+      
 
         //blocking***
         public void Disconnect()

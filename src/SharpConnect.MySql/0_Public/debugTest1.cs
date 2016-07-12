@@ -94,8 +94,7 @@ namespace SharpConnect.MySql
             }
 
             int count = 3;
-            Query query;
-            query = connection.CreateQuery(sql, cmd2Values);
+            var query = new Query(connection, sql, cmd2Values);
             int fCase = 1;
             for (int i = 0; i < count; i++)
             {
@@ -103,7 +102,7 @@ namespace SharpConnect.MySql
                 //query = connection.CreateQuery(sql, cmdValues);
                 //query = connection.CreateQuery(cmd2Values);
                 //query.ExecutePrepareQuery(cmd2Values);
-                query = connection.CreateQuery(sql, cmd2Values);
+                query = new Query(connection, sql, cmd2Values);
                 query.Execute();
                 //switch (fCase)
                 //{

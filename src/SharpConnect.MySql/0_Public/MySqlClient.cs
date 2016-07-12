@@ -79,7 +79,7 @@ namespace SharpConnect.MySql
         }
         public void UpdateMaxAllowPacket()
         {
-            Query _query = _conn.CreateQuery("SELECT @@global.max_allowed_packet", null);
+            var _query = new Query(_conn, "SELECT @@global.max_allowed_packet", null);
             _query.Execute();
             if (_query.LoadError != null)
             {

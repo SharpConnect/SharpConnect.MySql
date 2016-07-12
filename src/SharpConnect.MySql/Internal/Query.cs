@@ -385,12 +385,14 @@ namespace SharpConnect.MySql.Internal
             //------------------- 
             if (_hasSomeRow)
             {
-                //TODO : review here
+                //TODO : review here ?
+                //we use another connection to kill current th
                 string realSql = "KILL " + _conn.threadId;
                 //sql = "FLUSH QUERY CACHE;";
                 Connection killConn = new Connection(_conn.config);
                 killConn.Connect();
-                killConn.CreateQuery(realSql, null).Execute();
+                var q = new Query(killConn, realSql, null);
+                q.Execute();
                 _conn.ClearRemainingInputBuffer();
                 killConn.Disconnect();
             }
