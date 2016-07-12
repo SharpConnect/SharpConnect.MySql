@@ -801,7 +801,7 @@ namespace SharpConnect.MySql.Internal
         ConnectionConfig _config;
         StringBuilder _stbuilder = new StringBuilder();
         bool _isLocalTimeZone;
-        const long IEEE_754_BINARY_64_PRECISION = (long)1 << 53;
+
         public RowDataPacket(TableHeader tableHeader)
         {
             _tableHeader = tableHeader;
