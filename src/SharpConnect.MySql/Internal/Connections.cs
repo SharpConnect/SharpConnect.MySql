@@ -826,6 +826,9 @@ namespace SharpConnect.MySql.Internal
         public override MySqlResultKind Kind { get { return MySqlResultKind.PrepareTableResult; } }
     }
 
+    /// <summary>
+    /// mysql parser manager
+    /// </summary>
     class MySqlParserMx : IDisposable
     {
         MemoryStream ms;
@@ -919,14 +922,18 @@ namespace SharpConnect.MySql.Internal
         Complete
     }
 
-    partial class Connection
+    /// <summary>
+    /// core connection session
+    /// </summary>
+    class Connection
     {
+        bool isProtocol41;
         public ConnectionConfig config;
-        public bool connectionCall;
+
         public uint threadId;
         Socket socket;
         Query _query;
-        //PacketParser _parser;
+
         PacketWriter _writer;
         //TODO: review how to clear remaining buffer again
         byte[] _tmpForClearRecvBuffer; //for clear buffer 
@@ -939,21 +946,23 @@ namespace SharpConnect.MySql.Internal
         readonly SocketAsyncEventArgs recvSendArgs;
         readonly RecvIO recvIO;
         readonly SendIO sendIO;
-        MySqlParserMx _mysqlParserMx;
+        
+
         readonly int recvBufferSize = 265000; //set this a config
         readonly int sendBufferSize = 51200;
+
         Action<MySqlResult> whenRecvComplete;
-        Action whenSendComplete;
-        bool connectedIsComplete = false;
+        Action whenSendCompleted; 
         MySqlPacketParser packetParser = null;
-        internal MySqlParserMx SqlPacketParser { get { return _mysqlParserMx; } }
-        bool isProtocol41;
+        MySqlParserMx _mysqlParserMx;
+
+        
         public Connection(ConnectionConfig userConfig)
         {
             config = userConfig;
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             //protocol = null;
-            connectionCall = false;
+
             //this.config = options.config;
             //this._socket        = options.socket;
             //this._protocol      = new Protocol({config: this.config, connection: this});
@@ -1005,6 +1014,11 @@ namespace SharpConnect.MySql.Internal
                 return socket.Connected ? ConnectionState.Connected : ConnectionState.Disconnected;
             }
         }
+        /// <summary>
+        /// mysql parser mx
+        /// </summary>
+        internal MySqlParserMx ParserMx { get { return _mysqlParserMx; } }
+
 
         void UnBindSocket(bool keepAlive)
         {
@@ -1038,10 +1052,6 @@ namespace SharpConnect.MySql.Internal
                             {
                                 whenRecvComplete(_mysqlParserMx.ResultPacket);
                             }
-                            else
-                            {
-                                connectedIsComplete = true;
-                            }
                         }
                         else
                         {
@@ -1063,19 +1073,10 @@ namespace SharpConnect.MySql.Internal
                     break;
                 case SendIOEventCode.SendComplete:
                     {
-                        if (whenSendComplete != null)
+                        if (whenSendCompleted != null)
                         {
-                            whenSendComplete();
+                            whenSendCompleted();
                         }
-                        //Reset();
-                        //if (KeepAlive)
-                        //{
-                        //    StartReceive();
-                        //}
-                        //else
-                        //{
-                        //    UnBindSocket(true);
-                        //}
                     }
                     break;
             }
@@ -1088,7 +1089,7 @@ namespace SharpConnect.MySql.Internal
             recvIO.StartReceive();
         }
 
-        public void Connect(Action onAsyncComplete = null)
+        public void Connect(Action nextAction = null)
         {
             if (State == ConnectionState.Connected)
             {
@@ -1099,6 +1100,7 @@ namespace SharpConnect.MySql.Internal
             socket.Connect(endpoint); //start listen after connect***
             //1. 
             _mysqlParserMx.CurrentPacketParser = packetParser = new MySqlConnectionPacketParser();
+            bool connectionIsCompleted = false;
             StartReceive(mysql_result =>
             {
                 //when complete1
@@ -1141,19 +1143,19 @@ namespace SharpConnect.MySql.Internal
                     _writer.Reset();
                     //set max allow of the server ***
                     //todo set max allow packet***
-                    connectedIsComplete = true;
-                    if (onAsyncComplete != null)
+                    connectionIsCompleted = true;
+                    if (nextAction != null)
                     {
-                        onAsyncComplete();
+                        nextAction();
                     }
                 });
             });
-            if (onAsyncComplete == null)
+            if (nextAction == null)
             {
                 //exec as sync
                 //so wait until complete
                 //-------------------------------
-                while (!connectedIsComplete) ;  //tight loop,*** wait, or use thread sleep
+                while (!connectionIsCompleted) ;  //tight loop,*** wait, or use thread sleep
                 //-------------------------------
             }
 
@@ -1284,7 +1286,7 @@ namespace SharpConnect.MySql.Internal
         }
         public int SendDataAsync(byte[] sendBuffer, int start, int len, Action whenSendComplete)
         {
-            this.whenSendComplete = whenSendComplete;
+            this.whenSendCompleted = whenSendComplete;
             sendIO.EnqueueOutputData(sendBuffer, len);
             sendIO.StartSendAsync();
             return 0;
