@@ -58,7 +58,10 @@ namespace SharpConnect.MySql
                 if (_conn != null)
                 {
                     FromConnectionPool = true;
-                    onComplete();
+                    if (onComplete != null)
+                    {
+                        onComplete();
+                    }
                 }
                 else
                 {
