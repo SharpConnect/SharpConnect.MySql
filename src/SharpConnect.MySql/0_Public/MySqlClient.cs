@@ -58,6 +58,7 @@ namespace SharpConnect.MySql
                 if (_conn != null)
                 {
                     FromConnectionPool = true;
+                    onComplete();
                 }
                 else
                 {
@@ -148,19 +149,21 @@ namespace SharpConnect.MySql
                 return reader;
             }
         }
-        public void ExecuteNonQuery()
+        public void ExecuteNonQuery(Action nextAction = null)
         {
+
             if (_isPreparedStmt)
             {
-                _query.Execute();
+                _query.Execute(nextAction);
             }
             else
             {
                 _query = Connection.Conn.CreateQuery(CommandText, Parameters);
-                _query.Execute();
+                _query.Execute(nextAction);
             }
         }
-        public uint LastInsertId
+
+        public uint LastInsertedId
         {
             get
             {
@@ -181,10 +184,10 @@ namespace SharpConnect.MySql
             _query = Connection.Conn.CreateQuery(CommandText, Parameters);
             _query.Prepare();
         }
+
+
+
     }
-
-
-
 
     public class MySqlDataReader
     {
