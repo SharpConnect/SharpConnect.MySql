@@ -89,7 +89,7 @@ namespace SharpConnect.MySql
             if (connection == null)
             {
                 connection = new Connection(config);
-                connection.IsStoredInConnPool = true;
+                connection.IsStoredInConnPool = false;
                 connection.Connect();
             }
 
