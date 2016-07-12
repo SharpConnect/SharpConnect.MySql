@@ -1113,32 +1113,37 @@ namespace SharpConnect.MySql.Internal
                 authPacket.SetValues(config.user, token, config.database, isProtocol41 = handshake_packet.protocol41);
                 authPacket.WritePacket(_writer);
                 byte[] sendBuff = _writer.ToArray();
-                SendData(sendBuff, 0, sendBuff.Length);
-                _mysqlParserMx.CurrentPacketParser = new ResultPacketParser(this.config, isProtocol41);
-                StartReceive(mysql_result2 =>
-                {
-                    var ok = mysql_result2 as MySqlOk;
-                    if (ok != null)
-                    {
-                        ConnectedSuccess = true;
-                    }
-                    else
-                    {
-                        //TODO: review here
-                        //error 
-                        ConnectedSuccess = false;
-                    }
 
-                    //ok
-                    _writer.Reset();
-                    //set max allow of the server ***
-                    //todo set max allow packet***
-                    connectionIsCompleted = true;
-                    if (nextAction != null)
+                SendDataAsync(sendBuff, 0, sendBuff.Length, () =>
+                {
+                    _mysqlParserMx.CurrentPacketParser = new ResultPacketParser(this.config, isProtocol41);
+                    StartReceive(mysql_result2 =>
                     {
-                        nextAction();
-                    }
+                        var ok = mysql_result2 as MySqlOk;
+                        if (ok != null)
+                        {
+                            ConnectedSuccess = true;
+                        }
+                        else
+                        {
+                            //TODO: review here
+                            //error 
+                            ConnectedSuccess = false;
+                        }
+
+                        //ok
+                        _writer.Reset();
+                        //set max allow of the server ***
+                        //todo set max allow packet***
+                        connectionIsCompleted = true;
+                        if (nextAction != null)
+                        {
+                            nextAction();
+                        }
+                    });
+
                 });
+                 
             });
             if (nextAction == null)
             {
@@ -1245,25 +1250,13 @@ namespace SharpConnect.MySql.Internal
                 dbugConsole.WriteLine("All Receive bytes : " + allReceive);
             }
         }
-        public int SendDataAsync(byte[] sendBuffer, int start, int len, Action whenSendComplete)
+        public void SendDataAsync(byte[] sendBuffer, int start, int len, Action whenSendComplete)
         {
             this.whenSendCompleted = whenSendComplete;
             sendIO.EnqueueOutputData(sendBuffer, len);
             sendIO.StartSendAsync();
-            return 0;
         }
-        public int SendData(byte[] sendBuffer, int start, int len)
-        {
-            return socket.Send(sendBuffer, start, len, SocketFlags.None);
-        }
-        public int ReceiveData(byte[] recvBuffer)
-        {
-            return socket.Receive(recvBuffer);
-        }
-        public int ReceiveData(byte[] recvBuffer, int writePos, int reqLength)
-        {
-            return socket.Receive(recvBuffer, writePos, reqLength, SocketFlags.None);
-        }
+        
         public int Available
         {
             get
