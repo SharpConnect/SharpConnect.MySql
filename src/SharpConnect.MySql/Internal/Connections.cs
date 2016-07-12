@@ -83,7 +83,7 @@ namespace SharpConnect.MySql.Internal
         MySqlResult _finalResult;
         List<RowDataPacket> rows = new List<RowDataPacket>();
         List<RowPreparedDataPacket> rowsPrepare = new List<RowPreparedDataPacket>();
-        Action<MySqlResult> _whenResultAssign;
+
         const int PACKET_HEADER_LENGTH = 4;
         public ResultPacketParser(ConnectionConfig config, bool isProtocol41, bool isPrepare = false)
         {
@@ -91,10 +91,7 @@ namespace SharpConnect.MySql.Internal
             this.isProtocol41 = isProtocol41;
             this.isPrepare = isPrepare;
         }
-        public void SetOnResultHandler(Action<MySqlResult> whenResultAssign)
-        {
-            this._whenResultAssign = whenResultAssign;
-        }
+
         void Parse()
         {
             needMoreBuffer = false;
@@ -333,7 +330,7 @@ namespace SharpConnect.MySql.Internal
                 rows.Add((RowDataPacket)currentPacket);
                 _finalResult = new MySqlTableResult(tableHeader, rows);
             }
-            ResultAssign(_finalResult);
+
         }
         void StoreBuffer(int length)
         {
@@ -370,14 +367,6 @@ namespace SharpConnect.MySql.Internal
             eofPacket.ParsePacket(_parser);
         }
 
-        void ResultAssign(MySqlResult result)
-        {
-            if (_whenResultAssign != null)
-            {
-                //compat with vs2010 :)
-                _whenResultAssign.Invoke(result);
-            }
-        }
 
         public override void Parse(byte[] buffer, int count)
         {
@@ -1158,7 +1147,7 @@ namespace SharpConnect.MySql.Internal
             get;
             private set;
         }
-      
+
 
         //blocking***
         public void Disconnect()
