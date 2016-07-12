@@ -1114,7 +1114,7 @@ namespace SharpConnect.MySql.Internal
                 authPacket.WritePacket(_writer);
                 byte[] sendBuff = _writer.ToArray();
 
-                SendDataAsync(sendBuff, 0, sendBuff.Length, () =>
+                StartSendData(sendBuff, 0, sendBuff.Length, () =>
                 {
                     _mysqlParserMx.CurrentPacketParser = new ResultPacketParser(this.config, isProtocol41);
                     StartReceive(mysql_result2 =>
@@ -1143,7 +1143,7 @@ namespace SharpConnect.MySql.Internal
                     });
 
                 });
-                 
+
             });
             if (nextAction == null)
             {
@@ -1250,19 +1250,11 @@ namespace SharpConnect.MySql.Internal
                 dbugConsole.WriteLine("All Receive bytes : " + allReceive);
             }
         }
-        public void SendDataAsync(byte[] sendBuffer, int start, int len, Action whenSendComplete)
+        public void StartSendData(byte[] sendBuffer, int start, int len, Action whenSendComplete)
         {
             this.whenSendCompleted = whenSendComplete;
             sendIO.EnqueueOutputData(sendBuffer, len);
             sendIO.StartSendAsync();
-        }
-        
-        public int Available
-        {
-            get
-            {
-                return socket.Available;
-            }
         }
         static byte[] GetScrollbleBuffer(byte[] part1, byte[] part2)
         {
