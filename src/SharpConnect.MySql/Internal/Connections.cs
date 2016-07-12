@@ -943,7 +943,7 @@ namespace SharpConnect.MySql.Internal
         readonly int recvBufferSize = 265000; //set this a config
         readonly int sendBufferSize = 51200;
         Action<MySqlResult> whenRecvComplete;
-        Action<object> whenSendComplete;
+        Action whenSendComplete;
         bool connectedIsComplete = false;
         MySqlPacketParser packetParser = null;
         internal MySqlParserMx SqlPacketParser { get { return _mysqlParserMx; } }
@@ -1065,7 +1065,7 @@ namespace SharpConnect.MySql.Internal
                     {
                         if (whenSendComplete != null)
                         {
-                            whenSendComplete(null);
+                            whenSendComplete();
                         }
                         //Reset();
                         //if (KeepAlive)
@@ -1120,6 +1120,7 @@ namespace SharpConnect.MySql.Internal
                 authPacket.SetValues(config.user, token, config.database, isProtocol41 = handshake_packet.protocol41);
                 authPacket.WritePacket(_writer);
                 byte[] sendBuff = _writer.ToArray();
+
                 SendData(sendBuff, 0, sendBuff.Length);
                 _mysqlParserMx.CurrentPacketParser = packetParser = new ResultPacketParser(this.config, isProtocol41);
                 StartReceive(mysql_result2 =>
@@ -1281,7 +1282,7 @@ namespace SharpConnect.MySql.Internal
                 dbugConsole.WriteLine("All Receive bytes : " + allReceive);
             }
         }
-        public int SendDataAsync(byte[] sendBuffer, int start, int len, Action<object> whenSendComplete)
+        public int SendDataAsync(byte[] sendBuffer, int start, int len, Action whenSendComplete)
         {
             this.whenSendComplete = whenSendComplete;
             sendIO.EnqueueOutputData(sendBuffer, len);
