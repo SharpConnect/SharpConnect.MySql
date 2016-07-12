@@ -934,8 +934,8 @@ namespace SharpConnect.MySql.Internal
         readonly SocketAsyncEventArgs recvSendArgs;
         readonly RecvIO recvIO;
         readonly SendIO sendIO;
-        readonly int recvBufferSize = 265000; //TODO: review here
-        readonly int sendBufferSize = 51200;
+        readonly int recvBufferSize;
+        readonly int sendBufferSize;
         Action<MySqlResult> whenRecvComplete;
         Action whenSendCompleted;
         //---------------------------------
@@ -944,6 +944,7 @@ namespace SharpConnect.MySql.Internal
         PacketWriter _writer;
 
         //---------------------------------
+        //after open connection
         bool isProtocol41;
         public uint threadId;
 
@@ -954,15 +955,10 @@ namespace SharpConnect.MySql.Internal
         public Connection(ConnectionConfig userConfig)
         {
             config = userConfig;
+            recvBufferSize = userConfig.recvBufferSize;
+            sendBufferSize = userConfig.sendBufferSize;
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            //protocol = null;
-
-            //this.config = options.config;
-            //this._socket        = options.socket;
-            //this._protocol      = new Protocol({config: this.config, connection: this});
-            //this._connectCalled = false;
-            //this.state          = "disconnected";
-            //this.threadId       = null;
+            //
             switch ((CharSets)config.charsetNumber)
             {
                 case CharSets.UTF8_GENERAL_CI:
@@ -982,6 +978,7 @@ namespace SharpConnect.MySql.Internal
             recvSendArgs.SetBuffer(new byte[recvBufferSize + sendBufferSize], 0, recvBufferSize + sendBufferSize);
             recvIO = new RecvIO(recvSendArgs, recvSendArgs.Offset, recvBufferSize, HandleReceive);
             sendIO = new SendIO(recvSendArgs, recvSendArgs.Offset + recvBufferSize, sendBufferSize, HandleSend);
+            //------------------
             _mysqlParserMx = new MySqlParserMx(_writer);
             //common(shared) event listener***
             recvSendArgs.Completed += (object sender, SocketAsyncEventArgs e) =>
@@ -1204,6 +1201,7 @@ namespace SharpConnect.MySql.Internal
             return new Query(this, sql, command);
         }
 
+        //blocking***
         public void Disconnect()
         {
             _writer.Reset();
@@ -1345,6 +1343,10 @@ namespace SharpConnect.MySql.Internal
         public int charsetNumber;
         public int defaultFlags;
         public int clientFlags;
+
+        public int recvBufferSize = 265000; //TODO: review here
+        public int sendBufferSize = 51200;
+
         public ConnectionConfig()
         {
             SetDefault();
