@@ -786,11 +786,7 @@ namespace SharpConnect.MySql.Internal
 
         public override void WritePacket(PacketWriter writer)
         {
-            writer.ReserveHeader();
-            //writer.WriteLengthCodedNumber(this.fieldCount); 
-            //if (this.extra !== undefined) {
-            //  writer.WriteLengthCodedNumber(this.extra);
-            //}
+            writer.ReserveHeader(); 
         }
     }
 

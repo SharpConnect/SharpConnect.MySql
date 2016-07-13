@@ -210,7 +210,7 @@ namespace SharpConnect.MySql.Internal
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             socket.Connect(endpoint); //start listen after connect***
                                       //1. 
-
+            _mysqlParserMx.CurrentPacketParser = new MySqlConnectionPacketParser();
             bool connectionIsCompleted = false;
             StartReceive(mysql_result =>
             {
