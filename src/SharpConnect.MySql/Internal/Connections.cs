@@ -102,7 +102,7 @@ namespace SharpConnect.MySql.Internal
             recvIO = new RecvIO(recvSendArgs, recvSendArgs.Offset, recvBufferSize, HandleReceive);
             sendIO = new SendIO(recvSendArgs, recvSendArgs.Offset + recvBufferSize, sendBufferSize, HandleSend);
             //------------------
-            _mysqlParserMx = new MySqlParserMx(_writer);
+            _mysqlParserMx = new MySqlParserMx();
             //common(shared) event listener***
             recvSendArgs.Completed += (object sender, SocketAsyncEventArgs e) =>
             {

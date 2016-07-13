@@ -748,16 +748,14 @@ namespace SharpConnect.MySql.Internal
     /// <summary>
     /// mysql parser manager
     /// </summary>
-    class MySqlParserMx : IDisposable
+    class MySqlParserMx
     {
-        MemoryStream ms;
-        MySqlPacketParser currentPacketParser; //current parser
-        PacketWriter _writer;
+
+        MySqlPacketParser currentPacketParser; //current parser 
         bool _isCompleted;
-        public MySqlParserMx(PacketWriter _writer)
+        public MySqlParserMx()
         {
-            ms = new MemoryStream();
-            this._writer = _writer;
+
         }
         public MySqlResult ResultPacket
         {
@@ -793,6 +791,7 @@ namespace SharpConnect.MySql.Internal
             {
                 if (count > maxBuffer)
                 {
+                    //TODO: review here***
                     throw new Exception();
                 }
                 try
@@ -813,6 +812,7 @@ namespace SharpConnect.MySql.Internal
                 //***
                 //TODO: review here
                 _isCompleted = false;
+                //***
                 recvIO.StartReceive();
             }
             else
@@ -824,15 +824,7 @@ namespace SharpConnect.MySql.Internal
             //just return *** 
             //--------------------
         }
-        public void Dispose()
-        {
-            if (ms != null)
-            {
-                ms.Close();
-                ms.Dispose();
-                ms = null;
-            }
-        }
+
     }
 
 }
