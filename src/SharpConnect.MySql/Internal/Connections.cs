@@ -63,7 +63,7 @@ namespace SharpConnect.MySql.Internal
         Action whenSendCompleted;
         //---------------------------------
 
-        PacketWriter _writer;
+        MySqlStreamWrtier _writer;
         MySqlParserMx _mysqlParserMx;//know how to parse mysql data
         //---------------------------------
         //after open connection
@@ -85,11 +85,11 @@ namespace SharpConnect.MySql.Internal
             {
                 case CharSets.UTF8_GENERAL_CI:
                     //_parser = new PacketParser(Encoding.UTF8);
-                    _writer = new PacketWriter(Encoding.UTF8);
+                    _writer = new MySqlStreamWrtier(Encoding.UTF8);
                     break;
                 case CharSets.ASCII:
                     //_parser = new PacketParser(Encoding.ASCII);
-                    _writer = new PacketWriter(Encoding.ASCII);
+                    _writer = new MySqlStreamWrtier(Encoding.ASCII);
                     break;
                 default:
                     throw new NotImplementedException();
@@ -118,7 +118,8 @@ namespace SharpConnect.MySql.Internal
             };
             //------------------
             recvSendArgs.AcceptSocket = socket;
-            _mysqlParserMx = new MySqlParserMx();
+            _mysqlParserMx = new MySqlParserMx(config);
+
         }
         public ConnectionState State
         {
@@ -210,7 +211,7 @@ namespace SharpConnect.MySql.Internal
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             socket.Connect(endpoint); //start listen after connect***
                                       //1. 
-            _mysqlParserMx.CurrentPacketParser = new MySqlConnectionPacketParser();
+            _mysqlParserMx.UseConnectionParser();
             bool connectionIsCompleted = false;
             StartReceive(mysql_result =>
             {
@@ -237,8 +238,9 @@ namespace SharpConnect.MySql.Internal
                 StartSendData(sendBuff, 0, sendBuff.Length, () =>
                 {
                     //------------------------------------
-                    //switch to result packet parser 
-                    _mysqlParserMx.CurrentPacketParser = new ResultPacketParser(this.config, isProtocol41);
+                    //switch to result packet parser  
+                    _mysqlParserMx.SetProtocol41(isProtocol41);
+                    _mysqlParserMx.UseResultParser();
                     //------------------------------------
 
                     StartReceive(mysql_result2 =>
@@ -296,7 +298,7 @@ namespace SharpConnect.MySql.Internal
         public bool IsStoredInConnPool { get; set; }
         public bool IsInUsed { get; set; }
 
-        internal PacketWriter PacketWriter
+        internal MySqlStreamWrtier PacketWriter
         {
             get { return _writer; }
         }

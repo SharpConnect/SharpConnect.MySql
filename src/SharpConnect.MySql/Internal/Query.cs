@@ -37,7 +37,7 @@ namespace SharpConnect.MySql.Internal
         bool _hasSomeRow;
         bool _executePrepared;
 
-        PacketWriter _writer;
+        MySqlStreamWrtier _writer;
         SqlStringTemplate _sqlStrTemplate;
         PreparedContext _prepareContext;
         MySqlParserMx _sqlParserMx;
@@ -94,8 +94,8 @@ namespace SharpConnect.MySql.Internal
             //blocking method***
             //wait until execute finish 
             //-------------------
-            //prepare sql query
-            _sqlParserMx.CurrentPacketParser = new PrepareResponsePacketParser(_conn.IsProtocol41);
+            //prepare sql query             
+            _sqlParserMx.UsePrepareResponseParser();
             _prepareContext = null;
             if (_cmdParams == null)
             {
@@ -190,7 +190,8 @@ namespace SharpConnect.MySql.Internal
 
         void ExecuteNonPrepare_A(Action whenFinish)
         {
-            _sqlParserMx.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41);
+
+            _sqlParserMx.UseResultParser();
             _writer.Reset();
             string realSql = _sqlStrTemplate.BindValues(_cmdParams, false);
             var queryPacket = new ComQueryPacket(realSql);
@@ -224,7 +225,7 @@ namespace SharpConnect.MySql.Internal
                 //---------------------------------------------------------------------------------
                 _executePrepared = true;
                 _writer.Reset();
-                _sqlParserMx.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41, true);
+                _sqlParserMx.UseResultParser(true);
                 //fill prepared values 
                 var excute = new ComExecPrepareStmtPacket(_prepareContext.statementId, _prepareContext.PrepareBoundData(_cmdParams));
                 excute.WritePacket(_writer);
@@ -241,7 +242,7 @@ namespace SharpConnect.MySql.Internal
             if (_prepareContext != null)
             {
                 _writer.Reset();
-                _sqlParserMx.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41);
+                _sqlParserMx.UseResultParser();
                 ComStmtClosePacket closePrepare = new ComStmtClosePacket(_prepareContext.statementId);
                 closePrepare.WritePacket(_writer);
                 //TODO: review here
@@ -259,7 +260,7 @@ namespace SharpConnect.MySql.Internal
             if (_executePrepared && _prepareContext != null)
             {
                 _writer.Reset();
-                _sqlParserMx.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41);
+                _sqlParserMx.UseResultParser();
                 ComStmtResetPacket resetPacket = new ComStmtResetPacket(_prepareContext.statementId);
                 resetPacket.WritePacket(_writer);
                 SendPacket_A(_writer.ToArray(), () =>
