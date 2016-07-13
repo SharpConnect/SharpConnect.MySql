@@ -62,10 +62,9 @@ namespace SharpConnect.MySql.Internal
         Action<MySqlResult> whenRecvComplete;
         Action whenSendCompleted;
         //---------------------------------
-        //packet parser mx (read data),         
-        MySqlParserMx _mysqlParserMx;
-        PacketWriter _writer;
 
+        PacketWriter _writer;
+        MySqlParserMx _mysqlParserMx;//know how to parse mysql data
         //---------------------------------
         //after open connection
         bool isProtocol41;
@@ -102,7 +101,6 @@ namespace SharpConnect.MySql.Internal
             recvIO = new RecvIO(recvSendArgs, recvSendArgs.Offset, recvBufferSize, HandleReceive);
             sendIO = new SendIO(recvSendArgs, recvSendArgs.Offset + recvBufferSize, sendBufferSize, HandleSend);
             //------------------
-            _mysqlParserMx = new MySqlParserMx();
             //common(shared) event listener***
             recvSendArgs.Completed += (object sender, SocketAsyncEventArgs e) =>
             {
@@ -120,6 +118,7 @@ namespace SharpConnect.MySql.Internal
             };
             //------------------
             recvSendArgs.AcceptSocket = socket;
+            _mysqlParserMx = new MySqlParserMx();
         }
         public ConnectionState State
         {
@@ -128,14 +127,12 @@ namespace SharpConnect.MySql.Internal
                 return socket.Connected ? ConnectionState.Connected : ConnectionState.Disconnected;
             }
         }
-        /// <summary>
-        /// mysql parser mx
-        /// </summary>
-        internal MySqlParserMx ParserMx { get { return _mysqlParserMx; } }
 
+        internal MySqlParserMx MySqlParserMx { get { return _mysqlParserMx; } }
 
         void UnBindSocket(bool keepAlive)
         {
+            //TODO: review here ***
             throw new NotImplementedException();
         }
         void HandleReceive(RecvEventCode recvEventCode)
@@ -212,8 +209,8 @@ namespace SharpConnect.MySql.Internal
 
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             socket.Connect(endpoint); //start listen after connect***
-            //1. 
-            _mysqlParserMx.CurrentPacketParser = new MySqlConnectionPacketParser();
+                                      //1. 
+
             bool connectionIsCompleted = false;
             StartReceive(mysql_result =>
             {
@@ -308,7 +305,6 @@ namespace SharpConnect.MySql.Internal
         internal void ClearRemainingInputBuffer()
         {
             //TODO: review here again
-
             int lastReceive = 0;
             long allReceive = 0;
             int i = 0;
