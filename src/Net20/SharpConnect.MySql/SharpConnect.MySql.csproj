@@ -63,11 +63,11 @@
     <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlResults.cs">
       <Link>Internal\MySqlResults.cs</Link>
     </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlStreamReader.cs">
+      <Link>Internal\MySqlStreamReader.cs</Link>
+    </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlStringToHexUtils.cs">
       <Link>Internal\MySqlStringToHexUtils.cs</Link>
-    </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\Internal\PacketParser.cs">
-      <Link>Internal\PacketParser.cs</Link>
     </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\PacketWriter.cs">
       <Link>Internal\PacketWriter.cs</Link>
