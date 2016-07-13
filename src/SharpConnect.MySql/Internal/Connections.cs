@@ -22,7 +22,6 @@
 
 using System;
 using System.IO;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -43,89 +42,6 @@ namespace SharpConnect.MySql.Internal
     {
         Disconnected,
         Connected
-    }
-
-   
-
-    enum MySqlResultKind
-    {
-        Handshake,
-        Error,
-        Ok,
-        TableResult,
-        PrepareResponse,
-        PrepareTableResult
-    }
-    abstract class MySqlResult
-    {
-        public bool IsError { get; protected set; }
-        public abstract MySqlResultKind Kind { get; }
-    }
-    class MySqlHandshakeResult : MySqlResult
-    {
-        public readonly HandshakePacket packet;
-        public MySqlHandshakeResult(HandshakePacket packet)
-        {
-            this.packet = packet;
-        }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.Handshake; } }
-    }
-    class MySqlError : MySqlResult
-    {
-        public readonly ErrPacket errPacket;
-        public MySqlError(ErrPacket errPacket)
-        {
-            this.errPacket = errPacket;
-            this.IsError = true;
-        }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.Error; } }
-    }
-    class MySqlOk : MySqlResult
-    {
-        public readonly OkPacket okpacket;
-        public MySqlOk(OkPacket okpacket)
-        {
-            this.okpacket = okpacket;
-        }
-        public override string ToString()
-        {
-            return "<Insert ID : " + okpacket.insertId + " >";
-        }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.Ok; } }
-    }
-    class MySqlTableResult : MySqlResult
-    {
-        public readonly TableHeader tableHeader;
-        public readonly List<RowDataPacket> rows;
-        public MySqlTableResult(TableHeader tableHeader, List<RowDataPacket> rows)
-        {
-            this.tableHeader = tableHeader;
-            this.rows = rows;
-        }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.TableResult; } }
-    }
-
-    class MySqlPrepareResponse : MySqlResult
-    {
-        public readonly OkPrepareStmtPacket okPacket;
-        public readonly TableHeader tableHeader;
-        public MySqlPrepareResponse(OkPrepareStmtPacket okPrepare, TableHeader tableHeader)
-        {
-            this.okPacket = okPrepare;
-            this.tableHeader = tableHeader;
-        }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.PrepareResponse; } }
-    }
-    class MySqlPrepareTableResult : MySqlResult
-    {
-        public readonly TableHeader tableHeader;
-        public readonly List<RowPreparedDataPacket> rows;
-        public MySqlPrepareTableResult(TableHeader tableHeader, List<RowPreparedDataPacket> rows)
-        {
-            this.tableHeader = tableHeader;
-            this.rows = rows;
-        }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.PrepareTableResult; } }
     }
 
     /// <summary>
@@ -217,6 +133,8 @@ namespace SharpConnect.MySql.Internal
             }
         }
     }
+
+
     enum ProcessReceiveBufferResult
     {
         Error,
