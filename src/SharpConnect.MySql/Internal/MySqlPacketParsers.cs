@@ -31,9 +31,15 @@ namespace SharpConnect.MySql.Internal
 
     abstract class MySqlPacketParser
     {
+        protected const byte ERROR_CODE = 255;
+        protected const byte EOF_CODE = 254;
+        protected const byte OK_CODE = 0;
+        protected const int PACKET_HEADER_LENGTH = 4;
+        protected bool _needMoreBuffer;
+        protected bool _isProtocol41;
         public abstract void Reset();
         public abstract void Parse(MySqlStreamReader reader);
-        public abstract MySqlResult ResultPacket { get; }
+        public abstract MySqlResult FinalResult { get; }
         public abstract bool NeedMoreBuffer { get; }
     }
 
@@ -55,23 +61,21 @@ namespace SharpConnect.MySql.Internal
 
         ResultPacketState parsingState;
 
-        const byte ERROR_CODE = 255;
-        const byte EOF_CODE = 254;
-        const byte OK_CODE = 0;
+
         PacketHeader header;
         Packet currentPacket;
         TableHeader tableHeader;
         ConnectionConfig config;
-        bool isProtocol41;
+
         bool isPrepare;
-        bool needMoreBuffer = false;
+
         MySqlResult _finalResult;
         List<DataRowPacket> rows = new List<DataRowPacket>();
-        const int PACKET_HEADER_LENGTH = 4;
+
         public ResultPacketParser(ConnectionConfig config, bool isProtocol41, bool isPrepare = false)
         {
             this.config = config;
-            this.isProtocol41 = isProtocol41;
+            this._isProtocol41 = isProtocol41;
             this.isPrepare = isPrepare;
         }
         public ResultPacketParser(ConnectionConfig config)
@@ -96,7 +100,7 @@ namespace SharpConnect.MySql.Internal
 
         void InternalParse(MySqlStreamReader reader)
         {
-            needMoreBuffer = false;
+            _needMoreBuffer = false;
             switch (parsingState)
             {
                 case ResultPacketState.ExpectResultSetHeaderPacket:
@@ -135,7 +139,7 @@ namespace SharpConnect.MySql.Internal
         {
             if (!reader.Ensure(PACKET_HEADER_LENGTH + 1)) //check if length is enough to parse 
             {
-                needMoreBuffer = true;
+                _needMoreBuffer = true;
                 return;
             }
             //-------------------------------- 
@@ -172,7 +176,7 @@ namespace SharpConnect.MySql.Internal
         {
             if (!reader.Ensure(header.ContentLength))
             {
-                needMoreBuffer = true;
+                _needMoreBuffer = true;
                 return;
             }
             //can parse
@@ -187,7 +191,7 @@ namespace SharpConnect.MySql.Internal
         {
             if (!reader.Ensure(PACKET_HEADER_LENGTH + 1)) //check if length is enough to parse 
             {
-                needMoreBuffer = true;
+                _needMoreBuffer = true;
                 return;
             }
 
@@ -211,7 +215,7 @@ namespace SharpConnect.MySql.Internal
                     break;
                 default:
                     {
-                        FieldPacket fieldPacket = new FieldPacket(this.isProtocol41);
+                        FieldPacket fieldPacket = new FieldPacket(this._isProtocol41);
                         fieldPacket.Header = header;
                         tableHeader.AddField(fieldPacket);
                         currentPacket = fieldPacket;
@@ -225,7 +229,7 @@ namespace SharpConnect.MySql.Internal
         {
             if (!reader.Ensure(header.ContentLength)) //check if length is enough to parse 
             {
-                needMoreBuffer = true;
+                _needMoreBuffer = true;
                 return;
             }
 
@@ -237,7 +241,7 @@ namespace SharpConnect.MySql.Internal
         {
             if (!reader.Ensure(PACKET_HEADER_LENGTH + 1))
             {
-                needMoreBuffer = true;
+                _needMoreBuffer = true;
                 return;
             }
 
@@ -290,7 +294,7 @@ namespace SharpConnect.MySql.Internal
         {
             if (!reader.Ensure(header.ContentLength))
             {
-                needMoreBuffer = true;
+                _needMoreBuffer = true;
                 return;
             }
             if (header.ContentLength >= Packet.MAX_PACKET_LENGTH)
@@ -364,7 +368,7 @@ namespace SharpConnect.MySql.Internal
         }
         void ParseOkPacket(MySqlStreamReader reader)
         {
-            var okPacket = new OkPacket(this.isProtocol41);
+            var okPacket = new OkPacket(this._isProtocol41);
             okPacket.Header = header;
             uint packetLen = okPacket.GetPacketLength();
             currentPacket = okPacket;
@@ -373,7 +377,7 @@ namespace SharpConnect.MySql.Internal
         }
         void ParseEOFPacket(MySqlStreamReader reader)
         {
-            EofPacket eofPacket = new EofPacket(this.isProtocol41);
+            EofPacket eofPacket = new EofPacket(this._isProtocol41);
             eofPacket.Header = header;
             currentPacket = eofPacket;
             eofPacket.ParsePacket(reader);
@@ -389,7 +393,7 @@ namespace SharpConnect.MySql.Internal
             {
                 //loop
                 InternalParse(reader);
-                if (needMoreBuffer)
+                if (_needMoreBuffer)
                 {
                     //at any state if need more buffer 
                     //then stop parsing and return
@@ -406,7 +410,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override MySqlResult ResultPacket
+        public override MySqlResult FinalResult
         {
             get
             {
@@ -418,7 +422,7 @@ namespace SharpConnect.MySql.Internal
         {
             get
             {
-                return needMoreBuffer;
+                return _needMoreBuffer;
             }
         }
     }
@@ -438,12 +442,8 @@ namespace SharpConnect.MySql.Internal
             Should_End,
             Error_Content
         }
-        bool _needMoreBuffer;
-        bool _isProtocol41;
-        const int PACKET_HEADER_LENGTH = 4;
-        const byte ERROR_CODE = 255;
-        const byte EOF_CODE = 254;
-        const byte OK_CODE = 0;
+
+
         MySqlResult _finalResult;
         PacketHeader _currentHeader;
         Packet _currentPacket;
@@ -462,7 +462,7 @@ namespace SharpConnect.MySql.Internal
         {
 
         }
-        public override MySqlResult ResultPacket
+        public override MySqlResult FinalResult
         {
             get
             {
@@ -717,13 +717,13 @@ namespace SharpConnect.MySql.Internal
 
     class MySqlConnectionPacketParser : MySqlPacketParser
     {
-        //MySqlStreamReader _parser = new MySqlStreamReader(Encoding.UTF8);
+
         HandshakePacket _handshake;
         MySqlHandshakeResult _finalResult;
         public MySqlConnectionPacketParser()
         {
         }
-        public override MySqlResult ResultPacket
+        public override MySqlResult FinalResult
         {
             get
             {
@@ -844,7 +844,7 @@ namespace SharpConnect.MySql.Internal
             _mysqlStreamReader.AppendBuffer(recvIO, count);
             currentPacketParser.Parse(_mysqlStreamReader);
             //-----------------------------------------------
-            ResultPacket = currentPacketParser.ResultPacket;
+            ResultPacket = currentPacketParser.FinalResult;
             if (currentPacketParser.NeedMoreBuffer)
             {
                 //***
