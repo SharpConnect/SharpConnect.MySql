@@ -69,8 +69,8 @@ namespace SharpConnect.MySql.Internal
         bool isPrepare;
         bool needMoreBuffer = false;
         MySqlResult _finalResult;
-        List<RowDataPacket> rows = new List<RowDataPacket>();
-        List<RowPreparedDataPacket> rowsPrepare = new List<RowPreparedDataPacket>();
+        List<DataRowPacket> rows = new List<DataRowPacket>();
+        List<PreparedDataRowPacket> prepareDataRows = new List<PreparedDataRowPacket>();
 
         const int PACKET_HEADER_LENGTH = 4;
         public ResultPacketParser(ConnectionConfig config, bool isProtocol41, bool isPrepare = false)
@@ -167,7 +167,7 @@ namespace SharpConnect.MySql.Internal
             tableHeader.ConnConfig = this.config;
             tableHeader.TypeCast = this.config.typeCast;
             this.parsingState = ResultPacketState.Expect_FieldHeader;
-            rows = new List<RowDataPacket>();
+            rows = new List<DataRowPacket>();
         }
         void ParseFieldHeader()
         {
@@ -248,7 +248,7 @@ namespace SharpConnect.MySql.Internal
 
                         if (isPrepare)
                         {
-                            _finalResult = new MySqlPrepareTableResult(tableHeader, rowsPrepare);
+                            _finalResult = new MySqlPrepareTableResult(tableHeader, prepareDataRows);
                         }
                         else
                         {
@@ -263,13 +263,13 @@ namespace SharpConnect.MySql.Internal
                     {
                         if (isPrepare)
                         {
-                            (currentPacket = new RowPreparedDataPacket(tableHeader)).Header = header;
+                            (currentPacket = new PreparedDataRowPacket(tableHeader)).Header = header;
                             //rowsPrepare.Add(rowPacket);
                             //TODO: review here, 
                         }
                         else
                         {
-                            (currentPacket = new RowDataPacket(tableHeader)).Header = header;
+                            (currentPacket = new DataRowPacket(tableHeader)).Header = header;
                             //rows.Add(rowPacket);
                             //TODO: review here, 
                         }
@@ -316,11 +316,11 @@ namespace SharpConnect.MySql.Internal
             if (isPrepare)
             {
                 //just collect data into row collection
-                rowsPrepare.Add((RowPreparedDataPacket)currentPacket);
+                prepareDataRows.Add((PreparedDataRowPacket)currentPacket);
             }
             else
             {
-                rows.Add((RowDataPacket)currentPacket);
+                rows.Add((DataRowPacket)currentPacket);
             }
             //-----------------------------------------------------------------------
             //after this row, next state = next row header
@@ -745,6 +745,7 @@ namespace SharpConnect.MySql.Internal
     }
 
 
+    
     /// <summary>
     /// mysql parser manager
     /// </summary>
@@ -775,6 +776,9 @@ namespace SharpConnect.MySql.Internal
         {
             get { return _isCompleted; }
         }
+
+
+
         public void ParseData(RecvIO recvIO)
         {
             //we need to parse some data here 

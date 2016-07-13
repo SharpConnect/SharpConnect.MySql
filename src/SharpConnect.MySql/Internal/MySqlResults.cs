@@ -72,8 +72,8 @@ namespace SharpConnect.MySql.Internal
     class MySqlTableResult : MySqlResult
     {
         public readonly TableHeader tableHeader;
-        public readonly List<RowDataPacket> rows;
-        public MySqlTableResult(TableHeader tableHeader, List<RowDataPacket> rows)
+        public readonly List<DataRowPacket> rows;
+        public MySqlTableResult(TableHeader tableHeader, List<DataRowPacket> rows)
         {
             this.tableHeader = tableHeader;
             this.rows = rows;
@@ -95,8 +95,8 @@ namespace SharpConnect.MySql.Internal
     class MySqlPrepareTableResult : MySqlResult
     {
         public readonly TableHeader tableHeader;
-        public readonly List<RowPreparedDataPacket> rows;
-        public MySqlPrepareTableResult(TableHeader tableHeader, List<RowPreparedDataPacket> rows)
+        public readonly List<PreparedDataRowPacket> rows;
+        public MySqlPrepareTableResult(TableHeader tableHeader, List<PreparedDataRowPacket> rows)
         {
             this.tableHeader = tableHeader;
             this.rows = rows;

@@ -32,20 +32,29 @@ namespace SharpConnect.MySql.Internal
         CommandParams _cmdParams;
         readonly Connection _conn;
         TableHeader _tableHeader;
-        RowDataPacket _lastRow;
-        RowPreparedDataPacket _lastPrepareRow;
+        DataRowPacket _latestRow;
+        PreparedDataRowPacket _latestPrepareRow;
         bool _hasSomeRow;
         bool _executePrepared;
-        MySqlParserMx _sqlParserMx;
+
         PacketWriter _writer;
         SqlStringTemplate _sqlStrTemplate;
         PreparedContext _prepareContext;
+        MySqlParserMx _sqlParserMx;
+
         public Query(Connection conn, string sql, CommandParams cmdParams)//testing
         {
+            if (conn.IsInUsed)
+            {
+                //can't use this conn
+                throw new Exception("connection is in used");
+            }
+            //--------------------------------------------------------------
             if (sql == null)
             {
                 throw new Exception("Sql command can not null.");
             }
+            //--------------------------------------------------------------
             this._conn = conn;
             this._cmdParams = cmdParams;
             typeCast = conn.config.typeCast;
@@ -53,9 +62,8 @@ namespace SharpConnect.MySql.Internal
             //index = 0;
             LoadError = null;
             //*** query use conn resource such as parser,writer
-            //so 1 query 1 connection
-            //_parser = conn.PacketParser;
-            _sqlParserMx = conn.ParserMx;
+            //so 1 query 1 connection             
+            _sqlParserMx = conn.MySqlParserMx;
             _writer = conn.PacketWriter;
             //_receiveBuffer = null;
             _sqlStrTemplate = new SqlStringTemplate(sql);
@@ -70,11 +78,11 @@ namespace SharpConnect.MySql.Internal
             {
                 if (_prepareContext != null)
                 {
-                    return _lastPrepareRow.Cells;
+                    return _latestPrepareRow.Cells;
                 }
                 else
                 {
-                    return _lastRow.Cells;
+                    return _latestRow.Cells;
                 }
             }
         }
@@ -278,6 +286,10 @@ namespace SharpConnect.MySql.Internal
             //we wait here   
             return _hasSomeRow;
         }
+
+
+
+
         int _rowReadIndex = 0;
         //*** blocking
         void InternalReadRow()
@@ -296,9 +308,11 @@ namespace SharpConnect.MySql.Internal
             {
                 if (!_sqlParserMx.IsComplete)
                 {
+                    //if not complete then wait until complete
+                    //ResultPacket
                     //---------------------------------------------------
                     //** tight loop**
-                    //waiting for parse
+                    //waiting for data 
                     while (_sqlParserMx.ResultPacket == null)
                     {
                     }
@@ -325,6 +339,7 @@ namespace SharpConnect.MySql.Internal
                     break;
                 case MySqlResultKind.TableResult:
                     {
+
                         MySqlTableResult tableResult = _sqlParserMx.ResultPacket as MySqlTableResult;
                         //TODO: review here
                         if (_rowReadIndex >= tableResult.rows.Count)
@@ -334,7 +349,7 @@ namespace SharpConnect.MySql.Internal
                         {
                             var lastRow = tableResult.rows[_rowReadIndex];
                             _rowReadIndex++;
-                            _lastRow = lastRow;
+                            _latestRow = lastRow;
                             _hasSomeRow = true; //***
                         }
                     }
@@ -350,7 +365,7 @@ namespace SharpConnect.MySql.Internal
                         {
                             var lastRow = prepareResult.rows[_rowReadIndex];
                             _rowReadIndex++;
-                            _lastPrepareRow = lastRow;
+                            _latestPrepareRow = lastRow;
                             _hasSomeRow = true;
                         }
                     }
@@ -367,6 +382,7 @@ namespace SharpConnect.MySql.Internal
         {
             return _tableHeader.GetFieldIndex(colName);
         }
+
 
         //*** blocking
         public void Close()

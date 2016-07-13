@@ -794,7 +794,10 @@ namespace SharpConnect.MySql.Internal
         }
     }
 
-    class RowDataPacket : Packet
+
+
+
+    class DataRowPacket : Packet
     {
         MyStructData[] _myDataList;
         TableHeader _tableHeader;
@@ -802,19 +805,14 @@ namespace SharpConnect.MySql.Internal
         StringBuilder _stbuilder = new StringBuilder();
         bool _isLocalTimeZone;
 
-        public RowDataPacket(TableHeader tableHeader)
+        public DataRowPacket(TableHeader tableHeader)
         {
             _tableHeader = tableHeader;
             _myDataList = new MyStructData[tableHeader.ColumnCount];
             _config = tableHeader.ConnConfig;
             _isLocalTimeZone = _config.timezone.Equals("local");
         }
-        public void ReuseSlots()
-        {
-            //this is reuseable row packet
-            _header = PacketHeader.Empty;
-            Array.Clear(_myDataList, 0, _myDataList.Length);
-        }
+
         public override void ParsePacket(PacketParser parser)
         {
             //function parse(parser, fieldPackets, typeCast, nestTables, connection) {
@@ -1199,27 +1197,16 @@ namespace SharpConnect.MySql.Internal
         }
     }
 #endif
-    class RowPreparedDataPacket : Packet
+    class PreparedDataRowPacket : Packet
     {
         MyStructData[] _myDataList;
         TableHeader _tableHeader;
         ConnectionConfig _config;
-        public RowPreparedDataPacket(TableHeader tableHeader)
+        public PreparedDataRowPacket(TableHeader tableHeader)
         {
             _tableHeader = tableHeader;
             _myDataList = new MyStructData[tableHeader.ColumnCount];
             _config = tableHeader.ConnConfig;
-        }
-
-        public void ReuseSlots()
-        {
-            //this is reuseable row packet
-            _header = PacketHeader.Empty;
-            Array.Clear(_myDataList, 0, _myDataList.Length);
-        }
-        internal MyStructData[] GetInternalStructData()
-        {
-            return _myDataList;
         }
         public override void ParsePacket(PacketParser parser)
         {
