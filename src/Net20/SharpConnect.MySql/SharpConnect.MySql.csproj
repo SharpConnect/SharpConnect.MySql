@@ -66,11 +66,11 @@
     <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlStreamReader.cs">
       <Link>Internal\MySqlStreamReader.cs</Link>
     </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlStreamWrtier.cs">
+      <Link>Internal\MySqlStreamWrtier.cs</Link>
+    </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlStringToHexUtils.cs">
       <Link>Internal\MySqlStringToHexUtils.cs</Link>
-    </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\Internal\PacketWriter.cs">
-      <Link>Internal\PacketWriter.cs</Link>
     </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\Query.cs">
       <Link>Internal\Query.cs</Link>
