@@ -39,6 +39,7 @@ namespace SharpConnect.MySql.Internal
         long _packetLength;
         Encoding _encoding = Encoding.UTF8;
         List<byte> _bList = new List<byte>();
+        StringBuilder tempStringBuilder = new StringBuilder();
 #if DEBUG
         static int dbugTotalId;
         public readonly int dbugId = dbugTotalId++;
@@ -56,6 +57,10 @@ namespace SharpConnect.MySql.Internal
             Dispose();
         }
 
+        public StringBuilder TempStringBuilder
+        {
+            get { return tempStringBuilder; }
+        }
         /// <summary>
         /// current stream's paring position
         /// </summary>
@@ -116,6 +121,7 @@ namespace SharpConnect.MySql.Internal
             _stream.Position = saved_pos;
             _currentInputLength += count;
         }
+
         //------------------------------------------------------
         public string ReadNullTerminatedString()
         {
