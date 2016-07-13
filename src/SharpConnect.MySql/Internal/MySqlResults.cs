@@ -29,8 +29,7 @@ namespace SharpConnect.MySql.Internal
         Error,
         Ok,
         TableResult,
-        PrepareResponse,
-        PrepareTableResult
+        PrepareResponse
     }
     abstract class MySqlResult
     {
@@ -69,17 +68,7 @@ namespace SharpConnect.MySql.Internal
         }
         public override MySqlResultKind Kind { get { return MySqlResultKind.Ok; } }
     }
-    class MySqlTableResult : MySqlResult
-    {
-        public readonly TableHeader tableHeader;
-        public readonly List<DataRowPacket> rows;
-        public MySqlTableResult(TableHeader tableHeader, List<DataRowPacket> rows)
-        {
-            this.tableHeader = tableHeader;
-            this.rows = rows;
-        }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.TableResult; } }
-    }
+
 
     class MySqlPrepareResponse : MySqlResult
     {
@@ -92,16 +81,16 @@ namespace SharpConnect.MySql.Internal
         }
         public override MySqlResultKind Kind { get { return MySqlResultKind.PrepareResponse; } }
     }
-    class MySqlPrepareTableResult : MySqlResult
+
+    class MySqlTableResult : MySqlResult
     {
         public readonly TableHeader tableHeader;
-        public readonly List<PreparedDataRowPacket> rows;
-        public MySqlPrepareTableResult(TableHeader tableHeader, List<PreparedDataRowPacket> rows)
+        public readonly List<DataRowPacket> rows;
+        public MySqlTableResult(TableHeader tableHeader, List<DataRowPacket> rows)
         {
             this.tableHeader = tableHeader;
             this.rows = rows;
         }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.PrepareTableResult; } }
+        public override MySqlResultKind Kind { get { return MySqlResultKind.TableResult; } }
     }
-
 }
