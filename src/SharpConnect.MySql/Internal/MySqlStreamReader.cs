@@ -30,7 +30,7 @@ namespace SharpConnect.MySql.Internal
     /// <summary>
     /// mysql packet stream parser
     /// </summary>
-    class MySqlStreamParser : IDisposable
+    class MySqlStreamReader : IDisposable
     {
         BinaryReader _reader;
         MemoryStream _stream;
@@ -43,7 +43,7 @@ namespace SharpConnect.MySql.Internal
         static int dbugTotalId;
         public readonly int dbugId = dbugTotalId++;
 #endif
-        public MySqlStreamParser(Encoding encoding)
+        public MySqlStreamReader(Encoding encoding)
         {
             _encoding = encoding;
             _stream = new MemoryStream();
@@ -51,7 +51,7 @@ namespace SharpConnect.MySql.Internal
             _reader = new BinaryReader(_stream, encoding);
         }
 
-        ~MySqlStreamParser()
+        ~MySqlStreamReader()
         {
             Dispose();
         }
