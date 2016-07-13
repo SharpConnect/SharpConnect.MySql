@@ -38,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="0_Public\CommandParams.cs" />
+    <Compile Include="Internal\MySqlPacketParsers.cs" />
     <Compile Include="Internal\MySqlStringToHexUtils.cs" />
     <Compile Include="Internal\PacketParser.cs" />
     <Compile Include="Internal\PacketWriter.cs" />
