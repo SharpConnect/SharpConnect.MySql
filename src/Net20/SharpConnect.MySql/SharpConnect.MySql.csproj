@@ -54,8 +54,14 @@
     <Compile Include="..\..\SharpConnect.MySql\Internal\DataModel.cs">
       <Link>Internal\DataModel.cs</Link>
     </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlPacketParsers.cs">
+      <Link>Internal\MySqlPacketParsers.cs</Link>
+    </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlPackets.cs">
       <Link>Internal\MySqlPackets.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlResults.cs">
+      <Link>Internal\MySqlResults.cs</Link>
     </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlStringToHexUtils.cs">
       <Link>Internal\MySqlStringToHexUtils.cs</Link>
