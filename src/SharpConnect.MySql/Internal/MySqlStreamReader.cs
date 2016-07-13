@@ -105,22 +105,7 @@ namespace SharpConnect.MySql.Internal
             _currentInputLength = 0;
         }
         //------------------------------------------------------
-        public void LoadNewBuffer(byte[] newBuffer, int count)
-        {
-            Reset();
-            _stream.Write(newBuffer, 0, count);
-            _stream.Position = 0;
-            _startPosition = 0;
-            _currentInputLength = count;
-        }
-        public void AppendBuffer(byte[] buffer, int count)
-        {
-            long saved_pos = _stream.Position;
-            _stream.Position = _currentInputLength;
-            _stream.Write(buffer, 0, count);
-            _stream.Position = saved_pos;
-            _currentInputLength += count;
-        }
+ 
         internal void AppendBuffer(SharpConnect.Internal.RecvIO recvIO, int count)
         {
             long saved_pos = _stream.Position;
@@ -132,7 +117,7 @@ namespace SharpConnect.MySql.Internal
             _stream.Position = saved_pos;
             _currentInputLength += count;
         }
-     
+
         //------------------------------------------------------
         public string ReadNullTerminatedString()
         {
@@ -263,6 +248,22 @@ namespace SharpConnect.MySql.Internal
         }
 #if DEBUG
         static int debugLastPacketNum = 1;
+        public void dbugLoadNewBuffer(byte[] newBuffer, int count)
+        {
+            Reset();
+            _stream.Write(newBuffer, 0, count);
+            _stream.Position = 0;
+            _startPosition = 0;
+            _currentInputLength = count;
+        }
+        public void dbugAppendBuffer(byte[] buffer, int count)
+        {
+            long saved_pos = _stream.Position;
+            _stream.Position = _currentInputLength;
+            _stream.Write(buffer, 0, count);
+            _stream.Position = saved_pos;
+            _currentInputLength += count;
+        }
 #endif
         public PacketHeader ReadPacketHeader()
         {
