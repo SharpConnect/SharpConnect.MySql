@@ -231,13 +231,13 @@ namespace SharpConnect.MySql.Internal
         }
     }
 
-    class ComExecutePrepareStatement : Packet
+    class ComExecPrepareStmtPacket : Packet
     {
         //byte EXCUTE_CMD = (byte)Command.STMT_EXECUTE;
 
         readonly uint _statementId;
         readonly MyStructData[] _prepareValues;
-        public ComExecutePrepareStatement(uint statementId, MyStructData[] filledValues)
+        public ComExecPrepareStmtPacket(uint statementId, MyStructData[] filledValues)
         {
             _statementId = statementId;
             _prepareValues = filledValues;
@@ -352,10 +352,10 @@ namespace SharpConnect.MySql.Internal
         }
     }
 
-    class ComStmtClose : Packet
+    class ComStmtClosePacket : Packet
     {
         uint _statementId;
-        public ComStmtClose(uint statementId)
+        public ComStmtClosePacket(uint statementId)
         {
             _statementId = statementId;
         }
@@ -375,10 +375,10 @@ namespace SharpConnect.MySql.Internal
         }
     }
 
-    class ComStmtReset : Packet
+    class ComStmtResetPacket : Packet
     {
         uint _statementId;
-        public ComStmtReset(uint statementId)
+        public ComStmtResetPacket(uint statementId)
         {
             _statementId = statementId;
         }
@@ -398,13 +398,13 @@ namespace SharpConnect.MySql.Internal
         }
     }
 
-    class ComStmtSendLongData : Packet
+    class ComStmtSendLongDataPacket : Packet
     {
         //byte command = (byte)Command.STMT_SEND_LONG_DATA;
         uint _statement_id;
         int _param_id;
         MyStructData _data;
-        public ComStmtSendLongData(uint statement_id, int param_id, MyStructData data)
+        public ComStmtSendLongDataPacket(uint statement_id, int param_id, MyStructData data)
         {
             _statement_id = statement_id;
             _param_id = param_id;
@@ -1242,7 +1242,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        void ParseValues(PacketParser parser, FieldPacket fieldInfo, ref MyStructData myData)
+        static void ParseValues(PacketParser parser, FieldPacket fieldInfo, ref MyStructData myData)
         {
             Types fieldType = (Types)fieldInfo.type;
             switch (fieldType)
