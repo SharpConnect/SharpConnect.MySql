@@ -775,7 +775,6 @@ namespace SharpConnect.MySql.Internal
         {
             get { return _isCompleted; }
         }
-
         public void ParseData(RecvIO recvIO)
         {
             //we need to parse some data here 
@@ -797,7 +796,7 @@ namespace SharpConnect.MySql.Internal
                 try
                 {
                     //start index always 0
-                    recvIO.ReadTo(0, buffer, count);
+                    recvIO.CopyTo(0, buffer, count);
                 }
                 catch (Exception)
                 {
@@ -824,7 +823,6 @@ namespace SharpConnect.MySql.Internal
             //just return *** 
             //--------------------
         }
-
     }
 
 }
