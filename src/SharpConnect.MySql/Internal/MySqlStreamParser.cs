@@ -30,10 +30,10 @@ namespace SharpConnect.MySql.Internal
     /// <summary>
     /// mysql packet stream parser
     /// </summary>
-    class PacketParser
+    class MySqlStreamParser : IDisposable
     {
-        readonly BinaryReader _reader;
-        readonly MemoryStream _stream;
+        BinaryReader _reader;
+        MemoryStream _stream;
         int _currentInputLength;
         long _startPosition;
         long _packetLength;
@@ -43,7 +43,7 @@ namespace SharpConnect.MySql.Internal
         static int dbugTotalId;
         public readonly int dbugId = dbugTotalId++;
 #endif
-        public PacketParser(Encoding encoding)
+        public MySqlStreamParser(Encoding encoding)
         {
             _encoding = encoding;
             _stream = new MemoryStream();
@@ -51,7 +51,7 @@ namespace SharpConnect.MySql.Internal
             _reader = new BinaryReader(_stream, encoding);
         }
 
-        ~PacketParser()
+        ~MySqlStreamParser()
         {
             Dispose();
         }
@@ -81,21 +81,25 @@ namespace SharpConnect.MySql.Internal
 
         public void Dispose()
         {
-            _reader.Close();
-            _stream.Close();
-            _stream.Dispose();
+            if (_reader != null)
+            {
+                _reader.Close();
+                _reader = null;
+            }
+            if (_stream != null)
+            {
+                _stream.Close();
+                _stream.Dispose();
+                _stream = null;
+            }
         }
-
         public void Reset()
         {
             _stream.Position = 0;
             _startPosition = 0;
             _currentInputLength = 0;
         }
-        public void SetPosition(int pos)
-        {
-            _stream.Position = pos;
-        }
+        //------------------------------------------------------
         public void LoadNewBuffer(byte[] newBuffer, int count)
         {
             Reset();
@@ -112,6 +116,7 @@ namespace SharpConnect.MySql.Internal
             _stream.Position = saved_pos;
             _currentInputLength += count;
         }
+        //------------------------------------------------------
         public string ParseNullTerminatedString()
         {
             _bList.Clear();
@@ -122,6 +127,7 @@ namespace SharpConnect.MySql.Internal
                 temp = _reader.ReadByte();
                 _bList.Add(temp);
             }
+
             byte[] bytes = _bList.ToArray();
             return _encoding.GetString(bytes);
         }
@@ -670,9 +676,5 @@ namespace SharpConnect.MySql.Internal
             return this.ReadPosition == _startPosition + _packetLength;
         }
 
-        public byte[] ToArray()
-        {
-            return _stream.ToArray();
-        }
     }
 }
