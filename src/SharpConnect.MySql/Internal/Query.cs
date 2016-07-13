@@ -212,13 +212,13 @@ namespace SharpConnect.MySql.Internal
             }
             //---------------------------------------------------------------------------------
             ResetPrepareStmt_A(() =>
-            {
+            {   //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
                 //---------------------------------------------------------------------------------
                 _executePrepared = true;
                 _writer.Reset();
                 _sqlParserMx.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41, true);
                 //fill prepared values 
-                var excute = new ComExecutePrepareStatement(_prepareContext.statementId, _prepareContext.PrepareBoundData(_cmdParams));
+                var excute = new ComExecPrepareStmtPacket(_prepareContext.statementId, _prepareContext.PrepareBoundData(_cmdParams));
                 excute.WritePacket(_writer);
                 SendPacket_A(_writer.ToArray(), () =>
                 {
@@ -234,7 +234,7 @@ namespace SharpConnect.MySql.Internal
             {
                 _writer.Reset();
                 _sqlParserMx.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41);
-                ComStmtClose closePrepare = new ComStmtClose(_prepareContext.statementId);
+                ComStmtClosePacket closePrepare = new ComStmtClosePacket(_prepareContext.statementId);
                 closePrepare.WritePacket(_writer);
                 //TODO: review here
                 SendPacket_A(_writer.ToArray(), () => nextAction());
@@ -252,7 +252,7 @@ namespace SharpConnect.MySql.Internal
             {
                 _writer.Reset();
                 _sqlParserMx.CurrentPacketParser = new ResultPacketParser(_conn.config, _conn.IsProtocol41);
-                ComStmtReset resetPacket = new ComStmtReset(_prepareContext.statementId);
+                ComStmtResetPacket resetPacket = new ComStmtResetPacket(_prepareContext.statementId);
                 resetPacket.WritePacket(_writer);
                 SendPacket_A(_writer.ToArray(), () =>
                 {
