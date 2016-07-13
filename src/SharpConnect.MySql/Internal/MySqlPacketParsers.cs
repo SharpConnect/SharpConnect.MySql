@@ -326,7 +326,7 @@ namespace SharpConnect.MySql.Internal
             if (isPrepare && !(currentPacket is PreparedDataRowPacket)) { throw new NotSupportedException(); }
             //-----------------------
 #endif  
-            rows.Add((DataRowPacket)currentPacket); 
+            rows.Add((DataRowPacket)currentPacket);
             //-----------------------------------------------------------------------
             //after this row, next state = next row header
             this.parsingState = ResultPacketState.Expect_RowHeader;
@@ -837,31 +837,11 @@ namespace SharpConnect.MySql.Internal
             //load data from recv buffer into the ms
             //---------------
             //copy all to stream
-            //---------------  
-            int maxBuffer = 265000;
-            byte[] buffer = new byte[maxBuffer];
+            //---------------   
             int count = recvIO.BytesTransferred;
-            if (count > 0)
-            {
-                if (count > maxBuffer)
-                {
-                    //TODO: review here***
-                    throw new Exception();
-                }
-                try
-                {
-                    //start index always 0
-                    recvIO.CopyTo(0, buffer, count);
-                }
-                catch (Exception)
-                {
-                    count = 0;
-                }
-            }
             //-----------------------------------------------
-            //may not complete in first round *** 
-            //currentPacketParser.Parse(buffer, count);
-            _mysqlStreamReader.AppendBuffer(buffer, count);
+            //may not complete in first round ***  
+            _mysqlStreamReader.AppendBuffer(recvIO, count);
             currentPacketParser.Parse(_mysqlStreamReader);
             //-----------------------------------------------
             ResultPacket = currentPacketParser.ResultPacket;

@@ -121,7 +121,18 @@ namespace SharpConnect.MySql.Internal
             _stream.Position = saved_pos;
             _currentInputLength += count;
         }
-
+        internal void AppendBuffer(SharpConnect.Internal.RecvIO recvIO, int count)
+        {
+            long saved_pos = _stream.Position;
+            _stream.Position = _currentInputLength;
+            //----------------------------
+            recvIO.CopyTo(0, _stream, count);
+            //----------------------------
+            //_stream.Write(buffer, 0, count);
+            _stream.Position = saved_pos;
+            _currentInputLength += count;
+        }
+     
         //------------------------------------------------------
         public string ReadNullTerminatedString()
         {
