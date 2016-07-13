@@ -403,7 +403,7 @@ namespace SharpConnect.MySql.Internal
 
     class MyBinaryWriter : IDisposable
     {
-        readonly BinaryWriter _writer;
+        BinaryWriter _writer;
         int _offset;
         MemoryStream _ms;
         public MyBinaryWriter()
@@ -478,9 +478,17 @@ namespace SharpConnect.MySql.Internal
         }
         public void Close()
         {
-            _writer.Close();
-            _ms.Close();
-            _ms.Dispose();
+            if (_writer != null)
+            {
+                _writer.Close();
+                _writer = null;
+            }
+            if (_ms != null)
+            {
+                _ms.Close();
+                _ms.Dispose();
+                _ms = null;
+            }
         }
         public void Flush()
         {
