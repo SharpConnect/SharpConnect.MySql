@@ -32,6 +32,7 @@ namespace SharpConnect.MySql.Internal
 
     abstract class MySqlPacketParser
     {
+        public abstract void Reset();
         public abstract void Parse(byte[] buffer, int count);
         public abstract MySqlResult ResultPacket { get; }
         public abstract bool NeedMoreBuffer { get; }
@@ -57,7 +58,7 @@ namespace SharpConnect.MySql.Internal
         /// <summary>
         /// low level mysql packet parser
         /// </summary>
-        PacketParser _parser = new PacketParser(Encoding.UTF8);
+        MySqlStreamReader _mysqlStreamReader = new MySqlStreamReader(Encoding.UTF8);
         const byte ERROR_CODE = 255;
         const byte EOF_CODE = 254;
         const byte OK_CODE = 0;
@@ -78,6 +79,35 @@ namespace SharpConnect.MySql.Internal
             this.config = config;
             this.isProtocol41 = isProtocol41;
             this.isPrepare = isPrepare;
+        }
+        public ResultPacketParser(ConnectionConfig config)
+        {
+            this.config = config;
+        }
+        public override void Reset()
+        {
+            //header = new PacketHeader();
+            //currentPacket = null;           
+
+            //_finalResult = null;
+            //_parser = new PacketParser(Encoding.UTF8);
+            //isPrepare = false;
+            //tableHeader = null;
+            //rows = new List<DataRowPacket>();
+            //prepareDataRows = new List<PreparedDataRowPacket>();
+            //needMoreBuffer = false;
+            //parsingState = ResultPacketState.
+        }
+        public bool ForPrepareResult
+        {
+            //changable
+            get { return isPrepare; }
+            set { isPrepare = value; }
+        }
+        public bool IsProtocol41
+        {
+            get;
+            set;
         }
 
         void Parse()
@@ -119,14 +149,14 @@ namespace SharpConnect.MySql.Internal
         }
         void ParseResultsetHeaderPacket()
         {
-            if (!_parser.Ensure(PACKET_HEADER_LENGTH + 1)) //check if length is enough to parse 
+            if (!_mysqlStreamReader.Ensure(PACKET_HEADER_LENGTH + 1)) //check if length is enough to parse 
             {
                 needMoreBuffer = true;
                 return;
             }
             //-------------------------------- 
-            header = _parser.ParsePacketHeader();
-            byte packetType = _parser.PeekByte();
+            header = _mysqlStreamReader.ReadPacketHeader();
+            byte packetType = _mysqlStreamReader.PeekByte();
             switch (packetType)
             {
                 case ERROR_CODE:
@@ -156,13 +186,13 @@ namespace SharpConnect.MySql.Internal
         /// </summary>
         void ParseResultSetHead()
         {
-            if (!_parser.Ensure(header.ContentLength))
+            if (!_mysqlStreamReader.Ensure(header.ContentLength))
             {
                 needMoreBuffer = true;
                 return;
             }
             //can parse
-            currentPacket.ParsePacket(_parser);
+            currentPacket.ParsePacket(_mysqlStreamReader);
             tableHeader = new TableHeader();
             tableHeader.ConnConfig = this.config;
             tableHeader.TypeCast = this.config.typeCast;
@@ -171,14 +201,14 @@ namespace SharpConnect.MySql.Internal
         }
         void ParseFieldHeader()
         {
-            if (!_parser.Ensure(PACKET_HEADER_LENGTH + 1)) //check if length is enough to parse 
+            if (!_mysqlStreamReader.Ensure(PACKET_HEADER_LENGTH + 1)) //check if length is enough to parse 
             {
                 needMoreBuffer = true;
                 return;
             }
 
-            header = _parser.ParsePacketHeader();
-            byte packetType = _parser.PeekByte();
+            header = _mysqlStreamReader.ReadPacketHeader();
+            byte packetType = _mysqlStreamReader.PeekByte();
             switch (packetType)
             {
                 case ERROR_CODE:
@@ -209,26 +239,26 @@ namespace SharpConnect.MySql.Internal
         }
         void ParseFieldContent()
         {
-            if (!_parser.Ensure(header.ContentLength)) //check if length is enough to parse 
+            if (!_mysqlStreamReader.Ensure(header.ContentLength)) //check if length is enough to parse 
             {
                 needMoreBuffer = true;
                 return;
             }
 
-            currentPacket.ParsePacket(_parser);
+            currentPacket.ParsePacket(_mysqlStreamReader);
             //next state => field header of next field
             this.parsingState = ResultPacketState.Expect_FieldHeader;
         }
         void ParseRowHeader()
         {
-            if (!_parser.Ensure(PACKET_HEADER_LENGTH + 1))
+            if (!_mysqlStreamReader.Ensure(PACKET_HEADER_LENGTH + 1))
             {
                 needMoreBuffer = true;
                 return;
             }
 
-            header = _parser.ParsePacketHeader();
-            byte packetType = _parser.PeekByte();
+            header = _mysqlStreamReader.ReadPacketHeader();
+            byte packetType = _mysqlStreamReader.PeekByte();
             switch (packetType)
             {
                 case ERROR_CODE:
@@ -282,7 +312,7 @@ namespace SharpConnect.MySql.Internal
         bool isLargeData = false;
         void ParseRowContent()
         {
-            if (!_parser.Ensure(header.ContentLength))
+            if (!_mysqlStreamReader.Ensure(header.ContentLength))
             {
                 needMoreBuffer = true;
                 return;
@@ -303,16 +333,16 @@ namespace SharpConnect.MySql.Internal
                 if (isLargeData)
                 {
                     StoreBuffer((int)header.ContentLength);
-                    int remain = (int)(_parser.CurrentInputLength - _parser.ReadPosition);
+                    int remain = (int)(_mysqlStreamReader.CurrentInputLength - _mysqlStreamReader.ReadPosition);
                     StoreBuffer(remain);
                     //move large data into a parser
-                    _parser.LoadNewBuffer(largeDataBuffer, largeDataBuffer.Length);
+                    _mysqlStreamReader.LoadNewBuffer(largeDataBuffer, largeDataBuffer.Length);
                     //reset value***
                     largeDataBuffer = null;
                     isLargeData = false;
                 }
             }
-            currentPacket.ParsePacket(_parser);
+            currentPacket.ParsePacket(_mysqlStreamReader);
             if (isPrepare)
             {
                 //just collect data into row collection
@@ -329,7 +359,7 @@ namespace SharpConnect.MySql.Internal
         void StoreBuffer(int length)
         {
             //TODO: review buffer mx here ****
-            byte[] dataTemp = _parser.ParseBuffer((int)length);
+            byte[] dataTemp = _mysqlStreamReader.ReadBuffer((int)length);
             int existingLargeDataBufferLen = (largeDataBuffer == null) ?
                 0 :
                 largeDataBuffer.Length;
@@ -352,7 +382,7 @@ namespace SharpConnect.MySql.Internal
             errPacket.Header = header;
             uint packetLen = errPacket.GetPacketLength();
             currentPacket = errPacket;
-            errPacket.ParsePacket(_parser);
+            errPacket.ParsePacket(_mysqlStreamReader);
             //------------------------
             this._finalResult = new MySqlError(errPacket);
         }
@@ -362,7 +392,7 @@ namespace SharpConnect.MySql.Internal
             okPacket.Header = header;
             uint packetLen = okPacket.GetPacketLength();
             currentPacket = okPacket;
-            okPacket.ParsePacket(_parser);
+            okPacket.ParsePacket(_mysqlStreamReader);
             this._finalResult = new MySqlOk(okPacket);
         }
         void ParseEOFPacket()
@@ -370,14 +400,14 @@ namespace SharpConnect.MySql.Internal
             EofPacket eofPacket = new EofPacket(this.isProtocol41);
             eofPacket.Header = header;
             currentPacket = eofPacket;
-            eofPacket.ParsePacket(_parser);
+            eofPacket.ParsePacket(_mysqlStreamReader);
         }
 
         public override void Parse(byte[] buffer, int count)
         {
             //reset final result 
             _finalResult = null;
-            _parser.AppendBuffer(buffer, count);
+            _mysqlStreamReader.AppendBuffer(buffer, count);
             for (;;)
             {
                 //loop
@@ -392,7 +422,7 @@ namespace SharpConnect.MySql.Internal
                 if (parsingState == ResultPacketState.Should_End)
                 {
                     //reset
-                    this._parser.Reset();
+                    this._mysqlStreamReader.Reset();
                     this.parsingState = ResultPacketState.ExpectResultSetHeaderPacket;
                     return;
                 }
@@ -441,7 +471,7 @@ namespace SharpConnect.MySql.Internal
         PacketHeader _currentHeader;
         Packet _currentPacket;
         OkPrepareStmtPacket _okPrepare;
-        PacketParser _parser = new PacketParser(Encoding.UTF8);
+        MySqlStreamReader _parser = new MySqlStreamReader(Encoding.UTF8);
         PrepareResponseParseState parsingState;
         TableHeader _tableHeader;
         public override bool NeedMoreBuffer
@@ -451,7 +481,10 @@ namespace SharpConnect.MySql.Internal
                 return _needMoreBuffer;
             }
         }
+        public override void Reset()
+        {
 
+        }
         public override MySqlResult ResultPacket
         {
             get
@@ -618,7 +651,7 @@ namespace SharpConnect.MySql.Internal
                 _needMoreBuffer = true;
                 return;
             }
-            _currentHeader = _parser.ParsePacketHeader();
+            _currentHeader = _parser.ReadPacketHeader();
             byte type = _parser.PeekByte();
             switch (type)
             {
@@ -687,7 +720,7 @@ namespace SharpConnect.MySql.Internal
 
         void ParseFieldHeader()
         {
-            _currentHeader = _parser.ParsePacketHeader();
+            _currentHeader = _parser.ReadPacketHeader();
             _currentPacket = null;
             if (_parser.PeekByte() == EOF_CODE)
             {
@@ -708,7 +741,7 @@ namespace SharpConnect.MySql.Internal
 
     class MySqlConnectionPacketParser : MySqlPacketParser
     {
-        PacketParser _parser = new PacketParser(Encoding.UTF8);
+        MySqlStreamReader _parser = new MySqlStreamReader(Encoding.UTF8);
         HandshakePacket _handshake;
         MySqlHandshakeResult _finalResult;
         public MySqlConnectionPacketParser()
@@ -742,36 +775,72 @@ namespace SharpConnect.MySql.Internal
             _handshake.ParsePacket(_parser);
             _finalResult = new MySqlHandshakeResult(_handshake);
         }
+        public override void Reset()
+        {
+
+        }
     }
 
 
-    
+
     /// <summary>
     /// mysql parser manager
     /// </summary>
     class MySqlParserMx
     {
-
+        ConnectionConfig userConfig;
         MySqlPacketParser currentPacketParser; //current parser 
         bool _isCompleted;
-        public MySqlParserMx()
+        bool _isProtocol41;
+        //-------------------------
+        //built in sub-parsers
+        MySqlConnectionPacketParser connParser;
+        PrepareResponsePacketParser prepareResponseParser;
+        ResultPacketParser resultPacketParser;
+        //-------------------------
+        public MySqlParserMx(ConnectionConfig userConfig)
         {
+            this.userConfig = userConfig;
+            connParser = new MySqlConnectionPacketParser();
+        }
+        public void SetProtocol41(bool value)
+        {
+            this._isProtocol41 = value;
+            if (resultPacketParser == null)
+            {
+                resultPacketParser = new Internal.ResultPacketParser(this.userConfig);
+            }
+            resultPacketParser.IsProtocol41 = value;
+        }
 
+        public void UseConnectionParser()
+        {
+            //switch from current parser to another
+            ResultPacket = null;
+            currentPacketParser = connParser;
+        }
+        public void UseResultParser(bool forPreparedResult = false)
+        {
+            //switch from current parser to another
+            ResultPacket = null;
+            //--------------------------------
+            //resultPacketParser.ForPrepareResult = forPreparedResult;
+            //currentPacketParser = resultPacketParser;
+            currentPacketParser = new ResultPacketParser(userConfig, _isProtocol41, forPreparedResult);
+        }
+        public void UsePrepareResponseParser()
+        {
+            //switch from current parser to another
+            ResultPacket = null; 
+            prepareResponseParser = new PrepareResponsePacketParser(this._isProtocol41); 
+            currentPacketParser = prepareResponseParser;
         }
         public MySqlResult ResultPacket
         {
             get;
             private set;
         }
-        public MySqlPacketParser CurrentPacketParser
-        {
-            get { return currentPacketParser; }
-            set
-            {
-                ResultPacket = null;
-                currentPacketParser = value;
-            }
-        }
+
         public bool IsComplete
         {
             get { return _isCompleted; }

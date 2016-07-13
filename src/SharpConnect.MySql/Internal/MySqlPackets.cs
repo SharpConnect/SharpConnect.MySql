@@ -44,12 +44,12 @@ namespace SharpConnect.MySql.Internal
     abstract class Packet
     {
         protected PacketHeader _header;
-        public abstract void ParsePacket(PacketParser parser);
-        public void ParsePacketHeader(PacketParser parser)
+        public abstract void ParsePacket(MySqlStreamReader r);
+        public void ParsePacketHeader(MySqlStreamReader r)
         {
             if (_header.IsEmpty())
             {
-                _header = parser.ParsePacketHeader();
+                _header = r.ReadPacketHeader();
             }
         }
 
@@ -109,26 +109,26 @@ namespace SharpConnect.MySql.Internal
             this.protocol41 = protocol41;
         }
 
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
-            ParsePacketHeader(parser);
+            ParsePacketHeader(r);
             if (protocol41)
             {
-                clientFlags = parser.ParseUnsigned4(); //4
-                maxPacketSize = parser.ParseUnsigned4(); //4 
-                charsetNumber = parser.ParseByte();
-                parser.ParseFiller(23);
-                user = parser.ParseNullTerminatedString();
-                scrambleBuff = parser.ParseLengthCodedBuffer();
-                database = parser.ParseNullTerminatedString();
+                clientFlags = r.U4(); //4
+                maxPacketSize = r.U4(); //4 
+                charsetNumber = r.ReadByte();
+                r.ReadFiller(23);
+                user = r.ReadNullTerminatedString();
+                scrambleBuff = r.ReadLengthCodedBuffer();
+                database = r.ReadNullTerminatedString();
             }
             else
             {
-                clientFlags = parser.ParseUnsigned2();//2
-                maxPacketSize = parser.ParseUnsigned3();//3
-                user = parser.ParseNullTerminatedString();
-                scrambleBuff = parser.ParseBuffer(8);
-                database = parser.ParseLengthCodedString();
+                clientFlags = r.U2();//2
+                maxPacketSize = r.U3();//3
+                user = r.ReadNullTerminatedString();
+                scrambleBuff = r.ReadBuffer(8);
+                database = r.ReadLengthCodedString();
             }
         }
 
@@ -171,11 +171,11 @@ namespace SharpConnect.MySql.Internal
             _sql = sql;
         }
 
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
-            ParsePacketHeader(parser);
-            _QUERY_CMD = parser.ParseUnsigned1();//1
-            _sql = parser.ParsePacketTerminatedString();
+            ParsePacketHeader(r);
+            _QUERY_CMD = r.U1();//1
+            _sql = r.ReadPacketTerminatedString();
         }
 
         public override void WritePacket(PacketWriter writer)
@@ -191,7 +191,7 @@ namespace SharpConnect.MySql.Internal
     class ComQuitPacket : Packet
     {
         //const byte QUIT_CMD = (byte)Command.QUIT;//0x01 
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
             throw new NotImplementedException();
             //ParsePacketHeader(parser);
@@ -216,7 +216,7 @@ namespace SharpConnect.MySql.Internal
             _sql = sql;
         }
 
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
             throw new NotImplementedException();
         }
@@ -242,7 +242,7 @@ namespace SharpConnect.MySql.Internal
             _statementId = statementId;
             _prepareValues = filledValues;
         }
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
             throw new NotImplementedException();
         }
@@ -360,7 +360,7 @@ namespace SharpConnect.MySql.Internal
             _statementId = statementId;
         }
 
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
             throw new NotImplementedException();
         }
@@ -383,7 +383,7 @@ namespace SharpConnect.MySql.Internal
             _statementId = statementId;
         }
 
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
             throw new NotImplementedException();
         }
@@ -411,7 +411,7 @@ namespace SharpConnect.MySql.Internal
             _data = data;
         }
 
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
             throw new NotImplementedException();
         }
@@ -469,14 +469,14 @@ namespace SharpConnect.MySql.Internal
             this.protocol41 = protocol41;
         }
 
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
-            ParsePacketHeader(parser);
-            fieldCount = parser.ParseByte();
+            ParsePacketHeader(r);
+            fieldCount = r.ReadByte();
             if (protocol41)
             {
-                warningCount = parser.ParseUnsigned2();//2
-                serverStatus = parser.ParseUnsigned2();//2
+                warningCount = r.U2();//2
+                serverStatus = r.U2();//2
             }
         }
 
@@ -502,18 +502,18 @@ namespace SharpConnect.MySql.Internal
         char _sqlStateMarker;
         string _sqlState;
         public string message;
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
-            ParsePacketHeader(parser);
-            _fieldCount = parser.ParseByte();
-            _errno = parser.ParseUnsigned2();//2
-            if (parser.PeekByte() == 0x23)
+            ParsePacketHeader(r);
+            _fieldCount = r.ReadByte();
+            _errno = r.U2();//2
+            if (r.PeekByte() == 0x23)
             {
-                _sqlStateMarker = parser.ParseChar();
-                _sqlState = parser.ParseString(5);
+                _sqlStateMarker = r.ReadChar();
+                _sqlState = r.ReadString(5);
             }
 
-            message = parser.ParsePacketTerminatedString();
+            message = r.ReadPacketTerminatedString();
 #if DEBUG
             throw new Exception(_sqlStateMarker + _sqlState + " " + message);
 #endif
@@ -552,18 +552,18 @@ namespace SharpConnect.MySql.Internal
             this.protocol41 = protocol41;
         }
 
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
-            ParsePacketHeader(parser);
+            ParsePacketHeader(r);
             if (protocol41)
             {
-                catalog = parser.ParseLengthCodedString();
-                db = parser.ParseLengthCodedString();
-                table = parser.ParseLengthCodedString();
-                orgTable = parser.ParseLengthCodedString();
-                name = parser.ParseLengthCodedString();
-                orgName = parser.ParseLengthCodedString();
-                if (parser.ParseLengthCodedNumber() != 0x0c)
+                catalog = r.ReadLengthCodedString();
+                db = r.ReadLengthCodedString();
+                table = r.ReadLengthCodedString();
+                orgTable = r.ReadLengthCodedString();
+                name = r.ReadLengthCodedString();
+                orgName = r.ReadLengthCodedString();
+                if (r.ReadLengthCodedNumber() != 0x0c)
                 {
                     //var err  = new TypeError('Received invalid field length');
                     //err.code = 'PARSER_INVALID_FIELD_LENGTH';
@@ -571,12 +571,12 @@ namespace SharpConnect.MySql.Internal
                     throw new Exception("Received invalid field length");
                 }
 
-                charsetNr = parser.ParseUnsigned2();//2
-                length = parser.ParseUnsigned4();//4
-                type = parser.ParseByte();
-                flags = parser.ParseUnsigned2();//2
-                decimals = parser.ParseByte();
-                filler = parser.ParseBuffer(2);
+                charsetNr = r.U2();//2
+                length = r.U4();//4
+                type = r.ReadByte();
+                flags = r.U2();//2
+                decimals = r.ReadByte();
+                filler = r.ReadBuffer(2);
                 if (filler[0] != 0x0 || filler[1] != 0x0)
                 {
                     //var err  = new TypeError('Received invalid filler');
@@ -591,18 +591,18 @@ namespace SharpConnect.MySql.Internal
                 //    if (parser.reachedPacketEnd()) {
                 //      return;
                 //    }
-                if (parser.ReachedPacketEnd())
+                if (r.ReachedPacketEnd())
                 {
                     return;
                 }
-                strDefault = parser.ParseLengthCodedString();
+                strDefault = r.ReadLengthCodedString();
             }
             else
             {
-                table = parser.ParseLengthCodedString();
-                name = parser.ParseLengthCodedString();
-                length = parser.ParseUnsignedNumber(parser.ParseByte());
-                type = (int)parser.ParseUnsignedNumber(parser.ParseByte());
+                table = r.ReadLengthCodedString();
+                name = r.ReadLengthCodedString();
+                length = r.ReadUnsigedNumber(r.ReadByte());
+                type = (int)r.ReadUnsigedNumber(r.ReadByte());
             }
         }
 
@@ -634,37 +634,37 @@ namespace SharpConnect.MySql.Internal
         public byte[] scrambleBuff2;
         public byte filler3;
         public string pluginData;
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
-            ParsePacketHeader(parser); //4
-            protocolVersion = parser.ParseUnsigned1();//1
-            serverVertion = parser.ParseNullTerminatedString();
-            threadId = parser.ParseUnsigned4();//4
-            scrambleBuff1 = parser.ParseBuffer(8);
-            filler1 = parser.ParseByte();
-            serverCapabilities1 = parser.ParseUnsigned2();//2
-            serverLanguage = parser.ParseByte();
-            serverStatus = parser.ParseUnsigned2();//2
+            ParsePacketHeader(r); //4
+            protocolVersion = r.U1();//1
+            serverVertion = r.ReadNullTerminatedString();
+            threadId = r.U4();//4
+            scrambleBuff1 = r.ReadBuffer(8);
+            filler1 = r.ReadByte();
+            serverCapabilities1 = r.U2();//2
+            serverLanguage = r.ReadByte();
+            serverStatus = r.U2();//2
             protocol41 = (serverCapabilities1 & (1 << 9)) > 0;
             if (protocol41)
             {
-                serverCapabilities2 = parser.ParseUnsigned2();
-                scrambleLength = parser.ParseByte();
-                filler2 = parser.ParseBuffer(10);
-                scrambleBuff2 = parser.ParseBuffer(12);
-                filler3 = parser.ParseByte();
+                serverCapabilities2 = r.U2();
+                scrambleLength = r.ReadByte();
+                filler2 = r.ReadBuffer(10);
+                scrambleBuff2 = r.ReadBuffer(12);
+                filler3 = r.ReadByte();
             }
             else
             {
-                filler2 = parser.ParseBuffer(13);
+                filler2 = r.ReadBuffer(13);
             }
 
-            if (parser.ReadPosition == parser.CurrentInputLength)
+            if (r.ReadPosition == r.CurrentInputLength)
             {
                 return;
             }
 
-            pluginData = parser.ParsePacketTerminatedString();
+            pluginData = r.ReadPacketTerminatedString();
             var last = pluginData.Length - 1;
             if (pluginData[last] == '\0')
             {
@@ -709,18 +709,18 @@ namespace SharpConnect.MySql.Internal
             _protocol41 = protocol41;
         }
 
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
-            ParsePacketHeader(parser);
-            _fieldCount = parser.ParseUnsigned1();
-            affectedRows = parser.ParseLengthCodedNumber();
-            insertId = parser.ParseLengthCodedNumber();
+            ParsePacketHeader(r);
+            _fieldCount = r.U1();
+            affectedRows = r.ReadLengthCodedNumber();
+            insertId = r.ReadLengthCodedNumber();
             if (_protocol41)
             {
-                _serverStatus = parser.ParseUnsigned2();
-                _warningCount = parser.ParseUnsigned2();
+                _serverStatus = r.U2();
+                _warningCount = r.U2();
             }
-            _message = parser.ParsePacketTerminatedString();
+            _message = r.ReadPacketTerminatedString();
             //var m = this.message.match(/\schanged:\s * (\d +) / i);
 
             //if (m !== null)
@@ -742,15 +742,15 @@ namespace SharpConnect.MySql.Internal
         public uint num_columns;
         public uint num_params;
         public uint waring_count;
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
-            ParsePacketHeader(parser);
-            _status = parser.ParseByte();//alway 0
-            statement_id = parser.ParseUnsignedNumber(4);
-            num_columns = parser.ParseUnsignedNumber(2);
-            num_params = parser.ParseUnsignedNumber(2);
-            parser.ParseFiller(1);//reserved_1
-            waring_count = parser.ParseUnsignedNumber(2);
+            ParsePacketHeader(r);
+            _status = r.ReadByte();//alway 0
+            statement_id = r.ReadUnsigedNumber(4);
+            num_columns = r.ReadUnsigedNumber(2);
+            num_params = r.ReadUnsigedNumber(2);
+            r.ReadFiller(1);//reserved_1
+            waring_count = r.ReadUnsigedNumber(2);
         }
 
         public override void WritePacket(PacketWriter writer)
@@ -767,26 +767,26 @@ namespace SharpConnect.MySql.Internal
         public ResultSetHeaderPacket()
         {
         }
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
-            ParsePacketHeader(parser);
-            _fieldCount = parser.ParseLengthCodedNumber();
-            if (parser.ReachedPacketEnd())
+            ParsePacketHeader(r);
+            _fieldCount = r.ReadLengthCodedNumber();
+            if (r.ReachedPacketEnd())
                 return;
             if (_fieldCount == 0)
             {
-                _extraStr = parser.ParsePacketTerminatedString();
+                _extraStr = r.ReadPacketTerminatedString();
             }
             else
             {
-                _extraNumber = parser.ParseLengthCodedNumber();
-                _extraStr = parser.ParsePacketTerminatedString();//null;
+                _extraNumber = r.ReadLengthCodedNumber();
+                _extraStr = r.ReadPacketTerminatedString();//null;
             }
         }
 
         public override void WritePacket(PacketWriter writer)
         {
-            writer.ReserveHeader(); 
+            writer.ReserveHeader();
         }
     }
 
@@ -809,7 +809,7 @@ namespace SharpConnect.MySql.Internal
             _isLocalTimeZone = _config.timezone.Equals("local");
         }
 
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
             //function parse(parser, fieldPackets, typeCast, nestTables, connection) {
             //  var self = this;
@@ -832,7 +832,7 @@ namespace SharpConnect.MySql.Internal
             //---------------------------------------------
 
 
-            ParsePacketHeader(parser);
+            ParsePacketHeader(r);
             var fieldInfos = _tableHeader.GetFields();
             int j = _tableHeader.ColumnCount;
             bool typeCast = _tableHeader.TypeCast;
@@ -841,7 +841,7 @@ namespace SharpConnect.MySql.Internal
             {
                 for (int i = 0; i < j; i++)
                 {
-                    ReadCellWithTypeCast(parser, fieldInfos[i], ref _myDataList[i]);
+                    ReadCellWithTypeCast(r, fieldInfos[i], ref _myDataList[i]);
                 }
             }
             else
@@ -854,11 +854,11 @@ namespace SharpConnect.MySql.Internal
                     // MyStructData value;
                     if (typeCast)
                     {
-                        ReadCellWithTypeCast(parser, fieldInfos[i], ref _myDataList[i]);
+                        ReadCellWithTypeCast(r, fieldInfos[i], ref _myDataList[i]);
                     }
                     else if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
                     {
-                        _myDataList[i].myBuffer = parser.ParseLengthCodedBuffer();
+                        _myDataList[i].myBuffer = r.ReadLengthCodedBuffer();
                         _myDataList[i].type = (Types)fieldInfos[i].type;
                         //value = new MyStructData();
                         //value.myBuffer = parser.ParseLengthCodedBuffer();
@@ -866,7 +866,7 @@ namespace SharpConnect.MySql.Internal
                     }
                     else
                     {
-                        _myDataList[i].myString = parser.ParseLengthCodedString();
+                        _myDataList[i].myString = r.ReadLengthCodedString();
                         _myDataList[i].type = (Types)fieldInfos[i].type;
                         //value = new MyStructData();
                         //value.myString = parser.ParseLengthCodedString();
@@ -919,7 +919,7 @@ namespace SharpConnect.MySql.Internal
         /// <param name="parser"></param>
         /// <param name="fieldPacket"></param>
         /// <param name="data"></param>
-        void ReadCellWithTypeCast(PacketParser parser, FieldPacket fieldPacket, ref MyStructData data)
+        void ReadCellWithTypeCast(MySqlStreamReader parser, FieldPacket fieldPacket, ref MyStructData data)
         {
             string numberString;
             Types type = (Types)fieldPacket.type;
@@ -931,7 +931,7 @@ namespace SharpConnect.MySql.Internal
                 case Types.NEWDATE:
 
                     _stbuilder.Length = 0;//clear
-                    string dateString = parser.ParseLengthCodedString();
+                    string dateString = parser.ReadLengthCodedString();
                     data.myString = dateString;
                     if (_config.dateStrings)
                     {
@@ -981,7 +981,7 @@ namespace SharpConnect.MySql.Internal
                 case Types.YEAR:
 
                     //TODO: review here,                    
-                    data.myString = numberString = parser.ParseLengthCodedString();
+                    data.myString = numberString = parser.ReadLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0') || numberString.Length == 0)
                     {
                         data.type = Types.NULL;
@@ -994,7 +994,7 @@ namespace SharpConnect.MySql.Internal
                     return;
                 case Types.FLOAT:
                 case Types.DOUBLE:
-                    data.myString = numberString = parser.ParseLengthCodedString();
+                    data.myString = numberString = parser.ReadLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
                         data.myString = numberString;
@@ -1017,7 +1017,7 @@ namespace SharpConnect.MySql.Internal
                     //        ? numberString
                     //        : Number(numberString));
 
-                    data.myString = numberString = parser.ParseLengthCodedString();
+                    data.myString = numberString = parser.ReadLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
                         data.myString = numberString;
@@ -1044,7 +1044,7 @@ namespace SharpConnect.MySql.Internal
                     return;
                 case Types.BIT:
 
-                    data.myBuffer = parser.ParseLengthCodedBuffer();
+                    data.myBuffer = parser.ReadLengthCodedBuffer();
                     data.type = type;
                     return;
                 //    return parser.parseLengthCodedBuffer();
@@ -1056,12 +1056,12 @@ namespace SharpConnect.MySql.Internal
                 case Types.BLOB:
                     if (fieldPacket.charsetNr == (int)CharSets.BINARY)
                     {
-                        data.myBuffer = parser.ParseLengthCodedBuffer(); //CodedBuffer
+                        data.myBuffer = parser.ReadLengthCodedBuffer(); //CodedBuffer
                         data.type = type;
                     }
                     else
                     {
-                        data.myString = parser.ParseLengthCodedString();//codeString
+                        data.myString = parser.ReadLengthCodedString();//codeString
                         data.type = type;
                     }
                     return;
@@ -1073,7 +1073,7 @@ namespace SharpConnect.MySql.Internal
                     data.type = Types.GEOMETRY;
                     return;
                 default:
-                    data.myString = parser.ParseLengthCodedString();
+                    data.myString = parser.ReadLengthCodedString();
                     data.type = type;
                     return;
             }
@@ -1204,16 +1204,16 @@ namespace SharpConnect.MySql.Internal
             _myDataList = new MyStructData[tableHeader.ColumnCount];
             _config = tableHeader.ConnConfig;
         }
-        public override void ParsePacket(PacketParser parser)
+        public override void ParsePacket(MySqlStreamReader r)
         {
             var fieldInfos = _tableHeader.GetFields();
             int columnCount = _tableHeader.ColumnCount;
-            ParsePacketHeader(parser);
-            parser.ParseFiller(1);//skip start packet byte [00]
-            parser.ParseFiller((columnCount + 7 + 2) / 8);//skip null-bitmap, length:(column-count+7+2)/8
+            ParsePacketHeader(r);
+            r.ReadFiller(1);//skip start packet byte [00]
+            r.ReadFiller((columnCount + 7 + 2) / 8);//skip null-bitmap, length:(column-count+7+2)/8
             for (int i = 0; i < columnCount; i++)
             {
-                ParseValues(parser, fieldInfos[i], ref _myDataList[i]);
+                ParseValues(r, fieldInfos[i], ref _myDataList[i]);
 #if DEBUG
                 //-------------------------------------------------
                 //this code affect on performance when debug
@@ -1225,7 +1225,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        static void ParseValues(PacketParser parser, FieldPacket fieldInfo, ref MyStructData myData)
+        static void ParseValues(MySqlStreamReader r, FieldPacket fieldInfo, ref MyStructData myData)
         {
             Types fieldType = (Types)fieldInfo.type;
             switch (fieldType)
@@ -1234,43 +1234,43 @@ namespace SharpConnect.MySql.Internal
                 case Types.DATE://
                 case Types.DATETIME://
                 case Types.NEWDATE://
-                    parser.ParseLengthCodedDateTime(out myData.myDateTime);
+                    r.ReadLengthCodedDateTime(out myData.myDateTime);
                     myData.type = fieldType;
                     break;
                 case Types.TINY://length = 1;
-                    myData.myInt32 = parser.ParseUnsigned1();
+                    myData.myInt32 = r.U1();
                     myData.type = fieldType;
                     break;
                 case Types.SHORT://length = 2;
                 case Types.YEAR://length = 2;
-                    myData.myInt32 = (int)parser.ParseUnsigned2();
+                    myData.myInt32 = (int)r.U2();
                     myData.type = fieldType;
                     break;
                 case Types.INT24:
                 case Types.LONG://length = 4;
-                    myData.myInt32 = (int)parser.ParseUnsigned4();
+                    myData.myInt32 = (int)r.U4();
                     myData.type = fieldType;
                     break;
                 case Types.FLOAT:
-                    myData.myDouble = parser.ParseFloat();
+                    myData.myDouble = r.ReadFloat();
                     myData.type = fieldType;
                     break;
                 case Types.DOUBLE:
-                    myData.myDouble = parser.ParseDouble();
+                    myData.myDouble = r.ReadDouble();
                     myData.type = fieldType;
                     break;
                 case Types.NEWDECIMAL:
-                    myData.myDecimal = parser.ParseDecimal();
+                    myData.myDecimal = r.ReadDecimal();
                     myData.type = fieldType;
                     break;
                 case Types.LONGLONG:
-                    myData.myInt64 = parser.ParseInt64();
+                    myData.myInt64 = r.ReadInt64();
                     myData.type = fieldType;
                     break;
                 case Types.STRING:
                 case Types.VARCHAR:
                 case Types.VAR_STRING:
-                    myData.myString = parser.ParseLengthCodedString();
+                    myData.myString = r.ReadLengthCodedString();
                     myData.type = fieldType;
                     break;
                 case Types.TINY_BLOB:
@@ -1278,13 +1278,13 @@ namespace SharpConnect.MySql.Internal
                 case Types.LONG_BLOB:
                 case Types.BLOB:
                 case Types.BIT:
-                    myData.myBuffer = parser.ParseLengthCodedBuffer();
+                    myData.myBuffer = r.ReadLengthCodedBuffer();
                     myData.type = fieldType;
                     break;
                 case Types.GEOMETRY:
 
                 default:
-                    myData.myBuffer = parser.ParseLengthCodedBuffer();
+                    myData.myBuffer = r.ReadLengthCodedBuffer();
                     myData.type = Types.NULL;
                     break;
             }
