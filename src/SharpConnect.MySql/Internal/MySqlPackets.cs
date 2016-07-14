@@ -795,18 +795,12 @@ namespace SharpConnect.MySql.Internal
 
     class DataRowPacket : Packet
     {
-        MyStructData[] _myDataList;
-        TableHeader _tableHeader;
-        ConnectionConfig _config;
-        StringBuilder _stbuilder = new StringBuilder();
-        bool _isLocalTimeZone;
-
+        protected MyStructData[] _myDataList;//cell
+        protected TableHeader _tableHeader;
         public DataRowPacket(TableHeader tableHeader)
         {
             _tableHeader = tableHeader;
             _myDataList = new MyStructData[tableHeader.ColumnCount];
-            _config = tableHeader.ConnConfig;
-            _isLocalTimeZone = _config.timezone.Equals("local");
         }
 
         public override void ParsePacket(MySqlStreamReader r)
@@ -830,15 +824,18 @@ namespace SharpConnect.MySql.Internal
             //because we don't want to copy entire MyStructData back and forth
             //we just replace some part of it ***
             //---------------------------------------------
-
-
             ParsePacketHeader(r);
             var fieldInfos = _tableHeader.GetFields();
             int j = _tableHeader.ColumnCount;
             bool typeCast = _tableHeader.TypeCast;
             bool nestTables = _tableHeader.NestTables;
-            if (!nestTables && typeCast)
+            if (typeCast)
             {
+                if (nestTables)
+                {
+                    throw new NotSupportedException("nest table");
+                }
+                //------------
                 for (int i = 0; i < j; i++)
                 {
                     ReadCellWithTypeCast(r, fieldInfos[i], ref _myDataList[i]);
@@ -846,20 +843,14 @@ namespace SharpConnect.MySql.Internal
             }
             else
             {
-                //may be nestTables or type cast
-                //
-
                 for (int i = 0; i < j; i++)
                 {
-                    // MyStructData value;
-                    if (typeCast)
-                    {
-                        ReadCellWithTypeCast(r, fieldInfos[i], ref _myDataList[i]);
-                    }
-                    else if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
+                    FieldPacket fieldInfo = fieldInfos[i];
+
+                    if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
                     {
                         _myDataList[i].myBuffer = r.ReadLengthCodedBuffer();
-                        _myDataList[i].type = (Types)fieldInfos[i].type;
+                        _myDataList[i].type = (Types)fieldInfo.type;
                         //value = new MyStructData();
                         //value.myBuffer = parser.ParseLengthCodedBuffer();
                         //value.type = (Types)fieldInfos[i].type;
@@ -867,7 +858,7 @@ namespace SharpConnect.MySql.Internal
                     else
                     {
                         _myDataList[i].myString = r.ReadLengthCodedString();
-                        _myDataList[i].type = (Types)fieldInfos[i].type;
+                        _myDataList[i].type = (Types)fieldInfo.type;
                         //value = new MyStructData();
                         //value.myString = parser.ParseLengthCodedString();
                         //value.type = (Types)fieldInfos[i].type;
@@ -911,15 +902,16 @@ namespace SharpConnect.MySql.Internal
                     //}
                 }
             }
+
         }
 
         /// <summary>
         /// read a data cell with type cast
         /// </summary>
-        /// <param name="parser"></param>
+        /// <param name="r"></param>
         /// <param name="fieldPacket"></param>
         /// <param name="data"></param>
-        void ReadCellWithTypeCast(MySqlStreamReader parser, FieldPacket fieldPacket, ref MyStructData data)
+        void ReadCellWithTypeCast(MySqlStreamReader r, FieldPacket fieldPacket, ref MyStructData data)
         {
             string numberString;
             Types type = (Types)fieldPacket.type;
@@ -929,50 +921,54 @@ namespace SharpConnect.MySql.Internal
                 case Types.DATE:
                 case Types.DATETIME:
                 case Types.NEWDATE:
-
-                    _stbuilder.Length = 0;//clear
-                    string dateString = parser.ReadLengthCodedString();
-                    data.myString = dateString;
-                    if (_config.dateStrings)
                     {
-                        //return new FieldData<string>(type, dateString);
-                        //data.myString = dateString;
+                        StringBuilder tmpStringBuilder = r.TempStringBuilder;
+                        var _config = _tableHeader.ConnConfig;  
+                        tmpStringBuilder.Length = 0;//clear 
+                        data.myString = r.ReadLengthCodedString();
+                        if (_config.dateStrings)
+                        {
+                            //return new FieldData<string>(type, dateString);
+                            //data.myString = dateString;
+                            data.type = type;
+                            return;
+                        }
+
+                        if (data.myString == null)
+                        {
+                            data.type = Types.NULL;
+                            return;
+                        }
+
+                        //    var originalString = dateString;
+                        //    if (field.type === Types.DATE) {
+                        //      dateString += ' 00:00:00';
+                        //    }
+                        tmpStringBuilder.Append(data.myString);
+                        //string originalString = dateString;
+                        if (fieldPacket.type == (int)Types.DATE)
+                        {
+                            tmpStringBuilder.Append(" 00:00:00");
+                        }
+                        //    if (timeZone !== 'local') {
+                        //      dateString += ' ' + timeZone;
+                        //    }
+
+                        if (!_tableHeader.UseLocalTimezone)
+                        {
+                            tmpStringBuilder.Append(' ' + _config.timezone);
+                        }
+                        //var dt;
+                        //    dt = new Date(dateString);
+                        //    if (isNaN(dt.getTime())) {
+                        //      return originalString;
+                        //    }
+
+                        data.myDateTime = DateTime.Parse(tmpStringBuilder.ToString());
                         data.type = type;
-                        return;
-                    }
+                        tmpStringBuilder.Length = 0;
 
-                    if (dateString == null)
-                    {
-                        data.type = Types.NULL;
-                        return;
                     }
-
-                    //    var originalString = dateString;
-                    //    if (field.type === Types.DATE) {
-                    //      dateString += ' 00:00:00';
-                    //    }
-                    _stbuilder.Append(dateString);
-                    //string originalString = dateString;
-                    if (fieldPacket.type == (int)Types.DATE)
-                    {
-                        _stbuilder.Append(" 00:00:00");
-                    }
-                    //    if (timeZone !== 'local') {
-                    //      dateString += ' ' + timeZone;
-                    //    }
-
-                    if (!_isLocalTimeZone)
-                    {
-                        _stbuilder.Append(' ' + _config.timezone);
-                    }
-                    //var dt;
-                    //    dt = new Date(dateString);
-                    //    if (isNaN(dt.getTime())) {
-                    //      return originalString;
-                    //    }
-
-                    data.myDateTime = DateTime.Parse(_stbuilder.ToString());
-                    data.type = type;
                     return;
                 case Types.TINY:
                 case Types.SHORT:
@@ -981,7 +977,7 @@ namespace SharpConnect.MySql.Internal
                 case Types.YEAR:
 
                     //TODO: review here,                    
-                    data.myString = numberString = parser.ReadLengthCodedString();
+                    data.myString = numberString = r.ReadLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0') || numberString.Length == 0)
                     {
                         data.type = Types.NULL;
@@ -994,7 +990,7 @@ namespace SharpConnect.MySql.Internal
                     return;
                 case Types.FLOAT:
                 case Types.DOUBLE:
-                    data.myString = numberString = parser.ReadLengthCodedString();
+                    data.myString = numberString = r.ReadLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
                         data.myString = numberString;
@@ -1017,13 +1013,14 @@ namespace SharpConnect.MySql.Internal
                     //        ? numberString
                     //        : Number(numberString));
 
-                    data.myString = numberString = parser.ReadLengthCodedString();
+                    var config = _tableHeader.ConnConfig;
+                    data.myString = numberString = r.ReadLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
                         data.myString = numberString;
                         data.type = Types.NULL;
                     }
-                    else if (_config.supportBigNumbers && (_config.bigNumberStrings || (Convert.ToInt64(numberString) > IEEE_754_BINARY_64_PRECISION)))
+                    else if (config.supportBigNumbers && (config.bigNumberStrings || (Convert.ToInt64(numberString) > IEEE_754_BINARY_64_PRECISION)))
                     {
                         //store as string ?
                         //TODO: review here  again
@@ -1044,7 +1041,7 @@ namespace SharpConnect.MySql.Internal
                     return;
                 case Types.BIT:
 
-                    data.myBuffer = parser.ReadLengthCodedBuffer();
+                    data.myBuffer = r.ReadLengthCodedBuffer();
                     data.type = type;
                     return;
                 //    return parser.parseLengthCodedBuffer();
@@ -1056,12 +1053,12 @@ namespace SharpConnect.MySql.Internal
                 case Types.BLOB:
                     if (fieldPacket.charsetNr == (int)CharSets.BINARY)
                     {
-                        data.myBuffer = parser.ReadLengthCodedBuffer(); //CodedBuffer
+                        data.myBuffer = r.ReadLengthCodedBuffer(); //CodedBuffer
                         data.type = type;
                     }
                     else
                     {
-                        data.myString = parser.ReadLengthCodedString();//codeString
+                        data.myString = r.ReadLengthCodedString();//codeString
                         data.type = type;
                     }
                     return;
@@ -1073,7 +1070,7 @@ namespace SharpConnect.MySql.Internal
                     data.type = Types.GEOMETRY;
                     return;
                 default:
-                    data.myString = parser.ReadLengthCodedString();
+                    data.myString = r.ReadLengthCodedString();
                     data.type = type;
                     return;
             }
@@ -1113,96 +1110,12 @@ namespace SharpConnect.MySql.Internal
         }
     }
 
-#if DEBUG
-    public struct dbugBufferView
-    {
-        public readonly byte[] buffer;
-        public readonly int start;
-        public readonly int length;
-        public int viewIndex;
-        public dbugBufferView(byte[] buffer, int start, int length)
-        {
-            this.buffer = buffer;
-            this.start = start;
-            this.length = length;
-            viewIndex = 0;
-        }
-        public int CheckNoDulpicateBytes()
-        {
-            //for test byte content in longblob testcase
-            byte prevByte = buffer[length - 1];
-            for (int i = length - 2; i >= start; --i)
-            {
-                byte test = buffer[i];
-                if (prevByte == test)
-                {
-                    return i;
-                }
-                prevByte = test;
-            }
-            return 0;
-        }
-        public override string ToString()
-        {
-            var stbuilder = new StringBuilder();
-            if (viewIndex > 10)
-            {
-                //before view,
-                int s = viewIndex - 10;
-                if (s < 0)
-                {
-                    s = 0;
-                }
-                for (int i = s; i < viewIndex; ++i)
-                {
-                    stbuilder.Append(buffer[i] + ", ");
-                }
-                stbuilder.Append(" {" + viewIndex + ":" + buffer[viewIndex] + "} ");
-                //after view index
-                int e = viewIndex + 10;
-                if (e > length)
-                {
-                    e = length;
-                }
-                for (int i = viewIndex + 1; i < e; ++i)
-                {
-                    stbuilder.Append(buffer[i] + ", ");
-                }
-            }
-            else
-            {
-                if (length > 10)
-                {
-                    stbuilder.Append("s:[");
-                    for (int i = 0; i < 10; ++i)
-                    {
-                        stbuilder.Append(buffer[i] + ", ");
-                    }
 
-                    stbuilder.Append("]");
-                    //show last 10                
-                    stbuilder.Append(" end:[");
-                    for (int i = length - 10; i < length; ++i)
-                    {
-                        stbuilder.Append(buffer[i] + ", ");
-                    }
-                    stbuilder.Append(']');
-                }
-            }
-            return stbuilder.ToString();
-        }
-    }
-#endif
-    class PreparedDataRowPacket : Packet
+    class PreparedDataRowPacket : DataRowPacket
     {
-        MyStructData[] _myDataList;
-        TableHeader _tableHeader;
-        ConnectionConfig _config;
         public PreparedDataRowPacket(TableHeader tableHeader)
+            : base(tableHeader)
         {
-            _tableHeader = tableHeader;
-            _myDataList = new MyStructData[tableHeader.ColumnCount];
-            _config = tableHeader.ConnConfig;
         }
         public override void ParsePacket(MySqlStreamReader r)
         {
@@ -1290,37 +1203,91 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
-        {
-            throw new NotImplementedException();
-        }
 
+
+
+    }
+
+
+#if DEBUG
+    public struct dbugBufferView
+    {
+        public readonly byte[] buffer;
+        public readonly int start;
+        public readonly int length;
+        public int viewIndex;
+        public dbugBufferView(byte[] buffer, int start, int length)
+        {
+            this.buffer = buffer;
+            this.start = start;
+            this.length = length;
+            viewIndex = 0;
+        }
+        public int CheckNoDulpicateBytes()
+        {
+            //for test byte content in longblob testcase
+            byte prevByte = buffer[length - 1];
+            for (int i = length - 2; i >= start; --i)
+            {
+                byte test = buffer[i];
+                if (prevByte == test)
+                {
+                    return i;
+                }
+                prevByte = test;
+            }
+            return 0;
+        }
         public override string ToString()
         {
-            int count = _myDataList.Length;
-            switch (count)
+            var stbuilder = new StringBuilder();
+            if (viewIndex > 10)
             {
-                case 0: return "";
-                case 1:
-                    return _myDataList[0].ToString();
-                default:
-                    var stBuilder = new StringBuilder();
-                    //1st
-                    stBuilder.Append(_myDataList[0].ToString());
-                    //then
-                    for (int i = 1; i < count; ++i)
-                    {
-                        //then..
-                        stBuilder.Append(',');
-                        stBuilder.Append(_myDataList[i].ToString());
-                    }
-                    return stBuilder.ToString();
+                //before view,
+                int s = viewIndex - 10;
+                if (s < 0)
+                {
+                    s = 0;
+                }
+                for (int i = s; i < viewIndex; ++i)
+                {
+                    stbuilder.Append(buffer[i] + ", ");
+                }
+                stbuilder.Append(" {" + viewIndex + ":" + buffer[viewIndex] + "} ");
+                //after view index
+                int e = viewIndex + 10;
+                if (e > length)
+                {
+                    e = length;
+                }
+                for (int i = viewIndex + 1; i < e; ++i)
+                {
+                    stbuilder.Append(buffer[i] + ", ");
+                }
             }
-        }
+            else
+            {
+                if (length > 10)
+                {
+                    stbuilder.Append("s:[");
+                    for (int i = 0; i < 10; ++i)
+                    {
+                        stbuilder.Append(buffer[i] + ", ");
+                    }
 
-        internal MyStructData[] Cells
-        {
-            get { return _myDataList; }
+                    stbuilder.Append("]");
+                    //show last 10                
+                    stbuilder.Append(" end:[");
+                    for (int i = length - 10; i < length; ++i)
+                    {
+                        stbuilder.Append(buffer[i] + ", ");
+                    }
+                    stbuilder.Append(']');
+                }
+            }
+            return stbuilder.ToString();
         }
     }
+#endif
+
 }

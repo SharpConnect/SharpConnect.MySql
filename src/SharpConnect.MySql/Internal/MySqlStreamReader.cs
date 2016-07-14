@@ -39,6 +39,7 @@ namespace SharpConnect.MySql.Internal
         long _packetLength;
         Encoding _encoding = Encoding.UTF8;
         List<byte> _bList = new List<byte>();
+        StringBuilder tempStringBuilder = new StringBuilder();
 #if DEBUG
         static int dbugTotalId;
         public readonly int dbugId = dbugTotalId++;
@@ -56,6 +57,10 @@ namespace SharpConnect.MySql.Internal
             Dispose();
         }
 
+        public StringBuilder TempStringBuilder
+        {
+            get { return tempStringBuilder; }
+        }
         /// <summary>
         /// current stream's paring position
         /// </summary>
@@ -100,22 +105,19 @@ namespace SharpConnect.MySql.Internal
             _currentInputLength = 0;
         }
         //------------------------------------------------------
-        public void LoadNewBuffer(byte[] newBuffer, int count)
-        {
-            Reset();
-            _stream.Write(newBuffer, 0, count);
-            _stream.Position = 0;
-            _startPosition = 0;
-            _currentInputLength = count;
-        }
-        public void AppendBuffer(byte[] buffer, int count)
+ 
+        internal void AppendBuffer(SharpConnect.Internal.RecvIO recvIO, int count)
         {
             long saved_pos = _stream.Position;
             _stream.Position = _currentInputLength;
-            _stream.Write(buffer, 0, count);
+            //----------------------------
+            recvIO.CopyTo(0, _stream, count);
+            //----------------------------
+            //_stream.Write(buffer, 0, count);
             _stream.Position = saved_pos;
             _currentInputLength += count;
         }
+
         //------------------------------------------------------
         public string ReadNullTerminatedString()
         {
@@ -246,6 +248,22 @@ namespace SharpConnect.MySql.Internal
         }
 #if DEBUG
         static int debugLastPacketNum = 1;
+        public void dbugLoadNewBuffer(byte[] newBuffer, int count)
+        {
+            Reset();
+            _stream.Write(newBuffer, 0, count);
+            _stream.Position = 0;
+            _startPosition = 0;
+            _currentInputLength = count;
+        }
+        public void dbugAppendBuffer(byte[] buffer, int count)
+        {
+            long saved_pos = _stream.Position;
+            _stream.Position = _currentInputLength;
+            _stream.Write(buffer, 0, count);
+            _stream.Position = saved_pos;
+            _currentInputLength += count;
+        }
 #endif
         public PacketHeader ReadPacketHeader()
         {
