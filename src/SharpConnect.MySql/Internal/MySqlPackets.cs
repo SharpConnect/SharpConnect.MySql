@@ -1057,7 +1057,7 @@ namespace SharpConnect.MySql.Internal
                     //        ? numberString
                     //        : Number(numberString));
 
-                    var config = _tableHeader.ParsingConfig;
+                    QueryParsingConfig config = _tableHeader.ParsingConfig;
                     data.myString = numberString = r.ReadLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
