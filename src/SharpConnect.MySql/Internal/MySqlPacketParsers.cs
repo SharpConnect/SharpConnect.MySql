@@ -598,20 +598,14 @@ namespace SharpConnect.MySql.Internal
                         break;
                     }
                 case PrepareResponseParseState.Should_End:
-                    {
-                        break;
-                    }
+                    break;
                 case PrepareResponseParseState.Error_Content:
-                    {
-                        ParseErrorPacket(reader);
-                        _parsingState = PrepareResponseParseState.Should_End;
-                        break;
-                    }
+                    ParseErrorPacket(reader);
+                    break;
                 default:
-                    {
-                        _parsingState = PrepareResponseParseState.Should_End;
-                        break;
-                    }
+                    _parsingState = PrepareResponseParseState.Should_End;
+                    break;
+
             }
         }
         void ParseOkPrepareHeader(MySqlStreamReader reader)
@@ -627,22 +621,16 @@ namespace SharpConnect.MySql.Internal
             switch (type)
             {
                 case ERROR_CODE:
-                    {
-                        ParseErrorPacket(reader);
-                        _parsingState = PrepareResponseParseState.Should_End;
-                    }
+                    ParseErrorPacket(reader);
                     break;
                 case EOF_CODE:
                 case OK_CODE:
-                    {
-                        _parsingState = PrepareResponseParseState.OkPrepare_Content;
-                    }
+                    _parsingState = PrepareResponseParseState.OkPrepare_Content;
                     break;
                 default:
-                    {
-                        _parsingState = PrepareResponseParseState.Should_End;
-                        throw new NotSupportedException("Packet type don't match!!");
-                    }
+                    _parsingState = PrepareResponseParseState.Should_End;
+                    throw new NotSupportedException("Packet type don't match!!");
+
             }
         }
         void ParseOkPrePareContent(MySqlStreamReader reader)
@@ -672,6 +660,7 @@ namespace SharpConnect.MySql.Internal
             errPacket.ParsePacket(reader);
             //------------------------
             this._finalResult = new MySqlError(errPacket);
+            _parsingState = PrepareResponseParseState.Should_End;
         }
 
         void ParseEOFPacket(MySqlStreamReader reader)

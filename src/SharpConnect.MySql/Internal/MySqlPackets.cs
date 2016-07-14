@@ -923,11 +923,8 @@ namespace SharpConnect.MySql.Internal
                 case Types.NEWDATE:
                     {
                         StringBuilder tmpStringBuilder = r.TempStringBuilder;
-                        var _config = _tableHeader.ConnConfig;
-
-
-                        tmpStringBuilder.Length = 0;//clear
-
+                        var _config = _tableHeader.ConnConfig;  
+                        tmpStringBuilder.Length = 0;//clear 
                         data.myString = r.ReadLengthCodedString();
                         if (_config.dateStrings)
                         {
