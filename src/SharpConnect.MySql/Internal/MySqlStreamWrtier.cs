@@ -58,7 +58,7 @@ namespace SharpConnect.MySql.Internal
             get { return _writer.Length; }
         }
 
-        public void SetMaxAllowedPacket(long max)
+        public void SetMaxAllowedPacket(int max)
         {
             _maxAllowedLength = max;
         }

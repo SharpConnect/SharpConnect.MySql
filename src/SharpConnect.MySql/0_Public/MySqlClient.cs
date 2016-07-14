@@ -94,7 +94,11 @@ namespace SharpConnect.MySql
                 while (_query.ReadRow())
                 {
                     long _maxAllowedPacketSize = _query.Cells[0].myInt64;
-                    _conn.PacketWriter.SetMaxAllowedPacket(_maxAllowedPacketSize);
+                    if (_maxAllowedPacketSize > int.MaxValue)
+                    {
+                        throw new Exception("not support max size > int.Max");
+                    }
+                    _conn.PacketWriter.SetMaxAllowedPacket((int)_maxAllowedPacketSize);
                 }
                 //if (_query.ReadRow())
                 //{
