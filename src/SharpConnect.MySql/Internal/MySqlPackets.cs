@@ -161,6 +161,8 @@ namespace SharpConnect.MySql.Internal
             _header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
             writer.WriteHeader(_header);
         }
+
+         
     }
 
     class ComQueryPacket : Packet
@@ -826,7 +828,7 @@ namespace SharpConnect.MySql.Internal
             //we just replace some part of it ***
             //---------------------------------------------
             ParsePacketHeader(r);
-            var fieldInfos = _tableHeader.GetFields();
+            List<FieldPacket> fieldInfos = _tableHeader.GetFields();
             int j = _tableHeader.ColumnCount;
 
 
