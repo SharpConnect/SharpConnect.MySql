@@ -450,7 +450,7 @@ namespace SharpConnect.MySql.Internal
         void SendPacket_A(byte[] packetBuffer, Action whenSendComplete)
         {
             //send all to 
-            _conn.StartSendData(packetBuffer, 0, packetBuffer.Length, whenSendComplete);
+            _conn.StartSend(packetBuffer, 0, packetBuffer.Length, whenSendComplete);
         }
     }
 
