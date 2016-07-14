@@ -91,11 +91,16 @@ namespace SharpConnect.MySql
             }
             else
             {
-                if (_query.ReadRow())
+                while (_query.ReadRow())
                 {
                     long _maxAllowedPacketSize = _query.Cells[0].myInt64;
                     _conn.PacketWriter.SetMaxAllowedPacket(_maxAllowedPacketSize);
                 }
+                //if (_query.ReadRow())
+                //{
+                //    long _maxAllowedPacketSize = _query.Cells[0].myInt64;
+                //    _conn.PacketWriter.SetMaxAllowedPacket(_maxAllowedPacketSize);
+                //}
             }
             _query.Close();
         }
@@ -299,8 +304,6 @@ namespace SharpConnect.MySql
             //TODO: check match type and check index here
             return _query.Cells[colIndex].myDateTime;
         }
-
-
         public void Close()
         {
             _query.Close();

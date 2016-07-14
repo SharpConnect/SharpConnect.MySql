@@ -45,10 +45,13 @@ namespace MySqlClient
 
         private void button1_Click(object sender, EventArgs e)
         {
+
 #if DEBUG
+            DateTime d = new DateTime(0, 0, 0, 0, 0, 0);
+
             //TestSet1.T_NumRange();
             TestSet1.T_FloatingRange();
-           // TestSet_Blob.T_InsertBlobData();
+            // TestSet_Blob.T_InsertBlobData();
             //dbugInternal.Test1();
 #endif
         }

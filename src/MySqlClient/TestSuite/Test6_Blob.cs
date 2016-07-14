@@ -47,7 +47,7 @@ namespace MySqlTest
                 {
                     cmd.ExecuteNonQuery();
                 }
-                lastInsertId = cmd.LastInsertId;
+                lastInsertId = cmd.LastInsertedId;
             }
 
             {
@@ -112,7 +112,7 @@ namespace MySqlTest
                     data += "a";
                     //sql = "insert into testmore(mydata) values(\"" + data + "\")";
                 }
-                lastInsertId = cmd.LastInsertId;
+                lastInsertId = cmd.LastInsertedId;
             }
         }
 

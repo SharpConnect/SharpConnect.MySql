@@ -53,6 +53,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestSuite\CRC32Calculator.cs" />
     <Compile Include="TestSuite\Test1.cs" />
+    <Compile Include="TestSuite\Test2Async.cs" />
     <Compile Include="TestSuite\Test2.cs" />
     <Compile Include="TestSuite\Test3_AsyncSocket.cs" />
     <Compile Include="TestSuite\MyTestSet.cs" />
