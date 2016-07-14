@@ -22,6 +22,7 @@
 //THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Text;
 namespace SharpConnect.MySql.Internal
 {
@@ -827,11 +828,11 @@ namespace SharpConnect.MySql.Internal
             ParsePacketHeader(r);
             var fieldInfos = _tableHeader.GetFields();
             int j = _tableHeader.ColumnCount;
-            bool typeCast = _tableHeader.TypeCast;
-            bool nestTables = _tableHeader.NestTables;
-            if (typeCast)
+
+
+            if (_tableHeader.TypeCast)
             {
-                if (nestTables)
+                if (_tableHeader.NestTables)
                 {
                     throw new NotSupportedException("nest table");
                 }
@@ -923,10 +924,10 @@ namespace SharpConnect.MySql.Internal
                 case Types.NEWDATE:
                     {
                         StringBuilder tmpStringBuilder = r.TempStringBuilder;
-                        var _config = _tableHeader.ConnConfig;  
+                        QueryParsingConfig qparsingConfig = _tableHeader.ParsingConfig;
                         tmpStringBuilder.Length = 0;//clear 
                         data.myString = r.ReadLengthCodedString();
-                        if (_config.dateStrings)
+                        if (qparsingConfig.DateString)
                         {
                             //return new FieldData<string>(type, dateString);
                             //data.myString = dateString;
@@ -954,9 +955,9 @@ namespace SharpConnect.MySql.Internal
                         //      dateString += ' ' + timeZone;
                         //    }
 
-                        if (!_tableHeader.UseLocalTimezone)
+                        if (!qparsingConfig.UseLocalTimeZone)
                         {
-                            tmpStringBuilder.Append(' ' + _config.timezone);
+                            tmpStringBuilder.Append(' ' + qparsingConfig.TimeZone);
                         }
                         //var dt;
                         //    dt = new Date(dateString);
@@ -1013,14 +1014,14 @@ namespace SharpConnect.MySql.Internal
                     //        ? numberString
                     //        : Number(numberString));
 
-                    var config = _tableHeader.ConnConfig;
+                    var config = _tableHeader.ParsingConfig;
                     data.myString = numberString = r.ReadLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
                         data.myString = numberString;
                         data.type = Types.NULL;
                     }
-                    else if (config.supportBigNumbers && (config.bigNumberStrings || (Convert.ToInt64(numberString) > IEEE_754_BINARY_64_PRECISION)))
+                    else if (config.SupportBigNumbers && (config.BigNumberStrings || (Convert.ToInt64(numberString) > IEEE_754_BINARY_64_PRECISION)))
                     {
                         //store as string ?
                         //TODO: review here  again

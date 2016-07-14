@@ -25,6 +25,14 @@ using System;
 using System.Collections.Generic;
 namespace SharpConnect.MySql.Internal
 {
+    class QueryParsingConfig
+    {
+        public bool UseLocalTimeZone;
+        public bool DateString;
+        public string TimeZone;
+        public bool SupportBigNumbers;
+        public bool BigNumberStrings;
+    }
     class Query
     {
         public bool typeCast;
@@ -33,7 +41,7 @@ namespace SharpConnect.MySql.Internal
         readonly Connection _conn;
         TableHeader _tableHeader;
         DataRowPacket _latestRow;
-       
+
         bool _hasSomeRow;
         bool _executePrepared;
 
@@ -347,7 +355,7 @@ namespace SharpConnect.MySql.Internal
                             _hasSomeRow = true; //***
                         }
                     }
-                    break;  
+                    break;
                 default:
                     {
                         //unknown result kind
@@ -422,7 +430,7 @@ namespace SharpConnect.MySql.Internal
                                 MySqlTableResult tableResult = result as MySqlTableResult;
                                 _tableHeader = tableResult.tableHeader;
                             }
-                            break; 
+                            break;
                     }
                 }
 
@@ -522,7 +530,7 @@ namespace SharpConnect.MySql.Internal
 
     class TableHeader
     {
-        ConnectionConfig _config;
+        QueryParsingConfig _config;
         List<FieldPacket> _fields;
         Dictionary<string, int> _fieldNamePosMap;
         public TableHeader()
@@ -566,23 +574,15 @@ namespace SharpConnect.MySql.Internal
 
         public bool TypeCast { get; set; }
         public bool NestTables { get; set; }
-        public ConnectionConfig ConnConfig
+        public QueryParsingConfig ParsingConfig
         {
             get { return _config; }
             set
             {
                 _config = value;
-                if (value != null)
-                {
-                    UseLocalTimezone = value.timezone.Equals("local");
-                }
+                
             }
         }
-        public bool UseLocalTimezone
-        {
-            get;
-            set;
-        }
-
+        
     }
 }

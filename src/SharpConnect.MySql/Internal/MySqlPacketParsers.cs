@@ -182,7 +182,16 @@ namespace SharpConnect.MySql.Internal
             //can parse
             currentPacket.ParsePacket(reader);
             tableHeader = new TableHeader();
-            tableHeader.ConnConfig = this.config;
+
+            tableHeader.ParsingConfig = new QueryParsingConfig()
+            {
+                DateString = config.dateStrings,
+                UseLocalTimeZone = config.timezone.Equals("local"),
+                TimeZone = config.timezone,
+                SupportBigNumbers = config.supportBigNumbers,
+                BigNumberStrings = config.bigNumberStrings 
+            };
+
             tableHeader.TypeCast = this.config.typeCast;
             this.parsingState = ResultPacketState.Expect_FieldHeader;
             rows = new List<DataRowPacket>();
@@ -264,7 +273,6 @@ namespace SharpConnect.MySql.Internal
                         //after finish we create a result table 
                         //the move rows into the table
                         _finalResult = new MySqlTableResult(tableHeader, rows);
-
                         //not link to the rows anymore
                         rows = null;
                     }
@@ -329,7 +337,7 @@ namespace SharpConnect.MySql.Internal
             //check, in debug mode---
             if (isPrepare && !(currentPacket is PreparedDataRowPacket)) { throw new NotSupportedException(); }
             //-----------------------
-#endif  
+#endif
             rows.Add((DataRowPacket)currentPacket);
             //-----------------------------------------------------------------------
             //after this row, next state = next row header
@@ -380,8 +388,6 @@ namespace SharpConnect.MySql.Internal
             currentPacket = eofPacket;
             eofPacket.ParsePacket(reader);
         }
-
-
         public override void Parse(MySqlStreamReader reader)
         {
             //reset final result 
@@ -700,7 +706,6 @@ namespace SharpConnect.MySql.Internal
 
     class MySqlConnectionPacketParser : MySqlPacketParser
     {
-
         HandshakePacket _handshake;
         MySqlHandshakeResult _finalResult;
         public MySqlConnectionPacketParser()
@@ -713,7 +718,6 @@ namespace SharpConnect.MySql.Internal
                 return _finalResult;
             }
         }
-
         public override bool NeedMoreBuffer
         {
             get
@@ -723,7 +727,6 @@ namespace SharpConnect.MySql.Internal
                 return false;
             }
         }
-
         public override void Parse(MySqlStreamReader reader)
         {
             _finalResult = null;
@@ -810,21 +813,15 @@ namespace SharpConnect.MySql.Internal
         {
             get { return _isCompleted; }
         }
-
-
-
         public void ParseData(RecvIO recvIO)
         {
             //we need to parse some data here 
             //load incomming data into ms 
             //load data from recv buffer into the ms
             //---------------
-            //copy all to stream
-            //---------------   
-            int count = recvIO.BytesTransferred;
-            //-----------------------------------------------
+            //copy all to stream 
             //may not complete in first round ***  
-            _mysqlStreamReader.AppendBuffer(recvIO, count);
+            _mysqlStreamReader.AppendBuffer(recvIO, recvIO.BytesTransferred);
             currentPacketParser.Parse(_mysqlStreamReader);
             //-----------------------------------------------
             ResultPacket = currentPacketParser.FinalResult;
