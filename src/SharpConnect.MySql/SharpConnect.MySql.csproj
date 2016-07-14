@@ -38,10 +38,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="0_Public\CommandParams.cs" />
+    <Compile Include="Internal\MySqlPacketParsers.cs" />
+    <Compile Include="Internal\MySqlResults.cs" />
     <Compile Include="Internal\MySqlStringToHexUtils.cs" />
-    <Compile Include="Internal\PacketParser.cs" />
-    <Compile Include="Internal\PacketWriter.cs" />
-    <Compile Include="Internal\Query_tmp.cs" />
+    <Compile Include="Internal\MySqlStreamReader.cs" />
+    <Compile Include="Internal\MySqlStreamWrtier.cs" />
     <Compile Include="Internal\SendIO_RecvIO.cs" />
     <Compile Include="Internal\SqlStringTemplate.cs" />
     <Compile Include="0_Public\ForNet20.cs" />

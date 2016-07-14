@@ -30,7 +30,7 @@ namespace SharpConnect.MySql.Internal
     /// <summary>
     /// mysql packet stream parser
     /// </summary>
-    class PacketParser
+    class MySqlStreamReader : IDisposable
     {
         BinaryReader _reader;
         MemoryStream _stream;
@@ -39,7 +39,12 @@ namespace SharpConnect.MySql.Internal
         long _packetLength;
         Encoding _encoding = Encoding.UTF8;
         List<byte> _bList = new List<byte>();
-        public PacketParser(Encoding encoding)
+        StringBuilder tempStringBuilder = new StringBuilder();
+#if DEBUG
+        static int dbugTotalId;
+        public readonly int dbugId = dbugTotalId++;
+#endif
+        public MySqlStreamReader(Encoding encoding)
         {
             _encoding = encoding;
             _stream = new MemoryStream();
@@ -47,11 +52,15 @@ namespace SharpConnect.MySql.Internal
             _reader = new BinaryReader(_stream, encoding);
         }
 
-        ~PacketParser()
+        ~MySqlStreamReader()
         {
             Dispose();
         }
 
+        public StringBuilder TempStringBuilder
+        {
+            get { return tempStringBuilder; }
+        }
         /// <summary>
         /// current stream's paring position
         /// </summary>
@@ -77,38 +86,40 @@ namespace SharpConnect.MySql.Internal
 
         public void Dispose()
         {
-            _reader.Close();
-            _stream.Close();
-            _stream.Dispose();
+            if (_reader != null)
+            {
+                _reader.Close();
+                _reader = null;
+            }
+            if (_stream != null)
+            {
+                _stream.Close();
+                _stream.Dispose();
+                _stream = null;
+            }
         }
-
         public void Reset()
         {
             _stream.Position = 0;
             _startPosition = 0;
             _currentInputLength = 0;
         }
-        public void SetPosition(int pos)
-        {
-            _stream.Position = pos;
-        }
-        public void LoadNewBuffer(byte[] newBuffer, int count)
-        {
-            Reset();
-            _stream.Write(newBuffer, 0, count);
-            _stream.Position = 0;
-            _startPosition = 0;
-            _currentInputLength = count;
-        }
-        public void AppendBuffer(byte[] buffer, int count)
+        //------------------------------------------------------
+ 
+        internal void AppendBuffer(SharpConnect.Internal.RecvIO recvIO, int count)
         {
             long saved_pos = _stream.Position;
             _stream.Position = _currentInputLength;
-            _stream.Write(buffer, 0, count);
+            //----------------------------
+            recvIO.CopyTo(0, _stream, count);
+            //----------------------------
+            //_stream.Write(buffer, 0, count);
             _stream.Position = saved_pos;
             _currentInputLength += count;
         }
-        public string ParseNullTerminatedString()
+
+        //------------------------------------------------------
+        public string ReadNullTerminatedString()
         {
             _bList.Clear();
             byte temp = _reader.ReadByte();
@@ -118,11 +129,12 @@ namespace SharpConnect.MySql.Internal
                 temp = _reader.ReadByte();
                 _bList.Add(temp);
             }
+
             byte[] bytes = _bList.ToArray();
             return _encoding.GetString(bytes);
         }
 
-        public byte[] ParseNullTerminatedBuffer()
+        public byte[] ReadNullTerminatedBuffer()
         {
             _bList.Clear();
             var temp = _reader.ReadByte();
@@ -135,12 +147,12 @@ namespace SharpConnect.MySql.Internal
             return _bList.ToArray();
         }
 
-        public byte ParseByte()
+        public byte ReadByte()
         {
             return _reader.ReadByte();
         }
 
-        public byte[] ParseBuffer(int n)
+        public byte[] ReadBuffer(int n)
         {
             if (n > 0)
                 return _reader.ReadBytes(n);
@@ -148,10 +160,9 @@ namespace SharpConnect.MySql.Internal
                 return null;
         }
 
-        public DateTime ParseLengthCodedDateTime()
+        public bool ReadLengthCodedDateTime(out DateTime result)
         {
-            DateTime dateTime;
-            byte dateLength = ParseByte();
+            byte dateLength = ReadByte(); //***     
             int year = 0;
             int month = 0;
             int day = 0;
@@ -159,62 +170,109 @@ namespace SharpConnect.MySql.Internal
             int minute = 0;
             int second = 0;
             int micro_second = 0;
-            if (dateLength == 0)
+            //0, 4,7,11
+            switch (dateLength)
             {
-                //all values 0
-                dateTime = new DateTime(year, month, day, hour, minute, second, micro_second);
+                default:
+                case 0:
+                    result = DateTime.MinValue;
+                    return false;
+                case 4:
+                    year = (int)U2();
+                    month = U1();
+                    day = U1();
+                    result = new DateTime(year, month, day);
+                    return true;
+                case 7:
+                    year = (int)U2();
+                    month = U1();
+                    day = U1();
+                    hour = U1();
+                    minute = U1();
+                    second = U1();
+                    result = new DateTime(year, month, day, hour, minute, second);
+                    return true;
+                case 11:
+                    year = (int)U2();
+                    month = U1();
+                    day = U1();
+                    hour = U1();
+                    minute = U1();
+                    second = U1();
+                    micro_second = (int)ReadUnsigedNumber(4);
+                    result = new DateTime(year, month, day, hour, minute, second, micro_second / 1000);
+                    return true;
             }
-            else
-            {
-                if (dateLength >= 4)
-                {
-                    year = (int)ParseUnsigned2();
-                    month = ParseUnsigned1();
-                    day = ParseUnsigned1();
-                    dateTime = new DateTime(year, month, day);
-                }
-                if (dateLength >= 7)
-                {
-                    hour = ParseUnsigned1();
-                    minute = ParseUnsigned1();
-                    second = ParseUnsigned1();
-                    dateTime = new DateTime(year, month, day, hour, minute, second);
-                }
-                if (dateLength == 11)
-                {
-                    micro_second = (int)ParseUnsignedNumber(4);
-                    int milli_second = micro_second / 1000;
-                    dateTime = new DateTime(year, month, day, hour, minute, second, milli_second);
-                }
-                else
-                {
-                    if (dateLength == 7)
-                    {
-                        dateTime = new DateTime(year, month, day, hour, minute, second);
-                    }
-                    else if (dateLength == 4)
-                    {
-                        dateTime = new DateTime(year, month, day);
-                    }
-                    else
-                    {
-                        dateTime = new DateTime(0, 0, 0, 0, 0, 0, 0, 0);
-                    }
-                }
-            }
-            return dateTime;
+            //if (dateLength == 0)
+            //{
+            //    result = DateTime.MinValue;
+            //    return false;
+            //} 
+            //if (dateLength >= 4)
+            //{
+            //    year = (int)ParseUnsigned2();
+            //    month = ParseUnsigned1();
+            //    day = ParseUnsigned1();
+            //    dateTime = new DateTime(year, month, day);
+            //}
+            //if (dateLength >= 7)
+            //{
+            //    hour = ParseUnsigned1();
+            //    minute = ParseUnsigned1();
+            //    second = ParseUnsigned1();
+            //    dateTime = new DateTime(year, month, day, hour, minute, second);
+            //} 
+            //if (dateLength == 11)
+            //{
+            //    micro_second = (int)ParseUnsignedNumber(4);
+            //    int milli_second = micro_second / 1000;
+            //    dateTime = new DateTime(year, month, day, hour, minute, second, milli_second);
+            //}
+            //else
+            //{
+            //    if (dateLength == 7)
+            //    {
+            //        dateTime = new DateTime(year, month, day, hour, minute, second);
+            //    }
+            //    else if (dateLength == 4)
+            //    {
+            //        dateTime = new DateTime(year, month, day);
+            //    }
+            //    else
+            //    {
+            //        dateTime = new DateTime(0, 0, 0, 0, 0, 0, 0, 0);
+            //    }
+            //}
+
+            //return dateTime;
         }
 #if DEBUG
         static int debugLastPacketNum = 1;
+        public void dbugLoadNewBuffer(byte[] newBuffer, int count)
+        {
+            Reset();
+            _stream.Write(newBuffer, 0, count);
+            _stream.Position = 0;
+            _startPosition = 0;
+            _currentInputLength = count;
+        }
+        public void dbugAppendBuffer(byte[] buffer, int count)
+        {
+            long saved_pos = _stream.Position;
+            _stream.Position = _currentInputLength;
+            _stream.Write(buffer, 0, count);
+            _stream.Position = saved_pos;
+            _currentInputLength += count;
+        }
 #endif
-        public PacketHeader ParsePacketHeader()
+        public PacketHeader ReadPacketHeader()
         {
             _startPosition = _stream.Position;
-            PacketHeader header = new PacketHeader(ParseUnsigned3(), ParseByte());
+            PacketHeader header = new PacketHeader(U3(), ReadByte());
 #if DEBUG
             if (header.PacketNumber > debugLastPacketNum + 1)
             {
-                Console.WriteLine(header.PacketNumber);
+                Console.WriteLine("header.PacketNumber : " + header.PacketNumber + " > lastPacketNumber :" + debugLastPacketNum);
             }
             debugLastPacketNum = header.PacketNumber;
 #endif
@@ -222,34 +280,34 @@ namespace SharpConnect.MySql.Internal
             return header;
         }
 
-        public string ParseLengthCodedString()
+        public string ReadLengthCodedString()
         {
             //var length = this.parseLengthCodedNumber();
-            uint length = ParseLengthCodedNumber();
+            uint length = ReadLengthCodedNumber();
             //if (length === null) {
             //  return null;
             //}
-            return ParseString(length);
+            return ReadString(length);
             //return this.parseString(length);
         }
 
-        public byte[] ParseLengthCodedBuffer()
+        public byte[] ReadLengthCodedBuffer()
         {
             //var length = this.parseLengthCodedNumber();
-            uint length = ParseLengthCodedNumber();
+            uint length = ReadLengthCodedNumber();
             //  if (length === null) {
             //    return null;
             //  }
-            return ParseBuffer((int)length);
+            return ReadBuffer((int)length);
             //  return this.parseBuffer(length);
         }
 
-        public void ParseFiller(int length)
+        public void ReadFiller(int length)
         {
             _stream.Position += length;
         }
 
-        public uint ParseLengthCodedNumber()
+        public uint ReadLengthCodedNumber()
         {
             //if (this._offset >= this._buffer.length)
             //    {
@@ -294,16 +352,16 @@ namespace SharpConnect.MySql.Internal
             switch (bits)
             {
                 case 251: return 0;
-                case 252: return ParseUnsigned2();
-                case 253: return ParseUnsigned3();
+                case 252: return U2();
+                case 253: return U3();
                 case 254: break;
                 default: throw new Exception("Unexpected first byte");
             }
             //    var low = this.parseUnsignedNumber(4);
             //    var high = this.parseUnsignedNumber(4);
             //    var value;
-            uint low = ParseUnsigned4();
-            uint high = ParseUnsigned4();
+            uint low = U4();
+            uint high = U4();
             if ((uint)(high >> 21) > 0)
             {
                 long value = low + ((2 << 32) * high);
@@ -332,27 +390,42 @@ namespace SharpConnect.MySql.Internal
             //return value;
         }
 
-        public byte ParseUnsigned1()
+        /// <summary>
+        /// read unsigned 1 byte
+        /// </summary>
+        /// <returns></returns>
+        public byte U1()
         {
             return _reader.ReadByte();
         }
 
-        public uint ParseUnsigned2()
+        /// <summary>
+        /// read unsigned 2 bytes
+        /// </summary>
+        /// <returns></returns>
+        public uint U2()
         {
             uint b0 = _reader.ReadByte(); //low bit
             uint b1 = _reader.ReadByte(); //high bit
             return (b1 << 8) | (b0);
         }
 
-        public uint ParseUnsigned3()
+        /// <summary>
+        /// read unsigned 3 bytes
+        /// </summary>
+        /// <returns></returns>
+        public uint U3()
         {
             uint b0 = _reader.ReadByte(); //low bit
             uint b1 = _reader.ReadByte();
             uint b2 = _reader.ReadByte(); //high bit
             return (b2 << 16) | (b1 << 8) | (b0);
         }
-
-        public uint ParseUnsigned4()
+        /// <summary>
+        /// read unsigned 4 bytes
+        /// </summary>
+        /// <returns></returns>
+        public uint U4()
         {
             uint b0 = _reader.ReadByte(); //low bit
             uint b1 = _reader.ReadByte();
@@ -361,27 +434,27 @@ namespace SharpConnect.MySql.Internal
             return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
         }
 
-        public float ParseFloat()
+        public float ReadFloat()
         {
             return _reader.ReadSingle();
         }
 
-        public double ParseDouble()
+        public double ReadDouble()
         {
             return _reader.ReadDouble();
         }
 
-        public decimal ParseDecimal()
+        public decimal ReadDecimal()
         {
             return _reader.ReadDecimal();
         }
 
-        public long ParseInt64()
+        public long ReadInt64()
         {
             return _reader.ReadInt64();
         }
 
-        public uint ParseUnsignedNumber(int n)
+        public uint ReadUnsigedNumber(int n)
         {
             switch (n)
             {
@@ -444,7 +517,7 @@ namespace SharpConnect.MySql.Internal
             //return value;
         }
 
-        public string ParsePacketTerminatedString()
+        public string ReadPacketTerminatedString()
         {
             long distance = (_startPosition + _packetLength) - ReadPosition;
             if (distance > 0)
@@ -457,21 +530,21 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public char ParseChar()
+        public char ReadChar()
         {
             return _reader.ReadChar();
         }
 
-        public string ParseString(uint length)
+        public string ReadString(uint length)
         {
             return _encoding.GetString(_reader.ReadBytes((int)length));
         }
 
-        public List<Geometry> ParseGeometryValue()
+        public List<Geometry> ReadGeometryValues()
         {
             //var buffer = this.parseLengthCodedBuffer();
             //var offset = 4;
-            byte[] buffer = ParseLengthCodedBuffer();
+            byte[] buffer = ReadLengthCodedBuffer();
             int offset = 4;
             //if (buffer === null || !buffer.length) {
             //  return null;
@@ -491,11 +564,11 @@ namespace SharpConnect.MySql.Internal
             //  var wkbType = byteOrder? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset); offset += 4;
 
             //return parseGeometry();
-            ParseGeometry(result, buffer, byteOrder, wkbType, offset);
+            ReadGeometry(result, buffer, byteOrder, wkbType, offset);
             return result;
         }
 
-        void ParseGeometry(List<Geometry> result, byte[] buffer, int byteOrder, int wkbType, int offset)
+        void ReadGeometry(List<Geometry> result, byte[] buffer, int byteOrder, int wkbType, int offset)
         {
             double x;
             double y;
@@ -577,7 +650,7 @@ namespace SharpConnect.MySql.Internal
                     offset += 4;
                     for (int i = num; i > 0; i--)
                     {
-                        ParseGeometry(result, buffer, byteOrder, wkbType, offset);
+                        ReadGeometry(result, buffer, byteOrder, wkbType, offset);
                     }
                     //var num = byteOrder? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset); offset += 4;
                     //      var result = [];
@@ -636,9 +709,5 @@ namespace SharpConnect.MySql.Internal
             return this.ReadPosition == _startPosition + _packetLength;
         }
 
-        public byte[] ToArray()
-        {
-            return _stream.ToArray();
-        }
     }
 }

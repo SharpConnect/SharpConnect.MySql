@@ -54,17 +54,23 @@
     <Compile Include="..\..\SharpConnect.MySql\Internal\DataModel.cs">
       <Link>Internal\DataModel.cs</Link>
     </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlPacketParsers.cs">
+      <Link>Internal\MySqlPacketParsers.cs</Link>
+    </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlPackets.cs">
       <Link>Internal\MySqlPackets.cs</Link>
     </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlResults.cs">
+      <Link>Internal\MySqlResults.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlStreamReader.cs">
+      <Link>Internal\MySqlStreamReader.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlStreamWrtier.cs">
+      <Link>Internal\MySqlStreamWrtier.cs</Link>
+    </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlStringToHexUtils.cs">
       <Link>Internal\MySqlStringToHexUtils.cs</Link>
-    </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\Internal\PacketParser.cs">
-      <Link>Internal\PacketParser.cs</Link>
-    </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\Internal\PacketWriter.cs">
-      <Link>Internal\PacketWriter.cs</Link>
     </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\Query.cs">
       <Link>Internal\Query.cs</Link>

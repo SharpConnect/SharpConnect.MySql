@@ -20,9 +20,7 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //THE SOFTWARE.
 
-using System;
-using System.IO;
-using System.Collections.Generic;
+using System; 
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -45,930 +43,52 @@ namespace SharpConnect.MySql.Internal
         Connected
     }
 
-    abstract class MySqlPacketParser
-    {
-        public abstract void Parse(byte[] buffer, int count);
-        public abstract MySqlResult ResultPacket { get; }
-        public abstract bool NeedMoreBuffer { get; }
-    }
-
-    class ResultPacketParser : MySqlPacketParser
-    {
-        enum ResultPacketState
-        {
-            ExpectedResultSetHeader,
-            ResultSet_Content,
-            Expect_FieldHeader,
-            Field_Content,
-            // Field_EofContent,
-
-            Expect_RowHeader,
-            Row_Content,
-            //Row_EofContent,
-            Should_End
-        }
-
-        ResultPacketState parsingState;
-        PacketParser _parser = new PacketParser(Encoding.UTF8);
-        const byte ERROR_CODE = 255;
-        const byte EOF_CODE = 254;
-        const byte OK_CODE = 0;
-        PacketHeader header;
-        Packet currentPacket;
-        TableHeader tableHeader;
-        ConnectionConfig config;
-        bool isProtocol41;
-        bool isPrepare;
-        bool needMoreBuffer = false;
-        MySqlResult _finalResult;
-        List<RowDataPacket> rows = new List<RowDataPacket>();
-        List<RowPreparedDataPacket> rowsPrepare = new List<RowPreparedDataPacket>();
-        Action<MySqlResult> _whenResultAssign;
-        const int PACKET_HEADER_LENGTH = 4;
-        public ResultPacketParser(ConnectionConfig config, bool isProtocol41, bool isPrepare = false)
-        {
-            this.config = config;
-            this.isProtocol41 = isProtocol41;
-            this.isPrepare = isPrepare;
-        }
-        public void SetOnResultHandler(Action<MySqlResult> whenResultAssign)
-        {
-            this._whenResultAssign = whenResultAssign;
-        }
-        void Parse()
-        {
-            needMoreBuffer = false;
-            switch (parsingState)
-            {
-                case ResultPacketState.ExpectedResultSetHeader:
-                    {
-                        ParseResultsetHeader();
-                    }
-                    break;
-                case ResultPacketState.ResultSet_Content:
-                    {
-                        ParseResultSetContent();
-                    }
-                    break;
-                case ResultPacketState.Expect_FieldHeader:
-                    {
-                        ParseFieldHeader();
-                    }
-                    break;
-                case ResultPacketState.Field_Content:
-                    {
-                        ParseFieldContent();
-                    }
-                    break;
-                case ResultPacketState.Expect_RowHeader:
-                    {
-                        ParseRowHeader();
-                    }
-                    break;
-                case ResultPacketState.Row_Content:
-                    {
-                        ParseRowContent();
-                    }
-                    break;
-            }
-        }
-        void ParseResultsetHeader()
-        {
-            if (!_parser.Ensure(PACKET_HEADER_LENGTH + 1)) //check if length is enough to parse 
-            {
-                needMoreBuffer = true;
-                return;
-            }
-            //-------------------------------- 
-            header = _parser.ParsePacketHeader();
-            byte packetType = _parser.PeekByte();
-            switch (packetType)
-            {
-                case ERROR_CODE:
-                    {
-                        ParseErrorPacket();
-                    }
-                    break;
-                case EOF_CODE:
-                case OK_CODE:
-                    {
-                        ParseOkPacket();
-                        this.parsingState = ResultPacketState.Should_End;
-                        //ResultAssign(_finalResult);
-                    }
-                    break;
-                default:
-                    {
-                        //resultset packet
-                        var resultPacket = new ResultSetHeaderPacket();
-                        currentPacket = resultPacket;
-                        resultPacket.Header = header;
-                        this.parsingState = ResultPacketState.ResultSet_Content;
-                    }
-                    break;
-            }
-        }
-        void ParseResultSetContent()
-        {
-            if (!_parser.Ensure(header.ContentLength))
-            {
-                needMoreBuffer = true;
-                return;
-            }
-            //can parse
-            currentPacket.ParsePacket(_parser);
-            tableHeader = new TableHeader();
-            tableHeader.ConnConfig = this.config;
-            tableHeader.TypeCast = this.config.typeCast;
-            this.parsingState = ResultPacketState.Expect_FieldHeader;
-            rows = new List<RowDataPacket>();
-        }
-        void ParseFieldHeader()
-        {
-            if (!_parser.Ensure(PACKET_HEADER_LENGTH + 1)) //check if length is enough to parse 
-            {
-                needMoreBuffer = true;
-                return;
-            }
-
-            header = _parser.ParsePacketHeader();
-            byte packetType = _parser.PeekByte();
-            switch (packetType)
-            {
-                case ERROR_CODE:
-                    {
-                        ParseErrorPacket();
-                    }
-                    break;
-                case EOF_CODE:
-                case OK_CODE:
-                    {
-                        //after field
-                        //expected field eof  
-                        ParseEOFPacket();
-                        this.parsingState = ResultPacketState.Expect_RowHeader;
-                    }
-                    break;
-                default:
-                    {
-                        FieldPacket fieldPacket = new FieldPacket(this.isProtocol41);
-                        fieldPacket.Header = header;
-                        tableHeader.AddField(fieldPacket);
-                        currentPacket = fieldPacket;
-                        this.parsingState = ResultPacketState.Field_Content;
-                    }
-                    break;
-            }
-        }
-        void ParseFieldContent()
-        {
-            if (!_parser.Ensure(header.ContentLength)) //check if length is enough to parse 
-            {
-                needMoreBuffer = true;
-                return;
-            }
-
-            //can parse
-            currentPacket.ParsePacket(_parser);
-            this.parsingState = ResultPacketState.Expect_FieldHeader;
-        }
-        void ParseRowHeader()
-        {
-            if (!_parser.Ensure(PACKET_HEADER_LENGTH + 1))
-            {
-                needMoreBuffer = true;
-                return;
-            }
-
-            header = _parser.ParsePacketHeader();
-            byte packetType = _parser.PeekByte();
-            switch (packetType)
-            {
-                case ERROR_CODE:
-                    {
-                        //found error
-                        ParseErrorPacket();
-                    }
-                    break;
-                case EOF_CODE://0x00 or 0xfe the OK packet header
-                    {
-                        //finish
-                        ParseEOFPacket();
-                        this.parsingState = ResultPacketState.Should_End;
-                        //table result?
-                        if (isPrepare)
-                        {
-                            _finalResult = new MySqlPrepareTableResult(tableHeader, rowsPrepare);
-                        }
-                        else
-                        {
-                            _finalResult = new MySqlTableResult(tableHeader, rows);
-                        }
-                        //ResultAssign(_finalResult);
-                        rows = null;
-                    }
-                    break;
-                default:
-                    {
-                        if (isPrepare)
-                        {
-                            RowPreparedDataPacket rowPacket = new RowPreparedDataPacket(tableHeader);
-                            rowPacket.Header = header;
-                            currentPacket = rowPacket;
-                            //rowsPrepare.Add(rowPacket);
-                        }
-                        else
-                        {
-                            RowDataPacket rowPacket = new RowDataPacket(tableHeader);
-                            rowPacket.Header = header;
-                            currentPacket = rowPacket;
-                            //rows.Add(rowPacket);
-                        }
-
-                        this.parsingState = ResultPacketState.Row_Content;
-                    }
-                    break;
-            }
-        }
-        byte[] largeDataBuffer = new byte[0];
-        bool isLargeData = false;
-        void ParseRowContent()
-        {
-            if (!_parser.Ensure(header.ContentLength))
-            {
-                needMoreBuffer = true;
-                return;
-            }
-            if (header.ContentLength >= Packet.MAX_PACKET_LENGTH)
-            {
-                StoreBuffer((int)header.ContentLength);
-                isLargeData = true;
-                //recieve new buffer
-                parsingState = ResultPacketState.Expect_RowHeader;
-                return;
-            }
-            else
-            {
-                if (isLargeData)
-                {
-                    StoreBuffer((int)header.ContentLength);
-                    int remain = (int)(_parser.CurrentInputLength - _parser.ReadPosition);
-                    StoreBuffer(remain);
-                    _parser.LoadNewBuffer(largeDataBuffer, largeDataBuffer.Length);
-
-                    //reset value
-                    largeDataBuffer = new byte[0];
-                    isLargeData = false;
-                }
-            }
-            //can parse
-            currentPacket.ParsePacket(_parser);
-            this.parsingState = ResultPacketState.Expect_RowHeader;
-            if (isPrepare)
-            {
-                rowsPrepare.Add((RowPreparedDataPacket)currentPacket);
-                _finalResult = new MySqlPrepareTableResult(tableHeader, rowsPrepare);
-            }
-            else
-            {
-                rows.Add((RowDataPacket)currentPacket);
-                _finalResult = new MySqlTableResult(tableHeader, rows);
-            }
-            ResultAssign(_finalResult);
-        }
-        void StoreBuffer(int length)
-        {
-            byte[] dataTemp = _parser.ParseBuffer((int)length);
-            byte[] newData = new byte[largeDataBuffer.Length + dataTemp.Length];
-            Buffer.BlockCopy(largeDataBuffer, 0, newData, 0, largeDataBuffer.Length);
-            Buffer.BlockCopy(dataTemp, 0, newData, largeDataBuffer.Length, dataTemp.Length);
-            largeDataBuffer = newData;
-        }
-        void ParseErrorPacket()
-        {
-            var errPacket = new ErrPacket();
-            errPacket.Header = header;
-            uint packetLen = errPacket.GetPacketLength();
-            currentPacket = errPacket;
-            errPacket.ParsePacket(_parser);
-            //------------------------
-            this._finalResult = new MySqlError(errPacket);
-        }
-        void ParseOkPacket()
-        {
-            var okPacket = new OkPacket(this.isProtocol41);
-            okPacket.Header = header;
-            uint packetLen = okPacket.GetPacketLength();
-            currentPacket = okPacket;
-            okPacket.ParsePacket(_parser);
-            this._finalResult = new MySqlOk(okPacket);
-        }
-        void ParseEOFPacket()
-        {
-            EofPacket eofPacket = new EofPacket(this.isProtocol41);
-            eofPacket.Header = header;
-            currentPacket = eofPacket;
-            eofPacket.ParsePacket(_parser);
-        }
-
-        void ResultAssign(MySqlResult result)
-        {
-            if (_whenResultAssign != null)
-            {
-                //compat with vs2010 :)
-                _whenResultAssign.Invoke(result);
-            }
-        }
-
-        public override void Parse(byte[] buffer, int count)
-        {
-            _finalResult = null;
-            _parser.AppendBuffer(buffer, count);
-            for (;;)
-            {
-                //loop
-                Parse();
-                if (needMoreBuffer)
-                {
-                    return;
-                }
-                else if (parsingState == ResultPacketState.Should_End)
-                {
-                    //reset
-                    this._parser.Reset();
-                    this.parsingState = ResultPacketState.ExpectedResultSetHeader;
-                    return;
-                }
-            }
-        }
-
-        public override MySqlResult ResultPacket
-        {
-            get
-            {
-                return _finalResult;
-            }
-        }
-
-        public override bool NeedMoreBuffer
-        {
-            get
-            {
-                return needMoreBuffer;
-            }
-        }
-    }
-
-    class PrepareResponsePacketParser : MySqlPacketParser
-    {
-        enum PrepareResponseParseState
-        {
-            ExpectedOkPreparePacket,
-            OkPrepare_Content,
-            Expect_ParamsFieldHeader,
-            ParamsField_Content,
-            Params_EOF,
-            Expect_ColumnsFieldHeader,
-            ColumnsField_Content,
-            ColumnsEOF,
-            Should_End,
-            Error_Content
-        }
-        bool _needMoreBuffer;
-        bool _isProtocol41;
-        const int PACKET_HEADER_LENGTH = 4;
-        const byte ERROR_CODE = 255;
-        const byte EOF_CODE = 254;
-        const byte OK_CODE = 0;
-        MySqlResult _finalResult;
-        PacketHeader _currentHeader;
-        Packet _currentPacket;
-        OkPrepareStmtPacket _okPrepare;
-        PacketParser _parser = new PacketParser(Encoding.UTF8);
-        PrepareResponseParseState parsingState;
-        TableHeader _tableHeader;
-        public override bool NeedMoreBuffer
-        {
-            get
-            {
-                return _needMoreBuffer;
-            }
-        }
-
-        public override MySqlResult ResultPacket
-        {
-            get
-            {
-                return _finalResult;
-            }
-        }
-
-        public PrepareResponsePacketParser(bool isProtocol41)
-        {
-            this._isProtocol41 = isProtocol41;
-            _tableHeader = null;
-        }
-
-        public override void Parse(byte[] buffer, int count)
-        {
-            //_finalResult = null;
-            _parser.AppendBuffer(buffer, count);
-            for (;;)
-            {
-                Parse();
-                if (_needMoreBuffer)
-                {
-                    return;
-                }
-                else if (parsingState == PrepareResponseParseState.Should_End)
-                {
-                    //reset
-                    this._parser.Reset();
-                    return;
-                }
-            }
-        }
-        void Parse()
-        {
-            switch (parsingState)
-            {
-                case PrepareResponseParseState.ExpectedOkPreparePacket:
-                    {
-                        ParseOkPrepareHeader();
-                        break;
-                    }
-                case PrepareResponseParseState.OkPrepare_Content:
-                    {
-                        ParseOkPrePareContent();
-                        parsingState = PrepareResponseParseState.Expect_ParamsFieldHeader;
-                        _tableHeader = new TableHeader();
-                        break;
-                    }
-                case PrepareResponseParseState.Expect_ParamsFieldHeader:
-                    {
-                        if (_okPrepare.num_params > 0)
-                        {
-                            _currentHeader = PacketHeader.Empty;
-                            if (!_parser.Ensure(PACKET_HEADER_LENGTH))
-                            {
-                                _needMoreBuffer = true;
-                                return;
-                            }
-                            ParseFieldHeader();
-                            if ((_currentPacket != null) && (_currentPacket is EofPacket))
-                            {
-                                parsingState = PrepareResponseParseState.Params_EOF;
-                                break;
-                            }
-                            parsingState = PrepareResponseParseState.ParamsField_Content;
-                            break;
-                        }
-                        else
-                        {
-                            parsingState = PrepareResponseParseState.Expect_ColumnsFieldHeader;
-                        }
-                        break;
-                    }
-                case PrepareResponseParseState.ParamsField_Content:
-                    {
-                        if (!_parser.Ensure(_currentHeader.ContentLength))
-                        {
-                            _needMoreBuffer = true;
-                            return;
-                        }
-                        ParseFieldPacket();
-                        parsingState = PrepareResponseParseState.Expect_ParamsFieldHeader;
-                        break;
-                    }
-                case PrepareResponseParseState.Params_EOF:
-                    {
-                        ParseEOFPacket();
-                        if (_currentPacket != null)
-                        {
-                            _finalResult = new MySqlPrepareResponse(_okPrepare, _tableHeader);
-                            _tableHeader = new TableHeader();
-                            parsingState = PrepareResponseParseState.Expect_ColumnsFieldHeader;
-                        }
-                        break;
-                    }
-                case PrepareResponseParseState.Expect_ColumnsFieldHeader:
-                    {
-                        if (_okPrepare.num_columns > 0)
-                        {
-                            _currentHeader = PacketHeader.Empty;
-                            if (!_parser.Ensure(PACKET_HEADER_LENGTH))
-                            {
-                                _needMoreBuffer = true;
-                                return;
-                            }
-                            ParseFieldHeader();
-                            if ((_currentPacket != null) && (_currentPacket is EofPacket))
-                            {
-                                parsingState = PrepareResponseParseState.ColumnsEOF;
-                                break;
-                            }
-                            parsingState = PrepareResponseParseState.ColumnsField_Content;
-                        }
-                        else
-                        {
-                            parsingState = PrepareResponseParseState.Should_End;
-                        }
-                        break;
-                    }
-                case PrepareResponseParseState.ColumnsField_Content:
-                    {
-                        if (!_parser.Ensure(_currentHeader.ContentLength))
-                        {
-                            _needMoreBuffer = true;
-                            return;
-                        }
-                        ParseFieldPacket();
-                        parsingState = PrepareResponseParseState.Expect_ColumnsFieldHeader;
-                        break;
-                    }
-                case PrepareResponseParseState.ColumnsEOF:
-                    {
-                        ParseEOFPacket();
-                        if (_currentPacket != null)
-                        {
-                            _finalResult = new MySqlPrepareResponse(_okPrepare, _tableHeader);
-                            parsingState = PrepareResponseParseState.Should_End;
-                        }
-                        break;
-                    }
-                case PrepareResponseParseState.Should_End:
-                    {
-                        break;
-                    }
-                case PrepareResponseParseState.Error_Content:
-                    {
-                        ParseErrorPacket();
-                        parsingState = PrepareResponseParseState.Should_End;
-                        break;
-                    }
-                default:
-                    {
-                        parsingState = PrepareResponseParseState.Should_End;
-                        break;
-                    }
-            }
-        }
-        void ParseOkPrepareHeader()
-        {
-            _currentHeader = PacketHeader.Empty;
-            if (!_parser.Ensure(PACKET_HEADER_LENGTH + 1))
-            {
-                _needMoreBuffer = true;
-                return;
-            }
-            _currentHeader = _parser.ParsePacketHeader();
-            byte type = _parser.PeekByte();
-            switch (type)
-            {
-                case ERROR_CODE:
-                    {
-                        ParseErrorPacket();
-                        parsingState = PrepareResponseParseState.Should_End;
-                    }
-                    break;
-                case EOF_CODE:
-                case OK_CODE:
-                    {
-                        parsingState = PrepareResponseParseState.OkPrepare_Content;
-                    }
-                    break;
-                default:
-                    {
-                        parsingState = PrepareResponseParseState.Should_End;
-                        throw new NotSupportedException("Packet type don't match!!");
-                    }
-            }
-        }
-        void ParseOkPrePareContent()
-        {
-            if (!_parser.Ensure(_currentHeader.ContentLength))
-            {
-                _needMoreBuffer = true;
-                return;
-            }
-            OkPrepareStmtPacket okPrepare = new OkPrepareStmtPacket();
-            okPrepare.Header = _currentHeader;
-            okPrepare.ParsePacket(_parser);
-            this._okPrepare = okPrepare;
-        }
-
-        void ParseErrorPacket()
-        {
-            if (!_parser.Ensure(_currentHeader.ContentLength))
-            {
-                _needMoreBuffer = true;
-                parsingState = PrepareResponseParseState.Error_Content;
-                return;
-            }
-            var errPacket = new ErrPacket();
-            errPacket.Header = _currentHeader;
-            uint packetLen = errPacket.GetPacketLength();
-            _currentPacket = errPacket;
-            errPacket.ParsePacket(_parser);
-            //------------------------
-            this._finalResult = new MySqlError(errPacket);
-        }
-
-        void ParseEOFPacket()
-        {
-            _currentPacket = null;
-            if (!_parser.Ensure(_currentHeader.ContentLength))
-            {
-                _needMoreBuffer = true;
-                return;
-            }
-            EofPacket eofPacket = new EofPacket(this._isProtocol41);
-            eofPacket.Header = _currentHeader;
-            _currentPacket = eofPacket;
-            eofPacket.ParsePacket(_parser);
-        }
-
-        void ParseFieldHeader()
-        {
-            _currentHeader = _parser.ParsePacketHeader();
-            _currentPacket = null;
-            if (_parser.PeekByte() == EOF_CODE)
-            {
-                _currentPacket = new EofPacket(_isProtocol41);
-            }
-        }
-        void ParseFieldPacket()
-        {
-            FieldPacket field = new FieldPacket(_isProtocol41);
-            field.Header = _currentHeader;
-            field.ParsePacket(_parser);
-            if (_tableHeader != null)
-            {
-                _tableHeader.AddField(field);
-            }
-        }
-    }
-
-    class MySqlConnectionPacketParser : MySqlPacketParser
-    {
-        PacketParser _parser = new PacketParser(Encoding.UTF8);
-        HandshakePacket _handshake;
-        MySqlHandshakeResult _finalResult;
-        public MySqlConnectionPacketParser()
-        {
-        }
-        public override MySqlResult ResultPacket
-        {
-            get
-            {
-                return _finalResult;
-            }
-        }
-
-        public override bool NeedMoreBuffer
-        {
-            get
-            {
-                return false;
-            }
-        }
-
-        public override void Parse(byte[] buffer, int count)
-        {
-            _finalResult = null;
-            //1.create connection frame  
-            //_writer.Reset();  
-            _parser.LoadNewBuffer(buffer, count);
-            _handshake = new HandshakePacket();
-            _handshake.ParsePacket(_parser);
-            _finalResult = new MySqlHandshakeResult(_handshake);
-        }
-    }
-
-    enum MySqlResultKind
-    {
-        Handshake,
-        Error,
-        Ok,
-        TableResult,
-        PrepareResponse,
-        PrepareTableResult
-    }
-    abstract class MySqlResult
-    {
-        public bool IsError { get; protected set; }
-        public abstract MySqlResultKind Kind { get; }
-    }
-    class MySqlHandshakeResult : MySqlResult
-    {
-        public readonly HandshakePacket packet;
-        public MySqlHandshakeResult(HandshakePacket packet)
-        {
-            this.packet = packet;
-        }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.Handshake; } }
-    }
-    class MySqlError : MySqlResult
-    {
-        public readonly ErrPacket errPacket;
-        public MySqlError(ErrPacket errPacket)
-        {
-            this.errPacket = errPacket;
-            this.IsError = true;
-        }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.Error; } }
-    }
-    class MySqlOk : MySqlResult
-    {
-        public readonly OkPacket okpacket;
-        public MySqlOk(OkPacket okpacket)
-        {
-            this.okpacket = okpacket;
-        }
-        public override string ToString()
-        {
-            return "<Insert ID : " + okpacket.insertId + " >";
-        }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.Ok; } }
-    }
-    class MySqlTableResult : MySqlResult
-    {
-        public readonly TableHeader tableHeader;
-        public readonly List<RowDataPacket> rows;
-        public MySqlTableResult(TableHeader tableHeader, List<RowDataPacket> rows)
-        {
-            this.tableHeader = tableHeader;
-            this.rows = rows;
-        }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.TableResult; } }
-    }
-
-    class MySqlPrepareResponse : MySqlResult
-    {
-        public readonly OkPrepareStmtPacket okPacket;
-        public readonly TableHeader tableHeader;
-        public MySqlPrepareResponse(OkPrepareStmtPacket okPrepare, TableHeader tableHeader)
-        {
-            this.okPacket = okPrepare;
-            this.tableHeader = tableHeader;
-        }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.PrepareResponse; } }
-    }
-    class MySqlPrepareTableResult : MySqlResult
-    {
-        public readonly TableHeader tableHeader;
-        public readonly List<RowPreparedDataPacket> rows;
-        public MySqlPrepareTableResult(TableHeader tableHeader, List<RowPreparedDataPacket> rows)
-        {
-            this.tableHeader = tableHeader;
-            this.rows = rows;
-        }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.PrepareTableResult; } }
-    }
-
-    class MySqlParserMx : IDisposable
-    {
-        MemoryStream ms;
-        MySqlPacketParser currentPacketParser; //current parser
-        PacketWriter _writer;
-        bool _isCompleted;
-        public MySqlParserMx(PacketWriter _writer)
-        {
-            ms = new MemoryStream();
-            this._writer = _writer;
-        }
-        public MySqlResult ResultPacket
-        {
-            get;
-            private set;
-        }
-        public MySqlPacketParser CurrentPacketParser
-        {
-            get { return currentPacketParser; }
-            set
-            {
-                ResultPacket = null;
-                currentPacketParser = value;
-            }
-        }
-        public bool IsComplete
-        {
-            get { return _isCompleted; }
-        }
-
-        public void ParseData(RecvIO recvIO)
-        {
-            //we need to parse some data here 
-            //load incomming data into ms 
-            //load data from recv buffer into the ms
-            //---------------
-            //copy all to stream
-            //---------------  
-            int maxBuffer = 265000;
-            byte[] buffer = new byte[maxBuffer];
-            int count = recvIO.BytesTransferred;
-            if (count > 0)
-            {
-                if (count > maxBuffer)
-                {
-                    throw new Exception();
-                }
-                try
-                {
-                    //start index always 0
-                    recvIO.ReadTo(0, buffer, count);
-                }
-                catch (Exception)
-                {
-                    count = 0;
-                }
-            }
-            //may not complete in first round *** 
-            currentPacketParser.Parse(buffer, count);
-            ResultPacket = currentPacketParser.ResultPacket;
-            if (currentPacketParser.NeedMoreBuffer)
-            {
-                //***
-                //TODO: review here
-                _isCompleted = false;
-                recvIO.StartReceive();
-            }
-            else
-            {
-                _isCompleted = true;
-            }
-            //--------------------
-            //not need to wait here
-            //just return *** 
-            //--------------------
-        }
-        public void Dispose()
-        {
-            if (ms != null)
-            {
-                ms.Close();
-                ms.Dispose();
-                ms = null;
-            }
-        }
-    }
-    enum ProcessReceiveBufferResult
-    {
-        Error,
-        Continue,
-        Complete
-    }
-
-    partial class Connection
+    /// <summary>
+    /// core connection session
+    /// </summary>
+    class Connection
     {
         public ConnectionConfig config;
-        public bool connectionCall;
-        public uint threadId;
-        Socket socket;
-        Query _query;
-        //PacketParser _parser;
-        PacketWriter _writer;
-        //TODO: review how to clear remaining buffer again
-        byte[] _tmpForClearRecvBuffer; //for clear buffer 
-        /// <summary>
-        /// max allowed packet size
-        /// </summary>
-        long _maxPacketSize = 0;
-        //------------------------
 
+        //---------------------------------
+        //core socket connection, send/recv io
+        Socket socket;
         readonly SocketAsyncEventArgs recvSendArgs;
         readonly RecvIO recvIO;
         readonly SendIO sendIO;
-        MySqlParserMx _mysqlParserMx;
-        readonly int recvBufferSize = 265000; //set this a config
-        readonly int sendBufferSize = 51200;
+        readonly int recvBufferSize;
+        readonly int sendBufferSize;
         Action<MySqlResult> whenRecvComplete;
-        Action<object> whenSendComplete;
-        bool connectedIsComplete = false;
-        MySqlPacketParser packetParser = null;
-        internal MySqlParserMx SqlPacketParser { get { return _mysqlParserMx; } }
+        Action whenSendCompleted;
+        //---------------------------------
+
+        MySqlStreamWrtier _writer;
+        MySqlParserMx _mysqlParserMx;//know how to parse mysql data
+        //---------------------------------
+        //after open connection
         bool isProtocol41;
+        public uint threadId;
+
+        //TODO: review how to clear remaining buffer again
+        byte[] _tmpForClearRecvBuffer; //for clear buffer      
+
+
         public Connection(ConnectionConfig userConfig)
         {
             config = userConfig;
+            recvBufferSize = userConfig.recvBufferSize;
+            sendBufferSize = userConfig.sendBufferSize;
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            //protocol = null;
-            connectionCall = false;
-            //this.config = options.config;
-            //this._socket        = options.socket;
-            //this._protocol      = new Protocol({config: this.config, connection: this});
-            //this._connectCalled = false;
-            //this.state          = "disconnected";
-            //this.threadId       = null;
+            //
             switch ((CharSets)config.charsetNumber)
             {
                 case CharSets.UTF8_GENERAL_CI:
                     //_parser = new PacketParser(Encoding.UTF8);
-                    _writer = new PacketWriter(Encoding.UTF8);
+                    _writer = new MySqlStreamWrtier(Encoding.UTF8);
                     break;
                 case CharSets.ASCII:
                     //_parser = new PacketParser(Encoding.ASCII);
-                    _writer = new PacketWriter(Encoding.ASCII);
+                    _writer = new MySqlStreamWrtier(Encoding.ASCII);
                     break;
                 default:
                     throw new NotImplementedException();
@@ -979,7 +99,7 @@ namespace SharpConnect.MySql.Internal
             recvSendArgs.SetBuffer(new byte[recvBufferSize + sendBufferSize], 0, recvBufferSize + sendBufferSize);
             recvIO = new RecvIO(recvSendArgs, recvSendArgs.Offset, recvBufferSize, HandleReceive);
             sendIO = new SendIO(recvSendArgs, recvSendArgs.Offset + recvBufferSize, sendBufferSize, HandleSend);
-            _mysqlParserMx = new MySqlParserMx(_writer);
+            //------------------
             //common(shared) event listener***
             recvSendArgs.Completed += (object sender, SocketAsyncEventArgs e) =>
             {
@@ -997,6 +117,8 @@ namespace SharpConnect.MySql.Internal
             };
             //------------------
             recvSendArgs.AcceptSocket = socket;
+            _mysqlParserMx = new MySqlParserMx(config);
+
         }
         public ConnectionState State
         {
@@ -1006,8 +128,11 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
+        internal MySqlParserMx MySqlParserMx { get { return _mysqlParserMx; } }
+
         void UnBindSocket(bool keepAlive)
         {
+            //TODO: review here ***
             throw new NotImplementedException();
         }
         void HandleReceive(RecvEventCode recvEventCode)
@@ -1038,10 +163,6 @@ namespace SharpConnect.MySql.Internal
                             {
                                 whenRecvComplete(_mysqlParserMx.ResultPacket);
                             }
-                            else
-                            {
-                                connectedIsComplete = true;
-                            }
                         }
                         else
                         {
@@ -1063,19 +184,10 @@ namespace SharpConnect.MySql.Internal
                     break;
                 case SendIOEventCode.SendComplete:
                     {
-                        if (whenSendComplete != null)
+                        if (whenSendCompleted != null)
                         {
-                            whenSendComplete(null);
+                            whenSendCompleted();
                         }
-                        //Reset();
-                        //if (KeepAlive)
-                        //{
-                        //    StartReceive();
-                        //}
-                        //else
-                        //{
-                        //    UnBindSocket(true);
-                        //}
                     }
                     break;
             }
@@ -1088,7 +200,7 @@ namespace SharpConnect.MySql.Internal
             recvIO.StartReceive();
         }
 
-        public void Connect(Action onAsyncComplete = null)
+        public void Connect(Action nextAction = null)
         {
             if (State == ConnectionState.Connected)
             {
@@ -1097,8 +209,9 @@ namespace SharpConnect.MySql.Internal
 
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             socket.Connect(endpoint); //start listen after connect***
-            //1. 
-            _mysqlParserMx.CurrentPacketParser = packetParser = new MySqlConnectionPacketParser();
+                                      //1. 
+            _mysqlParserMx.UseConnectionParser();
+            bool connectionIsCompleted = false;
             StartReceive(mysql_result =>
             {
                 //when complete1
@@ -1120,82 +233,49 @@ namespace SharpConnect.MySql.Internal
                 authPacket.SetValues(config.user, token, config.database, isProtocol41 = handshake_packet.protocol41);
                 authPacket.WritePacket(_writer);
                 byte[] sendBuff = _writer.ToArray();
-                SendData(sendBuff, 0, sendBuff.Length);
-                _mysqlParserMx.CurrentPacketParser = packetParser = new ResultPacketParser(this.config, isProtocol41);
-                StartReceive(mysql_result2 =>
-                {
-                    var ok = mysql_result2 as MySqlOk;
-                    if (ok != null)
-                    {
-                        ConnectedSuccess = true;
-                    }
-                    else
-                    {
-                        //TODO: review here
-                        //error 
-                        ConnectedSuccess = false;
-                    }
 
-                    //ok
-                    _writer.Reset();
-                    //set max allow of the server ***
-                    //todo set max allow packet***
-                    connectedIsComplete = true;
-                    if (onAsyncComplete != null)
+                StartSendData(sendBuff, 0, sendBuff.Length, () =>
+                {
+                    //------------------------------------
+                    //switch to result packet parser  
+                    _mysqlParserMx.SetProtocol41(isProtocol41);
+                    _mysqlParserMx.UseResultParser();
+                    //------------------------------------
+
+                    StartReceive(mysql_result2 =>
                     {
-                        onAsyncComplete();
-                    }
+                        var ok = mysql_result2 as MySqlOk;
+                        if (ok != null)
+                        {
+                            ConnectedSuccess = true;
+                        }
+                        else
+                        {
+                            //TODO: review here
+                            //error 
+                            ConnectedSuccess = false;
+                        }
+                        //ok
+                        _writer.Reset();
+                        //set max allow of the server ***
+                        //todo set max allow packet***
+                        connectionIsCompleted = true;
+                        if (nextAction != null)
+                        {
+                            nextAction();
+                        }
+                    });
+
                 });
             });
-            if (onAsyncComplete == null)
+            if (nextAction == null)
             {
                 //exec as sync
                 //so wait until complete
                 //-------------------------------
-                while (!connectedIsComplete) ;  //tight loop,*** wait, or use thread sleep
+                while (!connectionIsCompleted) ;  //tight loop,*** wait, or use thread sleep
                 //-------------------------------
             }
-
-            //create authen packet and send data back
-
-            //byte[] buffer = new byte[512];
-            //int count = socket.Receive(buffer);
-            //if (count > 0)
-            //{
-            //    _writer.Reset();
-            //    _parser.LoadNewBuffer(buffer, count);
-            //    _handshake = new HandshakePacket();
-            //    _handshake.ParsePacket(_parser);
-            //    threadId = _handshake.threadId;
-            //    byte[] token = MakeToken(config.password,
-            //        GetScrollbleBuffer(_handshake.scrambleBuff1, _handshake.scrambleBuff2));
-            //    _writer.IncrementPacketNumber();
-            //    //------------------------------------------
-            //    var authPacket = new ClientAuthenticationPacket();
-            //    authPacket.SetValues(config.user, token, config.database, _handshake.protocol41);
-            //    authPacket.WritePacket(_writer);
-            //    byte[] sendBuff = _writer.ToArray();
-            //    byte[] receiveBuff = new byte[512];
-            //    //-------------------------------------------
-            //    //send data
-            //    int sendNum = socket.Send(sendBuff);
-            //    int receiveNum = socket.Receive(receiveBuff);
-            //    _parser.LoadNewBuffer(receiveBuff, receiveNum);
-            //    if (receiveBuff[4] == 255)
-            //    {
-            //        ErrPacket errPacket = new ErrPacket();
-            //        errPacket.ParsePacket(_parser);
-            //        return;
-            //    }
-            //    else
-            //    {
-            //        OkPacket okPacket = new OkPacket(_handshake.protocol41);
-            //        okPacket.ParsePacket(_parser);
-            //    }
-            //    _writer.Reset();
-            //    GetMaxAllowedPacket();
-            //    _writer.SetMaxAllowedPacket(_maxPacketSize);
-            //}
         }
 
         public bool ConnectedSuccess
@@ -1204,40 +284,8 @@ namespace SharpConnect.MySql.Internal
             private set;
         }
 
-        public void GetMaxAllowedPacket()
-        {
-            _query = CreateQuery("SELECT @@global.max_allowed_packet", null);
-            _query.Execute();
-            if (_query.LoadError != null)
-            {
-                dbugConsole.WriteLine("Error Message : " + _query.LoadError.message);
-            }
-            else if (_query.OkPacket != null)
-            {
-                dbugConsole.WriteLine("OkPacket : " + _query.OkPacket.affectedRows);
-            }
-            else
-            {
-                if (_query.ReadRow())
-                {
-                    _maxPacketSize = _query.Cells[0].myInt64;
-                    _writer.SetMaxAllowedPacket(_maxPacketSize);
-                }
-            }
-        }
 
-        public Query CreateQuery(string sql, CommandParams command)//testing
-        {
-            return new Query(this, sql, command);
-        }
-
-
-        void CreateNewSocket()
-        {
-            socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            Connect();
-        }
-
+        //blocking***
         public void Disconnect()
         {
             _writer.Reset();
@@ -1249,7 +297,7 @@ namespace SharpConnect.MySql.Internal
         public bool IsStoredInConnPool { get; set; }
         public bool IsInUsed { get; set; }
 
-        internal PacketWriter PacketWriter
+        internal MySqlStreamWrtier PacketWriter
         {
             get { return _writer; }
         }
@@ -1258,7 +306,6 @@ namespace SharpConnect.MySql.Internal
         internal void ClearRemainingInputBuffer()
         {
             //TODO: review here again
-
             int lastReceive = 0;
             long allReceive = 0;
             int i = 0;
@@ -1281,31 +328,11 @@ namespace SharpConnect.MySql.Internal
                 dbugConsole.WriteLine("All Receive bytes : " + allReceive);
             }
         }
-        public int SendDataAsync(byte[] sendBuffer, int start, int len, Action<object> whenSendComplete)
+        public void StartSendData(byte[] sendBuffer, int start, int len, Action whenSendComplete)
         {
-            this.whenSendComplete = whenSendComplete;
+            this.whenSendCompleted = whenSendComplete;
             sendIO.EnqueueOutputData(sendBuffer, len);
             sendIO.StartSendAsync();
-            return 0;
-        }
-        public int SendData(byte[] sendBuffer, int start, int len)
-        {
-            return socket.Send(sendBuffer, start, len, SocketFlags.None);
-        }
-        public int ReceiveData(byte[] recvBuffer)
-        {
-            return socket.Receive(recvBuffer);
-        }
-        public int ReceiveData(byte[] recvBuffer, int writePos, int reqLength)
-        {
-            return socket.Receive(recvBuffer, writePos, reqLength, SocketFlags.None);
-        }
-        public int Available
-        {
-            get
-            {
-                return socket.Available;
-            }
         }
         static byte[] GetScrollbleBuffer(byte[] part1, byte[] part2)
         {
@@ -1379,6 +406,10 @@ namespace SharpConnect.MySql.Internal
         public int charsetNumber;
         public int defaultFlags;
         public int clientFlags;
+
+        public int recvBufferSize = 265000; //TODO: review here
+        public int sendBufferSize = 51200;
+
         public ConnectionConfig()
         {
             SetDefault();

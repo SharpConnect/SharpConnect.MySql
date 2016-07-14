@@ -33,6 +33,7 @@ namespace MySqlTest
 #if DEBUG
             Console.WriteLine(info);
 #endif
+
             s_stbuilder.AppendLine(info);
         }
         public static string GetReportText()
