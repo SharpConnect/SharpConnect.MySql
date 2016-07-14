@@ -153,11 +153,16 @@ namespace SharpConnect.MySql.Internal
                     {
                         //process some data
                         //there some data to process  
-                        //parse the data   
-
+                        //parse the data    
                         _mysqlParserMx.ParseData(recvIO);
+                        if (_mysqlParserMx.NeedMoreData)
+                        {
+                            recvIO.StartReceive();//***
+                        }
+                        //--------------------------------------------------------------
                         //please note that: result packet may not ready in first round
-                        if (_mysqlParserMx.ResultPacket != null)
+                        MySqlResult result = _mysqlParserMx.ResultPacket;
+                        if (result != null)
                         {
                             if (whenRecvComplete != null)
                             {
@@ -240,7 +245,7 @@ namespace SharpConnect.MySql.Internal
                 _mysqlParserMx.UseResultParser();
                 //------------------------------------
                 StartSendData(sendBuff, 0, sendBuff.Length, () =>
-                {                  
+                {
                     StartReceive(mysql_result2 =>
                     {
                         var ok = mysql_result2 as MySqlOk;
