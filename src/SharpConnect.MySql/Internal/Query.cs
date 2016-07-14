@@ -28,10 +28,11 @@ namespace SharpConnect.MySql.Internal
     class QueryParsingConfig
     {
         public bool UseLocalTimeZone;
-        public bool DateString;
+        public bool DateStrings;
         public string TimeZone;
         public bool SupportBigNumbers;
         public bool BigNumberStrings;
+        public bool typeCast;
     }
     class Query
     {
@@ -578,7 +579,7 @@ namespace SharpConnect.MySql.Internal
             return found;
         }
 
-        public bool TypeCast { get; set; }
+        public bool TypeCast { get; private set; }
         public bool NestTables { get; set; }
         public QueryParsingConfig ParsingConfig
         {
@@ -586,7 +587,7 @@ namespace SharpConnect.MySql.Internal
             set
             {
                 _config = value;
-
+                this.TypeCast = _config.typeCast;
             }
         }
 

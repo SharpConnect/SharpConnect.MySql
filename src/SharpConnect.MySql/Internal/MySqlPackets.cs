@@ -970,7 +970,7 @@ namespace SharpConnect.MySql.Internal
                         QueryParsingConfig qparsingConfig = _tableHeader.ParsingConfig;
                         tmpStringBuilder.Length = 0;//clear 
                         data.myString = r.ReadLengthCodedString();
-                        if (qparsingConfig.DateString)
+                        if (qparsingConfig.DateStrings)
                         {
                             //return new FieldData<string>(type, dateString);
                             //data.myString = dateString;
