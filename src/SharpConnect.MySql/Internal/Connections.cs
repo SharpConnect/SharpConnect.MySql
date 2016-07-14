@@ -20,7 +20,7 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //THE SOFTWARE.
 
-using System; 
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -207,11 +207,12 @@ namespace SharpConnect.MySql.Internal
                 throw new NotSupportedException("already connected");
             }
 
-            var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
-            socket.Connect(endpoint); //start listen after connect***
-                                      //1. 
             _mysqlParserMx.UseConnectionParser();
             bool connectionIsCompleted = false;
+
+            var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
+            socket.Connect(endpoint);
+            //**start listen after connect
             StartReceive(mysql_result =>
             {
                 //when complete1
@@ -222,7 +223,7 @@ namespace SharpConnect.MySql.Internal
                     //error
                     throw new Exception("err1");
                 }
-                var handshake_packet = handShakeResult.packet;
+                HandshakePacket handshake_packet = handShakeResult.packet;
                 this.threadId = handshake_packet.threadId;
                 byte[] token = MakeToken(config.password,
                    GetScrollbleBuffer(handshake_packet.scrambleBuff1, handshake_packet.scrambleBuff2));
@@ -233,15 +234,13 @@ namespace SharpConnect.MySql.Internal
                 authPacket.SetValues(config.user, token, config.database, isProtocol41 = handshake_packet.protocol41);
                 authPacket.WritePacket(_writer);
                 byte[] sendBuff = _writer.ToArray();
-
+                //------------------------------------
+                //switch to result packet parser  
+                _mysqlParserMx.SetProtocol41(isProtocol41);
+                _mysqlParserMx.UseResultParser();
+                //------------------------------------
                 StartSendData(sendBuff, 0, sendBuff.Length, () =>
-                {
-                    //------------------------------------
-                    //switch to result packet parser  
-                    _mysqlParserMx.SetProtocol41(isProtocol41);
-                    _mysqlParserMx.UseResultParser();
-                    //------------------------------------
-
+                {                  
                     StartReceive(mysql_result2 =>
                     {
                         var ok = mysql_result2 as MySqlOk;
@@ -265,7 +264,6 @@ namespace SharpConnect.MySql.Internal
                             nextAction();
                         }
                     });
-
                 });
             });
             if (nextAction == null)
