@@ -162,7 +162,7 @@ namespace SharpConnect.MySql.Internal
             writer.WriteHeader(_header);
         }
 
-         
+
     }
 
     class ComQueryPacket : Packet
@@ -183,11 +183,19 @@ namespace SharpConnect.MySql.Internal
 
         public override void WritePacket(MySqlStreamWrtier writer)
         {
+            this._header = Write(writer, this._sql);
+        }
+
+        public static PacketHeader Write(MySqlStreamWrtier writer, string sql)
+        {
+            //for those who don't want to alloc an new packet
+            //just write it into a stream
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.QUERY);
-            writer.WriteString(this._sql);
-            _header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
-            writer.WriteHeader(_header);
+            writer.WriteString(sql);
+            var header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            writer.WriteHeader(header);
+            return header;
         }
     }
 
@@ -200,13 +208,19 @@ namespace SharpConnect.MySql.Internal
             //ParsePacketHeader(parser);
             //this.command = parser.ParseByte();
         }
-
         public override void WritePacket(MySqlStreamWrtier writer)
         {
+            this._header = Write(writer);
+        }
+        public static PacketHeader Write(MySqlStreamWrtier writer)
+        {
+            //for those who don't want to alloc an new packet
+            //just write it into a stream
             writer.ReserveHeader();
             writer.WriteUnsigned1((byte)Command.QUIT);
-            _header = new PacketHeader((uint)writer.Length, writer.IncrementPacketNumber());
-            writer.WriteHeader(_header);
+            var h = new PacketHeader((uint)writer.Length, writer.IncrementPacketNumber());
+            writer.WriteHeader(h);
+            return h;
         }
     }
 
@@ -226,11 +240,18 @@ namespace SharpConnect.MySql.Internal
 
         public override void WritePacket(MySqlStreamWrtier writer)
         {
+            this._header = Write(writer, this._sql);
+        }
+        public static PacketHeader Write(MySqlStreamWrtier writer, string sql)
+        {
+            //for those who don't want to alloc an new packet
+            //just write it into a stream
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_PREPARE);
-            writer.WriteString(_sql);
-            _header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
-            writer.WriteHeader(_header);
+            writer.WriteString(sql);
+            var h = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            writer.WriteHeader(h);
+            return h;
         }
     }
 
@@ -252,9 +273,58 @@ namespace SharpConnect.MySql.Internal
 
         public override void WritePacket(MySqlStreamWrtier writer)
         {
+            Write(writer, this._statementId, _prepareValues);
+        }
+
+        static void WriteValueByType(MySqlStreamWrtier writer, ref MyStructData dataTemp)
+        {
+            switch (dataTemp.type)
+            {
+                case Types.VARCHAR:
+                case Types.VAR_STRING:
+                case Types.STRING:
+                    writer.WriteLengthCodedString(dataTemp.myString);
+                    break;
+                case Types.TINY:
+                    writer.WriteUnsignedNumber(1, dataTemp.myUInt32);
+                    break;
+                case Types.SHORT:
+                    var a = dataTemp.myInt32;
+                    writer.WriteUnsignedNumber(2, dataTemp.myUInt32);
+                    break;
+                case Types.LONG:
+                    //writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
+                    writer.WriteUnsignedNumber(4, dataTemp.myUInt32);
+                    break;
+                case Types.LONGLONG:
+                    writer.WriteInt64(dataTemp.myInt64);
+                    break;
+                case Types.FLOAT:
+                    writer.WriteFloat((float)dataTemp.myDouble);
+                    break;
+                case Types.DOUBLE:
+                    writer.WriteDouble(dataTemp.myDouble);
+                    break;
+                case Types.BIT:
+                case Types.BLOB:
+                case Types.MEDIUM_BLOB:
+                case Types.LONG_BLOB:
+                    writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
+                    break;
+                default:
+                    //TODO: review here
+                    throw new NotSupportedException();
+                    //writer.WriteLengthCodedNull();
+            }
+        }
+
+        public static PacketHeader Write(MySqlStreamWrtier writer, uint stmtId, MyStructData[] _prepareValues)
+        {
+            //for those who don't want to alloc an new packet
+            //just write it into a stream
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_EXECUTE);
-            writer.WriteUnsignedNumber(4, _statementId);
+            writer.WriteUnsignedNumber(4, stmtId);
             writer.WriteByte((byte)CursorFlags.CURSOR_TYPE_NO_CURSOR);
             writer.WriteUnsignedNumber(4, 1);//iteration-count, always 1
             //write NULL-bitmap, length: (num-params+7)/8
@@ -309,50 +379,12 @@ namespace SharpConnect.MySql.Internal
             {
                 WriteValueByType(writer, ref _prepareValues[i]);
             }
-            writer.WriteHeader(new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber()));
+            var header = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
+            writer.WriteHeader(header);
+            return header;
         }
 
-        static void WriteValueByType(MySqlStreamWrtier writer, ref MyStructData dataTemp)
-        {
-            switch (dataTemp.type)
-            {
-                case Types.VARCHAR:
-                case Types.VAR_STRING:
-                case Types.STRING:
-                    writer.WriteLengthCodedString(dataTemp.myString);
-                    break;
-                case Types.TINY:
-                    writer.WriteUnsignedNumber(1, dataTemp.myUInt32);
-                    break;
-                case Types.SHORT:
-                    var a = dataTemp.myInt32;
-                    writer.WriteUnsignedNumber(2, dataTemp.myUInt32);
-                    break;
-                case Types.LONG:
-                    //writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
-                    writer.WriteUnsignedNumber(4, dataTemp.myUInt32);
-                    break;
-                case Types.LONGLONG:
-                    writer.WriteInt64(dataTemp.myInt64);
-                    break;
-                case Types.FLOAT:
-                    writer.WriteFloat((float)dataTemp.myDouble);
-                    break;
-                case Types.DOUBLE:
-                    writer.WriteDouble(dataTemp.myDouble);
-                    break;
-                case Types.BIT:
-                case Types.BLOB:
-                case Types.MEDIUM_BLOB:
-                case Types.LONG_BLOB:
-                    writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
-                    break;
-                default:
-                    //TODO: review here
-                    throw new NotSupportedException();
-                    //writer.WriteLengthCodedNull();
-            }
-        }
+
     }
 
     class ComStmtClosePacket : Packet
@@ -367,14 +399,20 @@ namespace SharpConnect.MySql.Internal
         {
             throw new NotImplementedException();
         }
-
         public override void WritePacket(MySqlStreamWrtier writer)
         {
+            _header = Write(writer, _statementId);
+        }
+        public static PacketHeader Write(MySqlStreamWrtier writer, uint stmtId)
+        {
+            //for those who don't want to alloc an new packet
+            //just write it into a stream
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_CLOSE);
-            writer.WriteUnsigned4(_statementId);
-            _header = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
+            writer.WriteUnsigned4(stmtId);
+            var _header = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
             writer.WriteHeader(_header);
+            return _header;
         }
     }
 
@@ -385,24 +423,28 @@ namespace SharpConnect.MySql.Internal
         {
             _statementId = statementId;
         }
-
         public override void ParsePacket(MySqlStreamReader r)
         {
             throw new NotImplementedException();
         }
-
         public override void WritePacket(MySqlStreamWrtier writer)
+        {
+            _header = Write(writer, this._statementId);
+        }
+        public static PacketHeader Write(MySqlStreamWrtier writer, uint stmtId)
         {
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_RESET);
-            writer.WriteUnsigned4(_statementId);
-            _header = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
+            writer.WriteUnsigned4(stmtId);
+            var _header = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
             writer.WriteHeader(_header);
+            return _header;
         }
     }
 
     class ComStmtSendLongDataPacket : Packet
     {
+        //TODO: review here 
         //byte command = (byte)Command.STMT_SEND_LONG_DATA;
         uint _statement_id;
         int _param_id;
@@ -485,16 +527,16 @@ namespace SharpConnect.MySql.Internal
 
         public override void WritePacket(MySqlStreamWrtier writer)
         {
-            writer.ReserveHeader();//allocate packet header
-            writer.WriteUnsigned1(0xfe);
-            if (protocol41)
-            {
-                writer.WriteUnsigned2(warningCount);
-                writer.WriteUnsigned2(serverStatus);
-            }
-
-            _header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
-            writer.WriteHeader(_header);//write packet header
+            throw new NotImplementedException();
+            //writer.ReserveHeader();//allocate packet header
+            //writer.WriteUnsigned1(0xfe);
+            //if (protocol41)
+            //{
+            //    writer.WriteUnsigned2(warningCount);
+            //    writer.WriteUnsigned2(serverStatus);
+            //}
+            //_header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            //writer.WriteHeader(_header);//write packet header
         }
     }
 
@@ -677,6 +719,7 @@ namespace SharpConnect.MySql.Internal
 
         public override void WritePacket(MySqlStreamWrtier writer)
         {
+            throw new NotImplementedException();
             //writer.writeUnsignedNumber(1, this.protocolVersion);
             //writer.writeNullTerminatedString(this.serverVersion);
             //writer.writeUnsignedNumber(4, this.threadId);
@@ -789,11 +832,9 @@ namespace SharpConnect.MySql.Internal
 
         public override void WritePacket(MySqlStreamWrtier writer)
         {
-            writer.ReserveHeader();
+            throw new NotImplementedException();
         }
     }
-
-
 
 
     class DataRowPacket : Packet
