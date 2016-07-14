@@ -518,14 +518,12 @@ namespace SharpConnect.MySql.Internal
                                 _needMoreBuffer = true;
                                 return;
                             }
+
                             ParseFieldHeader(reader);
-                            if ((_currentPacket != null) && (_currentPacket is EofPacket))
-                            {
-                                _parsingState = PrepareResponseParseState.Params_EOF;
-                                break;
-                            }
-                            _parsingState = PrepareResponseParseState.ParamsField_Content;
-                            break;
+
+                            _parsingState = (_currentPacket is EofPacket) ?
+                                PrepareResponseParseState.Params_EOF :
+                                PrepareResponseParseState.ParamsField_Content;
                         }
                         else
                         {
@@ -565,13 +563,12 @@ namespace SharpConnect.MySql.Internal
                                 _needMoreBuffer = true;
                                 return;
                             }
+
                             ParseFieldHeader(reader);
-                            if ((_currentPacket != null) && (_currentPacket is EofPacket))
-                            {
-                                _parsingState = PrepareResponseParseState.ColumnsEOF;
-                                break;
-                            }
-                            _parsingState = PrepareResponseParseState.ColumnsField_Content;
+
+                            _parsingState = (_currentPacket is EofPacket) ?
+                                PrepareResponseParseState.ColumnsEOF :
+                                PrepareResponseParseState.ColumnsField_Content;
                         }
                         else
                         {
