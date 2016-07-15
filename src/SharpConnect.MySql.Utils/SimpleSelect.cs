@@ -197,8 +197,7 @@ namespace SharpConnect.MySql.Utils
     }
     public class SimpleSelect : IHasParameters
     {
-        MySqlCommand _sqlCommand;
-        bool _isPrepared;
+
         string _whereClause;
         static Dictionary<Type, DataRecordTypePlan> typePlanCaches = new Dictionary<Type, DataRecordTypePlan>();
         public SimpleSelect(string targetTableName)

@@ -49,11 +49,17 @@ namespace SharpConnect.MySql.Internal
         SqlStringTemplate _sqlStrTemplate;
         PreparedContext _prepareContext;
         MySqlParserMx _sqlParserMx;
-        Action<MySqlTableResult> tableResultArrived;
 
+        Action<MySqlTableResult> _tableResultListener;
 
         public Query(Connection conn, string sql, CommandParams cmdParams)
+            : this(conn, new SqlStringTemplate(sql), cmdParams)
         {
+        }
+        public Query(Connection conn, SqlStringTemplate sql, CommandParams cmdParams)
+        {
+            //*** query use conn resource such as parser,writer
+            //so 1 query 1 connection      
             if (conn.IsInUsed)
             {
                 //can't use this conn
@@ -64,38 +70,32 @@ namespace SharpConnect.MySql.Internal
             {
                 throw new Exception("Sql command can not null.");
             }
-            if (cmdParams == null)
-            {
-                throw new Exception("Sql cmdParams can not null.");
-            }
             //--------------------------------------------------------------
             this._conn = conn;
             this._cmdParams = cmdParams;
+            //--------------------------------------------------------------
             typeCast = conn.config.typeCast;
             nestTables = false;
-            //index = 0;
-            LoadError = null;
-            //*** query use conn resource such as parser,writer
-            //so 1 query 1 connection             
             _sqlParserMx = conn.MySqlParserMx;
             _writer = conn.PacketWriter;
             //_receiveBuffer = null;
-            _sqlStrTemplate = new SqlStringTemplate(sql);
+            _sqlStrTemplate = sql;
         }
-
-
         public ErrPacket LoadError { get; private set; }
         public OkPacket OkPacket { get; private set; }
-
-        public void SetResultListener(Action<MySqlTableResult> tableResultArrived)
+        public void SetResultListener(Action<MySqlTableResult> tableResultListener)
         {
-            this.tableResultArrived = tableResultArrived;
-
+            this._tableResultListener = tableResultListener;
         }
 
+        bool _globalWaiting = false;
         //*** blocking
         public void Prepare()
         {
+            if (_cmdParams == null)
+            {
+                throw new Exception("Sql cmdParams can not null.");
+            }
             //-------------------
             //blocking method***
             //wait until execute finish 
@@ -109,10 +109,10 @@ namespace SharpConnect.MySql.Internal
                 _writer,
                 _sqlStrTemplate.BindValues(_cmdParams, true));
             //-------------------------------------------------------------
-            bool finished = false;
-            SendAndRecv_A(_writer.ToArray(), () => finished = true);
+            _globalWaiting = true;
+            SendAndRecv_A(_writer.ToArray(), () => _globalWaiting = false);
             //-------------------------------------- 
-            while (!finished) ;//wait *** tight loop
+            while (_globalWaiting) ;//wait *** tight loop
             //-------------------------------------- 
         }
         //*** blocking
@@ -124,51 +124,29 @@ namespace SharpConnect.MySql.Internal
             //-------------------  
             if (nextAction != null)
             {
-
                 if (_prepareContext != null)
                 {
-                    if (_cmdParams == null)
-                    {
-                        nextAction();//**
-                        return;
-                    }
                     ExecutePrepareQuery_A(nextAction);
                 }
                 else
                 {
-                    //TODO: review here 
-                    _prepareContext = null; //***
                     ExecuteNonPrepare_A(nextAction);
                 }
             }
             else
             {
                 //block
-                bool finished = false;
+                _globalWaiting = true;
                 if (_prepareContext != null)
                 {
-                    if (_cmdParams == null)
-                    {
-                        return;
-                    }
-
-                    ExecutePrepareQuery_A(() =>
-                    {
-                        finished = true;
-                    });
+                    ExecutePrepareQuery_A(() => _globalWaiting = false);
                 }
                 else
                 {
-                    //TODO: review here 
-                    _prepareContext = null; //***
-                    ExecuteNonPrepare_A(() =>
-                    {
-                        finished = true;
-                    });
+                    ExecuteNonPrepare_A(() => _globalWaiting = false);
                 }
                 //----------------------------------------- 
-                while (!finished) ; //wait *** tight loop 
-                                    //-----------------------------------------
+                while (_globalWaiting) ; //wait *** tight loop  
             }
         }
         //*** blocking
@@ -178,16 +156,11 @@ namespace SharpConnect.MySql.Internal
             //blocking method***
             //wait until execute finish 
             //------------------- 
-            bool finish = false;
-            ClosePrepareStmt_A(() =>
-            {
-                finish = true;
-            });
+            _globalWaiting = true;
+            ClosePrepareStmt_A(() => _globalWaiting = false);
             //------------------- 
-            while (!finish) ; //wait,** tight loop **
-                              //-------------------  
+            while (_globalWaiting) ; //wait,** tight loop ** 
         }
-
 
         void ExecuteNonPrepare_A(Action nextAction)
         {
@@ -262,9 +235,9 @@ namespace SharpConnect.MySql.Internal
         }
 
 
-        void RecvPacket_A(Action whenFinish)
+        void RecvPacket_A(Action whenRecv)
         {
-            bool isPartial = false;
+
             _conn.StartReceive(result =>
             {
                 if (result == null)
@@ -291,15 +264,16 @@ namespace SharpConnect.MySql.Internal
                         case MySqlResultKind.TableResult:
                             {
                                 MySqlTableResult tableResult = result as MySqlTableResult;
-                                isPartial = tableResult.IsPartialTable;
-                                if (tableResultArrived != null)
+                                //support partial table mode
+                                if (_tableResultListener != null)
                                 {
-                                    tableResultArrived(tableResult);
+                                    _tableResultListener(tableResult);
                                 }
                             }
                             break;
                         case MySqlResultKind.PrepareResponse:
-                            {    //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
+                            { 
+                                //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
                                 //on prepare
                                 MySqlPrepareResponseResult response = result as MySqlPrepareResponseResult;
                                 _prepareContext = new PreparedContext(
@@ -311,7 +285,7 @@ namespace SharpConnect.MySql.Internal
                     }
                 }
                 //-----------------
-                whenFinish();
+                whenRecv();
                 //-----------------
             });
         }
