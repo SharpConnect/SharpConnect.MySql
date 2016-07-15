@@ -118,9 +118,10 @@ namespace SharpConnect.MySql
         {
             //TODO : review here ?
             //we use another connection to kill current th
+
             Connection internalConn = tobeKillConn.Conn;
             string realSql = "KILL " + internalConn.threadId;
-            //sql = "FLUSH QUERY CACHE;";
+            //sql = "FLUSH QUERY CACHE;";             
             Connection killConn = new Connection(internalConn.config);
             killConn.Connect();
             var q = new Query(killConn, realSql, null);
@@ -142,34 +143,6 @@ namespace SharpConnect.MySql
             });
             //wait
             _query.Execute();
-            //--------------
-
-
-            //if (_query.LoadError != null)
-            //{
-            //    dbugConsole.WriteLine("Error Message : " + _query.LoadError.message);
-            //}
-            //else if (_query.OkPacket != null)
-            //{
-            //    dbugConsole.WriteLine("OkPacket : " + _query.OkPacket.affectedRows);
-            //}
-            //else
-            //{
-            //    while (_query.ReadRow())
-            //    {
-            //        long _maxAllowedPacketSize = _query.Cells[0].myInt64;
-            //        if (_maxAllowedPacketSize > int.MaxValue)
-            //        {
-            //            throw new Exception("not support max size > int.Max");
-            //        }
-            //        _conn.PacketWriter.SetMaxAllowedPacket((int)_maxAllowedPacketSize);
-            //    }
-            //    //if (_query.ReadRow())
-            //    //{
-            //    //    long _maxAllowedPacketSize = _query.Cells[0].myInt64;
-            //    //    _conn.PacketWriter.SetMaxAllowedPacket(_maxAllowedPacketSize);
-            //    //}
-            //}
             _query.Close();
         }
     }
@@ -199,7 +172,7 @@ namespace SharpConnect.MySql
             private set;
         }
         public string CommandText { get; private set; }
-        public MySqlConnection Connection { get; set; }
+        public MySqlConnection Connection { get; private set; }
 
         public MySqlDataReader ExecuteReader()
         {

@@ -85,16 +85,14 @@ namespace SharpConnect.MySql.Internal
             //_receiveBuffer = null;
             _sqlStrTemplate = sql;
         }
-
-
         public ErrPacket LoadError { get; private set; }
         public OkPacket OkPacket { get; private set; }
-
         public void SetResultListener(Action<MySqlTableResult> tableResultListener)
         {
             this._tableResultListener = tableResultListener;
         }
 
+        bool _globalWaiting = false;
         //*** blocking
         public void Prepare()
         {
@@ -111,10 +109,10 @@ namespace SharpConnect.MySql.Internal
                 _writer,
                 _sqlStrTemplate.BindValues(_cmdParams, true));
             //-------------------------------------------------------------
-            bool finished = false;
-            SendAndRecv_A(_writer.ToArray(), () => finished = true);
+            _globalWaiting = false;
+            SendAndRecv_A(_writer.ToArray(), () => _globalWaiting = true);
             //-------------------------------------- 
-            while (!finished) ;//wait *** tight loop
+            while (!_globalWaiting) ;//wait *** tight loop
             //-------------------------------------- 
         }
         //*** blocking
@@ -126,7 +124,6 @@ namespace SharpConnect.MySql.Internal
             //-------------------  
             if (nextAction != null)
             {
-
                 if (_prepareContext != null)
                 {
                     if (_cmdParams == null)
@@ -146,31 +143,23 @@ namespace SharpConnect.MySql.Internal
             else
             {
                 //block
-                bool finished = false;
+                _globalWaiting = false;
                 if (_prepareContext != null)
                 {
                     if (_cmdParams == null)
                     {
                         return;
                     }
-
-                    ExecutePrepareQuery_A(() =>
-                    {
-                        finished = true;
-                    });
+                    ExecutePrepareQuery_A(() => _globalWaiting = true);
                 }
                 else
                 {
                     //TODO: review here 
                     _prepareContext = null; //***
-                    ExecuteNonPrepare_A(() =>
-                    {
-                        finished = true;
-                    });
+                    ExecuteNonPrepare_A(() => _globalWaiting = true);
                 }
                 //----------------------------------------- 
-                while (!finished) ; //wait *** tight loop 
-                                    //-----------------------------------------
+                while (!_globalWaiting) ; //wait *** tight loop  
             }
         }
         //*** blocking
@@ -180,16 +169,11 @@ namespace SharpConnect.MySql.Internal
             //blocking method***
             //wait until execute finish 
             //------------------- 
-            bool finish = false;
-            ClosePrepareStmt_A(() =>
-            {
-                finish = true;
-            });
+            _globalWaiting = false;
+            ClosePrepareStmt_A(() => _globalWaiting = true);
             //------------------- 
-            while (!finish) ; //wait,** tight loop **
-                              //-------------------  
+            while (!_globalWaiting) ; //wait,** tight loop ** 
         }
-
 
         void ExecuteNonPrepare_A(Action nextAction)
         {
