@@ -346,7 +346,7 @@ namespace SharpConnect.MySql.Internal
             _currentPacket = errPacket;
             errPacket.ParsePacket(reader);
             //------------------------
-            _parseResult = new MySqlError(errPacket);
+            _parseResult = new MySqlErrorResult(errPacket);
         }
         void ParseOkPacket(MySqlStreamReader reader)
         {
@@ -354,7 +354,7 @@ namespace SharpConnect.MySql.Internal
             okPacket.Header = _curentHeader;
             _currentPacket = okPacket;
             okPacket.ParsePacket(reader);
-            _parseResult = new MySqlOk(okPacket);
+            _parseResult = new MySqlOkResult(okPacket);
         }
         void ParseEOFPacket(MySqlStreamReader reader)
         {
@@ -523,7 +523,7 @@ namespace SharpConnect.MySql.Internal
                         ParseEOFPacket(reader);
                         if (_currentPacket != null)
                         {
-                            _finalResult = new MySqlPrepareResponse(_okPrepare, _tableHeader);
+                            _finalResult = new MySqlPrepareResponseResult(_okPrepare, _tableHeader);
                             _tableHeader = new TableHeader();
                             _parsingState = PrepareResponseParseState.Expect_ColumnsFieldHeader;
                         }
@@ -568,7 +568,7 @@ namespace SharpConnect.MySql.Internal
                     ParseEOFPacket(reader);
                     if (_currentPacket != null)
                     {
-                        _finalResult = new MySqlPrepareResponse(_okPrepare, _tableHeader);
+                        _finalResult = new MySqlPrepareResponseResult(_okPrepare, _tableHeader);
                         _parsingState = PrepareResponseParseState.Should_End;
                     }
                     break;
@@ -634,7 +634,7 @@ namespace SharpConnect.MySql.Internal
             _currentPacket = errPacket;
             errPacket.ParsePacket(reader);
             //------------------------
-            this._finalResult = new MySqlError(errPacket);
+            this._finalResult = new MySqlErrorResult(errPacket);
             _parsingState = PrepareResponseParseState.Should_End;
         }
 

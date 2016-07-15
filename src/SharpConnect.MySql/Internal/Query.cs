@@ -113,9 +113,9 @@ namespace SharpConnect.MySql.Internal
             {
                 _conn.StartReceive(result =>
                 {
-                    if (result is MySqlPrepareResponse)
+                    if (result is MySqlPrepareResponseResult)
                     {
-                        MySqlPrepareResponse response = result as MySqlPrepareResponse;
+                        MySqlPrepareResponseResult response = result as MySqlPrepareResponseResult;
                         _prepareContext = new PreparedContext(
                             response.okPacket.statement_id,
                             _sqlStrTemplate,
@@ -312,13 +312,13 @@ namespace SharpConnect.MySql.Internal
                         default: throw new NotSupportedException();//unknown
                         case MySqlResultKind.Ok:
                             {
-                                MySqlOk ok = result as MySqlOk;
+                                MySqlOkResult ok = result as MySqlOkResult;
                                 OkPacket = ok.okpacket;
                             }
                             break;
                         case MySqlResultKind.Error:
                             {
-                                MySqlError error = result as MySqlError;
+                                MySqlErrorResult error = result as MySqlErrorResult;
                                 LoadError = error.errPacket;
                             }
                             break;

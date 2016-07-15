@@ -295,7 +295,7 @@ namespace SharpConnect.MySql.Internal
                 {
                     StartReceive(mysql_result2 =>
                     {
-                        var ok = mysql_result2 as MySqlOk;
+                        var ok = mysql_result2 as MySqlOkResult;
                         if (ok != null)
                         {
                             this._workingState = WorkingState.Rest;
