@@ -180,10 +180,7 @@ namespace SharpConnect.MySql
     {
         Query _query;
         bool _isPreparedStmt;
-        public MySqlCommand()
-        {
-            Parameters = new CommandParams();
-        }
+      
         public MySqlCommand(string sql, MySqlConnection conn)
         {
             CommandText = sql;
@@ -201,8 +198,9 @@ namespace SharpConnect.MySql
             get;
             private set;
         }
-        public string CommandText { get; set; }
+        public string CommandText { get; private set; }
         public MySqlConnection Connection { get; set; }
+
         public MySqlDataReader ExecuteReader()
         {
             if (_isPreparedStmt)

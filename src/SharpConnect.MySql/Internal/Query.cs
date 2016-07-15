@@ -42,7 +42,7 @@ namespace SharpConnect.MySql.Internal
         public bool typeCast;
         public bool nestTables;
         CommandParams _cmdParams;
-        readonly Connection _conn; 
+        readonly Connection _conn;
         bool _prepareStatementMode;
 
         MySqlStreamWrtier _writer;
@@ -52,7 +52,7 @@ namespace SharpConnect.MySql.Internal
         Action<MySqlTableResult> tableResultArrived;
 
 
-        public Query(Connection conn, string sql, CommandParams cmdParams)//testing
+        public Query(Connection conn, string sql, CommandParams cmdParams)
         {
             if (conn.IsInUsed)
             {
@@ -63,6 +63,10 @@ namespace SharpConnect.MySql.Internal
             if (sql == null)
             {
                 throw new Exception("Sql command can not null.");
+            }
+            if (cmdParams == null)
+            {
+                throw new Exception("Sql cmdParams can not null.");
             }
             //--------------------------------------------------------------
             this._conn = conn;
@@ -97,20 +101,14 @@ namespace SharpConnect.MySql.Internal
             //-------------------
             //prepare sql query             
             _sqlParserMx.UsePrepareResponseParser();
-            _prepareContext = null;
-            if (_cmdParams == null)
-            {
-                return;
-            }
-
-            bool finished = false;
+            _prepareContext = null;  
             //-------------------------------------------------------------
             _writer.Reset();
             ComPrepareStatementPacket.Write(
                 _writer,
                 _sqlStrTemplate.BindValues(_cmdParams, true));
             //-------------------------------------------------------------
-
+            bool finished = false;
             SendPacket_A(_writer.ToArray(), () =>
             {
                 _conn.StartReceive(result =>
@@ -252,7 +250,6 @@ namespace SharpConnect.MySql.Internal
             {
 
                 _sqlParserMx.UseResultParser();
-
                 _writer.Reset();
                 ComStmtClosePacket.Write(_writer, _prepareContext.statementId);
                 //TODO: review here

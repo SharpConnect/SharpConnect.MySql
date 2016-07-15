@@ -47,7 +47,8 @@ namespace SharpConnect.MySql.Internal
         Rest,
         Sending,
         Receiving,
-        Error
+        Error,
+        Disconnected,
     }
 
     /// <summary>
@@ -284,6 +285,7 @@ namespace SharpConnect.MySql.Internal
                 authPacket.SetValues(config.user, token, config.database, isProtocol41 = handshake_packet.protocol41);
                 authPacket.WritePacket(_writer);
                 byte[] sendBuff = _writer.ToArray();
+                _writer.Reset();
                 //------------------------------------
                 //switch to result packet parser  
                 _mysqlParserMx.SetProtocol41(isProtocol41);
@@ -304,9 +306,6 @@ namespace SharpConnect.MySql.Internal
                             //error  
                             _workingState = WorkingState.Error;
                         }
-
-                        //ok
-                        _writer.Reset();
                         //set max allow of the server ***
                         //todo set max allow packet***
                         connectionIsCompleted = true;
@@ -326,15 +325,26 @@ namespace SharpConnect.MySql.Internal
                 //-------------------------------
             }
         }
-
         //blocking***
         public void Disconnect()
         {
             _writer.Reset();
             ComQuitPacket quitPacket = new ComQuitPacket();
             quitPacket.WritePacket(_writer);
-            int send = socket.Send(_writer.ToArray());
-            socket.Disconnect(true);
+            byte[] data = _writer.ToArray();
+
+            bool finished = false; 
+            StartSend(data, 0, data.Length, () =>
+            {
+                StartReceive(r =>
+                {
+                    socket.Disconnect(true);
+                    _workingState = WorkingState.Disconnected;
+                    finished = true;
+                });
+            });
+            //wait ***
+            while (!finished) ;
         }
         public bool IsStoredInConnPool { get; set; }
         public bool IsInUsed { get; set; }
