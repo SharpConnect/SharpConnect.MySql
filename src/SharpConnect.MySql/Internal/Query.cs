@@ -34,6 +34,9 @@ namespace SharpConnect.MySql.Internal
         public bool BigNumberStrings;
         public bool typeCast;
     }
+
+    delegate void Action<T>(T a);
+
     class Query
     {
         public bool typeCast;
@@ -41,8 +44,7 @@ namespace SharpConnect.MySql.Internal
         CommandParams _cmdParams;
         readonly Connection _conn;
         TableHeader _tableHeader;
-        DataRowPacket _latestRow;
-
+       
         bool _hasSomeRow;
         bool _executePrepared;
 
@@ -50,6 +52,8 @@ namespace SharpConnect.MySql.Internal
         SqlStringTemplate _sqlStrTemplate;
         PreparedContext _prepareContext;
         MySqlParserMx _sqlParserMx;
+        Action<MySqlTableResult> tableResultArrived;
+
 
         public Query(Connection conn, string sql, CommandParams cmdParams)//testing
         {
@@ -78,17 +82,15 @@ namespace SharpConnect.MySql.Internal
             _sqlStrTemplate = new SqlStringTemplate(sql);
         }
 
+
         public ErrPacket LoadError { get; private set; }
         public OkPacket OkPacket { get; private set; }
 
-        internal MyStructData[] Cells
+        public void SetResultListener(Action<MySqlTableResult> tableResultArrived)
         {
-            get
-            {
-                return _latestRow.Cells;
-            }
-        }
+            this.tableResultArrived = tableResultArrived;
 
+        }
         //*** blocking
         public void Prepare()
         {
@@ -141,7 +143,7 @@ namespace SharpConnect.MySql.Internal
             //blocking method***
             //wait until execute finish 
             //------------------- 
-            _rowReadIndex = 0;
+            //_rowReadIndex = 0;
             //------------------- 
             if (nextAction != null)
             {
@@ -150,13 +152,14 @@ namespace SharpConnect.MySql.Internal
                 {
                     if (_cmdParams == null)
                     {
-                        nextAction();
+                        nextAction();//**
                         return;
                     }
                     ExecutePrepareQuery_A(nextAction);
                 }
                 else
-                {
+                {   
+                    //TODO: review here 
                     _prepareContext = null; //***
                     ExecuteNonPrepare_A(nextAction);
                 }
@@ -179,8 +182,7 @@ namespace SharpConnect.MySql.Internal
                 }
                 else
                 {
-                    //TODO: review here
-
+                    //TODO: review here 
                     _prepareContext = null; //***
                     ExecuteNonPrepare_A(() =>
                     {
@@ -205,7 +207,7 @@ namespace SharpConnect.MySql.Internal
             {
                 //send complete 
                 //then recev result
-                ParseRecvPacket_A(whenFinish);
+                RecvPacket_A(whenFinish);
             });
         }
 
@@ -226,7 +228,8 @@ namespace SharpConnect.MySql.Internal
             }
             //---------------------------------------------------------------------------------
             ResetPrepareStmt_A(() =>
-            {   //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
+            {
+                //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
                 //---------------------------------------------------------------------------------
                 _executePrepared = true;
                 _sqlParserMx.UseResultParser(true);
@@ -239,7 +242,7 @@ namespace SharpConnect.MySql.Internal
 
                 SendPacket_A(_writer.ToArray(), () =>
                 {
-                    ParseRecvPacket_A(nextAction);
+                    RecvPacket_A(nextAction);
                 });
             });
         }
@@ -273,7 +276,7 @@ namespace SharpConnect.MySql.Internal
                 ComStmtResetPacket.Write(_writer, _prepareContext.statementId);
                 SendPacket_A(_writer.ToArray(), () =>
                 {
-                    ParseRecvPacket_A(nextAction);
+                    RecvPacket_A(nextAction);
                 });
                 //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
             }
@@ -283,94 +286,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        //*** blocking
-        public bool ReadRow()
-        {
-            //-------------------
-            //blocking method***
-            //wait until execute finish 
-            //-------------------  
-            InternalReadRow(); //blocking with tight loop
-            //note that load waiting data may not complete in first round       
-            //we wait here   
-            return _hasSomeRow;
-        }
-
-
-
-
-        int _rowReadIndex = 0;
-        //*** blocking
-        void InternalReadRow()
-        {
-            _hasSomeRow = false;
-            //****
-            //return true when we finish
-            //**** 
-            if (_tableHeader == null)
-            {
-                return; //ok,finish
-            }
-
-            MySqlResult result = _sqlParserMx.ResultPacket;
-            if (result == null)
-            {
-                if (!_sqlParserMx.IsComplete)
-                {
-                    //if not complete then wait until complete
-                    //ResultPacket
-                    //---------------------------------------------------
-                    //** tight loop**
-                    //waiting for data 
-                    while (_sqlParserMx.ResultPacket == null)
-                    {
-                    }
-                    //exit loop when has result packet
-                    result = _sqlParserMx.ResultPacket;
-                    //---------------------------------------------------
-                }
-                else
-                {
-                    throw new NotSupportedException("Unexpected Result Type");
-                }
-            }
-
-            //has some result
-            switch (result.Kind)
-            {
-                case MySqlResultKind.Ok:
-                    MySqlOk ok = result as MySqlOk;
-                    OkPacket = ok.okpacket;
-                    break;
-                case MySqlResultKind.Error:
-                    MySqlError error = result as MySqlError;
-                    LoadError = error.errPacket;
-                    break;
-                case MySqlResultKind.TableResult:
-                    {
-
-                        MySqlTableResult tableResult = _sqlParserMx.ResultPacket as MySqlTableResult;
-                        //TODO: review here
-                        if (_rowReadIndex >= tableResult.rows.Count)
-                        {
-                        }
-                        else
-                        {
-                            var lastRow = tableResult.rows[_rowReadIndex];
-                            _rowReadIndex++;
-                            _latestRow = lastRow;
-                            _hasSomeRow = true; //***
-                        }
-                    }
-                    break;
-                default:
-                    {
-                        //unknown result kind
-                        throw new NotSupportedException();
-                    }
-            }
-        }
-
+    
         public int GetColumnIndex(string colName)
         {
             return _tableHeader.GetFieldIndex(colName);
@@ -407,8 +323,11 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        void ParseRecvPacket_A(Action whenFinish)
+
+
+        void RecvPacket_A(Action whenFinish)
         {
+            bool isPartial = false;
             _conn.StartReceive(result =>
             {
                 if (result == null)
@@ -436,14 +355,17 @@ namespace SharpConnect.MySql.Internal
                             {
                                 MySqlTableResult tableResult = result as MySqlTableResult;
                                 _tableHeader = tableResult.tableHeader;
+                                isPartial = tableResult.IsPartialTable;
+                                if (tableResultArrived != null)
+                                {
+                                    tableResultArrived(tableResult);
+                                }
                             }
                             break;
                     }
-                }
-
+                } 
                 //-----------------
-                //recv complete
-                whenFinish();
+                whenFinish(); 
                 //-----------------
             });
         }
