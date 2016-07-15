@@ -448,6 +448,7 @@ namespace SharpConnect.MySql.Internal
         {
             _finalResult = null;
             while (!StepParse(reader)) ;
+            //StepParse() return true if 
             //1. need more data or
             //2. finish
         }
