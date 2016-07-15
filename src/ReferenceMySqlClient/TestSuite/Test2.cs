@@ -20,13 +20,14 @@ namespace MySqlTest
                 var connStr = GetMySqlConnString();
                 var conn = new MySqlConnection(connStr);
                 conn.Open();
-                
+
                 DropTableIfExists(conn);
                 CreateTable(conn);
-                InsertData(conn);
-                InsertData(conn);
-                InsertData(conn);
-                InsertData(conn);
+                for (int i = 0; i < 2000; ++i)
+                {
+                    InsertData(conn);
+                }
+                SelectDataBack(conn);
                 conn.Close();
             });
 
@@ -52,6 +53,17 @@ namespace MySqlTest
             var cmd = new MySqlCommand(sql, conn);
             cmd.ExecuteNonQuery();
             long lastInsertId = cmd.LastInsertedId;
+        }
+        static void SelectDataBack(MySqlConnection conn)
+        {
+            string sql = "select * from test001";
+            var cmd = new MySqlCommand(sql, conn);
+            var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+
+            }
+            reader.Close();
         }
     }
 }

@@ -25,25 +25,50 @@ using System;
 using System.Collections.Generic;
 namespace SharpConnect.MySql.Internal
 {
+    class QueryParsingConfig
+    {
+        public bool UseLocalTimeZone;
+        public bool DateStrings;
+        public string TimeZone;
+        public bool SupportBigNumbers;
+        public bool BigNumberStrings;
+        public bool typeCast;
+    }
+
+    delegate void Action<T>(T a);
+
+    enum QueryExecState
+    {
+        Rest,
+        Prepare,
+        Exec,
+        Closing,
+        Closed,
+    }
+
     class Query
     {
         public bool typeCast;
         public bool nestTables;
         CommandParams _cmdParams;
         readonly Connection _conn;
-        TableHeader _tableHeader;
-        DataRowPacket _latestRow;
-       
-        bool _hasSomeRow;
-        bool _executePrepared;
+        bool _prepareStatementMode;
 
         MySqlStreamWrtier _writer;
         SqlStringTemplate _sqlStrTemplate;
         PreparedContext _prepareContext;
         MySqlParserMx _sqlParserMx;
+        QueryExecState _execState = QueryExecState.Rest;
+        Action<MySqlTableResult> _tableResultListener;
 
-        public Query(Connection conn, string sql, CommandParams cmdParams)//testing
+        public Query(Connection conn, string sql, CommandParams cmdParams)
+            : this(conn, new SqlStringTemplate(sql), cmdParams)
         {
+        }
+        public Query(Connection conn, SqlStringTemplate sql, CommandParams cmdParams)
+        {
+            //*** query use conn resource such as parser,writer
+            //so 1 query 1 connection      
             if (conn.IsInUsed)
             {
                 //can't use this conn
@@ -57,32 +82,29 @@ namespace SharpConnect.MySql.Internal
             //--------------------------------------------------------------
             this._conn = conn;
             this._cmdParams = cmdParams;
+            //--------------------------------------------------------------
             typeCast = conn.config.typeCast;
             nestTables = false;
-            //index = 0;
-            LoadError = null;
-            //*** query use conn resource such as parser,writer
-            //so 1 query 1 connection             
             _sqlParserMx = conn.MySqlParserMx;
             _writer = conn.PacketWriter;
             //_receiveBuffer = null;
-            _sqlStrTemplate = new SqlStringTemplate(sql);
+            _sqlStrTemplate = sql;
         }
-
         public ErrPacket LoadError { get; private set; }
         public OkPacket OkPacket { get; private set; }
-
-        internal MyStructData[] Cells
+        public void SetResultListener(Action<MySqlTableResult> tableResultListener)
         {
-            get
-            {
-                return _latestRow.Cells;
-            }
+            this._tableResultListener = tableResultListener;
         }
 
-        //*** blocking
-        public void Prepare()
+        //*** +/- blocking
+        public void Prepare(Action nextAction = null)
         {
+            _execState = QueryExecState.Prepare;
+            if (_cmdParams == null)
+            {
+                throw new Exception("Sql cmdParams can not null.");
+            }
             //-------------------
             //blocking method***
             //wait until execute finish 
@@ -90,114 +112,109 @@ namespace SharpConnect.MySql.Internal
             //prepare sql query             
             _sqlParserMx.UsePrepareResponseParser();
             _prepareContext = null;
-            if (_cmdParams == null)
-            {
-                return;
-            }
-
+            //-------------------------------------------------------------
             _writer.Reset();
-            string realSql = _sqlStrTemplate.BindValues(_cmdParams, true);
-            ComPrepareStatementPacket preparePacket = new ComPrepareStatementPacket(realSql);
-            preparePacket.WritePacket(_writer);
+            ComPrepareStatementPacket.Write(
+                _writer,
+                _sqlStrTemplate.BindValues(_cmdParams, true));
             //-------------------------------------------------------------
-            bool finished = false;
-            SendPacket_A(_writer.ToArray(), () =>
+            if (nextAction != null)
             {
-                _conn.StartReceive(result =>
-                {
-                    if (result is MySqlPrepareResponse)
-                    {
-                        MySqlPrepareResponse response = result as MySqlPrepareResponse;
-                        _prepareContext = new PreparedContext(response.okPacket.statement_id, _sqlStrTemplate);
-                        _tableHeader = response.tableHeader;
-                        _prepareContext.Setup(_tableHeader);
-                    }
-                    else//error
-                    {
-                        throw new Exception("Prepare Error");
-                    }
-                    finished = true;
-                });
-            });
-            //-------------------------------------------------------------
-            while (!finished) ;//wait *** tight loop
-            //-------------------------------------------------------------
+                //not block here
+                SendAndRecv_A(_writer.ToArray(), nextAction);
+            }
+            else
+            {
+                //blocking
+                _conn.InitWait();
+                SendAndRecv_A(_writer.ToArray(), _conn.UnWait);
+                _conn.Wait();
+            }
         }
-        //*** blocking
+        //*** +/- blocking
         public void Execute(Action nextAction = null)
         {
+            _execState = QueryExecState.Exec;
             //-------------------
             //blocking method***
             //wait until execute finish 
-            //------------------- 
-            _rowReadIndex = 0;
-            //------------------- 
+            //-------------------  
             if (nextAction != null)
             {
-                //not block
+                //not block here
                 if (_prepareContext != null)
                 {
-                    if (_cmdParams == null)
-                    {
-                        nextAction();
-                        return;
-                    }
                     ExecutePrepareQuery_A(nextAction);
                 }
                 else
                 {
-                    _prepareContext = null; //***
                     ExecuteNonPrepare_A(nextAction);
                 }
             }
             else
             {
                 //block
-                bool finished = false;
+                _conn.InitWait();
                 if (_prepareContext != null)
                 {
-                    if (_cmdParams == null)
-                    {
-                        return;
-                    }
-
-                    ExecutePrepareQuery_A(() =>
-                    {
-                        finished = true;
-                    });
+                    ExecutePrepareQuery_A(_conn.UnWait);
                 }
                 else
                 {
-                    //TODO: review here
-
-                    _prepareContext = null; //***
-                    ExecuteNonPrepare_A(() =>
-                    {
-                        finished = true;
-                    });
+                    ExecuteNonPrepare_A(_conn.UnWait);
                 }
-                //-------------------------------------------------------------
-                while (!finished) ; //wait *** tight loop 
+                _conn.Wait();
             }
         }
 
-        void ExecuteNonPrepare_A(Action whenFinish)
+
+        //*** +/- blocking
+        public void Close(Action nextAction = null)
+        {
+            //-------------------------------------------------
+            if (_execState == QueryExecState.Closed)
+            {
+                if (nextAction != null)
+                {
+                    nextAction();
+                }
+                return; //***
+            }
+
+            _execState = QueryExecState.Closing; //first ***
+            _sqlParserMx.UseFlushMode(true);
+            //---------------------------------------------------
+            //wait where   
+            while (!_recvComplete)
+            {
+                //wait
+                System.Threading.Thread.Sleep(5);
+            }
+            _sqlParserMx.UseFlushMode(false); //switch back
+                                              //---------------------------------------------------
+
+            if (nextAction != null)
+            {
+                Close_A(nextAction);
+            }
+            else
+            {
+                _conn.InitWait();
+                Close_A(_conn.UnWait);
+                _conn.Wait();
+            }
+        }
+
+        void ExecuteNonPrepare_A(Action nextAction)
         {
 
             _sqlParserMx.UseResultParser();
             _writer.Reset();
-            string realSql = _sqlStrTemplate.BindValues(_cmdParams, false);
-            var queryPacket = new ComQueryPacket(realSql);
-            queryPacket.WritePacket(_writer);
-            SendPacket_A(_writer.ToArray(), () =>
-            {
-                //send complete 
-                //then recev result
-                ParseRecvPacket_A(whenFinish);
-            });
+            ComQueryPacket.Write(
+                _writer,
+                _sqlStrTemplate.BindValues(_cmdParams, false));
+            SendAndRecv_A(_writer.ToArray(), nextAction);
         }
-
-
         void ExecutePrepareQuery_A(Action nextAction)
         {
             //make sure that when Finished is called
@@ -207,60 +224,52 @@ namespace SharpConnect.MySql.Internal
                 ExecuteNonPrepare_A(nextAction);
                 return;
             }
-
             if (_prepareContext.statementId == 0)
             {
                 throw new Exception("exec Prepare() first");
             }
-            //---------------------------------------------------------------------------------
+            //------------------------------------------------ 
             ResetPrepareStmt_A(() =>
-            {   //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
-                //---------------------------------------------------------------------------------
-                _executePrepared = true;
-                _writer.Reset();
+            {
+                //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
+                //--------------------------------------------  
+                _prepareStatementMode = true;
                 _sqlParserMx.UseResultParser(true);
+                //-------------------------------------------- 
+                _writer.Reset();
                 //fill prepared values 
-                var excute = new ComExecPrepareStmtPacket(_prepareContext.statementId, _prepareContext.PrepareBoundData(_cmdParams));
-                excute.WritePacket(_writer);
-                SendPacket_A(_writer.ToArray(), () =>
-                {
-                    ParseRecvPacket_A(nextAction);
-                });
+                ComExecPrepareStmtPacket.Write(_writer,
+                _prepareContext.statementId,
+                _prepareContext.PrepareBoundData(_cmdParams));
+                //-------------------------------------------- 
+                SendAndRecv_A(_writer.ToArray(), nextAction);
             });
         }
-
-        //----------------------------------------------------------------------------------
-        void ClosePrepareStmt_A(Action nextAction)
+        void Close_A(Action nextAction)
         {
             if (_prepareContext != null)
             {
-                _writer.Reset();
                 _sqlParserMx.UseResultParser();
-                ComStmtClosePacket closePrepare = new ComStmtClosePacket(_prepareContext.statementId);
-                closePrepare.WritePacket(_writer);
-                //TODO: review here
-                SendPacket_A(_writer.ToArray(), () => nextAction());
-                //SendPacket(_writer.ToArray()); //***
+                _writer.Reset();
+                ComStmtClosePacket.Write(_writer, _prepareContext.statementId);
+                //when close, not wait for recv
+                SendPacket_A(_writer.ToArray(), nextAction);
             }
             else
             {
+                _execState = QueryExecState.Closed;
                 nextAction();
             }
         }
 
         void ResetPrepareStmt_A(Action nextAction)
         {
-            if (_executePrepared && _prepareContext != null)
+            if (_prepareStatementMode && _prepareContext != null)
             {
-                _writer.Reset();
                 _sqlParserMx.UseResultParser();
-                ComStmtResetPacket resetPacket = new ComStmtResetPacket(_prepareContext.statementId);
-                resetPacket.WritePacket(_writer);
-                SendPacket_A(_writer.ToArray(), () =>
-                {
-                    ParseRecvPacket_A(nextAction);
-                });
-                //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
+                _writer.Reset();
+                ComStmtResetPacket.Write(_writer, _prepareContext.statementId);
+                SendAndRecv_A(_writer.ToArray(), nextAction);
             }
             else
             {
@@ -268,132 +277,11 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        //*** blocking
-        public bool ReadRow()
+        bool _recvComplete = true;
+        void RecvPacket_A(Action whenRecv)
         {
-            //-------------------
-            //blocking method***
-            //wait until execute finish 
-            //-------------------  
-            InternalReadRow(); //blocking with tight loop
-            //note that load waiting data may not complete in first round       
-            //we wait here   
-            return _hasSomeRow;
-        }
 
-
-
-
-        int _rowReadIndex = 0;
-        //*** blocking
-        void InternalReadRow()
-        {
-            _hasSomeRow = false;
-            //****
-            //return true when we finish
-            //**** 
-            if (_tableHeader == null)
-            {
-                return; //ok,finish
-            }
-
-            MySqlResult result = _sqlParserMx.ResultPacket;
-            if (result == null)
-            {
-                if (!_sqlParserMx.IsComplete)
-                {
-                    //if not complete then wait until complete
-                    //ResultPacket
-                    //---------------------------------------------------
-                    //** tight loop**
-                    //waiting for data 
-                    while (_sqlParserMx.ResultPacket == null)
-                    {
-                    }
-                    //exit loop when has result packet
-                    result = _sqlParserMx.ResultPacket;
-                    //---------------------------------------------------
-                }
-                else
-                {
-                    throw new NotSupportedException("Unexpected Result Type");
-                }
-            }
-
-            //has some result
-            switch (result.Kind)
-            {
-                case MySqlResultKind.Ok:
-                    MySqlOk ok = result as MySqlOk;
-                    OkPacket = ok.okpacket;
-                    break;
-                case MySqlResultKind.Error:
-                    MySqlError error = result as MySqlError;
-                    LoadError = error.errPacket;
-                    break;
-                case MySqlResultKind.TableResult:
-                    {
-
-                        MySqlTableResult tableResult = _sqlParserMx.ResultPacket as MySqlTableResult;
-                        //TODO: review here
-                        if (_rowReadIndex >= tableResult.rows.Count)
-                        {
-                        }
-                        else
-                        {
-                            var lastRow = tableResult.rows[_rowReadIndex];
-                            _rowReadIndex++;
-                            _latestRow = lastRow;
-                            _hasSomeRow = true; //***
-                        }
-                    }
-                    break;  
-                default:
-                    {
-                        //unknown result kind
-                        throw new NotSupportedException();
-                    }
-            }
-        }
-
-        public int GetColumnIndex(string colName)
-        {
-            return _tableHeader.GetFieldIndex(colName);
-        }
-
-
-        //*** blocking
-        public void Close()
-        {
-            //-------------------
-            //blocking method***
-            //wait until execute finish 
-            //------------------- 
-            bool finish = false;
-            ClosePrepareStmt_A(() =>
-            {
-                finish = true;
-            });
-            //------------------- 
-            while (!finish) ; //** tight loop **
-            //------------------- 
-            if (_hasSomeRow)
-            {
-                //TODO : review here ?
-                //we use another connection to kill current th
-                string realSql = "KILL " + _conn.threadId;
-                //sql = "FLUSH QUERY CACHE;";
-                Connection killConn = new Connection(_conn.config);
-                killConn.Connect();
-                var q = new Query(killConn, realSql, null);
-                q.Execute();
-                _conn.ClearRemainingInputBuffer();
-                killConn.Disconnect();
-            }
-        }
-
-        void ParseRecvPacket_A(Action whenFinish)
-        {
+            _recvComplete = false;
             _conn.StartReceive(result =>
             {
                 if (result == null)
@@ -407,35 +295,61 @@ namespace SharpConnect.MySql.Internal
                         default: throw new NotSupportedException();//unknown
                         case MySqlResultKind.Ok:
                             {
-                                MySqlOk ok = result as MySqlOk;
+                                MySqlOkResult ok = result as MySqlOkResult;
                                 OkPacket = ok.okpacket;
+                                _recvComplete = true;
                             }
                             break;
                         case MySqlResultKind.Error:
                             {
-                                MySqlError error = result as MySqlError;
+                                MySqlErrorResult error = result as MySqlErrorResult;
                                 LoadError = error.errPacket;
+                                _recvComplete = true;
                             }
                             break;
                         case MySqlResultKind.TableResult:
                             {
                                 MySqlTableResult tableResult = result as MySqlTableResult;
-                                _tableHeader = tableResult.tableHeader;
+                                //support partial table mode
+                                _recvComplete = !tableResult.IsPartialTable; //last sub table is not partial table 
+                                if (_tableResultListener != null)
+                                {
+                                    //the _tableResultListener may modifid by other state (Close)
+                                    //if don't lock we need to store it to local var
+                                    _tableResultListener(tableResult);
+                                }
                             }
-                            break; 
+                            break;
+                        case MySqlResultKind.PrepareResponse:
+                            {
+                                //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
+                                //on prepare
+                                MySqlPrepareResponseResult response = result as MySqlPrepareResponseResult;
+                                _prepareContext = new PreparedContext(
+                                    response.okPacket.statement_id,
+                                    _sqlStrTemplate,
+                                    response.tableHeader);
+                                _recvComplete = true;
+                            }
+                            break;
                     }
                 }
-
                 //-----------------
-                //recv complete
-                whenFinish();
+                whenRecv();
                 //-----------------
             });
         }
-        void SendPacket_A(byte[] packetBuffer, Action whenSendComplete)
+        void SendPacket_A(byte[] packetBuffer, Action nextAction)
         {
             //send all to 
-            _conn.StartSendData(packetBuffer, 0, packetBuffer.Length, whenSendComplete);
+            _conn.StartSend(packetBuffer, 0, packetBuffer.Length, nextAction);
+        }
+        void SendAndRecv_A(byte[] packetBuffer, Action onRecv)
+        {
+            _conn.StartSend(packetBuffer, 0, packetBuffer.Length, () =>
+            {
+                RecvPacket_A(onRecv);
+            });
         }
     }
 
@@ -446,29 +360,38 @@ namespace SharpConnect.MySql.Internal
         SqlStringTemplate _sqlStringTemplate;
         MyStructData[] _preparedValues;
         List<SqlBoundSection> _keys;
-        public PreparedContext(uint statementId, SqlStringTemplate sqlStringTemplate)
+        public PreparedContext(uint statementId, SqlStringTemplate sqlStringTemplate, TableHeader tableHeader)
         {
             this.statementId = statementId;
             _sqlStringTemplate = sqlStringTemplate;
             _keys = _sqlStringTemplate.GetValueKeys();
-        }
-        public void Setup(TableHeader tableHeader)
-        {
+            //----------------------------------------------
             _tableHeader = tableHeader;
-            int fieldCount = tableHeader.ColumnCount;
-            _preparedValues = new MyStructData[fieldCount];
-            if (_keys.Count != fieldCount)
+            int serverFieldCount = tableHeader.ColumnCount;
+            //add field information to _keys
+            List<FieldPacket> fields = tableHeader.GetFields();
+            //----------------------------------------------
+            int bindingCount = 0;
+            for (int i = 0; i < serverFieldCount; ++i)
+            {
+                FieldPacket f = fields[i];
+                if (f.name == "?") //
+                {
+                    //this is binding field
+                    _keys[bindingCount].fieldInfo = f;
+                    bindingCount++;
+                }
+            }
+            //some field from server is not binding field
+            //so we select only binding field
+            if (bindingCount != _keys.Count)
             {
                 throw new Exception("key num not matched!");
             }
-            //add field information to _keys
-
-            List<FieldPacket> fields = tableHeader.GetFields();
-            for (int i = 0; i < fieldCount; ++i)
-            {
-                _keys[i].fieldInfo = fields[i];
-            }
+            //-------------------------------------------------
+            _preparedValues = new MyStructData[bindingCount]; //***
         }
+
         public MyStructData[] PrepareBoundData(CommandParams cmdParams)
         {
             //1. check proper type and 
@@ -490,10 +413,7 @@ namespace SharpConnect.MySql.Internal
                     //TODO: check here 
                     //all field type is 253 ?
                     //error
-                    //-------------------------------
-
-
-
+                    //------------------------------- 
                     //check
                     //FieldPacket fieldInfo = key.fieldInfo;
                     //switch ((Types)fieldInfo.type)
@@ -510,6 +430,9 @@ namespace SharpConnect.MySql.Internal
                     //        }
                     //        break;
                     //}
+
+
+
                 }
             }
 
@@ -522,7 +445,7 @@ namespace SharpConnect.MySql.Internal
 
     class TableHeader
     {
-        ConnectionConfig _config;
+        QueryParsingConfig _config;
         List<FieldPacket> _fields;
         Dictionary<string, int> _fieldNamePosMap;
         public TableHeader()
@@ -564,24 +487,16 @@ namespace SharpConnect.MySql.Internal
             return found;
         }
 
-        public bool TypeCast { get; set; }
+        public bool TypeCast { get; private set; }
         public bool NestTables { get; set; }
-        public ConnectionConfig ConnConfig
+        public QueryParsingConfig ParsingConfig
         {
             get { return _config; }
             set
             {
                 _config = value;
-                if (value != null)
-                {
-                    UseLocalTimezone = value.timezone.Equals("local");
-                }
+                this.TypeCast = _config.typeCast;
             }
-        }
-        public bool UseLocalTimezone
-        {
-            get;
-            set;
         }
 
     }

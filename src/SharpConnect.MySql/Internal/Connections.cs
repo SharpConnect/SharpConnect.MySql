@@ -20,7 +20,7 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //THE SOFTWARE.
 
-using System; 
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -42,6 +42,14 @@ namespace SharpConnect.MySql.Internal
         Disconnected,
         Connected
     }
+    enum WorkingState
+    {
+        Rest,
+        Sending,
+        Receiving,
+        Error,
+        Disconnected,
+    }
 
     /// <summary>
     /// core connection session
@@ -49,7 +57,7 @@ namespace SharpConnect.MySql.Internal
     class Connection
     {
         public ConnectionConfig config;
-
+        WorkingState _workingState;
         //---------------------------------
         //core socket connection, send/recv io
         Socket socket;
@@ -58,7 +66,7 @@ namespace SharpConnect.MySql.Internal
         readonly SendIO sendIO;
         readonly int recvBufferSize;
         readonly int sendBufferSize;
-        Action<MySqlResult> whenRecvComplete;
+        Action<MySqlResult> whenRecvData;
         Action whenSendCompleted;
         //---------------------------------
 
@@ -95,6 +103,10 @@ namespace SharpConnect.MySql.Internal
             }
 
             //------------------
+            //we share recvSendArgs between recvIO and sendIO
+            //similar to simple http 
+            //it is simple, (NOT  duplex like web socket)             
+            //------------------
             recvSendArgs = new SocketAsyncEventArgs();
             recvSendArgs.SetBuffer(new byte[recvBufferSize + sendBufferSize], 0, recvBufferSize + sendBufferSize);
             recvIO = new RecvIO(recvSendArgs, recvSendArgs.Offset, recvBufferSize, HandleReceive);
@@ -127,7 +139,11 @@ namespace SharpConnect.MySql.Internal
                 return socket.Connected ? ConnectionState.Connected : ConnectionState.Disconnected;
             }
         }
-
+        public WorkingState WorkingState
+        {
+            get { return _workingState; }
+            private set { _workingState = value; }
+        }
         internal MySqlParserMx MySqlParserMx { get { return _mysqlParserMx; } }
 
         void UnBindSocket(bool keepAlive)
@@ -153,21 +169,58 @@ namespace SharpConnect.MySql.Internal
                     {
                         //process some data
                         //there some data to process  
-                        //parse the data   
-
-                        _mysqlParserMx.ParseData(recvIO);
-                        //please note that: result packet may not ready in first round
-                        if (_mysqlParserMx.ResultPacket != null)
+                        //parse the data    
+#if DEBUG
+                        if (dbugPleaseBreak)
                         {
-                            if (whenRecvComplete != null)
+                        }
+#endif
+
+                        bool needMoreData = _mysqlParserMx.ParseData(recvIO);
+                        //please note that: result packet may not ready in first round
+                        //but parser mx may 'release' some part of the result (eg. large table)
+                        MySqlResult result = _mysqlParserMx.ParseResult; //'release' result 
+                        //---------------------------------------------------------------
+                        if (result != null)
+                        {
+                            //if we has some 'release' result from parser mx
+                            if (needMoreData)
                             {
-                                whenRecvComplete(_mysqlParserMx.ResultPacket);
+                                //this is 'partial result'
+                                if (whenRecvData == null)
+                                {
+                                    //?
+                                }
+                                //-------------------------
+                                //partial release data here
+                                //before recv next
+                                //because we want to 'sync'
+                                //the series of result
+                                whenRecvData(result);
+                                //-------------------------
                             }
+                            else
+                            {
+                                //when recv complete***
+                                Action<MySqlResult> tmpWhenRecvData = whenRecvData;
+                                //delete recv handle **before** invoke it, and
+                                //reset state to 'rest' state
+                                this.whenRecvData = null;
+                                this._workingState = WorkingState.Rest;
+                                tmpWhenRecvData(result);
+                            }
+                        }
+                        //--------------------------
+                        if (needMoreData)
+                        {
+                            //so if it need more data then start receive next
+                            recvIO.StartReceive();//***
                         }
                         else
                         {
-                            //no result packet in this round
+
                         }
+                        //--------------------------
                     }
                     break;
             }
@@ -184,156 +237,211 @@ namespace SharpConnect.MySql.Internal
                     break;
                 case SendIOEventCode.SendComplete:
                     {
-                        if (whenSendCompleted != null)
+                        //save when send complete here
+                        Action tmpWhenSendComplete = whenSendCompleted;
+                        //clear handler
+                        whenSendCompleted = null;
+                        _workingState = WorkingState.Rest;
+                        if (tmpWhenSendComplete != null)
                         {
-                            whenSendCompleted();
+                            //just invoke it
+                            tmpWhenSendComplete();
                         }
+
                     }
                     break;
             }
         }
 
 
-        internal void StartReceive(Action<MySqlResult> whenCompleteAction)
+
+        //----------------------------------------------------------------
+        DateTime _startWait;
+        bool _globalWaiting = false;
+
+        public void InitWait()
         {
-            this.whenRecvComplete = whenCompleteAction;
-            recvIO.StartReceive();
+            if (_globalWaiting)
+            {
+                throw new Exception("we are waiting for something...");
+            }
+            _globalWaiting = true;
+        }
+        public void Wait()
+        {
+            //blocking***
+            //wait *** tight loop
+            //TODO: implement wait logic,timeout logic,cancel logic here*** 
+            //-------------------------------         
+            _startWait = DateTime.Now;
+            while (_globalWaiting) ;  //tight loop,*** wait, or use thread sleep 
+        }
+        public void UnWait()
+        {
+            _globalWaiting = false;
         }
 
+        /// <summary>
+        /// open connection, +/- blocking
+        /// </summary>
+        /// <param name="nextAction"></param>
         public void Connect(Action nextAction = null)
         {
             if (State == ConnectionState.Connected)
             {
                 throw new NotSupportedException("already connected");
             }
-
-            var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
-            socket.Connect(endpoint); //start listen after connect***
-                                      //1. 
             _mysqlParserMx.UseConnectionParser();
-            bool connectionIsCompleted = false;
+            this._workingState = WorkingState.Rest;
+            var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
+            socket.Connect(endpoint);
+            this._workingState = WorkingState.Rest;
+            //**start listen after connect
+            InitWait();
             StartReceive(mysql_result =>
             {
                 //when complete1
                 //create handshake packet and send back
-                var handShakeResult = mysql_result as MySqlHandshakeResult;
-                if (handShakeResult == null)
+                var handshakeResult = mysql_result as MySqlHandshakeResult;
+                if (handshakeResult == null)
                 {
                     //error
                     throw new Exception("err1");
                 }
-                var handshake_packet = handShakeResult.packet;
+                HandshakePacket handshake_packet = handshakeResult.packet;
                 this.threadId = handshake_packet.threadId;
                 byte[] token = MakeToken(config.password,
                    GetScrollbleBuffer(handshake_packet.scrambleBuff1, handshake_packet.scrambleBuff2));
                 _writer.IncrementPacketNumber();
                 //----------------------------
                 //send authen packet to the server
-                var authPacket = new ClientAuthenticationPacket();
+                var authPacket = new ClientAuthenticationPacket(new PacketHeader());
                 authPacket.SetValues(config.user, token, config.database, isProtocol41 = handshake_packet.protocol41);
                 authPacket.WritePacket(_writer);
                 byte[] sendBuff = _writer.ToArray();
-
-                StartSendData(sendBuff, 0, sendBuff.Length, () =>
+                _writer.Reset();
+                //------------------------------------
+                //switch to result packet parser  
+                _mysqlParserMx.SetProtocol41(isProtocol41);
+                _mysqlParserMx.UseResultParser();
+                //------------------------------------
+                StartSend(sendBuff, 0, sendBuff.Length, () =>
                 {
-                    //------------------------------------
-                    //switch to result packet parser  
-                    _mysqlParserMx.SetProtocol41(isProtocol41);
-                    _mysqlParserMx.UseResultParser();
-                    //------------------------------------
-
                     StartReceive(mysql_result2 =>
                     {
-                        var ok = mysql_result2 as MySqlOk;
+                        var ok = mysql_result2 as MySqlOkResult;
                         if (ok != null)
                         {
-                            ConnectedSuccess = true;
+                            this._workingState = WorkingState.Rest;
                         }
                         else
                         {
                             //TODO: review here
-                            //error 
-                            ConnectedSuccess = false;
+                            //error  
+                            _workingState = WorkingState.Error;
                         }
-                        //ok
-                        _writer.Reset();
                         //set max allow of the server ***
                         //todo set max allow packet***
-                        connectionIsCompleted = true;
+                        UnWait();
                         if (nextAction != null)
                         {
                             nextAction();
                         }
                     });
-
                 });
             });
             if (nextAction == null)
             {
-                //exec as sync
-                //so wait until complete
-                //-------------------------------
-                while (!connectionIsCompleted) ;  //tight loop,*** wait, or use thread sleep
-                //-------------------------------
+                //block ....
+                Wait();
+            }
+            else
+            {
+                UnWait();
             }
         }
 
-        public bool ConnectedSuccess
-        {
-            get;
-            private set;
-        }
-
-
-        //blocking***
-        public void Disconnect()
+        /// <summary>
+        /// close conncetion, +/- blocking
+        /// </summary>
+        /// <param name="nextAction"></param>
+        public void Disconnect(Action nextAction = null)
         {
             _writer.Reset();
-            ComQuitPacket quitPacket = new ComQuitPacket();
+            ComQuitPacket quitPacket = new ComQuitPacket(new PacketHeader());
             quitPacket.WritePacket(_writer);
-            int send = socket.Send(_writer.ToArray());
-            socket.Disconnect(true);
+            byte[] data = _writer.ToArray();
+            //-------------------------------------
+            InitWait();
+            StartSend(data, 0, data.Length, () =>
+            {
+                socket.Disconnect(true);
+                _workingState = WorkingState.Disconnected;
+                UnWait();
+                if (nextAction != null)
+                {
+                    nextAction();
+                }
+            });
+            if (nextAction == null)
+            {
+                Wait(); //block
+            }
+            else
+            {
+                UnWait();
+            }
         }
+        //---------------------------------------------------------------
         public bool IsStoredInConnPool { get; set; }
         public bool IsInUsed { get; set; }
-
         internal MySqlStreamWrtier PacketWriter
         {
             get { return _writer; }
         }
         internal bool IsProtocol41 { get { return this.isProtocol41; } }
 
-        internal void ClearRemainingInputBuffer()
+        public void StartSend(byte[] sendBuffer, int start, int len, Action whenSendCompleted)
         {
-            //TODO: review here again
-            int lastReceive = 0;
-            long allReceive = 0;
-            int i = 0;
-            if (socket.Available > 0)
+            //must be in opened state
+            if (_workingState != WorkingState.Rest)
             {
-                if (_tmpForClearRecvBuffer == null)
-                {
-                    _tmpForClearRecvBuffer = new byte[300000];//in test case socket recieve lower than 300,000 bytes
-                }
-
-                while (socket.Available > 0)
-                {
-                    lastReceive = socket.Receive(_tmpForClearRecvBuffer);
-                    allReceive += lastReceive;
-                    i++;
-                    //TODO: review here again
-                    dbugConsole.WriteLine("i : " + i + ", lastReceive : " + lastReceive);
-                    Thread.Sleep(100);
-                }
-                dbugConsole.WriteLine("All Receive bytes : " + allReceive);
+                throw new Exception("sending error: state is not= opened");
             }
-        }
-        public void StartSendData(byte[] sendBuffer, int start, int len, Action whenSendComplete)
-        {
-            this.whenSendCompleted = whenSendComplete;
+            //--------------------------------------------------------------
+#if DEBUG
+            if (this.whenSendCompleted != null)
+            {
+                //must be null 
+                throw new Exception("sending something?...");
+            }
+#endif
+            this.whenSendCompleted = whenSendCompleted;
+            this._workingState = WorkingState.Sending;
             sendIO.EnqueueOutputData(sendBuffer, len);
             sendIO.StartSendAsync();
         }
+        public void StartReceive(Action<MySqlResult> whenCompleteAction)
+        {
+
+            //must be in opened state
+            if (_workingState != WorkingState.Rest)
+            {
+                throw new Exception("sending error: state is not= opened");
+            }
+            //--------------------------------------------------------------
+#if DEBUG
+            if (this.whenRecvData != null)
+            {
+                //must be null 
+                throw new Exception("receving something?...");
+            }
+#endif
+            this.whenRecvData = whenCompleteAction;
+            this._workingState = WorkingState.Receiving;
+            recvIO.StartReceive();
+        }
+
         static byte[] GetScrollbleBuffer(byte[] part1, byte[] part2)
         {
             return ConcatBuffer(part1, part2);
@@ -376,6 +484,9 @@ namespace SharpConnect.MySql.Internal
             }
             return result;
         }
+#if DEBUG
+        public bool dbugPleaseBreak { get; set; }
+#endif
     }
 
     class ConnectionConfig
