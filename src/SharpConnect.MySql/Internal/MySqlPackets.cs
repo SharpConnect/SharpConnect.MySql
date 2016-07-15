@@ -628,8 +628,7 @@ namespace SharpConnect.MySql.Internal
                     //err.code = 'PARSER_INVALID_FILLER';
                     //throw err;
                     throw new Exception("Received invalid filler");
-                }
-
+                } 
                 // parsed flags
                 //this.zeroFill = (this.flags & 0x0040 ? true : false);
                 zeroFill = ((flags & 0x0040) == 0x0040 ? true : false);
@@ -815,10 +814,14 @@ namespace SharpConnect.MySql.Internal
         }
         public override void ParsePacket(MySqlStreamReader r)
         {
+
             ParsePacketHeader(r);
+
             _fieldCount = r.ReadLengthCodedNumber();
             if (r.ReachedPacketEnd())
+            {
                 return;
+            }
             if (_fieldCount == 0)
             {
                 _extraStr = r.ReadPacketTerminatedString();

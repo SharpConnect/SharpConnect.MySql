@@ -125,8 +125,7 @@ namespace SharpConnect.MySql
             Connection killConn = new Connection(internalConn.config);
             killConn.Connect();
             var q = new Query(killConn, realSql, null);
-            q.Execute(); //wait 
-            internalConn.ClearRemainingInputBuffer();
+            q.Execute(); //wait  
             killConn.Disconnect();
         }
         public static void UpdateMaxAllowPacket(this MySqlConnection conn)
@@ -208,7 +207,7 @@ namespace SharpConnect.MySql
                 _query.Execute(nextAction);
             }
         }
-        
+
         public uint LastInsertedId
         {
             get
@@ -259,16 +258,16 @@ namespace SharpConnect.MySql
                 //no current table
                 currentRowIndex = 0;
                 currentTableRows = null;
-                bool hasSomeTables = false;
+                bool hasSomeSubTables = false;
                 lock (subTables)
                 {
                     if (subTables.Count > 0)
                     {
                         currentTableResult = subTables.Dequeue();
-                        hasSomeTables = true;
+                        hasSomeSubTables = true;
                     }
                 }
-                if (!hasSomeTables)
+                if (!hasSomeSubTables)
                 {
                     if (isPartialTable)
                     {
@@ -314,6 +313,11 @@ namespace SharpConnect.MySql
         public void Close()
         {
             _query.Close();
+            currentTableResult = null;
+            currentRowIndex = 0;
+            currentRow = null;
+            subTables.Clear();
+
         }
         public sbyte GetInt8(int colIndex)
         {

@@ -216,6 +216,10 @@ namespace SharpConnect.MySql.Internal
                             //so if it need more data then start receive next
                             recvIO.StartReceive();//***
                         }
+                        else
+                        {
+
+                        }
                         //--------------------------
                     }
                     break;
@@ -249,6 +253,8 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
+
+
         //----------------------------------------------------------------
         DateTime _startWait;
         bool _globalWaiting = false;
@@ -274,6 +280,7 @@ namespace SharpConnect.MySql.Internal
         {
             _globalWaiting = false;
         }
+
         /// <summary>
         /// open connection, +/- blocking
         /// </summary>
@@ -335,7 +342,7 @@ namespace SharpConnect.MySql.Internal
                         }
                         //set max allow of the server ***
                         //todo set max allow packet***
-                        _globalWaiting = false;
+                        UnWait();
                         if (nextAction != null)
                         {
                             nextAction();
@@ -350,7 +357,7 @@ namespace SharpConnect.MySql.Internal
             }
             else
             {
-                _globalWaiting = false;
+                UnWait();
             }
         }
 
@@ -370,7 +377,7 @@ namespace SharpConnect.MySql.Internal
             {
                 socket.Disconnect(true);
                 _workingState = WorkingState.Disconnected;
-                _globalWaiting = false;
+                UnWait();
                 if (nextAction != null)
                 {
                     nextAction();
@@ -382,7 +389,7 @@ namespace SharpConnect.MySql.Internal
             }
             else
             {
-                _globalWaiting = false;
+                UnWait();
             }
         }
         //---------------------------------------------------------------
@@ -394,31 +401,6 @@ namespace SharpConnect.MySql.Internal
         }
         internal bool IsProtocol41 { get { return this.isProtocol41; } }
 
-        internal void ClearRemainingInputBuffer()
-        {
-            //TODO: review here again
-            int lastReceive = 0;
-            long allReceive = 0;
-            int i = 0;
-            if (socket.Available > 0)
-            {
-                if (_tmpForClearRecvBuffer == null)
-                {
-                    _tmpForClearRecvBuffer = new byte[300000];//in test case socket recieve lower than 300,000 bytes
-                }
-
-                while (socket.Available > 0)
-                {
-                    lastReceive = socket.Receive(_tmpForClearRecvBuffer);
-                    allReceive += lastReceive;
-                    i++;
-                    //TODO: review here again
-                    dbugConsole.WriteLine("i : " + i + ", lastReceive : " + lastReceive);
-                    Thread.Sleep(100);
-                }
-                dbugConsole.WriteLine("All Receive bytes : " + allReceive);
-            }
-        }
         public void StartSend(byte[] sendBuffer, int start, int len, Action whenSendCompleted)
         {
             //must be in opened state
@@ -441,6 +423,7 @@ namespace SharpConnect.MySql.Internal
         }
         public void StartReceive(Action<MySqlResult> whenCompleteAction)
         {
+
             //must be in opened state
             if (_workingState != WorkingState.Rest)
             {
