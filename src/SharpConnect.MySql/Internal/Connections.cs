@@ -249,6 +249,9 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
+        //----------------------------------------------------------------
+        bool _globalWaiting = false;
+        //blocking***
         public void Connect(Action nextAction = null)
         {
             if (State == ConnectionState.Connected)
@@ -257,13 +260,14 @@ namespace SharpConnect.MySql.Internal
             }
 
             _mysqlParserMx.UseConnectionParser();
-            bool connectionIsCompleted = false;
+
 
             this._workingState = WorkingState.Rest;
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             socket.Connect(endpoint);
             this._workingState = WorkingState.Rest;
             //**start listen after connect
+            _globalWaiting = true;
             StartReceive(mysql_result =>
             {
                 //when complete1
@@ -308,7 +312,7 @@ namespace SharpConnect.MySql.Internal
                         }
                         //set max allow of the server ***
                         //todo set max allow packet***
-                        connectionIsCompleted = true;
+                        _globalWaiting = false;
                         if (nextAction != null)
                         {
                             nextAction();
@@ -321,9 +325,10 @@ namespace SharpConnect.MySql.Internal
                 //exec as sync
                 //so wait until complete
                 //-------------------------------
-                while (!connectionIsCompleted) ;  //tight loop,*** wait, or use thread sleep
+                while (_globalWaiting) ;  //tight loop,*** wait, or use thread sleep
                 //-------------------------------
             }
+            _globalWaiting = false;
         }
         //blocking***
         public void Disconnect()
@@ -343,9 +348,10 @@ namespace SharpConnect.MySql.Internal
             //wait ***
             while (!finished) ;
         }
+        //----------------------------------------------------------------
+
         public bool IsStoredInConnPool { get; set; }
         public bool IsInUsed { get; set; }
-
         internal MySqlStreamWrtier PacketWriter
         {
             get { return _writer; }
@@ -397,7 +403,7 @@ namespace SharpConnect.MySql.Internal
             sendIO.EnqueueOutputData(sendBuffer, len);
             sendIO.StartSendAsync();
         }
-        internal void StartReceive(Action<MySqlResult> whenCompleteAction)
+        public void StartReceive(Action<MySqlResult> whenCompleteAction)
         {
             //must be in opened state
             if (_workingState != WorkingState.Rest)

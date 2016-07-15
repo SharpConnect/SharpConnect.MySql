@@ -109,10 +109,10 @@ namespace SharpConnect.MySql.Internal
                 _writer,
                 _sqlStrTemplate.BindValues(_cmdParams, true));
             //-------------------------------------------------------------
-            _globalWaiting = false;
-            SendAndRecv_A(_writer.ToArray(), () => _globalWaiting = true);
+            _globalWaiting = true;
+            SendAndRecv_A(_writer.ToArray(), () => _globalWaiting = false);
             //-------------------------------------- 
-            while (!_globalWaiting) ;//wait *** tight loop
+            while (_globalWaiting) ;//wait *** tight loop
             //-------------------------------------- 
         }
         //*** blocking
@@ -136,17 +136,17 @@ namespace SharpConnect.MySql.Internal
             else
             {
                 //block
-                _globalWaiting = false;
+                _globalWaiting = true;
                 if (_prepareContext != null)
                 {
-                    ExecutePrepareQuery_A(() => _globalWaiting = true);
+                    ExecutePrepareQuery_A(() => _globalWaiting = false);
                 }
                 else
                 {
-                    ExecuteNonPrepare_A(() => _globalWaiting = true);
+                    ExecuteNonPrepare_A(() => _globalWaiting = false);
                 }
                 //----------------------------------------- 
-                while (!_globalWaiting) ; //wait *** tight loop  
+                while (_globalWaiting) ; //wait *** tight loop  
             }
         }
         //*** blocking
@@ -156,10 +156,10 @@ namespace SharpConnect.MySql.Internal
             //blocking method***
             //wait until execute finish 
             //------------------- 
-            _globalWaiting = false;
-            ClosePrepareStmt_A(() => _globalWaiting = true);
+            _globalWaiting = true;
+            ClosePrepareStmt_A(() => _globalWaiting = false);
             //------------------- 
-            while (!_globalWaiting) ; //wait,** tight loop ** 
+            while (_globalWaiting) ; //wait,** tight loop ** 
         }
 
         void ExecuteNonPrepare_A(Action nextAction)
