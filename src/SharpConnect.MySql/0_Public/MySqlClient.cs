@@ -1,6 +1,7 @@
 ﻿//MIT, 2015-2016, brezza92, EngineKit and contributors
 
 using System;
+using System.Collections.Generic;
 using SharpConnect.MySql.Internal;
 namespace SharpConnect.MySql
 {
@@ -77,38 +78,6 @@ namespace SharpConnect.MySql
                 _conn.Connect(onComplete);
             }
         }
-        public void UpdateMaxAllowPacket()
-        {
-            var _query = new Query(_conn, "SELECT @@global.max_allowed_packet", null);
-            _query.Execute();
-            if (_query.LoadError != null)
-            {
-                dbugConsole.WriteLine("Error Message : " + _query.LoadError.message);
-            }
-            else if (_query.OkPacket != null)
-            {
-                dbugConsole.WriteLine("OkPacket : " + _query.OkPacket.affectedRows);
-            }
-            else
-            {
-                while (_query.ReadRow())
-                {
-                    long _maxAllowedPacketSize = _query.Cells[0].myInt64;
-                    if (_maxAllowedPacketSize > int.MaxValue)
-                    {
-                        throw new Exception("not support max size > int.Max");
-                    }
-                    _conn.PacketWriter.SetMaxAllowedPacket((int)_maxAllowedPacketSize);
-                }
-                //if (_query.ReadRow())
-                //{
-                //    long _maxAllowedPacketSize = _query.Cells[0].myInt64;
-                //    _conn.PacketWriter.SetMaxAllowedPacket(_maxAllowedPacketSize);
-                //}
-            }
-            _query.Close();
-        }
-
         public void Close()
         {
             if (UseConnectionPool)
@@ -128,11 +97,82 @@ namespace SharpConnect.MySql
             }
         }
 
-        //----------------------------------------------------
-        //test  ...
-        //async socket APIs
+        internal void SetMaxAllowedPacket(int value)
+        {
+            this._conn.PacketWriter.SetMaxAllowedPacket(value);
+        }
+
+#if DEBUG
+        public bool dbugPleaseBreak
+        {
+            get { return _conn.dbugPleaseBreak; }
+            set { _conn.dbugPleaseBreak = value; }
+        }
+#endif
     }
 
+    public static class MySqlConnectionExtension
+    {
+
+        public static void HardKill(this MySqlConnection tobeKillConn)
+        {
+            //TODO : review here ?
+            //we use another connection to kill current th
+            Connection internalConn = tobeKillConn.Conn;
+            string realSql = "KILL " + internalConn.threadId;
+            //sql = "FLUSH QUERY CACHE;";
+            Connection killConn = new Connection(internalConn.config);
+            killConn.Connect();
+            var q = new Query(killConn, realSql, null);
+            q.Execute(); //wait 
+            internalConn.ClearRemainingInputBuffer();
+            killConn.Disconnect();
+        }
+        public static void UpdateMaxAllowPacket(this MySqlConnection conn)
+        {
+            var _query = new Query(conn.Conn, "SELECT @@global.max_allowed_packet", null);
+            _query.SetResultListener(result =>
+            {
+                long value = result.rows[0].Cells[0].myInt64;
+                if (value > int.MaxValue)
+                {
+                    throw new NotSupportedException("not support max allowed packet > int.MaxValue");
+                }
+                conn.SetMaxAllowedPacket((int)value); //cast down
+            });
+            //wait
+            _query.Execute();
+            //--------------
+
+
+            //if (_query.LoadError != null)
+            //{
+            //    dbugConsole.WriteLine("Error Message : " + _query.LoadError.message);
+            //}
+            //else if (_query.OkPacket != null)
+            //{
+            //    dbugConsole.WriteLine("OkPacket : " + _query.OkPacket.affectedRows);
+            //}
+            //else
+            //{
+            //    while (_query.ReadRow())
+            //    {
+            //        long _maxAllowedPacketSize = _query.Cells[0].myInt64;
+            //        if (_maxAllowedPacketSize > int.MaxValue)
+            //        {
+            //            throw new Exception("not support max size > int.Max");
+            //        }
+            //        _conn.PacketWriter.SetMaxAllowedPacket((int)_maxAllowedPacketSize);
+            //    }
+            //    //if (_query.ReadRow())
+            //    //{
+            //    //    long _maxAllowedPacketSize = _query.Cells[0].myInt64;
+            //    //    _conn.PacketWriter.SetMaxAllowedPacket(_maxAllowedPacketSize);
+            //    //}
+            //}
+            _query.Close();
+        }
+    }
 
 
 
@@ -140,10 +180,7 @@ namespace SharpConnect.MySql
     {
         Query _query;
         bool _isPreparedStmt;
-        public MySqlCommand()
-        {
-            Parameters = new CommandParams();
-        }
+
         public MySqlCommand(string sql, MySqlConnection conn)
         {
             CommandText = sql;
@@ -161,14 +198,16 @@ namespace SharpConnect.MySql
             get;
             private set;
         }
-        public string CommandText { get; set; }
+        public string CommandText { get; private set; }
         public MySqlConnection Connection { get; set; }
+
         public MySqlDataReader ExecuteReader()
         {
             if (_isPreparedStmt)
             {
+                var reader = new MySqlDataReader(_query);
                 _query.Execute();
-                return new MySqlDataReader(_query);
+                return reader;
             }
             else
             {
@@ -217,100 +256,154 @@ namespace SharpConnect.MySql
     public class MySqlDataReader
     {
         Query _query;
+        Queue<MySqlTableResult> subTables = new Queue<MySqlTableResult>();
+        MySqlTableResult currentTableResult = null;
+        List<DataRowPacket> currentTableRows;
+        int currentTableRowCount = 0;
+        int currentRowIndex = 0;
+        bool isPartialTable;
+        //
+        DataRowPacket currentRow;
         internal MySqlDataReader(Query query)
         {
             _query = query;
-            //if (query.loadError != null)
-            //{
-
-            //    //Console.WriteLine("Error : " + query.loadError.message);
-            //}
-            //else if (query.okPacket != null)
-            //{
-            //    //Console.WriteLine("i : " + i + ", OkPacket : [affectedRow] >> " + query.okPacket.affectedRows);
-            //    //Console.WriteLine("i : " + i + ", OkPacket : [insertId] >> " + query.okPacket.insertId);
-            //}
-            //else
-            //{
-            //    //while (query.ReadRow())
-            //    //{
-            //    //    //Console.WriteLine(query.GetFieldData("idsaveImage"));
-            //    //    //Console.WriteLine(query.GetFieldData("saveImagecol"));
-            //    //    //Console.WriteLine(query.GetFieldData("myusercol1"));
-            //    //    //j++;
-            //    //}
-            //}
-
+            //start 
+            query.SetResultListener(subtable =>
+            {
+                //we need the subtable must arrive in correct order ***
+                lock (subTables)
+                {
+                    subTables.Enqueue(subtable);
+                    isPartialTable = subtable.IsPartialTable; //***
+                }
+            });
         }
         public bool Read()
         {
-            return _query.ReadRow();
-        }
+            TRY_AGAIN:
+            if (currentTableResult == null)
+            {
+                //no current table
+                currentRowIndex = 0;
+                currentTableRows = null;
+                bool hasSomeTables = false;
+                lock (subTables)
+                {
+                    if (subTables.Count > 0)
+                    {
+                        currentTableResult = subTables.Dequeue();
+                        hasSomeTables = true;
+                    }
+                }
+                if (!hasSomeTables)
+                {
+                    if (isPartialTable)
+                    {
+                        //we are in isPartial table mode (not complete)
+                        //so must wait until the table arrive **
+                        //------------------                    
+                        //wait ***
+                        //------------------
+                        do
+                        {
+                            //do 
+                            System.Threading.Thread.Sleep(1);
+                        } while (isPartialTable);
 
-        public sbyte GetInt8(int colIndex)
-        {
-            //TODO: check match type and check index here
-            return (sbyte)_query.Cells[colIndex].myInt32;
-        }
-        public byte GetUInt8(int colIndex)
-        {
-            //TODO: check match type and check index here
-            return (byte)_query.Cells[colIndex].myInt32;
-        }
-        public short GetInt16(int colIndex)
-        {   //TODO: check match type and check index here
-            return (short)_query.Cells[colIndex].myInt32;
-        }
-        public ushort GetUInt16(int colIndex)
-        {
-            //TODO: check match type and check index here
-            return (ushort)_query.Cells[colIndex].myInt32;
-        }
-
-        public int GetInt32(int colIndex)
-        {
-            //TODO: check match type and check index here
-            return _query.Cells[colIndex].myInt32;
-        }
-        public uint GetUInt32(int colIndex)
-        {
-            //TODO: check match type and check index here
-            return _query.Cells[colIndex].myUInt32;
-        }
-        public long GetLong(int colIndex)
-        {
-            //TODO: check match type and check index here
-            return _query.Cells[colIndex].myInt64;
-        }
-        public ulong GetULong(int colIndex)
-        {
-            //TODO: check match type and check index here
-            return _query.Cells[colIndex].myUInt64;
-        }
-        public decimal GetDecimal(int colIndex)
-        {
-            //TODO: check match type and index here
-            return _query.Cells[colIndex].myDecimal;
-        }
-        public string GetString(int colIndex)
-        {
-            //TODO: check match type and index here
-            return _query.Cells[colIndex].myString;
-        }
-        public byte[] GetBuffer(int colIndex)
-        {
-            //TODO: check match type and index here
-            return _query.Cells[colIndex].myBuffer;
-        }
-
-        public DateTime GetDateTime(int colIndex)
-        {
-            //TODO: check match type and check index here
-            return _query.Cells[colIndex].myDateTime;
+                        goto TRY_AGAIN;
+                    }
+                    else
+                    {
+                        //not in partial table mode
+                        return false;
+                    }
+                }
+                //
+                currentTableRows = currentTableResult.rows;
+                currentTableRowCount = currentTableRows.Count;
+            }
+            //
+            if (currentRowIndex < currentTableRowCount)
+            {
+                //------
+                //Console.WriteLine(currentRowIndex.ToString());
+                //------
+                currentRow = currentTableResult.rows[currentRowIndex];
+                currentRowIndex++;
+                return true;
+            }
+            else
+            {
+                currentTableResult = null;
+                goto TRY_AGAIN;
+            }
         }
         public void Close()
         {
             _query.Close();
         }
+        public sbyte GetInt8(int colIndex)
+        {
+
+            //TODO: check match type and check index here
+            return (sbyte)currentRow.Cells[colIndex].myInt32;
+        }
+        public byte GetUInt8(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return (byte)currentRow.Cells[colIndex].myInt32;
+        }
+        public short GetInt16(int colIndex)
+        {   //TODO: check match type and check index here
+            return (short)currentRow.Cells[colIndex].myInt32;
+        }
+        public ushort GetUInt16(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return (ushort)currentRow.Cells[colIndex].myInt32;
+        }
+
+        public int GetInt32(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myInt32;
+        }
+        public uint GetUInt32(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myUInt32;
+        }
+        public long GetLong(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myInt64;
+        }
+        public ulong GetULong(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myUInt64;
+        }
+        public decimal GetDecimal(int colIndex)
+        {
+            //TODO: check match type and index here
+            return currentRow.Cells[colIndex].myDecimal;
+        }
+        public string GetString(int colIndex)
+        {
+            //TODO: check match type and index here
+            return currentRow.Cells[colIndex].myString;
+        }
+        public byte[] GetBuffer(int colIndex)
+        {
+            //TODO: check match type and index here
+            return currentRow.Cells[colIndex].myBuffer;
+        }
+
+        public DateTime GetDateTime(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myDateTime;
+        }
+
     }
 }

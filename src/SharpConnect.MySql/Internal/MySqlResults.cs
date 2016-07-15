@@ -45,20 +45,20 @@ namespace SharpConnect.MySql.Internal
         }
         public override MySqlResultKind Kind { get { return MySqlResultKind.Handshake; } }
     }
-    class MySqlError : MySqlResult
+    class MySqlErrorResult : MySqlResult
     {
         public readonly ErrPacket errPacket;
-        public MySqlError(ErrPacket errPacket)
+        public MySqlErrorResult(ErrPacket errPacket)
         {
             this.errPacket = errPacket;
             this.IsError = true;
         }
         public override MySqlResultKind Kind { get { return MySqlResultKind.Error; } }
     }
-    class MySqlOk : MySqlResult
+    class MySqlOkResult : MySqlResult
     {
         public readonly OkPacket okpacket;
-        public MySqlOk(OkPacket okpacket)
+        public MySqlOkResult(OkPacket okpacket)
         {
             this.okpacket = okpacket;
         }
@@ -70,11 +70,11 @@ namespace SharpConnect.MySql.Internal
     }
 
 
-    class MySqlPrepareResponse : MySqlResult
+    class MySqlPrepareResponseResult : MySqlResult
     {
         public readonly OkPrepareStmtPacket okPacket;
         public readonly TableHeader tableHeader;
-        public MySqlPrepareResponse(OkPrepareStmtPacket okPrepare, TableHeader tableHeader)
+        public MySqlPrepareResponseResult(OkPrepareStmtPacket okPrepare, TableHeader tableHeader)
         {
             this.okPacket = okPrepare;
             this.tableHeader = tableHeader;
@@ -86,11 +86,13 @@ namespace SharpConnect.MySql.Internal
     {
         public readonly TableHeader tableHeader;
         public readonly List<DataRowPacket> rows;
+
         public MySqlTableResult(TableHeader tableHeader, List<DataRowPacket> rows)
         {
             this.tableHeader = tableHeader;
             this.rows = rows;
         }
+        public bool IsPartialTable { get; set; }
         public override MySqlResultKind Kind { get { return MySqlResultKind.TableResult; } }
     }
 }

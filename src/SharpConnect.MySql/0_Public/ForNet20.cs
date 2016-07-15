@@ -7,4 +7,8 @@ namespace SharpConnect
     public delegate R Func<R>();
     public delegate R Func<T, R>(T t);
 }
+namespace System.Runtime.CompilerServices
+{
+    public class ExtensionAttribute : Attribute { }
+}
 #endif

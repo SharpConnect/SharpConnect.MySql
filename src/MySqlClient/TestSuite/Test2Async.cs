@@ -104,6 +104,7 @@ namespace MySqlTest
                 var cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery(tasks.Next);
             });
+
             tasks.AddTask(() =>
             {
                 string sql = "create table test001(col_id  int(10) unsigned not null auto_increment, col1 int(10)," +
@@ -111,24 +112,17 @@ namespace MySqlTest
                 var cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery(tasks.Next);
             });
-            tasks.AddTask(() =>
+
+            for (int i = 0; i < 2000; ++i)
             {
-                string sql = "insert into test001(col1,col2,col3,col4) values(10,'AA','123456789','0001-01-01')";
-                var cmd = new MySqlCommand(sql, conn);
-                cmd.ExecuteNonQuery(tasks.Next);
-            });
-            tasks.AddTask(() =>
-            {
-                string sql = "insert into test001(col1,col2,col3,col4) values(10,'AA','123456789','0001-01-01')";
-                var cmd = new MySqlCommand(sql, conn);
-                cmd.ExecuteNonQuery(tasks.Next);
-            });
-            tasks.AddTask(() =>
-            {
-                string sql = "insert into test001(col1,col2,col3,col4) values(10,'AA','123456789','0001-01-01')";
-                var cmd = new MySqlCommand(sql, conn);
-                cmd.ExecuteNonQuery(tasks.Next);
-            });
+                tasks.AddTask(() =>
+                {
+                    string sql = "insert into test001(col1,col2,col3,col4) values(10,'AA','123456789','0001-01-01')";
+                    var cmd = new MySqlCommand(sql, conn);
+                    cmd.ExecuteNonQuery(tasks.Next);
+                });
+            }
+
             tasks.AddTask(() =>
             {
                 conn.Close(); tasks.Next();
