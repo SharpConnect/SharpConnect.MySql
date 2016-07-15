@@ -173,7 +173,13 @@ namespace SharpConnect.MySql
         }
         public string CommandText { get; private set; }
         public MySqlConnection Connection { get; private set; }
-
+        public void Prepare()
+        {
+            //prepare sql command;
+            _isPreparedStmt = true;
+            _query = new Query(Connection.Conn, CommandText, Parameters);
+            _query.Prepare();
+        }
         public MySqlDataReader ExecuteReader()
         {
             if (_isPreparedStmt)
@@ -202,13 +208,7 @@ namespace SharpConnect.MySql
                 _query.Execute(nextAction);
             }
         }
-        public void Prepare()
-        {
-            //prepare sql command;
-            _isPreparedStmt = true;
-            _query = new Query(Connection.Conn, CommandText, Parameters);
-            _query.Prepare();
-        }
+        
         public uint LastInsertedId
         {
             get
