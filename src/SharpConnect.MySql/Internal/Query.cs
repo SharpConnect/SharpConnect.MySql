@@ -70,10 +70,6 @@ namespace SharpConnect.MySql.Internal
             {
                 throw new Exception("Sql command can not null.");
             }
-            if (cmdParams == null)
-            {
-                throw new Exception("Sql cmdParams can not null.");
-            }
             //--------------------------------------------------------------
             this._conn = conn;
             this._cmdParams = cmdParams;
@@ -96,6 +92,10 @@ namespace SharpConnect.MySql.Internal
         //*** blocking
         public void Prepare()
         {
+            if (_cmdParams == null)
+            {
+                throw new Exception("Sql cmdParams can not null.");
+            }
             //-------------------
             //blocking method***
             //wait until execute finish 
@@ -126,17 +126,10 @@ namespace SharpConnect.MySql.Internal
             {
                 if (_prepareContext != null)
                 {
-                    if (_cmdParams == null)
-                    {
-                        nextAction();//**
-                        return;
-                    }
                     ExecutePrepareQuery_A(nextAction);
                 }
                 else
                 {
-                    //TODO: review here 
-                    _prepareContext = null; //***
                     ExecuteNonPrepare_A(nextAction);
                 }
             }
@@ -146,16 +139,10 @@ namespace SharpConnect.MySql.Internal
                 _globalWaiting = false;
                 if (_prepareContext != null)
                 {
-                    if (_cmdParams == null)
-                    {
-                        return;
-                    }
                     ExecutePrepareQuery_A(() => _globalWaiting = true);
                 }
                 else
                 {
-                    //TODO: review here 
-                    _prepareContext = null; //***
                     ExecuteNonPrepare_A(() => _globalWaiting = true);
                 }
                 //----------------------------------------- 
