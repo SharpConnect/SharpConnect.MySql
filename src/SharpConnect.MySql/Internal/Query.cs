@@ -89,8 +89,17 @@ namespace SharpConnect.MySql.Internal
         }
 
         bool _globalWaiting = false;
-        //*** blocking
-        public void Prepare()
+        DateTime _startWait;
+        void Wait()
+        {
+            //blocking***
+            //wait *** tight loop
+            //TODO: implement wait logic and timeout here***
+            _startWait = DateTime.Now;
+            while (_globalWaiting) ;
+        }
+        //*** +/- blocking
+        public void Prepare(Action nextAction = null)
         {
             if (_cmdParams == null)
             {
@@ -109,13 +118,21 @@ namespace SharpConnect.MySql.Internal
                 _writer,
                 _sqlStrTemplate.BindValues(_cmdParams, true));
             //-------------------------------------------------------------
-            _globalWaiting = true;
-            SendAndRecv_A(_writer.ToArray(), () => _globalWaiting = false);
-            //-------------------------------------- 
-            while (_globalWaiting) ;//wait *** tight loop
+            if (nextAction != null)
+            {
+                //not block here
+                SendAndRecv_A(_writer.ToArray(), nextAction);
+            }
+            else
+            {
+                //blocking
+                _globalWaiting = true;
+                SendAndRecv_A(_writer.ToArray(), () => _globalWaiting = false);
+                Wait();
+            }
             //-------------------------------------- 
         }
-        //*** blocking
+        //*** +/- blocking
         public void Execute(Action nextAction = null)
         {
             //-------------------
@@ -124,6 +141,7 @@ namespace SharpConnect.MySql.Internal
             //-------------------  
             if (nextAction != null)
             {
+                //not block here
                 if (_prepareContext != null)
                 {
                     ExecutePrepareQuery_A(nextAction);
@@ -145,21 +163,23 @@ namespace SharpConnect.MySql.Internal
                 {
                     ExecuteNonPrepare_A(() => _globalWaiting = false);
                 }
-                //----------------------------------------- 
-                while (_globalWaiting) ; //wait *** tight loop  
+                Wait();
             }
         }
-        //*** blocking
-        public void Close()
+        //*** +/- blocking
+        public void Close(Action nextAction = null)
         {
-            //-------------------
-            //blocking method***
-            //wait until execute finish 
-            //------------------- 
-            _globalWaiting = true;
-            ClosePrepareStmt_A(() => _globalWaiting = false);
-            //------------------- 
-            while (_globalWaiting) ; //wait,** tight loop ** 
+            if (nextAction != null)
+            {
+                ClosePrepareStmt_A(nextAction);
+            }
+            else
+            {
+                _globalWaiting = true;
+                ClosePrepareStmt_A(() => _globalWaiting = false);
+                //------------------- 
+                Wait();
+            }
         }
 
         void ExecuteNonPrepare_A(Action nextAction)
@@ -272,7 +292,7 @@ namespace SharpConnect.MySql.Internal
                             }
                             break;
                         case MySqlResultKind.PrepareResponse:
-                            { 
+                            {
                                 //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
                                 //on prepare
                                 MySqlPrepareResponseResult response = result as MySqlPrepareResponseResult;

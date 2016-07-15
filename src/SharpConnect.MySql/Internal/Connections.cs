@@ -328,7 +328,7 @@ namespace SharpConnect.MySql.Internal
                 while (_globalWaiting) ;  //tight loop,*** wait, or use thread sleep
                 //-------------------------------
             }
-            _globalWaiting = false;
+            
         }
         //blocking***
         public void Disconnect()
