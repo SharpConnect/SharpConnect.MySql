@@ -235,9 +235,9 @@ namespace SharpConnect.MySql.Internal
         }
 
 
-        void RecvPacket_A(Action whenFinish)
+        void RecvPacket_A(Action whenRecv)
         {
-            bool isPartial = false;
+
             _conn.StartReceive(result =>
             {
                 if (result == null)
@@ -264,7 +264,7 @@ namespace SharpConnect.MySql.Internal
                         case MySqlResultKind.TableResult:
                             {
                                 MySqlTableResult tableResult = result as MySqlTableResult;
-                                isPartial = tableResult.IsPartialTable;
+                                //support partial table mode
                                 if (_tableResultListener != null)
                                 {
                                     _tableResultListener(tableResult);
@@ -272,7 +272,8 @@ namespace SharpConnect.MySql.Internal
                             }
                             break;
                         case MySqlResultKind.PrepareResponse:
-                            {    //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
+                            { 
+                                //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
                                 //on prepare
                                 MySqlPrepareResponseResult response = result as MySqlPrepareResponseResult;
                                 _prepareContext = new PreparedContext(
@@ -284,7 +285,7 @@ namespace SharpConnect.MySql.Internal
                     }
                 }
                 //-----------------
-                whenFinish();
+                whenRecv();
                 //-----------------
             });
         }
