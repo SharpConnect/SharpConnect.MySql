@@ -250,24 +250,47 @@ namespace SharpConnect.MySql.Internal
         }
 
         //----------------------------------------------------------------
+        DateTime _startWait;
         bool _globalWaiting = false;
-        //blocking***
+
+        public void InitWait()
+        {
+            if (_globalWaiting)
+            {
+                throw new Exception("we are waiting for something...");
+            }
+            _globalWaiting = true;
+        }
+        public void Wait()
+        {
+            //blocking***
+            //wait *** tight loop
+            //TODO: implement wait logic,timeout logic,cancel logic here*** 
+            //-------------------------------         
+            _startWait = DateTime.Now;
+            while (_globalWaiting) ;  //tight loop,*** wait, or use thread sleep 
+        }
+        public void UnWait()
+        {
+            _globalWaiting = false;
+        }
+        /// <summary>
+        /// open connection, +/- blocking
+        /// </summary>
+        /// <param name="nextAction"></param>
         public void Connect(Action nextAction = null)
         {
             if (State == ConnectionState.Connected)
             {
                 throw new NotSupportedException("already connected");
             }
-
             _mysqlParserMx.UseConnectionParser();
-
-
             this._workingState = WorkingState.Rest;
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             socket.Connect(endpoint);
             this._workingState = WorkingState.Rest;
             //**start listen after connect
-            _globalWaiting = true;
+            InitWait();
             StartReceive(mysql_result =>
             {
                 //when complete1
@@ -322,34 +345,47 @@ namespace SharpConnect.MySql.Internal
             });
             if (nextAction == null)
             {
-                //exec as sync
-                //so wait until complete
-                //-------------------------------
-                while (_globalWaiting) ;  //tight loop,*** wait, or use thread sleep
-                //-------------------------------
+                //block ....
+                Wait();
             }
-            
+            else
+            {
+                _globalWaiting = false;
+            }
         }
-        //blocking***
-        public void Disconnect()
+
+        /// <summary>
+        /// close conncetion, +/- blocking
+        /// </summary>
+        /// <param name="nextAction"></param>
+        public void Disconnect(Action nextAction = null)
         {
             _writer.Reset();
             ComQuitPacket quitPacket = new ComQuitPacket();
             quitPacket.WritePacket(_writer);
             byte[] data = _writer.ToArray();
-
-            bool finished = false;
+            //-------------------------------------
+            InitWait();
             StartSend(data, 0, data.Length, () =>
             {
                 socket.Disconnect(true);
                 _workingState = WorkingState.Disconnected;
-                finished = true;
+                _globalWaiting = false;
+                if (nextAction != null)
+                {
+                    nextAction();
+                }
             });
-            //wait ***
-            while (!finished) ;
+            if (nextAction == null)
+            {
+                Wait(); //block
+            }
+            else
+            {
+                _globalWaiting = false;
+            }
         }
-        //----------------------------------------------------------------
-
+        //---------------------------------------------------------------
         public bool IsStoredInConnPool { get; set; }
         public bool IsInUsed { get; set; }
         internal MySqlStreamWrtier PacketWriter

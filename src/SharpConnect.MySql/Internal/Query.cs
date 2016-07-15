@@ -88,16 +88,6 @@ namespace SharpConnect.MySql.Internal
             this._tableResultListener = tableResultListener;
         }
 
-        bool _globalWaiting = false;
-        DateTime _startWait;
-        void Wait()
-        {
-            //blocking***
-            //wait *** tight loop
-            //TODO: implement wait logic and timeout here***
-            _startWait = DateTime.Now;
-            while (_globalWaiting) ;
-        }
         //*** +/- blocking
         public void Prepare(Action nextAction = null)
         {
@@ -126,11 +116,10 @@ namespace SharpConnect.MySql.Internal
             else
             {
                 //blocking
-                _globalWaiting = true;
-                SendAndRecv_A(_writer.ToArray(), () => _globalWaiting = false);
-                Wait();
+                _conn.InitWait();
+                SendAndRecv_A(_writer.ToArray(), _conn.UnWait);
+                _conn.Wait();
             }
-            //-------------------------------------- 
         }
         //*** +/- blocking
         public void Execute(Action nextAction = null)
@@ -154,16 +143,16 @@ namespace SharpConnect.MySql.Internal
             else
             {
                 //block
-                _globalWaiting = true;
+                _conn.InitWait();
                 if (_prepareContext != null)
                 {
-                    ExecutePrepareQuery_A(() => _globalWaiting = false);
+                    ExecutePrepareQuery_A(_conn.UnWait);
                 }
                 else
                 {
-                    ExecuteNonPrepare_A(() => _globalWaiting = false);
+                    ExecuteNonPrepare_A(_conn.UnWait);
                 }
-                Wait();
+                _conn.Wait();
             }
         }
         //*** +/- blocking
@@ -175,10 +164,9 @@ namespace SharpConnect.MySql.Internal
             }
             else
             {
-                _globalWaiting = true;
-                ClosePrepareStmt_A(() => _globalWaiting = false);
-                //------------------- 
-                Wait();
+                _conn.InitWait();
+                ClosePrepareStmt_A(_conn.UnWait);
+                _conn.Wait();
             }
         }
 
