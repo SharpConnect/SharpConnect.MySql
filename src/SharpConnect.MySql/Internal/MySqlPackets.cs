@@ -47,25 +47,18 @@ namespace SharpConnect.MySql.Internal
         protected PacketHeader _header;
         public Packet(PacketHeader header)
         {
+            //ensure that we have header before parse packet body 
             this._header = header;
         }
-
-        public abstract void ParsePacket(MySqlStreamReader r);
-        public void ParsePacketHeader(MySqlStreamReader r)
-        {
-            if (_header.IsEmpty())
-            {
-                _header = r.ReadPacketHeader();
-            }
-        }
+        /// <summary>
+        /// parse only body part, please ensure content length before parse
+        /// </summary>
+        /// <param name="r"></param>
+        public abstract void ParsePacketContent(MySqlStreamReader r);
 
         public PacketHeader Header
         {
             get { return _header; }
-            set
-            {
-                _header = value;
-            }
         }
         public uint GetPacketLength()
         {
@@ -116,9 +109,9 @@ namespace SharpConnect.MySql.Internal
             this.protocol41 = protocol41;
         }
 
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
-            ParsePacketHeader(r);
+
             if (protocol41)
             {
                 clientFlags = r.U4(); //4
@@ -181,9 +174,9 @@ namespace SharpConnect.MySql.Internal
             _sql = sql;
         }
 
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
-            ParsePacketHeader(r);
+
             _QUERY_CMD = r.U1();//1
             _sql = r.ReadPacketTerminatedString();
         }
@@ -211,7 +204,7 @@ namespace SharpConnect.MySql.Internal
         //const byte QUIT_CMD = (byte)Command.QUIT;//0x01 
         public ComQuitPacket(PacketHeader header)
             : base(header) { }
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
             throw new NotImplementedException();
             //ParsePacketHeader(parser);
@@ -243,7 +236,7 @@ namespace SharpConnect.MySql.Internal
             _sql = sql;
         }
 
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
             throw new NotImplementedException();
         }
@@ -277,7 +270,7 @@ namespace SharpConnect.MySql.Internal
             _statementId = statementId;
             _prepareValues = filledValues;
         }
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
             throw new NotImplementedException();
         }
@@ -406,7 +399,7 @@ namespace SharpConnect.MySql.Internal
         {
             _statementId = statementId;
         }
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
             throw new NotImplementedException();
         }
@@ -435,7 +428,7 @@ namespace SharpConnect.MySql.Internal
         {
             _statementId = statementId;
         }
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
             throw new NotImplementedException();
         }
@@ -469,7 +462,7 @@ namespace SharpConnect.MySql.Internal
             _data = data;
         }
 
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
             throw new NotImplementedException();
         }
@@ -527,9 +520,9 @@ namespace SharpConnect.MySql.Internal
             this.protocol41 = protocol41;
         }
 
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
-            ParsePacketHeader(r);
+
             fieldCount = r.ReadByte();
             if (protocol41)
             {
@@ -561,9 +554,9 @@ namespace SharpConnect.MySql.Internal
         string _sqlState;
         public string message;
         public ErrPacket(PacketHeader header) : base(header) { }
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
-            ParsePacketHeader(r);
+
             _fieldCount = r.ReadByte();
             _errno = r.U2();//2
             if (r.PeekByte() == 0x23)
@@ -612,9 +605,9 @@ namespace SharpConnect.MySql.Internal
         {
             this.protocol41 = protocol41;
         }
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
-            ParsePacketHeader(r);
+
             if (protocol41)
             {
                 catalog = r.ReadLengthCodedString();
@@ -693,10 +686,12 @@ namespace SharpConnect.MySql.Internal
         public byte[] scrambleBuff2;
         public byte filler3;
         public string pluginData;
-        public HandshakePacket(PacketHeader header) : base(header) { }
-        public override void ParsePacket(MySqlStreamReader r)
+        public HandshakePacket(PacketHeader header) : base(header)
         {
-            ParsePacketHeader(r); //4
+        }
+        public override void ParsePacketContent(MySqlStreamReader r)
+        {
+            //we already have header ***
             protocolVersion = r.U1();//1
             serverVertion = r.ReadNullTerminatedString();
             threadId = r.U4();//4
@@ -770,9 +765,9 @@ namespace SharpConnect.MySql.Internal
             _protocol41 = protocol41;
         }
 
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
-            ParsePacketHeader(r);
+
             _fieldCount = r.U1();
             affectedRows = r.ReadLengthCodedNumber();
             insertId = r.ReadLengthCodedNumber();
@@ -806,9 +801,9 @@ namespace SharpConnect.MySql.Internal
         public OkPrepareStmtPacket(PacketHeader header)
             : base(header) { }
 
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
-            ParsePacketHeader(r);
+
             _status = r.ReadByte();//alway 0
             statement_id = r.ReadUnsigedNumber(4);
             num_columns = r.ReadUnsigedNumber(2);
@@ -829,9 +824,9 @@ namespace SharpConnect.MySql.Internal
         uint _extraNumber;
         string _extraStr;
         public ResultSetHeaderPacket(PacketHeader header) : base(header) { }
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
-            ParsePacketHeader(r);
+
             _fieldCount = r.ReadLengthCodedNumber();
             if (r.ReachedPacketEnd())
             {
@@ -865,7 +860,7 @@ namespace SharpConnect.MySql.Internal
             _tableHeader = tableHeader;
             _myDataList = new MyStructData[tableHeader.ColumnCount];
         }
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
             //function parse(parser, fieldPackets, typeCast, nestTables, connection) {
             //  var self = this;
@@ -886,7 +881,7 @@ namespace SharpConnect.MySql.Internal
             //because we don't want to copy entire MyStructData back and forth
             //we just replace some part of it ***
             //---------------------------------------------
-            ParsePacketHeader(r);
+
             List<FieldPacket> fieldInfos = _tableHeader.GetFields();
             int j = _tableHeader.ColumnCount;
             //---------------------------------------------
@@ -1178,11 +1173,11 @@ namespace SharpConnect.MySql.Internal
             : base(header, tableHeader)
         {
         }
-        public override void ParsePacket(MySqlStreamReader r)
+        public override void ParsePacketContent(MySqlStreamReader r)
         {
             var fieldInfos = _tableHeader.GetFields();
             int columnCount = _tableHeader.ColumnCount;
-            ParsePacketHeader(r);
+
             r.ReadFiller(1);//skip start packet byte [00]
             r.ReadFiller((columnCount + 7 + 2) / 8);//skip null-bitmap, length:(column-count+7+2)/8
             for (int i = 0; i < columnCount; i++)

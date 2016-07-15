@@ -174,7 +174,7 @@ namespace SharpConnect.MySql.Internal
                 return;
             }
             //can parse
-            _currentPacket.ParsePacket(reader);
+            _currentPacket.ParsePacketContent(reader);
             _tableHeader = new TableHeader();
             _tableHeader.ParsingConfig = this._config;
             _parsingState = ResultPacketState.Expect_FieldHeader;
@@ -225,7 +225,7 @@ namespace SharpConnect.MySql.Internal
                 return;
             }
 
-            _currentPacket.ParsePacket(reader);
+            _currentPacket.ParsePacketContent(reader);
             //next state => field header of next field
             this._parsingState = ResultPacketState.Expect_FieldHeader;
         }
@@ -316,7 +316,7 @@ namespace SharpConnect.MySql.Internal
             if (ForPrepareResult && !(_currentPacket is PreparedDataRowPacket)) { throw new NotSupportedException(); }
             //-----------------------
 #endif
-            _currentPacket.ParsePacket(reader);
+            _currentPacket.ParsePacketContent(reader);
             if (_generateResultMode)
             {
                 //this is normal mode (opposite to JustFlushOutMode)
@@ -353,7 +353,7 @@ namespace SharpConnect.MySql.Internal
         {
             var errPacket = new ErrPacket(_currentHeader);
             _currentPacket = errPacket;
-            errPacket.ParsePacket(reader);
+            errPacket.ParsePacketContent(reader);
             //------------------------
             _parseResult = new MySqlErrorResult(errPacket);
         }
@@ -361,14 +361,14 @@ namespace SharpConnect.MySql.Internal
         {
             var okPacket = new OkPacket(_currentHeader, this._isProtocol41);
             _currentPacket = okPacket;
-            okPacket.ParsePacket(reader);
+            okPacket.ParsePacketContent(reader);
             _parseResult = new MySqlOkResult(okPacket);
         }
         void ParseEOFPacket(MySqlStreamReader reader)
         {
             var eofPacket = new EofPacket(_currentHeader, this._isProtocol41);
             _currentPacket = eofPacket;
-            eofPacket.ParsePacket(reader);
+            eofPacket.ParsePacketContent(reader);
         }
         public override void Parse(MySqlStreamReader reader)
         {
@@ -642,7 +642,7 @@ namespace SharpConnect.MySql.Internal
                 return;
             }
             var okPrepare = new OkPrepareStmtPacket(_currentHeader);
-            okPrepare.ParsePacket(reader);
+            okPrepare.ParsePacketContent(reader);
             this._okPrepare = okPrepare;
         }
 
@@ -656,7 +656,7 @@ namespace SharpConnect.MySql.Internal
             }
             var errPacket = new ErrPacket(_currentHeader);
             _currentPacket = errPacket;
-            errPacket.ParsePacket(reader);
+            errPacket.ParsePacketContent(reader);
             //------------------------
             this._finalResult = new MySqlErrorResult(errPacket);
             _parsingState = PrepareResponseParseState.Should_End;
@@ -667,7 +667,7 @@ namespace SharpConnect.MySql.Internal
             _currentPacket = null;
             var eofPacket = new EofPacket(_currentHeader, this._isProtocol41);
             _currentPacket = eofPacket;
-            eofPacket.ParsePacket(reader);
+            eofPacket.ParsePacketContent(reader);
         }
 
         void ParseFieldHeader(MySqlStreamReader reader)
@@ -681,7 +681,7 @@ namespace SharpConnect.MySql.Internal
         void ParseFieldPacket(MySqlStreamReader reader)
         {
             FieldPacket field = new FieldPacket(_currentHeader, _isProtocol41);
-            field.ParsePacket(reader);
+            field.ParsePacketContent(reader);
             if (_tableHeader != null)
             {
                 _tableHeader.AddField(field);
@@ -713,8 +713,8 @@ namespace SharpConnect.MySql.Internal
             _handshake = new HandshakePacket(header);
 
             //check if 
-            _handshake.Header = header;
-            _handshake.ParsePacket(reader);
+            
+            _handshake.ParsePacketContent(reader);
             _finalResult = new MySqlHandshakeResult(_handshake);
         }
         public override void Reset()
