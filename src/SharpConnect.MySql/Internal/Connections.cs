@@ -333,15 +333,12 @@ namespace SharpConnect.MySql.Internal
             quitPacket.WritePacket(_writer);
             byte[] data = _writer.ToArray();
 
-            bool finished = false; 
+            bool finished = false;
             StartSend(data, 0, data.Length, () =>
             {
-                StartReceive(r =>
-                {
-                    socket.Disconnect(true);
-                    _workingState = WorkingState.Disconnected;
-                    finished = true;
-                });
+                socket.Disconnect(true);
+                _workingState = WorkingState.Disconnected;
+                finished = true;
             });
             //wait ***
             while (!finished) ;
