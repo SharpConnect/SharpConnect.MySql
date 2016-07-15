@@ -92,6 +92,7 @@ namespace SharpConnect.MySql.Internal
             this.tableResultArrived = tableResultArrived;
 
         }
+
         //*** blocking
         public void Prepare()
         {
@@ -101,7 +102,7 @@ namespace SharpConnect.MySql.Internal
             //-------------------
             //prepare sql query             
             _sqlParserMx.UsePrepareResponseParser();
-            _prepareContext = null;  
+            _prepareContext = null;
             //-------------------------------------------------------------
             _writer.Reset();
             ComPrepareStatementPacket.Write(
@@ -109,28 +110,10 @@ namespace SharpConnect.MySql.Internal
                 _sqlStrTemplate.BindValues(_cmdParams, true));
             //-------------------------------------------------------------
             bool finished = false;
-            SendPacket_A(_writer.ToArray(), () =>
-            {
-                _conn.StartReceive(result =>
-                {
-                    if (result is MySqlPrepareResponseResult)
-                    {
-                        MySqlPrepareResponseResult response = result as MySqlPrepareResponseResult;
-                        _prepareContext = new PreparedContext(
-                            response.okPacket.statement_id,
-                            _sqlStrTemplate,
-                            response.tableHeader);
-                    }
-                    else//error
-                    {
-                        throw new Exception("Prepare Error");
-                    }
-                    finished = true;
-                });
-            });
-            //-------------------------------------------------------------
+            SendAndRecv_A(_writer.ToArray(), () => finished = true);
+            //-------------------------------------- 
             while (!finished) ;//wait *** tight loop
-            //-------------------------------------------------------------
+            //-------------------------------------- 
         }
         //*** blocking
         public void Execute(Action nextAction = null)
@@ -138,12 +121,10 @@ namespace SharpConnect.MySql.Internal
             //-------------------
             //blocking method***
             //wait until execute finish 
-            //------------------- 
-            //_rowReadIndex = 0;
-            //------------------- 
+            //-------------------  
             if (nextAction != null)
             {
-                //not block
+
                 if (_prepareContext != null)
                 {
                     if (_cmdParams == null)
@@ -185,12 +166,30 @@ namespace SharpConnect.MySql.Internal
                         finished = true;
                     });
                 }
-                //-------------------------------------------------------------
+                //----------------------------------------- 
                 while (!finished) ; //wait *** tight loop 
+                                    //-----------------------------------------
             }
         }
+        //*** blocking
+        public void Close()
+        {
+            //-------------------
+            //blocking method***
+            //wait until execute finish 
+            //------------------- 
+            bool finish = false;
+            ClosePrepareStmt_A(() =>
+            {
+                finish = true;
+            });
+            //------------------- 
+            while (!finish) ; //wait,** tight loop **
+                              //-------------------  
+        }
 
-        void ExecuteNonPrepare_A(Action whenFinish)
+
+        void ExecuteNonPrepare_A(Action nextAction)
         {
 
             _sqlParserMx.UseResultParser();
@@ -198,16 +197,8 @@ namespace SharpConnect.MySql.Internal
             ComQueryPacket.Write(
                 _writer,
                 _sqlStrTemplate.BindValues(_cmdParams, false));
-
-            SendPacket_A(_writer.ToArray(), () =>
-            {
-                //send complete 
-                //then recev result
-                RecvPacket_A(whenFinish);
-            });
+            SendAndRecv_A(_writer.ToArray(), nextAction);
         }
-
-
         void ExecutePrepareQuery_A(Action nextAction)
         {
             //make sure that when Finished is called
@@ -217,29 +208,25 @@ namespace SharpConnect.MySql.Internal
                 ExecuteNonPrepare_A(nextAction);
                 return;
             }
-
             if (_prepareContext.statementId == 0)
             {
                 throw new Exception("exec Prepare() first");
             }
-            //---------------------------------------------------------------------------------
+            //------------------------------------------------ 
             ResetPrepareStmt_A(() =>
             {
                 //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
-                //---------------------------------------------------------------------------------
+                //--------------------------------------------  
                 _prepareStatementMode = true;
                 _sqlParserMx.UseResultParser(true);
+                //-------------------------------------------- 
                 _writer.Reset();
-
                 //fill prepared values 
                 ComExecPrepareStmtPacket.Write(_writer,
-                    _prepareContext.statementId,
-                    _prepareContext.PrepareBoundData(_cmdParams));
-
-                SendPacket_A(_writer.ToArray(), () =>
-                {
-                    RecvPacket_A(nextAction);
-                });
+                _prepareContext.statementId,
+                _prepareContext.PrepareBoundData(_cmdParams));
+                //-------------------------------------------- 
+                SendAndRecv_A(_writer.ToArray(), nextAction);
             });
         }
 
@@ -248,12 +235,10 @@ namespace SharpConnect.MySql.Internal
         {
             if (_prepareContext != null)
             {
-
                 _sqlParserMx.UseResultParser();
                 _writer.Reset();
                 ComStmtClosePacket.Write(_writer, _prepareContext.statementId);
-                //TODO: review here
-                SendPacket_A(_writer.ToArray(), nextAction);
+                SendAndRecv_A(_writer.ToArray(), nextAction);
             }
             else
             {
@@ -268,11 +253,7 @@ namespace SharpConnect.MySql.Internal
                 _sqlParserMx.UseResultParser();
                 _writer.Reset();
                 ComStmtResetPacket.Write(_writer, _prepareContext.statementId);
-                SendPacket_A(_writer.ToArray(), () =>
-                {
-                    RecvPacket_A(nextAction);
-                });
-                //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
+                SendAndRecv_A(_writer.ToArray(), nextAction);
             }
             else
             {
@@ -280,22 +261,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        //*** blocking
-        public void Close()
-        {
-            //-------------------
-            //blocking method***
-            //wait until execute finish 
-            //------------------- 
-            bool finish = false;
-            ClosePrepareStmt_A(() =>
-            {
-                finish = true;
-            });
-            //------------------- 
-            while (!finish) ; //** tight loop **
-            //-------------------  
-        }
+
         void RecvPacket_A(Action whenFinish)
         {
             bool isPartial = false;
@@ -332,6 +298,16 @@ namespace SharpConnect.MySql.Internal
                                 }
                             }
                             break;
+                        case MySqlResultKind.PrepareResponse:
+                            {    //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
+                                //on prepare
+                                MySqlPrepareResponseResult response = result as MySqlPrepareResponseResult;
+                                _prepareContext = new PreparedContext(
+                                    response.okPacket.statement_id,
+                                    _sqlStrTemplate,
+                                    response.tableHeader);
+                            }
+                            break;
                     }
                 }
                 //-----------------
@@ -343,6 +319,13 @@ namespace SharpConnect.MySql.Internal
         {
             //send all to 
             _conn.StartSend(packetBuffer, 0, packetBuffer.Length, nextAction);
+        }
+        void SendAndRecv_A(byte[] packetBuffer, Action onRecv)
+        {
+            _conn.StartSend(packetBuffer, 0, packetBuffer.Length, () =>
+            {
+                RecvPacket_A(onRecv);
+            });
         }
     }
 
