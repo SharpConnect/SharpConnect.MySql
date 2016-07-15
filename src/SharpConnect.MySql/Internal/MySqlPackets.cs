@@ -521,16 +521,14 @@ namespace SharpConnect.MySql.Internal
         }
 
         public override void ParsePacketContent(MySqlStreamReader r)
-        {
-
+        { 
             fieldCount = r.ReadByte();
             if (protocol41)
             {
                 warningCount = r.U2();//2
                 serverStatus = r.U2();//2
             }
-        }
-
+        } 
         public override void WritePacket(MySqlStreamWrtier writer)
         {
             throw new NotImplementedException();
