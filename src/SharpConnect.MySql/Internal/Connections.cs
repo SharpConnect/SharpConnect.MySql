@@ -315,7 +315,7 @@ namespace SharpConnect.MySql.Internal
                 _writer.IncrementPacketNumber();
                 //----------------------------
                 //send authen packet to the server
-                var authPacket = new ClientAuthenticationPacket();
+                var authPacket = new ClientAuthenticationPacket(new PacketHeader());
                 authPacket.SetValues(config.user, token, config.database, isProtocol41 = handshake_packet.protocol41);
                 authPacket.WritePacket(_writer);
                 byte[] sendBuff = _writer.ToArray();
@@ -368,7 +368,7 @@ namespace SharpConnect.MySql.Internal
         public void Disconnect(Action nextAction = null)
         {
             _writer.Reset();
-            ComQuitPacket quitPacket = new ComQuitPacket();
+            ComQuitPacket quitPacket = new ComQuitPacket(new PacketHeader());
             quitPacket.WritePacket(_writer);
             byte[] data = _writer.ToArray();
             //-------------------------------------

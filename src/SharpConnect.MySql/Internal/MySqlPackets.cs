@@ -45,6 +45,11 @@ namespace SharpConnect.MySql.Internal
     abstract class Packet
     {
         protected PacketHeader _header;
+        public Packet(PacketHeader header)
+        {
+            this._header = header;
+        }
+
         public abstract void ParsePacket(MySqlStreamReader r);
         public void ParsePacketHeader(MySqlStreamReader r)
         {
@@ -83,7 +88,8 @@ namespace SharpConnect.MySql.Internal
         public byte[] scrambleBuff;
         public string database;
         public bool protocol41;
-        public ClientAuthenticationPacket()
+        public ClientAuthenticationPacket(PacketHeader header)
+            : base(header)
         {
             SetDefaultValues();
         }
@@ -169,7 +175,8 @@ namespace SharpConnect.MySql.Internal
     {
         byte _QUERY_CMD = (byte)Command.QUERY;//0x03
         string _sql;
-        public ComQueryPacket(string sql)
+        public ComQueryPacket(PacketHeader header, string sql)
+            : base(header)
         {
             _sql = sql;
         }
@@ -202,6 +209,8 @@ namespace SharpConnect.MySql.Internal
     class ComQuitPacket : Packet
     {
         //const byte QUIT_CMD = (byte)Command.QUIT;//0x01 
+        public ComQuitPacket(PacketHeader header)
+            : base(header) { }
         public override void ParsePacket(MySqlStreamReader r)
         {
             throw new NotImplementedException();
@@ -228,7 +237,8 @@ namespace SharpConnect.MySql.Internal
     {
         //byte PREPARE_CMD = (byte)Command.STMT_PREPARE;
         string _sql;
-        public ComPrepareStatementPacket(string sql)
+        public ComPrepareStatementPacket(PacketHeader header, string sql)
+            : base(header)
         {
             _sql = sql;
         }
@@ -261,7 +271,8 @@ namespace SharpConnect.MySql.Internal
 
         readonly uint _statementId;
         readonly MyStructData[] _prepareValues;
-        public ComExecPrepareStmtPacket(uint statementId, MyStructData[] filledValues)
+        public ComExecPrepareStmtPacket(PacketHeader header, uint statementId, MyStructData[] filledValues)
+            : base(header)
         {
             _statementId = statementId;
             _prepareValues = filledValues;
@@ -390,11 +401,11 @@ namespace SharpConnect.MySql.Internal
     class ComStmtClosePacket : Packet
     {
         uint _statementId;
-        public ComStmtClosePacket(uint statementId)
+        public ComStmtClosePacket(PacketHeader header, uint statementId)
+            : base(header)
         {
             _statementId = statementId;
         }
-
         public override void ParsePacket(MySqlStreamReader r)
         {
             throw new NotImplementedException();
@@ -419,7 +430,8 @@ namespace SharpConnect.MySql.Internal
     class ComStmtResetPacket : Packet
     {
         uint _statementId;
-        public ComStmtResetPacket(uint statementId)
+        public ComStmtResetPacket(PacketHeader header, uint statementId)
+            : base(header)
         {
             _statementId = statementId;
         }
@@ -449,7 +461,8 @@ namespace SharpConnect.MySql.Internal
         uint _statement_id;
         int _param_id;
         MyStructData _data;
-        public ComStmtSendLongDataPacket(uint statement_id, int param_id, MyStructData data)
+        public ComStmtSendLongDataPacket(PacketHeader header, uint statement_id, int param_id, MyStructData data)
+            : base(header)
         {
             _statement_id = statement_id;
             _param_id = param_id;
@@ -509,7 +522,7 @@ namespace SharpConnect.MySql.Internal
         public uint warningCount;
         public uint serverStatus;
         public bool protocol41;
-        public EofPacket(bool protocol41)
+        public EofPacket(PacketHeader header, bool protocol41) : base(header)
         {
             this.protocol41 = protocol41;
         }
@@ -547,6 +560,7 @@ namespace SharpConnect.MySql.Internal
         char _sqlStateMarker;
         string _sqlState;
         public string message;
+        public ErrPacket(PacketHeader header) : base(header) { }
         public override void ParsePacket(MySqlStreamReader r)
         {
             ParsePacketHeader(r);
@@ -592,11 +606,12 @@ namespace SharpConnect.MySql.Internal
         public bool zeroFill;
         public string strDefault;
         public bool protocol41;
-        public FieldPacket(bool protocol41)
+
+        public FieldPacket(PacketHeader header, bool protocol41)
+            : base(header)
         {
             this.protocol41 = protocol41;
         }
-
         public override void ParsePacket(MySqlStreamReader r)
         {
             ParsePacketHeader(r);
@@ -628,7 +643,7 @@ namespace SharpConnect.MySql.Internal
                     //err.code = 'PARSER_INVALID_FILLER';
                     //throw err;
                     throw new Exception("Received invalid filler");
-                } 
+                }
                 // parsed flags
                 //this.zeroFill = (this.flags & 0x0040 ? true : false);
                 zeroFill = ((flags & 0x0040) == 0x0040 ? true : false);
@@ -678,6 +693,7 @@ namespace SharpConnect.MySql.Internal
         public byte[] scrambleBuff2;
         public byte filler3;
         public string pluginData;
+        public HandshakePacket(PacketHeader header) : base(header) { }
         public override void ParsePacket(MySqlStreamReader r)
         {
             ParsePacketHeader(r); //4
@@ -749,7 +765,7 @@ namespace SharpConnect.MySql.Internal
         uint _warningCount;
         string _message;
         bool _protocol41;
-        public OkPacket(bool protocol41)
+        public OkPacket(PacketHeader header, bool protocol41) : base(header)
         {
             _protocol41 = protocol41;
         }
@@ -787,6 +803,9 @@ namespace SharpConnect.MySql.Internal
         public uint num_columns;
         public uint num_params;
         public uint waring_count;
+        public OkPrepareStmtPacket(PacketHeader header)
+            : base(header) { }
+
         public override void ParsePacket(MySqlStreamReader r)
         {
             ParsePacketHeader(r);
@@ -809,14 +828,10 @@ namespace SharpConnect.MySql.Internal
         long _fieldCount;
         uint _extraNumber;
         string _extraStr;
-        public ResultSetHeaderPacket()
-        {
-        }
+        public ResultSetHeaderPacket(PacketHeader header) : base(header) { }
         public override void ParsePacket(MySqlStreamReader r)
         {
-
             ParsePacketHeader(r);
-
             _fieldCount = r.ReadLengthCodedNumber();
             if (r.ReachedPacketEnd())
             {
@@ -844,12 +859,12 @@ namespace SharpConnect.MySql.Internal
     {
         protected MyStructData[] _myDataList;//cell
         protected TableHeader _tableHeader;
-        public DataRowPacket(TableHeader tableHeader)
+        public DataRowPacket(PacketHeader header, TableHeader tableHeader)
+            : base(header)
         {
             _tableHeader = tableHeader;
             _myDataList = new MyStructData[tableHeader.ColumnCount];
         }
-
         public override void ParsePacket(MySqlStreamReader r)
         {
             //function parse(parser, fieldPackets, typeCast, nestTables, connection) {
@@ -874,8 +889,7 @@ namespace SharpConnect.MySql.Internal
             ParsePacketHeader(r);
             List<FieldPacket> fieldInfos = _tableHeader.GetFields();
             int j = _tableHeader.ColumnCount;
-
-
+            //---------------------------------------------
             if (_tableHeader.TypeCast)
             {
                 if (_tableHeader.NestTables)
@@ -1160,8 +1174,8 @@ namespace SharpConnect.MySql.Internal
 
     class PreparedDataRowPacket : DataRowPacket
     {
-        public PreparedDataRowPacket(TableHeader tableHeader)
-            : base(tableHeader)
+        public PreparedDataRowPacket(PacketHeader header, TableHeader tableHeader)
+            : base(header, tableHeader)
         {
         }
         public override void ParsePacket(MySqlStreamReader r)
