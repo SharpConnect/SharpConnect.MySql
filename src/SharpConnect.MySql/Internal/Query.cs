@@ -42,11 +42,8 @@ namespace SharpConnect.MySql.Internal
         public bool typeCast;
         public bool nestTables;
         CommandParams _cmdParams;
-        readonly Connection _conn;
-        TableHeader _tableHeader;
-       
-        bool _hasSomeRow;
-        bool _executePrepared;
+        readonly Connection _conn; 
+        bool _prepareStatementMode;
 
         MySqlStreamWrtier _writer;
         SqlStringTemplate _sqlStrTemplate;
@@ -121,9 +118,10 @@ namespace SharpConnect.MySql.Internal
                     if (result is MySqlPrepareResponse)
                     {
                         MySqlPrepareResponse response = result as MySqlPrepareResponse;
-                        _prepareContext = new PreparedContext(response.okPacket.statement_id, _sqlStrTemplate);
-                        _tableHeader = response.tableHeader;
-                        _prepareContext.Setup(_tableHeader);
+                        _prepareContext = new PreparedContext(
+                            response.okPacket.statement_id,
+                            _sqlStrTemplate,
+                            response.tableHeader);
                     }
                     else//error
                     {
@@ -158,7 +156,7 @@ namespace SharpConnect.MySql.Internal
                     ExecutePrepareQuery_A(nextAction);
                 }
                 else
-                {   
+                {
                     //TODO: review here 
                     _prepareContext = null; //***
                     ExecuteNonPrepare_A(nextAction);
@@ -231,7 +229,7 @@ namespace SharpConnect.MySql.Internal
             {
                 //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
                 //---------------------------------------------------------------------------------
-                _executePrepared = true;
+                _prepareStatementMode = true;
                 _sqlParserMx.UseResultParser(true);
                 _writer.Reset();
 
@@ -258,8 +256,7 @@ namespace SharpConnect.MySql.Internal
                 _writer.Reset();
                 ComStmtClosePacket.Write(_writer, _prepareContext.statementId);
                 //TODO: review here
-                SendPacket_A(_writer.ToArray(), () => nextAction());
-                //SendPacket(_writer.ToArray()); //***
+                SendPacket_A(_writer.ToArray(), nextAction);
             }
             else
             {
@@ -269,7 +266,7 @@ namespace SharpConnect.MySql.Internal
 
         void ResetPrepareStmt_A(Action nextAction)
         {
-            if (_executePrepared && _prepareContext != null)
+            if (_prepareStatementMode && _prepareContext != null)
             {
                 _sqlParserMx.UseResultParser();
                 _writer.Reset();
@@ -286,13 +283,6 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-    
-        public int GetColumnIndex(string colName)
-        {
-            return _tableHeader.GetFieldIndex(colName);
-        }
-
-
         //*** blocking
         public void Close()
         {
@@ -307,24 +297,8 @@ namespace SharpConnect.MySql.Internal
             });
             //------------------- 
             while (!finish) ; //** tight loop **
-            //------------------- 
-            if (_hasSomeRow)
-            {
-                //TODO : review here ?
-                //we use another connection to kill current th
-                string realSql = "KILL " + _conn.threadId;
-                //sql = "FLUSH QUERY CACHE;";
-                Connection killConn = new Connection(_conn.config);
-                killConn.Connect();
-                var q = new Query(killConn, realSql, null);
-                q.Execute();
-                _conn.ClearRemainingInputBuffer();
-                killConn.Disconnect();
-            }
+            //-------------------  
         }
-
-
-
         void RecvPacket_A(Action whenFinish)
         {
             bool isPartial = false;
@@ -354,7 +328,6 @@ namespace SharpConnect.MySql.Internal
                         case MySqlResultKind.TableResult:
                             {
                                 MySqlTableResult tableResult = result as MySqlTableResult;
-                                _tableHeader = tableResult.tableHeader;
                                 isPartial = tableResult.IsPartialTable;
                                 if (tableResultArrived != null)
                                 {
@@ -363,16 +336,16 @@ namespace SharpConnect.MySql.Internal
                             }
                             break;
                     }
-                } 
+                }
                 //-----------------
-                whenFinish(); 
+                whenFinish();
                 //-----------------
             });
         }
-        void SendPacket_A(byte[] packetBuffer, Action whenSendComplete)
+        void SendPacket_A(byte[] packetBuffer, Action nextAction)
         {
             //send all to 
-            _conn.StartSend(packetBuffer, 0, packetBuffer.Length, whenSendComplete);
+            _conn.StartSend(packetBuffer, 0, packetBuffer.Length, nextAction);
         }
     }
 
@@ -383,14 +356,12 @@ namespace SharpConnect.MySql.Internal
         SqlStringTemplate _sqlStringTemplate;
         MyStructData[] _preparedValues;
         List<SqlBoundSection> _keys;
-        public PreparedContext(uint statementId, SqlStringTemplate sqlStringTemplate)
+        public PreparedContext(uint statementId, SqlStringTemplate sqlStringTemplate, TableHeader tableHeader)
         {
             this.statementId = statementId;
             _sqlStringTemplate = sqlStringTemplate;
             _keys = _sqlStringTemplate.GetValueKeys();
-        }
-        public void Setup(TableHeader tableHeader)
-        {
+            //----------------------------------------------
             _tableHeader = tableHeader;
             int fieldCount = tableHeader.ColumnCount;
             _preparedValues = new MyStructData[fieldCount];
@@ -406,6 +377,7 @@ namespace SharpConnect.MySql.Internal
                 _keys[i].fieldInfo = fields[i];
             }
         }
+
         public MyStructData[] PrepareBoundData(CommandParams cmdParams)
         {
             //1. check proper type and 
