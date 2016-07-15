@@ -105,7 +105,7 @@ namespace SharpConnect.MySql.Internal
             _currentInputLength = 0;
         }
         //------------------------------------------------------
- 
+
         internal void AppendBuffer(SharpConnect.Internal.RecvIO recvIO, int count)
         {
             long saved_pos = _stream.Position;
@@ -159,7 +159,10 @@ namespace SharpConnect.MySql.Internal
             else
                 return null;
         }
-
+        public void SkipForward(int byteOffset)
+        {
+            _reader.BaseStream.Position += byteOffset;
+        }
         public bool ReadLengthCodedDateTime(out DateTime result)
         {
             byte dateLength = ReadByte(); //***     

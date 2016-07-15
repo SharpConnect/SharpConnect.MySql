@@ -521,14 +521,14 @@ namespace SharpConnect.MySql.Internal
         }
 
         public override void ParsePacketContent(MySqlStreamReader r)
-        { 
+        {
             fieldCount = r.ReadByte();
             if (protocol41)
             {
                 warningCount = r.U2();//2
                 serverStatus = r.U2();//2
             }
-        } 
+        }
         public override void WritePacket(MySqlStreamWrtier writer)
         {
             throw new NotImplementedException();
@@ -858,6 +858,7 @@ namespace SharpConnect.MySql.Internal
             _tableHeader = tableHeader;
             _myDataList = new MyStructData[tableHeader.ColumnCount];
         }
+ 
         public override void ParsePacketContent(MySqlStreamReader r)
         {
             //function parse(parser, fieldPackets, typeCast, nestTables, connection) {
