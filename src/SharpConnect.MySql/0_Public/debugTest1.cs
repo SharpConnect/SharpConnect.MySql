@@ -147,23 +147,23 @@ namespace SharpConnect.MySql
                     //    throw new Exception();
                     //}
                     Console.WriteLine("Result : ");
-                    while (query.ReadRow())
-                    {
-                        if (col_test == 0)
-                        {
-                            Console.WriteLine("Result of " + "test1 : >> " + query.Cells[col_test] + " <<");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Id : " + query.Cells[col_idsaveImage]);
-                            Console.WriteLine("Buffer size : " + query.Cells[col_saveImageCol].myBuffer.Length);
-                        }
-                        //Console.WriteLine(query.GetFieldData("myusercol1"));
-                        if (++j > 3)
-                        {
-                            break;
-                        }
-                    }
+                    //while (query.ReadRow())
+                    //{
+                    //    if (col_test == 0)
+                    //    {
+                    //        Console.WriteLine("Result of " + "test1 : >> " + query.Cells[col_test] + " <<");
+                    //    }
+                    //    else
+                    //    {
+                    //        Console.WriteLine("Id : " + query.Cells[col_idsaveImage]);
+                    //        Console.WriteLine("Buffer size : " + query.Cells[col_saveImageCol].myBuffer.Length);
+                    //    }
+                    //    //Console.WriteLine(query.GetFieldData("myusercol1"));
+                    //    if (++j > 3)
+                    //    {
+                    //        break;
+                    //    }
+                    //}
                 }
                 query.Close();
                 connection.Disconnect();

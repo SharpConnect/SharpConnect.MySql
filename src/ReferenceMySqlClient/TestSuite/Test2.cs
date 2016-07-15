@@ -23,10 +23,10 @@ namespace MySqlTest
 
                 DropTableIfExists(conn);
                 CreateTable(conn);
-                InsertData(conn);
-                InsertData(conn);
-                InsertData(conn);
-                InsertData(conn);
+                for (int i = 0; i < 2000; ++i)
+                {
+                    InsertData(conn);
+                }
                 SelectDataBack(conn);
                 conn.Close();
             });
