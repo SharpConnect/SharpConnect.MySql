@@ -180,7 +180,7 @@ namespace SharpConnect.MySql
     {
         Query _query;
         bool _isPreparedStmt;
-      
+
         public MySqlCommand(string sql, MySqlConnection conn)
         {
             CommandText = sql;
@@ -304,11 +304,12 @@ namespace SharpConnect.MySql
                         //------------------                    
                         //wait ***
                         //------------------
-                        while (isPartialTable)
+                        do
                         {
                             //do 
                             System.Threading.Thread.Sleep(1);
-                        }
+                        } while (isPartialTable);
+
                         goto TRY_AGAIN;
                     }
                     else
@@ -337,7 +338,10 @@ namespace SharpConnect.MySql
                 goto TRY_AGAIN;
             }
         }
-
+        public void Close()
+        {
+            _query.Close();
+        }
         public sbyte GetInt8(int colIndex)
         {
 
@@ -400,9 +404,6 @@ namespace SharpConnect.MySql
             //TODO: check match type and check index here
             return currentRow.Cells[colIndex].myDateTime;
         }
-        public void Close()
-        {
-            _query.Close();
-        }
+
     }
 }
