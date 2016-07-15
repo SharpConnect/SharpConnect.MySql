@@ -86,11 +86,13 @@ namespace SharpConnect.MySql.Internal
     {
         public readonly TableHeader tableHeader;
         public readonly List<DataRowPacket> rows;
+
         public MySqlTableResult(TableHeader tableHeader, List<DataRowPacket> rows)
         {
             this.tableHeader = tableHeader;
             this.rows = rows;
         }
+        public bool IsPartialTable { get; set; }
         public override MySqlResultKind Kind { get { return MySqlResultKind.TableResult; } }
     }
 }
