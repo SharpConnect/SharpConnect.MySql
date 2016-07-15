@@ -293,18 +293,29 @@ namespace SharpConnect.MySql.Internal
                     //isLargeData = false;
                 }
             }
-            //----------------------------------
-            DataRowPacket dataRow = ForPrepareResult ?
-                    new PreparedDataRowPacket(_currentHeader, _tableHeader) :
-                    new DataRowPacket(_currentHeader, _tableHeader);
-            //----------------------------------
-            dataRow.ParsePacketContent(reader);
+
             if (_generateResultMode)
             {
                 //this is normal mode (opposite to JustFlushOutMode)
                 //in this mode we parse packet content 
                 //and add it to the output rows 
+                //----------------------------------
+                DataRowPacket dataRow = ForPrepareResult ?
+                        new PreparedDataRowPacket(_currentHeader, _tableHeader) :
+                        new DataRowPacket(_currentHeader, _tableHeader);
+                //----------------------------------
+                dataRow.ParsePacketContent(reader);
                 _rows.Add(dataRow);
+            }
+            else
+            {
+                //just flush data*** 
+                //not create data row
+                if (_currentHeader.ContentLength > int.MaxValue)
+                {
+                    throw new Exception("not support content length> int.MaxValue");
+                }
+                reader.SkipForward((int)_currentHeader.ContentLength);
             }
             //-----------------------------------------------------------------------
             //after this row, next state = next row header
@@ -315,7 +326,7 @@ namespace SharpConnect.MySql.Internal
         {
 
             //finish all of each row
-            var eofPacket = new EofPacket(_currentHeader, this._isProtocol41); 
+            var eofPacket = new EofPacket(_currentHeader, this._isProtocol41);
             eofPacket.ParsePacketContent(reader);
 
             //after finish we create a result table 
@@ -350,7 +361,7 @@ namespace SharpConnect.MySql.Internal
         }
         bool Parse_Error_Content(MySqlStreamReader reader)
         {
-            var errPacket = new ErrPacket(_currentHeader); 
+            var errPacket = new ErrPacket(_currentHeader);
             errPacket.ParsePacketContent(reader);
             //------------------------
             _parseResult = new MySqlErrorResult(errPacket);
