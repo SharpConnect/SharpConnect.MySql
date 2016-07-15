@@ -37,6 +37,15 @@ namespace SharpConnect.MySql.Internal
 
     delegate void Action<T>(T a);
 
+    enum QueryExecState
+    {
+        Rest,
+        Prepare,
+        Exec,
+        Closing,
+        Closed,
+    }
+
     class Query
     {
         public bool typeCast;
@@ -49,7 +58,7 @@ namespace SharpConnect.MySql.Internal
         SqlStringTemplate _sqlStrTemplate;
         PreparedContext _prepareContext;
         MySqlParserMx _sqlParserMx;
-
+        QueryExecState _execState = QueryExecState.Rest;
         Action<MySqlTableResult> _tableResultListener;
 
         public Query(Connection conn, string sql, CommandParams cmdParams)
@@ -91,6 +100,7 @@ namespace SharpConnect.MySql.Internal
         //*** +/- blocking
         public void Prepare(Action nextAction = null)
         {
+            _execState = QueryExecState.Prepare;
             if (_cmdParams == null)
             {
                 throw new Exception("Sql cmdParams can not null.");
@@ -124,6 +134,7 @@ namespace SharpConnect.MySql.Internal
         //*** +/- blocking
         public void Execute(Action nextAction = null)
         {
+            _execState = QueryExecState.Exec;
             //-------------------
             //blocking method***
             //wait until execute finish 
@@ -155,17 +166,41 @@ namespace SharpConnect.MySql.Internal
                 _conn.Wait();
             }
         }
+
+
         //*** +/- blocking
         public void Close(Action nextAction = null)
         {
+            //-------------------------------------------------
+            if (_execState == QueryExecState.Closed)
+            {
+                if (nextAction != null)
+                {
+                    nextAction();
+                }
+                return; //***
+            }
+
+            _execState = QueryExecState.Closing; //first ***
+            _sqlParserMx.UseFlushMode();
+            //---------------------------------------------------
+            //wait where   
+            while (!_recvComplete)
+            {
+                //wait
+                System.Threading.Thread.Sleep(5);
+            }
+            
+            //---------------------------------------------------
+            _execState = QueryExecState.Closed;
             if (nextAction != null)
             {
-                ClosePrepareStmt_A(nextAction);
+                Close_A(nextAction);
             }
             else
             {
                 _conn.InitWait();
-                ClosePrepareStmt_A(_conn.UnWait);
+                Close_A(_conn.UnWait);
                 _conn.Wait();
             }
         }
@@ -210,10 +245,9 @@ namespace SharpConnect.MySql.Internal
                 SendAndRecv_A(_writer.ToArray(), nextAction);
             });
         }
-
-        //----------------------------------------------------------------------------------
-        void ClosePrepareStmt_A(Action nextAction)
+        void Close_A(Action nextAction)
         {
+
             if (_prepareContext != null)
             {
                 _sqlParserMx.UseResultParser();
@@ -242,10 +276,11 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-
+        bool _recvComplete = true;
         void RecvPacket_A(Action whenRecv)
         {
 
+            _recvComplete = false;
             _conn.StartReceive(result =>
             {
                 if (result == null)
@@ -261,20 +296,25 @@ namespace SharpConnect.MySql.Internal
                             {
                                 MySqlOkResult ok = result as MySqlOkResult;
                                 OkPacket = ok.okpacket;
+                                _recvComplete = true;
                             }
                             break;
                         case MySqlResultKind.Error:
                             {
                                 MySqlErrorResult error = result as MySqlErrorResult;
                                 LoadError = error.errPacket;
+                                _recvComplete = true;
                             }
                             break;
                         case MySqlResultKind.TableResult:
                             {
                                 MySqlTableResult tableResult = result as MySqlTableResult;
                                 //support partial table mode
+                                _recvComplete = !tableResult.IsPartialTable; //last sub table is not partial table 
                                 if (_tableResultListener != null)
                                 {
+                                    //the _tableResultListener may modifid by other state (Close)
+                                    //if don't lock we need to store it to local var
                                     _tableResultListener(tableResult);
                                 }
                             }
@@ -288,6 +328,7 @@ namespace SharpConnect.MySql.Internal
                                     response.okPacket.statement_id,
                                     _sqlStrTemplate,
                                     response.tableHeader);
+                                _recvComplete = true;
                             }
                             break;
                     }

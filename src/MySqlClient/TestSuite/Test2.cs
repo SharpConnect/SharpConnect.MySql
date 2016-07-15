@@ -67,10 +67,11 @@ namespace MySqlTest
 #if DEBUG
             conn.dbugPleaseBreak = true;
 #endif
-            var reader = cmd.ExecuteReader(); 
+            var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-
+                //test immediate close
+                reader.Close();
             }
             reader.Close();
         }

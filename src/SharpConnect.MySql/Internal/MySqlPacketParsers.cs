@@ -65,10 +65,10 @@ namespace SharpConnect.MySql.Internal
         Packet _currentPacket;
         TableHeader _tableHeader;
         MySqlResult _parseResult;
-        List<DataRowPacket> rows;
+        List<DataRowPacket> _rows;
 
-        bool supportPartialRelease = true;
-
+        bool _supportPartialRelease = true;
+        bool _generateResultMode = true;
         public ResultPacketParser(QueryParsingConfig config, bool isProtocol41, bool isPrepare = false)
         {
             this._config = config;
@@ -84,6 +84,12 @@ namespace SharpConnect.MySql.Internal
             //changable
             get;
             set;
+        }
+
+        public bool JustFlushMode
+        {
+            get { return !_generateResultMode; }
+            set { _generateResultMode = !value; }
         }
 
         void StepParse(MySqlStreamReader reader)
@@ -145,7 +151,7 @@ namespace SharpConnect.MySql.Internal
                 case OK_CODE:
                     {
                         ParseOkPacket(reader);
-                        this._parsingState = ResultPacketState.Should_End;                       
+                        this._parsingState = ResultPacketState.Should_End;
                     }
                     break;
                 default:
@@ -172,7 +178,7 @@ namespace SharpConnect.MySql.Internal
             _tableHeader = new TableHeader();
             _tableHeader.ParsingConfig = this._config;
             _parsingState = ResultPacketState.Expect_FieldHeader;
-            rows = new List<DataRowPacket>();
+            _rows = new List<DataRowPacket>();
         }
         void ParseFieldHeader(MySqlStreamReader reader)
         {
@@ -250,9 +256,9 @@ namespace SharpConnect.MySql.Internal
 
                         //after finish we create a result table 
                         //the move rows into the table
-                        _parseResult = new MySqlTableResult(_tableHeader, rows);
+                        _parseResult = new MySqlTableResult(_tableHeader, _rows);
                         //not link to the rows anymore
-                        rows = null;
+                        _rows = null;
                     }
                     break;
                 default:
@@ -306,14 +312,19 @@ namespace SharpConnect.MySql.Internal
                     //isLargeData = false;
                 }
             }
-            _currentPacket.ParsePacket(reader);
-
 #if DEBUG
             //check, in debug mode---
             if (ForPrepareResult && !(_currentPacket is PreparedDataRowPacket)) { throw new NotSupportedException(); }
             //-----------------------
 #endif
-            rows.Add((DataRowPacket)_currentPacket);
+            _currentPacket.ParsePacket(reader);
+            if (_generateResultMode)
+            {
+                //this is normal mode (opposite to JustFlushOutMode)
+                //in this mode we parse packet content 
+                //and add it to the output rows 
+                _rows.Add((DataRowPacket)_currentPacket);
+            }
             //-----------------------------------------------------------------------
             //after this row, next state = next row header
             _parsingState = ResultPacketState.Expect_RowHeader;
@@ -370,22 +381,21 @@ namespace SharpConnect.MySql.Internal
             _parseResult = null;
             for (;;)
             {
-              
+
                 StepParse(reader);
                 if (_needMoreData)
                 {
                     //at any state if need more buffer 
-                    //then stop parsing and return
-
-                    if (supportPartialRelease &&
-                        rows.Count > 0)
+                    //then stop parsing and return 
+                    if (_supportPartialRelease)
                     {
-                        //this is partial table**** 
-                        //because we still need more data***
-                        _parseResult = new MySqlTableResult(_tableHeader, rows) { IsPartialTable = true };
-                        //create new row
-                        rows = new List<DataRowPacket>();
+                        _parseResult = new MySqlTableResult(_tableHeader, _rows) { IsPartialTable = true };
+                        if (_generateResultMode)
+                        {
+                            _rows = new List<DataRowPacket>();
+                        }
                     }
+
                     return;
                 }
 
@@ -748,7 +758,6 @@ namespace SharpConnect.MySql.Internal
             {
                 resultPacketParser = new ResultPacketParser(parsingConfig, value);
             }
-
         }
 
         public void UseConnectionParser()
@@ -767,6 +776,7 @@ namespace SharpConnect.MySql.Internal
             //currentPacketParser = resultPacketParser;
             currentPacketParser = new ResultPacketParser(parsingConfig, _isProtocol41, forPreparedResult);
             _mysqlStreamReader.Reset();
+            resultPacketParser.JustFlushMode = false;
         }
         public void UsePrepareResponseParser()
         {
@@ -776,6 +786,20 @@ namespace SharpConnect.MySql.Internal
             currentPacketParser = prepareResponseParser;
             _mysqlStreamReader.Reset();
         }
+
+        //block ***
+        public void UseFlushMode()
+        {
+            ResultPacketParser resultPacketParser = currentPacketParser as ResultPacketParser;
+            if (resultPacketParser != null)
+            {
+                resultPacketParser.JustFlushMode = true;
+                //1. switch parser mx to flush (data) out mode
+                //( just read header no new result created)
+                //wait*** until we fetch all server data  
+            }
+        }
+
         public MySqlResult ParseResult
         {
             get;
@@ -787,6 +811,11 @@ namespace SharpConnect.MySql.Internal
             get { return _isCompleted; }
         }
 
+        /// <summary>
+        /// return true if not complete
+        /// </summary>
+        /// <param name="recvIO"></param>
+        /// <returns></returns>
         public bool ParseData(RecvIO recvIO)
         {
             //we need to parse some data here 
@@ -800,8 +829,7 @@ namespace SharpConnect.MySql.Internal
             //-----------------------------------------------
             //some large table may not complete in first round
             ParseResult = currentPacketParser.ParseResult;
-            _isCompleted = !currentPacketParser.NeedMoreData;
-            return currentPacketParser.NeedMoreData;
+            return !(_isCompleted = !currentPacketParser.NeedMoreData);
             //--------------------
             //not need to wait here
             //just return *** 
