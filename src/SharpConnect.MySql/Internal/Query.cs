@@ -182,7 +182,7 @@ namespace SharpConnect.MySql.Internal
             }
 
             _execState = QueryExecState.Closing; //first ***
-            _sqlParserMx.UseFlushMode();
+            _sqlParserMx.UseFlushMode(true);
             //---------------------------------------------------
             //wait where   
             while (!_recvComplete)
@@ -190,9 +190,9 @@ namespace SharpConnect.MySql.Internal
                 //wait
                 System.Threading.Thread.Sleep(5);
             }
-            
-            //---------------------------------------------------
-            _execState = QueryExecState.Closed;
+            _sqlParserMx.UseFlushMode(false); //switch back
+                                              //---------------------------------------------------
+
             if (nextAction != null)
             {
                 Close_A(nextAction);
@@ -247,16 +247,17 @@ namespace SharpConnect.MySql.Internal
         }
         void Close_A(Action nextAction)
         {
-
             if (_prepareContext != null)
             {
                 _sqlParserMx.UseResultParser();
                 _writer.Reset();
                 ComStmtClosePacket.Write(_writer, _prepareContext.statementId);
-                SendAndRecv_A(_writer.ToArray(), nextAction);
+                //when close, not wait for recv
+                SendPacket_A(_writer.ToArray(), nextAction);
             }
             else
             {
+                _execState = QueryExecState.Closed;
                 nextAction();
             }
         }
@@ -366,19 +367,29 @@ namespace SharpConnect.MySql.Internal
             _keys = _sqlStringTemplate.GetValueKeys();
             //----------------------------------------------
             _tableHeader = tableHeader;
-            int fieldCount = tableHeader.ColumnCount;
-            _preparedValues = new MyStructData[fieldCount];
-            if (_keys.Count != fieldCount)
+            int serverFieldCount = tableHeader.ColumnCount;
+            //add field information to _keys
+            List<FieldPacket> fields = tableHeader.GetFields();
+            //----------------------------------------------
+            int bindingCount = 0;
+            for (int i = 0; i < serverFieldCount; ++i)
+            {
+                FieldPacket f = fields[i];
+                if (f.name == "?") //
+                {
+                    //this is binding field
+                    _keys[bindingCount].fieldInfo = f;
+                    bindingCount++;
+                }
+            }
+            //some field from server is not binding field
+            //so we select only binding field
+            if (bindingCount != _keys.Count)
             {
                 throw new Exception("key num not matched!");
             }
-            //add field information to _keys
-
-            List<FieldPacket> fields = tableHeader.GetFields();
-            for (int i = 0; i < fieldCount; ++i)
-            {
-                _keys[i].fieldInfo = fields[i];
-            }
+            //-------------------------------------------------
+            _preparedValues = new MyStructData[bindingCount]; //***
         }
 
         public MyStructData[] PrepareBoundData(CommandParams cmdParams)
@@ -402,10 +413,7 @@ namespace SharpConnect.MySql.Internal
                     //TODO: check here 
                     //all field type is 253 ?
                     //error
-                    //-------------------------------
-
-
-
+                    //------------------------------- 
                     //check
                     //FieldPacket fieldInfo = key.fieldInfo;
                     //switch ((Types)fieldInfo.type)
@@ -422,6 +430,9 @@ namespace SharpConnect.MySql.Internal
                     //        }
                     //        break;
                     //}
+
+
+
                 }
             }
 
