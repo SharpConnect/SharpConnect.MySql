@@ -65,7 +65,7 @@ namespace SharpConnect.MySql.Internal
         readonly SendIO sendIO;
         readonly int recvBufferSize;
         readonly int sendBufferSize;
-        Action<MySqlResult> whenRecvComplete;
+        Action<MySqlResult> whenRecvData;
         Action whenSendCompleted;
         //---------------------------------
 
@@ -143,7 +143,6 @@ namespace SharpConnect.MySql.Internal
             get { return _workingState; }
             private set { _workingState = value; }
         }
-
         internal MySqlParserMx MySqlParserMx { get { return _mysqlParserMx; } }
 
         void UnBindSocket(bool keepAlive)
@@ -170,31 +169,53 @@ namespace SharpConnect.MySql.Internal
                         //process some data
                         //there some data to process  
                         //parse the data    
-                        _mysqlParserMx.ParseData(recvIO);
-                        if (_mysqlParserMx.NeedMoreData)
+#if DEBUG
+                        if (dbugPleaseBreak)
                         {
-                            recvIO.StartReceive();//***
                         }
-                        //--------------------------------------------------------------
+#endif
+
+                        bool needMoreData = _mysqlParserMx.ParseData(recvIO);
                         //please note that: result packet may not ready in first round
-                        MySqlResult result = _mysqlParserMx.ResultPacket;
+                        //but parser mx may 'release' some part of the result (eg. large table)
+                        MySqlResult result = _mysqlParserMx.ParseResult; //'release' result 
+                        //---------------------------------------------------------------
                         if (result != null)
                         {
-                            //complete
-                            Action<MySqlResult> tmpWhenRecvComplete = whenRecvComplete;
-                            //reset
-                            this.whenRecvComplete = null;
-                            this._workingState = WorkingState.Rest;
-                            //invoke attach del
-                            if (tmpWhenRecvComplete != null)
+                            //if we has some 'release' result from parser mx
+                            if (needMoreData)
                             {
-                                tmpWhenRecvComplete(_mysqlParserMx.ResultPacket);
+                                //this is 'partial result'
+                                if (whenRecvData == null)
+                                {
+                                    //?
+                                }
+                                //-------------------------
+                                //partial release data here
+                                //before recv next
+                                //because we want to 'sync'
+                                //the series of result
+                                whenRecvData(result);
+                                //-------------------------
+                            }
+                            else
+                            {
+                                //when recv complete***
+                                Action<MySqlResult> tmpWhenRecvData = whenRecvData;
+                                //delete recv handle **before** invoke it, and
+                                //reset state to 'rest' state
+                                this.whenRecvData = null;
+                                this._workingState = WorkingState.Rest;
+                                tmpWhenRecvData(result);
                             }
                         }
-                        else
+                        //--------------------------
+                        if (needMoreData)
                         {
-                            //no result packet in this round
+                            //so if it need more data then start receive next
+                            recvIO.StartReceive();//***
                         }
+                        //--------------------------
                     }
                     break;
             }
@@ -246,13 +267,13 @@ namespace SharpConnect.MySql.Internal
             {
                 //when complete1
                 //create handshake packet and send back
-                var handShakeResult = mysql_result as MySqlHandshakeResult;
-                if (handShakeResult == null)
+                var handshakeResult = mysql_result as MySqlHandshakeResult;
+                if (handshakeResult == null)
                 {
                     //error
                     throw new Exception("err1");
                 }
-                HandshakePacket handshake_packet = handShakeResult.packet;
+                HandshakePacket handshake_packet = handshakeResult.packet;
                 this.threadId = handshake_packet.threadId;
                 byte[] token = MakeToken(config.password,
                    GetScrollbleBuffer(handshake_packet.scrambleBuff1, handshake_packet.scrambleBuff2));
@@ -273,17 +294,14 @@ namespace SharpConnect.MySql.Internal
                     StartReceive(mysql_result2 =>
                     {
                         var ok = mysql_result2 as MySqlOk;
-
                         if (ok != null)
                         {
-                            ConnectedSuccess = true;
                             this._workingState = WorkingState.Rest;
                         }
                         else
                         {
                             //TODO: review here
-                            //error 
-                            ConnectedSuccess = false;
+                            //error  
                             _workingState = WorkingState.Error;
                         }
 
@@ -308,13 +326,6 @@ namespace SharpConnect.MySql.Internal
                 //-------------------------------
             }
         }
-
-        public bool ConnectedSuccess
-        {
-            get;
-            private set;
-        }
-
 
         //blocking***
         public void Disconnect()
@@ -388,14 +399,14 @@ namespace SharpConnect.MySql.Internal
             }
             //--------------------------------------------------------------
 #if DEBUG
-            if (this.whenRecvComplete != null)
+            if (this.whenRecvData != null)
             {
                 //must be null 
                 throw new Exception("receving something?...");
             }
 #endif
+            this.whenRecvData = whenCompleteAction;
             this._workingState = WorkingState.Receiving;
-            this.whenRecvComplete = whenCompleteAction;
             recvIO.StartReceive();
         }
 
@@ -441,6 +452,9 @@ namespace SharpConnect.MySql.Internal
             }
             return result;
         }
+#if DEBUG
+        public bool dbugPleaseBreak { get; set; }
+#endif
     }
 
     class ConnectionConfig
