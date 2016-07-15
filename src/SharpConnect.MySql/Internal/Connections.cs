@@ -335,7 +335,7 @@ namespace SharpConnect.MySql.Internal
                         }
                         //set max allow of the server ***
                         //todo set max allow packet***
-                        _globalWaiting = false;
+                        UnWait();
                         if (nextAction != null)
                         {
                             nextAction();
@@ -350,7 +350,7 @@ namespace SharpConnect.MySql.Internal
             }
             else
             {
-                _globalWaiting = false;
+                UnWait();
             }
         }
 
@@ -370,7 +370,7 @@ namespace SharpConnect.MySql.Internal
             {
                 socket.Disconnect(true);
                 _workingState = WorkingState.Disconnected;
-                _globalWaiting = false;
+                UnWait();
                 if (nextAction != null)
                 {
                     nextAction();
@@ -382,7 +382,7 @@ namespace SharpConnect.MySql.Internal
             }
             else
             {
-                _globalWaiting = false;
+                UnWait();
             }
         }
         //---------------------------------------------------------------
