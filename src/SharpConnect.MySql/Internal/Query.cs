@@ -49,11 +49,17 @@ namespace SharpConnect.MySql.Internal
         SqlStringTemplate _sqlStrTemplate;
         PreparedContext _prepareContext;
         MySqlParserMx _sqlParserMx;
-        Action<MySqlTableResult> tableResultArrived;
 
+        Action<MySqlTableResult> _tableResultListener;
 
         public Query(Connection conn, string sql, CommandParams cmdParams)
+            : this(conn, new SqlStringTemplate(sql), cmdParams)
         {
+        }
+        public Query(Connection conn, SqlStringTemplate sql, CommandParams cmdParams)
+        {
+            //*** query use conn resource such as parser,writer
+            //so 1 query 1 connection      
             if (conn.IsInUsed)
             {
                 //can't use this conn
@@ -71,26 +77,22 @@ namespace SharpConnect.MySql.Internal
             //--------------------------------------------------------------
             this._conn = conn;
             this._cmdParams = cmdParams;
+            //--------------------------------------------------------------
             typeCast = conn.config.typeCast;
             nestTables = false;
-            //index = 0;
-            LoadError = null;
-            //*** query use conn resource such as parser,writer
-            //so 1 query 1 connection             
             _sqlParserMx = conn.MySqlParserMx;
             _writer = conn.PacketWriter;
             //_receiveBuffer = null;
-            _sqlStrTemplate = new SqlStringTemplate(sql);
+            _sqlStrTemplate = sql;
         }
 
 
         public ErrPacket LoadError { get; private set; }
         public OkPacket OkPacket { get; private set; }
 
-        public void SetResultListener(Action<MySqlTableResult> tableResultArrived)
+        public void SetResultListener(Action<MySqlTableResult> tableResultListener)
         {
-            this.tableResultArrived = tableResultArrived;
-
+            this._tableResultListener = tableResultListener;
         }
 
         //*** blocking
@@ -292,9 +294,9 @@ namespace SharpConnect.MySql.Internal
                             {
                                 MySqlTableResult tableResult = result as MySqlTableResult;
                                 isPartial = tableResult.IsPartialTable;
-                                if (tableResultArrived != null)
+                                if (_tableResultListener != null)
                                 {
-                                    tableResultArrived(tableResult);
+                                    _tableResultListener(tableResult);
                                 }
                             }
                             break;
