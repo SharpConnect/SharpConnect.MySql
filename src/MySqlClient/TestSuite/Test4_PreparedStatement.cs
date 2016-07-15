@@ -40,6 +40,18 @@ namespace MySqlTest
                     cmd.ExecuteNonQuery();
                 }
             }
+            {
+                string sql = "select col1,col2 from test001 where col1>?col1_v";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.Prepare();
+                cmd.Parameters.AddWithValue("?col1_v", 0);
+                var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+
+                }
+                reader.Close();
+            }
             conn.Close();
             Report.WriteLine("ok");
         }

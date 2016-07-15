@@ -414,9 +414,9 @@ namespace SharpConnect.MySql.Internal
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_CLOSE);
             writer.WriteUnsigned4(stmtId);
-            var _header = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
-            writer.WriteHeader(_header);
-            return _header;
+            var h = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
+            writer.WriteHeader(h);
+            return h;
         }
     }
 
