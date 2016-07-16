@@ -31,7 +31,7 @@ namespace MySqlTest
             t2.Wait();
             //--------------------------------------------
             //form3: use simple helper, create task and run,store task in **named** var and  wait
-            var t3 = RunTask(async () =>
+            var t3 = Task.Run(async () =>
             {
                 var connStr = GetMySqlConnString();
                 var conn = new MySqlConnection(connStr);
@@ -42,7 +42,7 @@ namespace MySqlTest
             await t3;//**
             //--------------------------------------------
             //form4: use simple helper, create task and run, store task in **anonymous** var and wait
-            await RunTask(async () =>
+            await Task.Run(async () =>
             {
                 var connStr = GetMySqlConnString();
                 var conn = new MySqlConnection(connStr);
@@ -52,13 +52,8 @@ namespace MySqlTest
             });
             //--------------------------------------------
             stopW.Stop();
-        } 
-        static Task RunTask(Action a)
-        {
-            var task = new Task(a);
-            task.Start();
-            return task;
         }
+
         static async Task DoTaskAsync()
         {
             var connStr = GetMySqlConnString();
