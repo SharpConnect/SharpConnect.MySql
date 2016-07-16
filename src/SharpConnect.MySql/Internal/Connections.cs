@@ -23,8 +23,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
+using System.Text; 
 using SharpConnect.Internal;
 namespace SharpConnect.MySql.Internal
 {
@@ -293,9 +292,11 @@ namespace SharpConnect.MySql.Internal
             }
             _mysqlParserMx.UseConnectionParser();
             this._workingState = WorkingState.Rest;
+            //--------------
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             socket.Connect(endpoint);
             this._workingState = WorkingState.Rest;
+            //--------------
             //**start listen after connect
             InitWait();
             StartReceive(mysql_result =>
@@ -375,7 +376,7 @@ namespace SharpConnect.MySql.Internal
             InitWait();
             StartSend(data, 0, data.Length, () =>
             {
-                socket.Disconnect(true);
+                socket.Shutdown(SocketShutdown.Both);
                 _workingState = WorkingState.Disconnected;
                 UnWait();
                 if (nextAction != null)
@@ -455,7 +456,7 @@ namespace SharpConnect.MySql.Internal
             //var stage3 = sha1(scramble.toString('binary') + stage2);
             //return xor(stage3, stage1);
             var buff1 = Encoding.UTF8.GetBytes(password.ToCharArray());
-            var sha = new System.Security.Cryptography.SHA1Managed();
+            var sha = System.Security.Cryptography.SHA1.Create();
             // This is one implementation of the abstract class SHA1.
             //scramble = new byte[] { 52, 78, 110, 96, 117, 75, 85, 75, 87, 83, 121, 44, 106, 82, 62, 123, 113, 73, 84, 77 };
             byte[] stage1 = sha.ComputeHash(buff1);

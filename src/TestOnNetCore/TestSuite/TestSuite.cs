@@ -63,6 +63,8 @@ namespace MySqlTest
 
     public static class TestCaseExtracter
     {
+
+
         public static void ExtractTestCase(Type fromType, List<TestCase> output)
         {
             //extract only public method with test attribute
@@ -75,8 +77,16 @@ namespace MySqlTest
                 //and static method only
                 if (m.IsStatic)
                 {
-                    object[] founds = m.GetCustomAttributes(testAttrType, false);
-                    if (founds.Length > 0)
+                    //for net core
+                    var founds = m.GetCustomAttributes(testAttrType, false);
+                    bool hasSomeAttrs = false;
+                    foreach (var attr in founds)
+                    {
+                        //if has some attr
+                        hasSomeAttrs = true;
+                        break;
+                    }
+                    if (hasSomeAttrs)
                     {
                         output.Add(new TestCase(m.Name, m));
                     }

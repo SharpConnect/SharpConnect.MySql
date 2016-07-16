@@ -61,9 +61,6 @@
     <Compile Include="..\..\MySqlClient\Program.cs">
       <Link>Program.cs</Link>
     </Compile>
-    <Compile Include="..\..\MySqlClient\TestSuite\CRC32Calculator.cs">
-      <Link>TestSuite\CRC32Calculator.cs</Link>
-    </Compile>
     <Compile Include="..\..\MySqlClient\TestSuite\MyTestSet.cs">
       <Link>TestSuite\MyTestSet.cs</Link>
     </Compile>
@@ -88,6 +85,7 @@
     <Compile Include="..\..\MySqlClient\TestSuite\TestSuite.cs">
       <Link>TestSuite\TestSuite.cs</Link>
     </Compile>
+    <Compile Include="TestSuite_BasicTasks\Test2Async.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\..\MySqlClient\FormTestSuite.resx">

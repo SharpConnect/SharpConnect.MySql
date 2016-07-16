@@ -61,7 +61,7 @@ namespace SharpConnect.MySql.Internal
 
         }
 
-        QueryParsingConfig _config;
+        QueryParsingConfig _parsingConfig;
         ResultPacketState _parsingState;
         PacketHeader _currentHeader;
 
@@ -71,9 +71,9 @@ namespace SharpConnect.MySql.Internal
 
         bool _supportPartialRelease = true;
         bool _generateResultMode = true;
-        public ResultPacketParser(QueryParsingConfig config, bool isProtocol41, bool isPrepare = false)
+        public ResultPacketParser(QueryParsingConfig parsingConfig, bool isProtocol41, bool isPrepare = false)
         {
-            this._config = config;
+            this._parsingConfig = parsingConfig;
             this._isProtocol41 = isProtocol41;
             this.ForPrepareResult = isPrepare;
         }
@@ -139,21 +139,16 @@ namespace SharpConnect.MySql.Internal
             switch (packetType)
             {
                 case ERROR_CODE:
-                    {
-                        _parsingState = ResultPacketState.Error_Content;
-                    }
+                    _parsingState = ResultPacketState.Error_Content;
                     break;
                 case EOF_CODE:
                 case OK_CODE:
-                    {
-                        _parsingState = ResultPacketState.Ok_Content;
-                    }
+                    _parsingState = ResultPacketState.Ok_Content;
                     break;
                 default:
-                    {
-                        //resultset packet 
-                        _parsingState = ResultPacketState.Header_Content;
-                    }
+
+                    //resultset packet 
+                    _parsingState = ResultPacketState.Header_Content;
                     break;
             }
             return false;
@@ -179,7 +174,7 @@ namespace SharpConnect.MySql.Internal
             var resultSetHeaderPacket = new ResultSetHeaderPacket(_currentHeader);
             resultSetHeaderPacket.ParsePacketContent(reader);
             _tableHeader = new TableHeader();
-            _tableHeader.ParsingConfig = this._config;
+            _tableHeader.ParsingConfig = this._parsingConfig;
             _parsingState = ResultPacketState.Field_Header;
             _rows = new List<DataRowPacket>();
             return false;
@@ -252,7 +247,7 @@ namespace SharpConnect.MySql.Internal
                     _parsingState = ResultPacketState.Row_EOF;
                     break;
                 default:
-                    this._parsingState = ResultPacketState.Row_Content;
+                    _parsingState = ResultPacketState.Row_Content;
                     break;
             }
             return false;
@@ -527,7 +522,7 @@ namespace SharpConnect.MySql.Internal
             _tableHeader = new TableHeader();
             //----------------------------------------------------
             //*** 3 possible way after read prepare ok header***
-            if (_okPrepare.num_params == 0)
+            if (okPrepare.num_params == 0)
             {
                 //if prepare stmt dosn't have binding parameters
                 if (okPrepare.num_columns > 0)
