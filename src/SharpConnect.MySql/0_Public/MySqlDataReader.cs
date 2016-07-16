@@ -6,7 +6,7 @@ using SharpConnect.MySql.Internal;
 namespace SharpConnect.MySql
 {
 
-    public partial class MySqlDataReader
+    public class MySqlDataReader
     {
         Query _query;
         Queue<MySqlTableResult> subTables = new Queue<MySqlTableResult>();

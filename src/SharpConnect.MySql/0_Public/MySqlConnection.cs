@@ -30,7 +30,7 @@ namespace SharpConnect.MySql
         }
     }
 
-    public partial class MySqlConnection
+    public class MySqlConnection
     {
         MySqlConnectionString _connStr;
         Connection _conn;

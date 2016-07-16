@@ -4,7 +4,7 @@ using System;
 using SharpConnect.MySql.Internal;
 namespace SharpConnect.MySql
 {
-    public partial class MySqlCommand
+    public class MySqlCommand
     {
         Query _query;
         bool _isPreparedStmt;
@@ -51,7 +51,7 @@ namespace SharpConnect.MySql
                 return reader;
             }
         }
-        void ExecuteReader(SharpConnect.MySql.Internal.Action<MySqlDataReader> nextAction)
+        internal void ExecuteReader(SharpConnect.MySql.Internal.Action<MySqlDataReader> nextAction)
         {
             //for internal use only (Task Async Programming)
 #if DEBUG

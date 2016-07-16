@@ -52,14 +52,8 @@
     <Compile Include="..\SharpConnect.MySql\0_Public\MySqlDataReader.cs">
       <Link>0_Public\MySqlDataReader.cs</Link>
     </Compile>
-    <Compile Include="..\SharpConnect.MySql\0_Public_TaskAsync\MySqlCommand_A.cs">
-      <Link>0_Public_TaskAsync\MySqlCommand_A.cs</Link>
-    </Compile>
-    <Compile Include="..\SharpConnect.MySql\0_Public_TaskAsync\MySqlConnection_A.cs">
-      <Link>0_Public_TaskAsync\MySqlConnection_A.cs</Link>
-    </Compile>
-    <Compile Include="..\SharpConnect.MySql\0_Public_TaskAsync\MySqlDataReader_A.cs">
-      <Link>0_Public_TaskAsync\MySqlDataReader_A.cs</Link>
+    <Compile Include="..\SharpConnect.MySql\0_Public_TaskAsync\MySqlTaskBasedExtensions.cs">
+      <Link>0_Public_TaskAsync\MySqlTaskBasedExtensions.cs</Link>
     </Compile>
     <Compile Include="..\SharpConnect.MySql\Internal\ConnectionPool.cs">
       <Link>Internal\ConnectionPool.cs</Link>
