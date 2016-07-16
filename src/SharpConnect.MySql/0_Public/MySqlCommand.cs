@@ -51,6 +51,27 @@ namespace SharpConnect.MySql
                 return reader;
             }
         }
+        void ExecuteReader(SharpConnect.MySql.Internal.Action<MySqlDataReader> nextAction)
+        {
+            //for internal use only (Task Async Programming)
+#if DEBUG
+            if (nextAction == null)
+            {
+                throw new Exception("nextAction must not be null");
+            }
+#endif
+            if (_isPreparedStmt)
+            {
+                var reader = new MySqlDataReader(_query);
+                _query.Execute(() => { nextAction(reader); });
+            }
+            else
+            {
+                _query = new Query(this.Connection.Conn, this.CommandText, Parameters);
+                var reader = new MySqlDataReader(_query);
+                _query.Execute(() => { nextAction(reader); });
+            }
+        }
         public void ExecuteNonQuery(Action nextAction = null)
         {
             if (_isPreparedStmt)
