@@ -58,8 +58,11 @@ namespace SharpConnect.MySql.Internal
         }
 #endif
     }
-
-    class SqlStringTemplate
+}
+namespace SharpConnect.MySql
+{
+    using SharpConnect.MySql.Internal;
+    public class SqlStringTemplate
     {
         List<SqlSection> _sqlSections = new List<SqlSection>(); //all sections 
         List<SqlBoundSection> _valuesKeys = new List<SqlBoundSection>(); //only value keys        
@@ -218,11 +221,17 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public List<SqlBoundSection> GetValueKeys()
+        internal List<SqlBoundSection> GetValueKeys()
         {
             return _valuesKeys;
         }
-
+        internal string UserRawSql
+        {
+            get
+            {
+                return _userRawSql;
+            }
+        }
 
         static void FormatAndAppendData(StringBuilder stbuilder, ref MyStructData data)
         {
@@ -291,7 +300,7 @@ namespace SharpConnect.MySql.Internal
                     break;
             }
         }
-        public string BindValues(CommandParams cmdParams, bool forPrepareStmt)
+        internal string BindValues(CommandParams cmdParams, bool forPrepareStmt)
         {
             StringBuilder strBuilder = new StringBuilder();
             int count = _sqlSections.Count;
@@ -344,4 +353,5 @@ namespace SharpConnect.MySql.Internal
             return strBuilder.ToString();
         }
     }
+
 }

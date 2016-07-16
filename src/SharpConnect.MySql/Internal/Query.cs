@@ -61,7 +61,7 @@ namespace SharpConnect.MySql.Internal
         QueryExecState _execState = QueryExecState.Rest;
         Action<MySqlTableResult> _tableResultListener;
 
-        public Query(Connection conn, string sql, CommandParams cmdParams)
+        internal Query(Connection conn, string sql, CommandParams cmdParams)
             : this(conn, new SqlStringTemplate(sql), cmdParams)
         {
         }

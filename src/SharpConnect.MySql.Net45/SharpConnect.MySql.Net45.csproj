@@ -52,6 +52,9 @@
     <Compile Include="..\SharpConnect.MySql\0_Public\MySqlDataReader.cs">
       <Link>0_Public\MySqlDataReader.cs</Link>
     </Compile>
+    <Compile Include="..\SharpConnect.MySql\0_Public\SqlStringTemplate.cs">
+      <Link>0_Public\SqlStringTemplate.cs</Link>
+    </Compile>
     <Compile Include="..\SharpConnect.MySql\0_Public_TaskAsync\MySqlTaskBasedExtensions.cs">
       <Link>0_Public_TaskAsync\MySqlTaskBasedExtensions.cs</Link>
     </Compile>
@@ -87,9 +90,6 @@
     </Compile>
     <Compile Include="..\SharpConnect.MySql\Internal\SendIO_RecvIO.cs">
       <Link>Internal\SendIO_RecvIO.cs</Link>
-    </Compile>
-    <Compile Include="..\SharpConnect.MySql\Internal\SqlStringTemplate.cs">
-      <Link>Internal\SqlStringTemplate.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

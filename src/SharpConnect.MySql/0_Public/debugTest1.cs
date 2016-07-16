@@ -94,7 +94,8 @@ namespace SharpConnect.MySql
             }
 
             int count = 3;
-            var query = new Query(connection, sql, cmd2Values);
+
+
             int fCase = 1;
             for (int i = 0; i < count; i++)
             {
@@ -102,7 +103,7 @@ namespace SharpConnect.MySql
                 //query = connection.CreateQuery(sql, cmdValues);
                 //query = connection.CreateQuery(cmd2Values);
                 //query.ExecutePrepareQuery(cmd2Values);
-                query = new Query(connection, sql, cmd2Values);
+                var query = new Query(connection, sql, cmd2Values);
                 query.SetResultListener(tableResult =>
                 {
                     if (query.LoadError != null)
@@ -173,7 +174,7 @@ namespace SharpConnect.MySql
                 //}
                 //query.Close();
             }
-            query.Close();
+
             ss.Stop();
             long avg = ss.ElapsedMilliseconds / count;
             Console.WriteLine("Counting : " + count + " rounds. \r\nAverage Time : " + avg + " ms");
