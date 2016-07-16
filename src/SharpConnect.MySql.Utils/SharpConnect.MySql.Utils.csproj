@@ -49,9 +49,9 @@
       <Project>{9afb3f52-d37d-4fba-ac0d-76d95ae956b0}</Project>
       <Name>SharpConnect.LiquidData</Name>
     </ProjectReference>
-    <ProjectReference Include="..\SharpConnect.MySql\SharpConnect.MySql.csproj">
+    <ProjectReference Include="..\SharpConnect.MySql.Net45\SharpConnect.MySql.Net45.csproj">
       <Project>{c783e6ea-145d-4e5a-81c7-61faf2d81df4}</Project>
-      <Name>SharpConnect.MySql</Name>
+      <Name>SharpConnect.MySql.Net45</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />
