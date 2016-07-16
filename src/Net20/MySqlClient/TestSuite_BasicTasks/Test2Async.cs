@@ -3,9 +3,13 @@
 using System;
 using System.Collections.Generic;
 using SharpConnect.MySql;
+using SharpConnect;
 namespace MySqlTest
 {
-
+    //------------------------------------
+    //this sample is designed for .net2.0 
+    //that dose not have Task library
+    //------------------------------------
     class BasicTask
     {
         Action action;
@@ -84,6 +88,8 @@ namespace MySqlTest
         [Test]
         public static void T_InsertAndSelect_Async()
         {
+
+
 
 
             System.Diagnostics.Stopwatch stopW = new System.Diagnostics.Stopwatch();

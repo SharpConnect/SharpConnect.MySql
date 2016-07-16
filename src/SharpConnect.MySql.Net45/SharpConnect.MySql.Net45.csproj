@@ -43,9 +43,6 @@
     <Compile Include="..\SharpConnect.MySql\0_Public\debugTest1.cs">
       <Link>0_Public\debugTest1.cs</Link>
     </Compile>
-    <Compile Include="..\SharpConnect.MySql\0_Public\ForNet20.cs">
-      <Link>0_Public\ForNet20.cs</Link>
-    </Compile>
     <Compile Include="..\SharpConnect.MySql\0_Public\MySqlCommand.cs">
       <Link>0_Public\MySqlCommand.cs</Link>
     </Compile>

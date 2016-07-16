@@ -85,6 +85,7 @@
     <Compile Include="..\..\MySqlClient\TestSuite\TestSuite.cs">
       <Link>TestSuite\TestSuite.cs</Link>
     </Compile>
+    <Compile Include="TestSuite_BasicTasks\Test2Async.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\..\MySqlClient\FormTestSuite.resx">
