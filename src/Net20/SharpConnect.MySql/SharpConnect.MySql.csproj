@@ -42,8 +42,14 @@
     <Compile Include="..\..\SharpConnect.MySql\0_Public\ForNet20.cs">
       <Link>0_Public\ForNet20.cs</Link>
     </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\0_Public\MySqlClient.cs">
-      <Link>0_Public\MySqlClient.cs</Link>
+    <Compile Include="..\..\SharpConnect.MySql\0_Public\MySqlCommand.cs">
+      <Link>0_Public\MySqlCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\0_Public\MySqlConnection.cs">
+      <Link>0_Public\MySqlConnection.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\0_Public\MySqlDataReader.cs">
+      <Link>0_Public\MySqlDataReader.cs</Link>
     </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\ConnectionPool.cs">
       <Link>Internal\ConnectionPool.cs</Link>
