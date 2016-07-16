@@ -276,12 +276,9 @@ namespace SharpConnect.MySql
                         //------------------                    
                         //wait ***
                         //------------------
-                        do
-                        {
-                            //do 
-                            System.Threading.Thread.Sleep(1);
-                        } while (isPartialTable);
-
+                        //TODO: review here *** tight loop
+                        while (isPartialTable) ; //*** tigh loop
+                        //------------------
                         goto TRY_AGAIN;
                     }
                     else

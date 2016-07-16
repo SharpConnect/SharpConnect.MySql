@@ -172,39 +172,40 @@ namespace SharpConnect.MySql.Internal
         public void Close(Action nextAction = null)
         {
             //-------------------------------------------------
-            if (_execState == QueryExecState.Closed)
+            switch (_execState)
             {
-                if (nextAction != null)
-                {
-                    nextAction();
-                }
-                return; //***
+                case QueryExecState.Closed:
+                    if (nextAction != null)
+                    {
+                        nextAction();
+                    }
+                    return; //***
+                case QueryExecState.Closing:
+                    throw new Exception("conn is closing ...");
             }
-
-            _execState = QueryExecState.Closing; //first ***
+            //first ***
+            _execState = QueryExecState.Closing;
+            //-------------------------------------------------
+            //blocking
             _sqlParserMx.UseFlushMode(true);
-            //---------------------------------------------------
             //wait where   
-            while (!_recvComplete)
-            {
-                //wait
-                System.Threading.Thread.Sleep(5);
-            }
-            _sqlParserMx.UseFlushMode(false); //switch back
-                                              //---------------------------------------------------
-
+            //TODO: review here *** tight loop
+            while (!_recvComplete) ;
+            _sqlParserMx.UseFlushMode(false); //switch back//
+            //------------------------------------------------- 
             if (nextAction != null)
             {
+                //non blocking 
                 Close_A(nextAction);
             }
             else
-            {
+            { 
+                //blocking
                 _conn.InitWait();
                 Close_A(_conn.UnWait);
                 _conn.Wait();
             }
         }
-
         void ExecuteNonPrepare_A(Action nextAction)
         {
 
@@ -278,6 +279,10 @@ namespace SharpConnect.MySql.Internal
         }
 
         bool _recvComplete = true;
+        void RecvComplete()
+        {
+            _recvComplete = true;
+        }
         void RecvPacket_A(Action whenRecv)
         {
 
@@ -297,21 +302,25 @@ namespace SharpConnect.MySql.Internal
                             {
                                 MySqlOkResult ok = result as MySqlOkResult;
                                 OkPacket = ok.okpacket;
-                                _recvComplete = true;
+                                RecvComplete();
                             }
                             break;
                         case MySqlResultKind.Error:
                             {
                                 MySqlErrorResult error = result as MySqlErrorResult;
                                 LoadError = error.errPacket;
-                                _recvComplete = true;
+                                RecvComplete();
                             }
                             break;
                         case MySqlResultKind.TableResult:
                             {
                                 MySqlTableResult tableResult = result as MySqlTableResult;
                                 //support partial table mode
-                                _recvComplete = !tableResult.IsPartialTable; //last sub table is not partial table 
+                                if (!tableResult.IsPartialTable)
+                                {
+                                    RecvComplete();
+                                }
+                                //last sub table is not partial table 
                                 if (_tableResultListener != null)
                                 {
                                     //the _tableResultListener may modifid by other state (Close)
@@ -329,7 +338,7 @@ namespace SharpConnect.MySql.Internal
                                     response.okPacket.statement_id,
                                     _sqlStrTemplate,
                                     response.tableHeader);
-                                _recvComplete = true;
+                                RecvComplete();
                             }
                             break;
                     }
