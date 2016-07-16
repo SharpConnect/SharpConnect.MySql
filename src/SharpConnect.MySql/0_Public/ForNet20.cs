@@ -1,4 +1,4 @@
-﻿#define NET20
+﻿
 
 #if NET20
 namespace SharpConnect

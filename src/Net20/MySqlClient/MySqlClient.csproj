@@ -61,9 +61,6 @@
     <Compile Include="..\..\MySqlClient\Program.cs">
       <Link>Program.cs</Link>
     </Compile>
-    <Compile Include="..\..\MySqlClient\TestSuite\CRC32Calculator.cs">
-      <Link>TestSuite\CRC32Calculator.cs</Link>
-    </Compile>
     <Compile Include="..\..\MySqlClient\TestSuite\MyTestSet.cs">
       <Link>TestSuite\MyTestSet.cs</Link>
     </Compile>
