@@ -1,9 +1,8 @@
 ﻿//MIT, 2015-2016, brezza92, EngineKit and contributors
 
 using System;
-using System.Collections.Generic;
 using SharpConnect.MySql;
-using SharpConnect;
+using SharpConnect.MySql.BasicAsyncTasks;//***
 namespace MySqlTest
 {
     //------------------------------------
@@ -80,7 +79,7 @@ namespace MySqlTest
 
             var tasks = new TaskChain();
             //add task chain too connection object
-            
+
             tasks.AddTask(conn.OpenAsync());
             //-----------------------------------------
             {
@@ -111,9 +110,8 @@ namespace MySqlTest
                 var cmd = new MySqlCommand(sql, conn);
                 tasks.AddTask(cmd.ExecuteNonQueryAsync());
             }
+
             tasks.AddTask(conn.CloseAsync());
-
-
             tasks.Finish(() =>
             {
                 stopW.Stop();

@@ -2,7 +2,7 @@
 
 using System.Collections.Generic;
 
-namespace SharpConnect.MySql
+namespace SharpConnect.MySql.BasicAsyncTasks
 {
     //------------------------------------
     //this sample is designed for .net2.0 
@@ -55,9 +55,6 @@ namespace SharpConnect.MySql
             });
         }
     }
-
-
-
 
     public class BasicTask
     {
