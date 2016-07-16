@@ -1,9 +1,7 @@
 ﻿//MIT, 2016, brezza92, EngineKit and contributors
 
-using System;
-using System.Threading.Tasks;
-using SharpConnect.MySql.Internal;
 
+using System.Threading.Tasks;
 namespace SharpConnect.MySql
 {
     partial class MySqlConnection
@@ -20,7 +18,7 @@ namespace SharpConnect.MySql
             Close(() => tcs.SetResult(0));
             return tcs.Task;
         }
-        
+
 
     }
 }

@@ -1,8 +1,7 @@
 ﻿//MIT, 2016, brezza92, EngineKit and contributors
 
-using System;
+
 using System.Threading.Tasks;
-using SharpConnect.MySql.Internal;
 namespace SharpConnect.MySql
 {
     partial class MySqlCommand

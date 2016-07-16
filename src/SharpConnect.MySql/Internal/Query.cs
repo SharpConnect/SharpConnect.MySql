@@ -97,7 +97,11 @@ namespace SharpConnect.MySql.Internal
             this._tableResultListener = tableResultListener;
         }
 
-        //*** +/- blocking
+
+        /// <summary>
+        /// +/- blocking
+        /// </summary>
+        /// <param name="nextAction"></param>
         public void Prepare(Action nextAction = null)
         {
             _execState = QueryExecState.Prepare;
@@ -131,7 +135,11 @@ namespace SharpConnect.MySql.Internal
                 _conn.Wait();
             }
         }
-        //*** +/- blocking
+
+        /// <summary>
+        ///+/- blocking 
+        /// </summary>
+        /// <param name="nextAction"></param>
         public void Execute(Action nextAction = null)
         {
             _execState = QueryExecState.Exec;
@@ -168,7 +176,10 @@ namespace SharpConnect.MySql.Internal
         }
 
 
-        //*** +/- blocking
+        /// <summary>
+        ///  +/- blocking
+        /// </summary>
+        /// <param name="nextAction"></param>
         public void Close(Action nextAction = null)
         {
             //-------------------------------------------------
@@ -199,7 +210,7 @@ namespace SharpConnect.MySql.Internal
                 Close_A(nextAction);
             }
             else
-            { 
+            {
                 //blocking
                 _conn.InitWait();
                 Close_A(_conn.UnWait);
