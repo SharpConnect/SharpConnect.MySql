@@ -71,7 +71,9 @@ namespace MySqlTest
             while (reader.Read())
             {
                 //test immediate close
-                reader.Close();
+                bool isclosed = false;
+                reader.Close(() => isclosed = true);
+                while (!isclosed) ;
             }
             reader.Close();
         }

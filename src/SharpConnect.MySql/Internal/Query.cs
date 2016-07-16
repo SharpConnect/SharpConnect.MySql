@@ -176,6 +176,8 @@ namespace SharpConnect.MySql.Internal
         }
 
 
+
+
         /// <summary>
         ///  +/- blocking
         /// </summary>
@@ -197,26 +199,40 @@ namespace SharpConnect.MySql.Internal
             //first ***
             _execState = QueryExecState.Closing;
             //-------------------------------------------------
-            //blocking
-            _sqlParserMx.UseFlushMode(true);
-            //wait where   
-            //TODO: review here *** tight loop
-            while (!_recvComplete) ;
-            _sqlParserMx.UseFlushMode(false); //switch back//
-            //------------------------------------------------- 
-            if (nextAction != null)
+
+            if (nextAction == null)
             {
-                //non blocking 
-                Close_A(nextAction);
-            }
-            else
-            {
+                //blocking
+                _sqlParserMx.UseFlushMode(true);
+                //wait where   
+                //TODO: review here *** tight loop
+                while (!_recvComplete) ;
+                _sqlParserMx.UseFlushMode(false); //switch back// 
                 //blocking
                 _conn.InitWait();
                 Close_A(_conn.UnWait);
                 _conn.Wait();
             }
+            else
+            {
+                //non blocking
+                if (!_recvComplete)
+                {
+                    _sqlParserMx.UseFlushMode(true);
+                    MonitorWhenRecvComplete(() =>
+                    {
+                        _sqlParserMx.UseFlushMode(false); //switch back//
+                        Close_A(nextAction);
+                    });
+                }
+                else
+                {
+                    Close_A(nextAction);
+                }
+            }
         }
+
+
         void ExecuteNonPrepare_A(Action nextAction)
         {
 
@@ -289,11 +305,47 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
+        //----------------------------------------------
+        bool _assignRecvCompleteHandler;
         bool _recvComplete = true;
+        Action whenRecvComplete;
         void RecvComplete()
         {
+            
+            //_recvComplete used by multithread
             _recvComplete = true;
+            //need to store to local var
+            if (_assignRecvCompleteHandler)
+            {
+                _assignRecvCompleteHandler = false;
+                var tmpRecvComplete = whenRecvComplete;
+                whenRecvComplete = null; //clear 
+                tmpRecvComplete();
+            }
         }
+        void MonitorWhenRecvComplete(Action whenRecvComplete)
+        {
+            if (_recvComplete)
+            {
+                //already complete
+                whenRecvComplete(); //just call
+            }
+            else
+            {
+                //store to local var
+                this.whenRecvComplete = whenRecvComplete;
+                _assignRecvCompleteHandler = true;
+                //after assign check again
+                //assignRecvCompleteHandler may changed by another thread
+                if (_recvComplete && _assignRecvCompleteHandler)
+                {
+                    _assignRecvCompleteHandler = false;
+                    this.whenRecvComplete = null;
+                    whenRecvComplete();
+                }
+            }
+        }
+        //----------------------------------------------
         void RecvPacket_A(Action whenRecv)
         {
 
