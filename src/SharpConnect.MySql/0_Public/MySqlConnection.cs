@@ -82,6 +82,10 @@ namespace SharpConnect.MySql
             if (UseConnectionPool)
             {
                 ConnectionPool.ReleaseConnection(_connStr, _conn);
+                if (onComplete != null)
+                {
+                    onComplete();
+                }
             }
             else
             {
