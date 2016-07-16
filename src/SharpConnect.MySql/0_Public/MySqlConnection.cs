@@ -30,7 +30,7 @@ namespace SharpConnect.MySql
         }
     }
 
-    public class MySqlConnection
+    public partial class MySqlConnection
     {
         MySqlConnectionString _connStr;
         Connection _conn;
@@ -77,7 +77,7 @@ namespace SharpConnect.MySql
                 _conn.Connect(onComplete);
             }
         }
-        public void Close()
+        public void Close(Action onComplete = null)
         {
             if (UseConnectionPool)
             {
@@ -85,7 +85,7 @@ namespace SharpConnect.MySql
             }
             else
             {
-                _conn.Disconnect();
+                _conn.Disconnect(onComplete);
             }
         }
         internal Connection Conn

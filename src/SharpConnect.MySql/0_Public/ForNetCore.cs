@@ -3,7 +3,7 @@ using System.IO;
 
 namespace SharpConnect.MySql.Internal
 {
-    
+
     //temp 
     static class IOExtensions
     {
@@ -15,6 +15,7 @@ namespace SharpConnect.MySql.Internal
         }
         public static void Close(this BinaryReader ms)
         {
+
         }
     }
 
