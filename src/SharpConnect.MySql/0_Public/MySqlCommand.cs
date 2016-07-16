@@ -50,18 +50,18 @@ namespace SharpConnect.MySql
             if (_isPreparedStmt)
             {
                 var reader = new MySqlDataReader(_query);
-                _query.Execute(nextAction);
+                _query.Execute(true, nextAction);
                 return reader;
             }
             else
             {
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
                 var reader = new MySqlDataReader(_query);
-                _query.Execute(nextAction);
+                _query.Execute(true, nextAction);
                 return reader;
             }
         }
-        internal void ExecuteReader(SharpConnect.MySql.Internal.Action<MySqlDataReader> nextAction)
+        internal void ExecuteReader(Internal.Action<MySqlDataReader> nextAction)
         {
             //for internal use only (Task Async Programming)
 #if DEBUG
@@ -73,25 +73,25 @@ namespace SharpConnect.MySql
             if (_isPreparedStmt)
             {
                 var reader = new MySqlDataReader(_query);
-                _query.Execute(() => { nextAction(reader); });
+                _query.Execute(true, () => { nextAction(reader); });
             }
             else
             {
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
                 var reader = new MySqlDataReader(_query);
-                _query.Execute(() => { nextAction(reader); });
+                _query.Execute(true, () => { nextAction(reader); });
             }
         }
         public void ExecuteNonQuery(Action nextAction = null)
         {
             if (_isPreparedStmt)
             {
-                _query.Execute(nextAction);
+                _query.Execute(false, nextAction);
             }
             else
             {
                 _query = new Query(Connection.Conn, _sqlStringTemplate, Parameters);
-                _query.Execute(nextAction);
+                _query.Execute(false, nextAction);
             }
         }
 

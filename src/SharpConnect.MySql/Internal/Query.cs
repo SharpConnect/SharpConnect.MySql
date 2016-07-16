@@ -45,7 +45,12 @@ namespace SharpConnect.MySql.Internal
         Closing,
         Closed,
     }
-
+    enum QueryUseMode
+    {
+        ExecNoneQuery,//default
+        ExecReader,
+        Prepare,
+    }
     class Query
     {
         public bool typeCast;
@@ -53,6 +58,7 @@ namespace SharpConnect.MySql.Internal
         CommandParams _cmdParams;
         Connection _conn;
         bool _prepareStatementMode;
+        QueryUseMode _queryUsedMode;
 
         MySqlStreamWrtier _writer;
         SqlStringTemplate _sqlStrTemplate;
@@ -69,13 +75,18 @@ namespace SharpConnect.MySql.Internal
         {
             //*** query use conn resource such as parser,writer
             //so 1 query 1 connection      
-            if (conn.IsInUsed)
+            Query bindingQuery = conn.BindingQuery;
+            if (bindingQuery != null)
             {
-                //can't use this conn
-                throw new Exception("connection is in used");
+                //check if binding query can be close 
+                if (!bindingQuery.LateClose())
+                {
+                    //can't use this conn
+                    throw new Exception("connection is in used");
+                }
             }
             //--------------------------------------------------------------
-            //conn.IsInUsed = true;
+            conn.BindingQuery = this;
             //--------------------------------------------------------------
             if (sql == null)
             {
@@ -92,6 +103,17 @@ namespace SharpConnect.MySql.Internal
             //_receiveBuffer = null;
             _sqlStrTemplate = sql;
         }
+        bool LateClose()
+        {
+            if (_queryUsedMode == QueryUseMode.ExecNoneQuery && _prepareContext == null)
+            {
+                this.Close();
+                this._conn.BindingQuery = null;
+                return true;
+            }
+            return false;
+        }
+
         public ErrPacket LoadError { get; private set; }
         public OkPacket OkPacket { get; private set; }
         public void SetResultListener(Action<MySqlTableResult> tableResultListener)
@@ -107,6 +129,8 @@ namespace SharpConnect.MySql.Internal
         public void Prepare(Action nextAction = null)
         {
             _execState = QueryExecState.Prepare;
+            _queryUsedMode = QueryUseMode.Prepare;
+
             if (_cmdParams == null)
             {
                 throw new Exception("Sql cmdParams can not null.");
@@ -142,9 +166,10 @@ namespace SharpConnect.MySql.Internal
         ///+/- blocking 
         /// </summary>
         /// <param name="nextAction"></param>
-        public void Execute(Action nextAction = null)
+        public void Execute(bool execReader, Action nextAction = null)
         {
             _execState = QueryExecState.Exec;
+            _queryUsedMode = execReader ? QueryUseMode.ExecReader : QueryUseMode.ExecNoneQuery;
             //-------------------
             //blocking method***
             //wait until execute finish 
@@ -206,11 +231,17 @@ namespace SharpConnect.MySql.Internal
                 //TODO: review here *** tight loop
                 while (!_recvComplete) ;
                 _sqlParserMx.UseFlushMode(false); //switch back// 
-                //blocking
-                _conn.InitWait();
-                Close_A(_conn.UnWait);
-                _conn.Wait();
-                 
+                //blocking 
+                if (_prepareContext != null)
+                {
+                    _conn.InitWait();
+                    ClosePrepareStmt_A(_conn.UnWait);
+                    _conn.Wait();
+                }
+                else
+                {
+                    _execState = QueryExecState.Closed;
+                }
             }
             else
             {
@@ -221,21 +252,30 @@ namespace SharpConnect.MySql.Internal
                     _sqlParserMx.UseFlushMode(true);
                     MonitorWhenRecvComplete(() =>
                     {
-                        _sqlParserMx.UseFlushMode(false); //switch back//
-                                                          //recv complte
-                        //_conn.IsInUsed = false;
-                        //_conn = null;
-                        Close_A(nextAction);
-                       
+                        _sqlParserMx.UseFlushMode(false);
+                        if (_prepareContext != null)
+                        {
+                            ClosePrepareStmt_A(nextAction);
+                        }
+                        else
+                        {
+                            _execState = QueryExecState.Closed;
+                            nextAction();
+                        }
+
                     });
                 }
                 else
                 {
-                    //recv complte
-                    //_conn.IsInUsed = false;
-                    //_conn = null;
-                    Close_A(nextAction);
-                    
+                    if (_prepareContext != null)
+                    {
+                        ClosePrepareStmt_A(nextAction);
+                    }
+                    else
+                    {
+                        _execState = QueryExecState.Closed;
+                        nextAction();
+                    }
                 }
             }
         }
@@ -278,8 +318,9 @@ namespace SharpConnect.MySql.Internal
                 SendAndRecv_A(_writer.ToArray(), nextAction);
             });
         }
-        void Close_A(Action nextAction)
+        void ClosePrepareStmt_A(Action nextAction)
         {
+            //for prepare only
             if (_prepareContext != null)
             {
                 _sqlParserMx.UseResultParser();
@@ -287,11 +328,6 @@ namespace SharpConnect.MySql.Internal
                 ComStmtClosePacket.Write(_writer, _prepareContext.statementId);
                 //when close, not wait for recv
                 SendPacket_A(_writer.ToArray(), nextAction);
-            }
-            else
-            {
-                _execState = QueryExecState.Closed;
-                nextAction();
             }
         }
 

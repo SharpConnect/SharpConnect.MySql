@@ -150,7 +150,7 @@ namespace SharpConnect.MySql
                 testN2 += 10;
                 cmd2Values.AddWithValue("?n1", testN1);
                 cmd2Values.AddWithValue("?n2", testN2);
-                query.Execute(); //*** 
+                query.Execute(true); //*** 
                 query.Close();
                 connection.Disconnect();
                 connection = new Connection(config);

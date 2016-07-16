@@ -20,8 +20,7 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.UseConnectionPool = true;
-            var tasks = new TaskChain();
-
+            var tasks = new TaskChain(); 
             tasks.AddTask(ch =>
             {
                 conn.Open(ch.Next);
