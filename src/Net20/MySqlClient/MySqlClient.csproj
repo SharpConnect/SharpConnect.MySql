@@ -41,10 +41,6 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SharpConnect.MySql.Utils\SharpConnect.MySql.Utils.csproj">
-      <Project>{f46ffa6b-ddd8-478d-99f4-5c1be499258c}</Project>
-      <Name>SharpConnect.MySql.Utils</Name>
-    </ProjectReference>
     <ProjectReference Include="..\SharpConnect.MySql\SharpConnect.MySql.csproj">
       <Project>{94d01ede-0499-422f-8081-90d94ad163fa}</Project>
       <Name>SharpConnect.MySql</Name>
