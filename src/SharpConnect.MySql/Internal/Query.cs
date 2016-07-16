@@ -75,7 +75,7 @@ namespace SharpConnect.MySql.Internal
                 throw new Exception("connection is in used");
             }
             //--------------------------------------------------------------
-            conn.IsInUsed = true;
+            //conn.IsInUsed = true;
             //--------------------------------------------------------------
             if (sql == null)
             {
@@ -177,9 +177,6 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-
-
-
         /// <summary>
         ///  +/- blocking
         /// </summary>
@@ -213,10 +210,7 @@ namespace SharpConnect.MySql.Internal
                 _conn.InitWait();
                 Close_A(_conn.UnWait);
                 _conn.Wait();
-                //-------------------------
-                _conn.IsInUsed = false;
-                _conn = null;
-                //-------------------------
+                 
             }
             else
             {
@@ -228,16 +222,20 @@ namespace SharpConnect.MySql.Internal
                     MonitorWhenRecvComplete(() =>
                     {
                         _sqlParserMx.UseFlushMode(false); //switch back//
+                                                          //recv complte
+                        //_conn.IsInUsed = false;
+                        //_conn = null;
                         Close_A(nextAction);
-                        _conn.IsInUsed = false;
-                        _conn = null;
+                       
                     });
                 }
                 else
                 {
+                    //recv complte
+                    //_conn.IsInUsed = false;
+                    //_conn = null;
                     Close_A(nextAction);
-                    _conn.IsInUsed = false;
-                    _conn = null;
+                    
                 }
             }
         }
@@ -535,12 +533,12 @@ namespace SharpConnect.MySql.Internal
 
     class TableHeader
     {
-        QueryParsingConfig _config;
+        QueryParsingConfig _parsingConfig;
         List<FieldPacket> _fields;
         Dictionary<string, int> _fieldNamePosMap;
         public TableHeader()
         {
-            this._fields = new List<FieldPacket>();
+            _fields = new List<FieldPacket>();
         }
 
         public void AddField(FieldPacket field)
@@ -553,7 +551,7 @@ namespace SharpConnect.MySql.Internal
         }
         public int ColumnCount
         {
-            get { return this._fields.Count; }
+            get { return _fields.Count; }
         }
 
 
@@ -581,11 +579,11 @@ namespace SharpConnect.MySql.Internal
         public bool NestTables { get; set; }
         public QueryParsingConfig ParsingConfig
         {
-            get { return _config; }
+            get { return _parsingConfig; }
             set
             {
-                _config = value;
-                this.TypeCast = _config.typeCast;
+                _parsingConfig = value;
+                this.TypeCast = _parsingConfig.typeCast;
             }
         }
 

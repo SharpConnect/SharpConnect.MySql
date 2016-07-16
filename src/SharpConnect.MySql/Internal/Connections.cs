@@ -74,11 +74,7 @@ namespace SharpConnect.MySql.Internal
         //---------------------------------
         //after open connection
         bool isProtocol41;
-        public uint threadId;
-
-        //TODO: review how to clear remaining buffer again
-        byte[] _tmpForClearRecvBuffer; //for clear buffer      
-
+        public uint threadId; 
 
         public Connection(ConnectionConfig userConfig)
         {

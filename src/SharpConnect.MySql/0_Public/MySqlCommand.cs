@@ -8,7 +8,7 @@ namespace SharpConnect.MySql
     {
         Query _query;
         bool _isPreparedStmt;
-        SqlStringTemplate sqlStringTemplate;
+        SqlStringTemplate _sqlStringTemplate;
         public MySqlCommand(string sql, MySqlConnection conn)
             : this(new SqlStringTemplate(sql), conn)
         {
@@ -24,7 +24,7 @@ namespace SharpConnect.MySql
         }
         public MySqlCommand(SqlStringTemplate sql, CommandParams cmds, MySqlConnection conn)
         {
-            sqlStringTemplate = sql;
+            _sqlStringTemplate = sql;
             Connection = conn;
             Parameters = cmds;
         }
@@ -35,14 +35,14 @@ namespace SharpConnect.MySql
         }
         public string CommandText
         {
-            get { return this.sqlStringTemplate.UserRawSql; }
+            get { return this._sqlStringTemplate.UserRawSql; }
         }
         public MySqlConnection Connection { get; private set; }
         public void Prepare(Action nextAction = null)
         {
             //prepare sql command;
             _isPreparedStmt = true;
-            _query = new Query(Connection.Conn, sqlStringTemplate, Parameters);
+            _query = new Query(Connection.Conn, _sqlStringTemplate, Parameters);
             _query.Prepare(nextAction);
         }
         public MySqlDataReader ExecuteReader(Action nextAction = null)
@@ -55,7 +55,7 @@ namespace SharpConnect.MySql
             }
             else
             {
-                _query = new Query(this.Connection.Conn, sqlStringTemplate, Parameters);
+                _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
                 var reader = new MySqlDataReader(_query);
                 _query.Execute(nextAction);
                 return reader;
@@ -77,7 +77,7 @@ namespace SharpConnect.MySql
             }
             else
             {
-                _query = new Query(this.Connection.Conn, sqlStringTemplate, Parameters);
+                _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
                 var reader = new MySqlDataReader(_query);
                 _query.Execute(() => { nextAction(reader); });
             }
@@ -90,7 +90,7 @@ namespace SharpConnect.MySql
             }
             else
             {
-                _query = new Query(Connection.Conn, sqlStringTemplate, Parameters);
+                _query = new Query(Connection.Conn, _sqlStringTemplate, Parameters);
                 _query.Execute(nextAction);
             }
         }
