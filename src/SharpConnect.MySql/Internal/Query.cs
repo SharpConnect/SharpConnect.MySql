@@ -51,7 +51,7 @@ namespace SharpConnect.MySql.Internal
         public bool typeCast;
         public bool nestTables;
         CommandParams _cmdParams;
-        readonly Connection _conn;
+        Connection _conn;
         bool _prepareStatementMode;
 
         MySqlStreamWrtier _writer;
@@ -74,6 +74,8 @@ namespace SharpConnect.MySql.Internal
                 //can't use this conn
                 throw new Exception("connection is in used");
             }
+            //--------------------------------------------------------------
+            conn.IsInUsed = true;
             //--------------------------------------------------------------
             if (sql == null)
             {
@@ -199,7 +201,6 @@ namespace SharpConnect.MySql.Internal
             //first ***
             _execState = QueryExecState.Closing;
             //-------------------------------------------------
-
             if (nextAction == null)
             {
                 //blocking
@@ -212,9 +213,14 @@ namespace SharpConnect.MySql.Internal
                 _conn.InitWait();
                 Close_A(_conn.UnWait);
                 _conn.Wait();
+                //-------------------------
+                _conn.IsInUsed = false;
+                _conn = null;
+                //-------------------------
             }
             else
             {
+
                 //non blocking
                 if (!_recvComplete)
                 {
@@ -223,11 +229,15 @@ namespace SharpConnect.MySql.Internal
                     {
                         _sqlParserMx.UseFlushMode(false); //switch back//
                         Close_A(nextAction);
+                        _conn.IsInUsed = false;
+                        _conn = null;
                     });
                 }
                 else
                 {
                     Close_A(nextAction);
+                    _conn.IsInUsed = false;
+                    _conn = null;
                 }
             }
         }
