@@ -42,9 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FormTestSuite.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Include="FormTestSuite.cs" />
     <Compile Include="FormTestSuite.Designer.cs">
       <DependentUpon>FormTestSuite.cs</DependentUpon>
     </Compile>
