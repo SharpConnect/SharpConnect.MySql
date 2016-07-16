@@ -128,7 +128,8 @@ namespace SharpConnect.MySql
             Connection killConn = new Connection(internalConn.config);
             killConn.Connect();
             var q = new Query(killConn, realSql, null);
-            q.Execute(); //wait  
+            q.Execute(false); //wait  
+            q.Close();
             killConn.Disconnect();
         }
         public static void UpdateMaxAllowPacket(this MySqlConnection conn)
@@ -144,7 +145,7 @@ namespace SharpConnect.MySql
                 conn.SetMaxAllowedPacket((int)value); //cast down
             });
             //wait
-            _query.Execute();
+            _query.Execute(true);
             _query.Close();
         }
     }

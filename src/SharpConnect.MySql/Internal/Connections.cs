@@ -23,7 +23,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text; 
+using System.Text;
 using SharpConnect.Internal;
 namespace SharpConnect.MySql.Internal
 {
@@ -75,10 +75,6 @@ namespace SharpConnect.MySql.Internal
         //after open connection
         bool isProtocol41;
         public uint threadId;
-
-        //TODO: review how to clear remaining buffer again
-        byte[] _tmpForClearRecvBuffer; //for clear buffer      
-
 
         public Connection(ConnectionConfig userConfig)
         {
@@ -395,7 +391,8 @@ namespace SharpConnect.MySql.Internal
         }
         //---------------------------------------------------------------
         public bool IsStoredInConnPool { get; set; }
-        public bool IsInUsed { get; set; }
+        public Query BindingQuery { get; set; }
+
         internal MySqlStreamWrtier PacketWriter
         {
             get { return _writer; }

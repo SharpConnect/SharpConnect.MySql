@@ -48,6 +48,9 @@
     <Compile Include="..\..\SharpConnect.MySql\0_Public\MySqlDataReader.cs">
       <Link>0_Public\MySqlDataReader.cs</Link>
     </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\0_Public\SqlStringTemplate.cs">
+      <Link>ForNet20\SqlStringTemplate.cs</Link>
+    </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\ConnectionPool.cs">
       <Link>Internal\ConnectionPool.cs</Link>
     </Compile>
@@ -80,9 +83,6 @@
     </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\SendIO_RecvIO.cs">
       <Link>Internal\SendIO_RecvIO.cs</Link>
-    </Compile>
-    <Compile Include="..\..\SharpConnect.MySql\Internal\SqlStringTemplate.cs">
-      <Link>Internal\SqlStringTemplate.cs</Link>
     </Compile>
     <Compile Include="ForNet20\ForNet20.cs" />
     <Compile Include="ForNet20\MySqlTaskBasedExtensions.cs" />
