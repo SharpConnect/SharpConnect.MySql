@@ -11,21 +11,16 @@ namespace SharpConnect.MySql
         public Task OpenAsync()
         {
             var tcs = new TaskCompletionSource<int>();
-            Open(() =>
-            {
-                tcs.SetResult(0);                
-            });
+            Open(() => tcs.SetResult(0));
             return tcs.Task;
         }
         public Task CloseAsync()
         {
             var tcs = new TaskCompletionSource<int>();
-            Close(() =>
-            {
-                tcs.SetResult(0);
-            });
+            Close(() => tcs.SetResult(0));
             return tcs.Task;
         }
+        
 
     }
 }
