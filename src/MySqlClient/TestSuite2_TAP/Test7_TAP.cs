@@ -9,7 +9,7 @@ namespace MySqlTest
     public class TestSet7_TAP : MySqlTestSet
     {
         [Test]
-        public static async void T_InsertAndSelect_TAP()
+        public static async void T_OpenAndClose_TAP()
         {
 
             System.Diagnostics.Stopwatch stopW = new System.Diagnostics.Stopwatch();
@@ -52,6 +52,8 @@ namespace MySqlTest
             });
             //--------------------------------------------
             stopW.Stop();
+            Report.WriteLine("avg:" + stopW.ElapsedTicks);
+
         }
 
         static async Task DoTaskAsync()
