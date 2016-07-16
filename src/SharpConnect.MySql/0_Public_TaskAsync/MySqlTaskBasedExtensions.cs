@@ -1,7 +1,6 @@
 ﻿//MIT, 2016, brezza92, EngineKit and contributors 
 
-using System;
-using SharpConnect;
+
 using System.Threading.Tasks;
 namespace SharpConnect.MySql
 {

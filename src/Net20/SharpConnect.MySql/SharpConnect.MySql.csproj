@@ -85,7 +85,7 @@
       <Link>Internal\SqlStringTemplate.cs</Link>
     </Compile>
     <Compile Include="ForNet20\ForNet20.cs" />
-    <Compile Include="ForNet20\MySqlTaskBasedExtension.cs" />
+    <Compile Include="ForNet20\MySqlTaskBasedExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
