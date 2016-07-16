@@ -231,11 +231,8 @@ namespace SharpConnect.MySql.Internal
                 }
             }
         }
-
-
         void ExecuteNonPrepare_A(Action nextAction)
         {
-
             _sqlParserMx.UseResultParser();
             _writer.Reset();
             ComQueryPacket.Write(
@@ -311,7 +308,7 @@ namespace SharpConnect.MySql.Internal
         Action whenRecvComplete;
         void RecvComplete()
         {
-            
+
             //_recvComplete used by multithread
             _recvComplete = true;
             //need to store to local var
@@ -345,11 +342,12 @@ namespace SharpConnect.MySql.Internal
                 }
             }
         }
-        //----------------------------------------------
+
         void RecvPacket_A(Action whenRecv)
         {
 
             _recvComplete = false;
+            bool isFirstRecv = true;
             _conn.StartReceive(result =>
             {
                 if (result == null)
@@ -378,17 +376,21 @@ namespace SharpConnect.MySql.Internal
                         case MySqlResultKind.TableResult:
                             {
                                 MySqlTableResult tableResult = result as MySqlTableResult;
-                                //support partial table mode
-                                if (!tableResult.IsPartialTable)
-                                {
-                                    RecvComplete();
-                                }
+                                //support partial table mode 
                                 //last sub table is not partial table 
+
+                                //must notify reader first***
                                 if (_tableResultListener != null)
                                 {
                                     //the _tableResultListener may modifid by other state (Close)
                                     //if don't lock we need to store it to local var
                                     _tableResultListener(tableResult);
+                                }
+
+                                //----------------------------------------- 
+                                if (!tableResult.IsPartialTable)
+                                {
+                                    RecvComplete();
                                 }
                             }
                             break;
@@ -407,7 +409,13 @@ namespace SharpConnect.MySql.Internal
                     }
                 }
                 //-----------------
-                whenRecv();
+                //exec once
+                if (isFirstRecv)
+                {
+                    isFirstRecv = false;
+                    whenRecv();
+                    whenRecv = null;
+                }
                 //-----------------
             });
         }
