@@ -88,15 +88,16 @@ namespace SharpConnect.MySql
                 goto TRY_AGAIN;
             }
         }
-        public void Close()
+        public void Close(Action nextAction = null)
         {
-            _query.Close();
+            _query.Close(nextAction);
+
             currentTableResult = null;
             currentRowIndex = 0;
             currentRow = null;
             subTables.Clear();
-
         }
+        //-------------------------------------------
         public sbyte GetInt8(int colIndex)
         {
 
