@@ -89,13 +89,13 @@ namespace SharpConnect.MySql
             if (connection == null)
             {
                 connection = new Connection(config);
-                connection.IsStoredInConnPool = true;
+                connection.IsStoredInConnPool = false;
                 connection.Connect();
             }
 
             int count = 3;
-            Query query;
-            query = connection.CreateQuery(sql, cmd2Values);
+
+
             int fCase = 1;
             for (int i = 0; i < count; i++)
             {
@@ -103,69 +103,54 @@ namespace SharpConnect.MySql
                 //query = connection.CreateQuery(sql, cmdValues);
                 //query = connection.CreateQuery(cmd2Values);
                 //query.ExecutePrepareQuery(cmd2Values);
-                query = connection.CreateQuery(sql, cmd2Values);
-                query.Execute();
-                //switch (fCase)
-                //{
-                //    case 0:
-                //        filename = "TestMe.png";
-                //        fCase++;
-                //        break;
-                //    case 1:
-                //        filename = "Colorful.jpg";
-                //        fCase++;
-                //        break;
-                //    case 2:
-                //        filename = "TestJpg.jpg";
-                //        fCase = 0;
-                //        break;
-                //}
-                //buffer = File.ReadAllBytes("D:\\[]Photo\\" + filename);
-                //cmd2Values.AddValue("buffer1", buffer);
+                var query = new Query(connection, sql, cmd2Values);
+                query.SetResultListener(tableResult =>
+                {
+                    if (query.LoadError != null)
+                    {
+                        Console.WriteLine("Error : " + query.LoadError.message);
+                    }
+                    else if (query.OkPacket != null)
+                    {
+                        Console.WriteLine("i : " + i + ", OkPacket : [affectedRow] >> " + query.OkPacket.affectedRows);
+                        Console.WriteLine("i : " + i + ", OkPacket : [insertId] >> " + query.OkPacket.insertId);
+                    }
+                    else
+                    {
+                        var thead = tableResult.tableHeader;
 
-                //Console.WriteLine("Expected Result : " + (testN1 + testN2));
+                        int col_idsaveImage = thead.GetFieldIndex("idsaveImage");
+                        int col_saveImageCol = thead.GetFieldIndex("saveImagecol");
+                        int col_test = thead.GetFieldIndex("test1");
+                        //if (col_idsaveImage < 0 || col_saveImageCol < 0)
+                        //{
+                        //    throw new Exception();
+                        //}
+                        Console.WriteLine("Result : ");
+                        //while (query.ReadRow())
+                        //{
+                        //    if (col_test == 0)
+                        //    {
+                        //        Console.WriteLine("Result of " + "test1 : >> " + query.Cells[col_test] + " <<");
+                        //    }
+                        //    else
+                        //    {
+                        //        Console.WriteLine("Id : " + query.Cells[col_idsaveImage]);
+                        //        Console.WriteLine("Buffer size : " + query.Cells[col_saveImageCol].myBuffer.Length);
+                        //    }
+                        //    //Console.WriteLine(query.GetFieldData("myusercol1"));
+                        //    if (++j > 3)
+                        //    {
+                        //        break;
+                        //    }
+                        //}
+                    }
+                });
                 testN1 += 10;
                 testN2 += 10;
                 cmd2Values.AddWithValue("?n1", testN1);
                 cmd2Values.AddWithValue("?n2", testN2);
-                //query.ExecuteQuery();
-                if (query.LoadError != null)
-                {
-                    Console.WriteLine("Error : " + query.LoadError.message);
-                }
-                else if (query.OkPacket != null)
-                {
-                    Console.WriteLine("i : " + i + ", OkPacket : [affectedRow] >> " + query.OkPacket.affectedRows);
-                    Console.WriteLine("i : " + i + ", OkPacket : [insertId] >> " + query.OkPacket.insertId);
-                }
-                else
-                {
-                    int col_idsaveImage = query.GetColumnIndex("idsaveImage");
-                    int col_saveImageCol = query.GetColumnIndex("saveImagecol");
-                    int col_test = query.GetColumnIndex("test1");
-                    //if (col_idsaveImage < 0 || col_saveImageCol < 0)
-                    //{
-                    //    throw new Exception();
-                    //}
-                    Console.WriteLine("Result : ");
-                    while (query.ReadRow())
-                    {
-                        if (col_test == 0)
-                        {
-                            Console.WriteLine("Result of " + "test1 : >> " + query.Cells[col_test] + " <<");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Id : " + query.Cells[col_idsaveImage]);
-                            Console.WriteLine("Buffer size : " + query.Cells[col_saveImageCol].myBuffer.Length);
-                        }
-                        //Console.WriteLine(query.GetFieldData("myusercol1"));
-                        if (++j > 3)
-                        {
-                            break;
-                        }
-                    }
-                }
+                query.Execute(true); //*** 
                 query.Close();
                 connection.Disconnect();
                 connection = new Connection(config);
@@ -189,7 +174,7 @@ namespace SharpConnect.MySql
                 //}
                 //query.Close();
             }
-            query.Close();
+
             ss.Stop();
             long avg = ss.ElapsedMilliseconds / count;
             Console.WriteLine("Counting : " + count + " rounds. \r\nAverage Time : " + avg + " ms");

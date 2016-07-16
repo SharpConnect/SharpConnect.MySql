@@ -2,7 +2,8 @@
 
 using System;
 using System.Collections.Generic;
-using SharpConnect.MySql;
+using MySql.Data;
+using MySql.Data.MySqlClient;
 namespace MySqlTest
 {
     public class TestSet2 : MySqlTestSet
@@ -13,31 +14,24 @@ namespace MySqlTest
             int n = 1;
             long total;
             long avg;
-            try
+
+            Test(n, TimeUnit.Ticks, out total, out avg, () =>
             {
-                Test(n, TimeUnit.Ticks, out total, out avg, () =>
+                var connStr = GetMySqlConnString();
+                var conn = new MySqlConnection(connStr);
+                conn.Open();
+
+                DropTableIfExists(conn);
+                CreateTable(conn);
+                for (int i = 0; i < 2000; ++i)
                 {
-                    var connStr = GetMySqlConnString();
-                    var conn = new MySqlConnection(connStr);
-                    conn.UseConnectionPool = true;
-                    conn.Open();
+                    InsertData(conn);
+                }
+                SelectDataBack(conn);
+                conn.Close();
+            });
 
-                    DropTableIfExists(conn);
-                    CreateTable(conn);
-                    for (int i = 0; i < 2000; ++i)
-                    {
-                        InsertData(conn);
-                    }
-                    SelectDataBack(conn);
-                    conn.Close();
-                });
-                Report.WriteLine("avg:" + avg);
-            }
-            catch (Exception ex)
-            {
-
-            }
-
+            Report.WriteLine("avg:" + avg);
         }
         static void DropTableIfExists(MySqlConnection conn)
         {
@@ -58,20 +52,16 @@ namespace MySqlTest
             string sql = "insert into test001(col1,col2,col3,col4) values(10,'AA','123456789','0001-01-01')";
             var cmd = new MySqlCommand(sql, conn);
             cmd.ExecuteNonQuery();
-            uint lastInsertId = cmd.LastInsertedId;
+            long lastInsertId = cmd.LastInsertedId;
         }
         static void SelectDataBack(MySqlConnection conn)
         {
             string sql = "select * from test001";
             var cmd = new MySqlCommand(sql, conn);
-#if DEBUG
-            conn.dbugPleaseBreak = true;
-#endif
             var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                //test immediate close
-                reader.Close();
+
             }
             reader.Close();
         }

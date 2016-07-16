@@ -33,21 +33,21 @@ namespace SharpConnect.Internal
         {
             return recvArgs.Buffer[this.recvStartOffset + index];
         }
-        public void ReadTo(int srcIndex, byte[] destBuffer, int destIndex, int count)
+        public void CopyTo(int srcIndex, byte[] destBuffer, int destIndex, int count)
         {
             Buffer.BlockCopy(recvArgs.Buffer,
                 recvStartOffset + srcIndex,
                 destBuffer,
                 destIndex, count);
         }
-        public void ReadTo(int srcIndex, byte[] destBuffer, int count)
+        public void CopyTo(int srcIndex, byte[] destBuffer, int count)
         {
             Buffer.BlockCopy(recvArgs.Buffer,
                 recvStartOffset + srcIndex,
                 destBuffer,
                 0, count);
         }
-        public void ReadTo(int srcIndex, MemoryStream ms, int count)
+        public void CopyTo(int srcIndex, MemoryStream ms, int count)
         {
             ms.Write(recvArgs.Buffer,
                 recvStartOffset + srcIndex,

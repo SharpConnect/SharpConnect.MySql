@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Diagnostics;
-using SharpConnect.MySql;
+using MySql.Data.MySqlClient;
 using MySqlTest;
-namespace MySqlClient
+namespace ReferenceMySqlClient
 {
     public partial class FormTestSuite : Form
     {
@@ -15,7 +15,7 @@ namespace MySqlClient
         }
         private void FormTestSuite_Load(object sender, EventArgs e)
         {
-            this.Text = "SharpConnect";
+            this.Text = "Test";
             listboxTestCases.DoubleClick += ListboxTestCases_DoubleClick;
             LoadTestCases();
         }
@@ -45,15 +45,13 @@ namespace MySqlClient
 
         private void button1_Click(object sender, EventArgs e)
         {
-
-#if DEBUG
-            DateTime d = new DateTime(0, 0, 0, 0, 0, 0);
-
-            //TestSet1.T_NumRange();
-            TestSet1.T_FloatingRange();
-            // TestSet_Blob.T_InsertBlobData();
-            //dbugInternal.Test1();
-#endif
+            TestSet2.T_InsertAndSelect();
+            //#if DEBUG
+            //            //TestSet1.T_NumRange();
+            //            TestSet1.T_FloatingRange();
+            //           // TestSet_Blob.T_InsertBlobData();
+            //            //dbugInternal.Test1();
+            //#endif
         }
     }
 }

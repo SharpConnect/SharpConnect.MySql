@@ -33,6 +33,7 @@ namespace MySqlTest
 #if DEBUG
             Console.WriteLine(info);
 #endif
+
             s_stbuilder.AppendLine(info);
         }
         public static string GetReportText()
@@ -50,7 +51,6 @@ namespace MySqlTest
             _testMethod = testMethod;
             _testName = name;
         }
-        public string Name { get { return _testName; } }
         public override string ToString()
         {
             return _testName;
