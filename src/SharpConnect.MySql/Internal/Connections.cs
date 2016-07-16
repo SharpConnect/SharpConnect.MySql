@@ -23,8 +23,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
+using System.Text; 
 using SharpConnect.Internal;
 namespace SharpConnect.MySql.Internal
 {
@@ -293,9 +292,11 @@ namespace SharpConnect.MySql.Internal
             }
             _mysqlParserMx.UseConnectionParser();
             this._workingState = WorkingState.Rest;
+            //--------------
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             socket.Connect(endpoint);
             this._workingState = WorkingState.Rest;
+            //--------------
             //**start listen after connect
             InitWait();
             StartReceive(mysql_result =>

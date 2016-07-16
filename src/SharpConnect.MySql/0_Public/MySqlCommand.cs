@@ -3,7 +3,7 @@
 using System;
 using SharpConnect.MySql.Internal;
 namespace SharpConnect.MySql
-{   
+{
     public class MySqlCommand
     {
         Query _query;
@@ -28,27 +28,48 @@ namespace SharpConnect.MySql
         }
         public string CommandText { get; private set; }
         public MySqlConnection Connection { get; private set; }
-        public void Prepare()
+        public void Prepare(Action nextAction = null)
         {
             //prepare sql command;
             _isPreparedStmt = true;
             _query = new Query(Connection.Conn, CommandText, Parameters);
-            _query.Prepare();
+            _query.Prepare(nextAction);
         }
-        public MySqlDataReader ExecuteReader()
+        public MySqlDataReader ExecuteReader(Action nextAction = null)
         {
             if (_isPreparedStmt)
             {
                 var reader = new MySqlDataReader(_query);
-                _query.Execute();
+                _query.Execute(nextAction);
                 return reader;
             }
             else
             {
                 _query = new Query(this.Connection.Conn, this.CommandText, Parameters);
                 var reader = new MySqlDataReader(_query);
-                _query.Execute();
+                _query.Execute(nextAction);
                 return reader;
+            }
+        }
+        internal void ExecuteReader(SharpConnect.MySql.Internal.Action<MySqlDataReader> nextAction)
+        {
+            //for internal use only (Task Async Programming)
+#if DEBUG
+            if (nextAction == null)
+            {
+                throw new Exception("nextAction must not be null");
+            }
+#endif
+            if (_isPreparedStmt)
+            {
+                var reader = new MySqlDataReader(_query);
+                _query.Execute(() => { nextAction(reader); });
+            }
+            else
+            {
+                _query = new Query(this.Connection.Conn, this.CommandText, Parameters);
+                var reader = new MySqlDataReader(_query);
+                _query.Execute(() => { nextAction(reader); });
             }
         }
         public void ExecuteNonQuery(Action nextAction = null)

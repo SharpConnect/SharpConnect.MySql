@@ -77,15 +77,19 @@ namespace SharpConnect.MySql
                 _conn.Connect(onComplete);
             }
         }
-        public void Close()
+        public void Close(Action onComplete = null)
         {
             if (UseConnectionPool)
             {
                 ConnectionPool.ReleaseConnection(_connStr, _conn);
+                if (onComplete != null)
+                {
+                    onComplete();
+                }
             }
             else
             {
-                _conn.Disconnect();
+                _conn.Disconnect(onComplete);
             }
         }
         internal Connection Conn

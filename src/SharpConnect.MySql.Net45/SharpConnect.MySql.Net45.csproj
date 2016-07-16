@@ -18,7 +18,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NET20</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
@@ -43,9 +43,6 @@
     <Compile Include="..\SharpConnect.MySql\0_Public\debugTest1.cs">
       <Link>0_Public\debugTest1.cs</Link>
     </Compile>
-    <Compile Include="..\SharpConnect.MySql\0_Public\ForNet20.cs">
-      <Link>0_Public\ForNet20.cs</Link>
-    </Compile>
     <Compile Include="..\SharpConnect.MySql\0_Public\MySqlCommand.cs">
       <Link>0_Public\MySqlCommand.cs</Link>
     </Compile>
@@ -54,6 +51,9 @@
     </Compile>
     <Compile Include="..\SharpConnect.MySql\0_Public\MySqlDataReader.cs">
       <Link>0_Public\MySqlDataReader.cs</Link>
+    </Compile>
+    <Compile Include="..\SharpConnect.MySql\0_Public_TaskAsync\MySqlTaskBasedExtensions.cs">
+      <Link>0_Public_TaskAsync\MySqlTaskBasedExtensions.cs</Link>
     </Compile>
     <Compile Include="..\SharpConnect.MySql\Internal\ConnectionPool.cs">
       <Link>Internal\ConnectionPool.cs</Link>
