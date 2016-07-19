@@ -33,6 +33,4 @@ MIT license, MySQL Connector / MySQL Driver for .NET
  THE SOFTWARE.
  
 
-nuget package:
-
-https://www.nuget.org/packages/SharpConnect.MySql
+***nuget package:***  https://www.nuget.org/packages/SharpConnect.MySql
