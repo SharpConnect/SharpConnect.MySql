@@ -12,10 +12,6 @@ namespace SharpConnect.MySql
         public CommandParams()
         {
         }
-
-        //-------------------------------------------------------
-        //user's bound data values
-
         public void AddWithValue(string key, string value)
         {
             var data = new MyStructData();
@@ -159,18 +155,78 @@ namespace SharpConnect.MySql
             //data.type = Types.LONGLONG;
             _values[key] = data;
         }
-
+        //-------------------------------------------------------
+        //user's bound data values 
+        public void AddWithValue(string key, object value)
+        {
+            //get type of value
+            switch (MySqlTypeConversionInfo.GetProperDataType(value))
+            {
+                //switch proper type
+                default:
+                case ProperDataType.Unknown:
+                    throw new Exception("unknown data type?");
+                case ProperDataType.Bool:
+                    AddWithValue(key, (bool)value);
+                    break;
+                case ProperDataType.Sbyte:
+                    AddWithValue(key, (sbyte)value);
+                    break;
+                case ProperDataType.Char:
+                    AddWithValue(key, (char)value);
+                    break;
+                case ProperDataType.Int16:
+                    AddWithValue(key, (short)value);
+                    break;
+                case ProperDataType.UInt16:
+                    AddWithValue(key, (ushort)value);
+                    break;
+                case ProperDataType.Int32:
+                    AddWithValue(key, (int)value);
+                    break;
+                case ProperDataType.UInt32:
+                    AddWithValue(key, (uint)value);
+                    break;
+                case ProperDataType.Int64:
+                    AddWithValue(key, (long)value);
+                    break;
+                case ProperDataType.UInt64:
+                    AddWithValue(key, (ulong)value);
+                    break;
+                case ProperDataType.DateTime:
+                    AddWithValue(key, (DateTime)value);
+                    break;
+                case ProperDataType.Float32:
+                    AddWithValue(key, (float)value);
+                    break;
+                case ProperDataType.Double64:
+                    AddWithValue(key, (double)value);
+                    break;
+                case ProperDataType.Decimal:
+                    AddWithValue(key, (decimal)value);
+                    break;
+            }
+        }
 
         internal bool TryGetData(string key, out MyStructData data)
         {
             return _values.TryGetValue(key, out data);
         }
 
+        /// <summary>
+        /// clear binding data value
+        /// </summary>
         public void ClearDataValues()
         {
             _values.Clear();
         }
-
+        /// <summary>
+        /// clear binding data value
+        /// </summary>
+        public void Clear()
+        {
+            ClearDataValues();
+        }
 
         //-------------------------------------------------------
         //sql parts : special extension 
