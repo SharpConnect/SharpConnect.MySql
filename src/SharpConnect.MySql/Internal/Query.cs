@@ -420,27 +420,6 @@ namespace SharpConnect.MySql.Internal
                                 RecvComplete();
                             }
                             break;
-                        case MySqlResultKind.TableResult:
-                            {
-                                MySqlTableResult tableResult = result as MySqlTableResult;
-                                //support partial table mode 
-                                //last sub table is not partial table 
-
-                                //must notify reader first***
-                                if (_tableResultListener != null)
-                                {
-                                    //the _tableResultListener may modifid by other state (Close)
-                                    //if don't lock we need to store it to local var
-                                    _tableResultListener(tableResult);
-                                }
-
-                                //----------------------------------------- 
-                                if (!tableResult.IsPartialTable)
-                                {
-                                    RecvComplete();
-                                }
-                            }
-                            break;
                         case MySqlResultKind.PrepareResponse:
                             {
                                 //The server will send a OK_Packet if the statement could be reset, a ERR_Packet if not.
@@ -451,6 +430,66 @@ namespace SharpConnect.MySql.Internal
                                     _sqlStrTemplate,
                                     response.tableHeader);
                                 RecvComplete();
+                            }
+                            break;
+                        case MySqlResultKind.TableResult:
+                            {
+                                MySqlTableResult tableResult = result as MySqlTableResult;
+                                //support partial table mode 
+                                //last sub table is not partial table  
+                                //must notify reader first***
+                                if (_tableResultListener != null)
+                                {
+                                    //the _tableResultListener may modifid by other state (Close)
+                                    //if don't lock we need to store it to local var
+                                    _tableResultListener(tableResult);
+                                }
+
+                                //----------------------------------------- 
+                                if (!tableResult.HasFollowerTable)
+                                {
+                                    RecvComplete();
+                                }
+                            }
+                            break;
+                        case MySqlResultKind.MultiTableResult:
+                            {
+                                MySqlMultiTableResult multiTables = result as MySqlMultiTableResult;
+                                List<MySqlTableResult> subTables = multiTables.subTables;
+                                int j = subTables.Count;
+                                for (int i = 0; i < j; ++i)
+                                {
+                                    MySqlTableResult table = subTables[i];
+                                    if (i < j - 1)
+                                    {
+                                        //not the last one
+                                        //(the last one may complete or not complete)
+                                        table.HasFollowerTable = true;
+                                        if (_tableResultListener != null)
+                                        {
+                                            //the _tableResultListener may modifid by other state (Close)
+                                            //if don't lock we need to store it to local var
+                                            _tableResultListener(table);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        //this is the last one
+                                        if (_tableResultListener != null)
+                                        {
+                                            //the _tableResultListener may modifid by other state (Close)
+                                            //if don't lock we need to store it to local var
+                                            _tableResultListener(table);
+                                        }
+
+                                        if (!table.HasFollowerTable)
+                                        {
+                                            RecvComplete();
+                                        }
+
+                                    }
+                                }
+
                             }
                             break;
                     }

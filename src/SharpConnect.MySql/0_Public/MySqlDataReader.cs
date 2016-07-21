@@ -14,9 +14,10 @@ namespace SharpConnect.MySql
         List<DataRowPacket> currentTableRows;
         int currentTableRowCount = 0;
         int currentRowIndex = 0;
-        bool isPartialTable;
+        bool tableResultIsNotComplete;
         //
         DataRowPacket currentRow;
+        bool firstResultArrived;
         internal MySqlDataReader(Query query)
         {
             _query = query;
@@ -24,10 +25,11 @@ namespace SharpConnect.MySql
             query.SetResultListener(subtable =>
             {
                 //we need the subtable must arrive in correct order ***
+                firstResultArrived = true;
                 lock (subTables)
                 {
                     subTables.Enqueue(subtable);
-                    isPartialTable = subtable.IsPartialTable; //***
+                    tableResultIsNotComplete = subtable.HasFollowerTable; //***
                 }
             });
         }
@@ -53,7 +55,7 @@ namespace SharpConnect.MySql
                     }
                     if (!hasSomeSubTables)
                     {
-                        if (isPartialTable)
+                        if (tableResultIsNotComplete)
                         {
                             //we are in isPartial table mode (not complete)
                             //so must wait until the table arrive **
@@ -61,7 +63,7 @@ namespace SharpConnect.MySql
                             //wait ***
                             //------------------
                             //TODO: review here *** tight loop
-                            while (isPartialTable) ; //*** tigh loop
+                            while (tableResultIsNotComplete) ; //*** tigh loop
                                                      //------------------
                             goto TRY_AGAIN;
                         }
@@ -109,7 +111,7 @@ namespace SharpConnect.MySql
                 }
                 if (!hasSomeSubTables)
                 {
-                    if (isPartialTable)
+                    if (tableResultIsNotComplete)
                     {
                         //we are in isPartial table mode (not complete)
                         //so must wait until the table arrive **
@@ -117,8 +119,16 @@ namespace SharpConnect.MySql
                         //wait ***
                         //------------------
                         //TODO: review here *** tight loop
-                        while (isPartialTable) ; //*** tigh loop
+                        while (tableResultIsNotComplete) ; //*** tight loop
                         //------------------
+                        goto TRY_AGAIN;
+                    }
+                    else if (!firstResultArrived)
+                    {
+                        //another tight loop
+                        //wait for first result arrive
+                        //TODO: review here *** tight loop
+                        while (!firstResultArrived) ;//*** tight loop
                         goto TRY_AGAIN;
                     }
                     else

@@ -68,6 +68,7 @@ namespace SharpConnect.MySql.Internal
         TableHeader _tableHeader;
         MySqlResult _parseResult;
         List<DataRowPacket> _rows;
+        MySqlMultiTableResult currentMultResultSet;
 
         bool _supportPartialRelease = true;
         bool _generateResultMode = true;
@@ -146,7 +147,6 @@ namespace SharpConnect.MySql.Internal
                     _parsingState = ResultPacketState.Ok_Content;
                     break;
                 default:
-
                     //resultset packet 
                     _parsingState = ResultPacketState.Header_Content;
                     break;
@@ -155,10 +155,26 @@ namespace SharpConnect.MySql.Internal
         }
         bool Parse_Ok_Content(MySqlStreamReader reader)
         {
-            var okPacket = new OkPacket(_currentHeader, this._isProtocol41);
-            okPacket.ParsePacketContent(reader);
-            _parseResult = new MySqlOkResult(okPacket);
-            _parsingState = ResultPacketState.ShouldEnd; //*
+
+            if (this.currentMultResultSet != null)
+            {
+                //in multiple result set mode ***
+                //see https://dev.mysql.com/doc/internals/en/multi-resultset.html
+                //
+                var okPacket = new OkPacket(_currentHeader, this._isProtocol41);
+                okPacket.ParsePacketContent(reader);
+                _parseResult = currentMultResultSet;
+                _parsingState = ResultPacketState.ShouldEnd; //*
+                //
+                currentMultResultSet = null;//reset 
+            }
+            else
+            {
+                var okPacket = new OkPacket(_currentHeader, this._isProtocol41);
+                okPacket.ParsePacketContent(reader);
+                _parseResult = new MySqlOkResult(okPacket);
+                _parsingState = ResultPacketState.ShouldEnd; //*
+            }
             return true;
         }
         /// <summary>
@@ -211,6 +227,8 @@ namespace SharpConnect.MySql.Internal
             {
                 return _needMoreData = true;
             }
+
+
             var fieldPacket = new FieldPacket(_currentHeader, this._isProtocol41);
             fieldPacket.ParsePacketContent(reader);
             _tableHeader.AddField(fieldPacket);
@@ -317,6 +335,8 @@ namespace SharpConnect.MySql.Internal
             _parsingState = ResultPacketState.Row_Header;
             return false;
         }
+
+
         bool Parse_Row_EOF(MySqlStreamReader reader)
         {
 
@@ -324,13 +344,40 @@ namespace SharpConnect.MySql.Internal
             var eofPacket = new EofPacket(_currentHeader, this._isProtocol41);
             eofPacket.ParsePacketContent(reader);
 
-            //after finish we create a result table 
-            //the move rows into the table
-            _parseResult = new MySqlTableResult(_tableHeader, _rows);
-            //not link to the rows anymore
-            _rows = null;
-            _parsingState = ResultPacketState.ShouldEnd;//*** 
-            return true;//end
+            if (((eofPacket.serverStatus & (int)MySqlServerStatus.SERVER_MORE_RESULTS_EXISTS)) != 0)
+            {
+                var tableResult = new MySqlTableResult(_tableHeader, _rows);
+                _rows = null;//reset
+
+                //more than one result table
+                //mu
+                if (currentMultResultSet != null)
+                {
+                    currentMultResultSet.AddTableResult(tableResult);
+                }
+                else
+                {
+                    //first time 
+                    currentMultResultSet = new MySqlMultiTableResult();
+                    currentMultResultSet.AddTableResult(tableResult); ;
+                    //not set _parseResult*** because this not finish
+                }
+                //--------------------
+                //see: https://dev.mysql.com/doc/internals/en/multi-resultset.html
+                //may has more than 1 result
+                _parsingState = ResultPacketState.Header_Header;
+                return false;
+            }
+            else
+            {
+                //after finish we create a result table 
+                //the move rows into the table
+                _parseResult = new MySqlTableResult(_tableHeader, _rows);
+                //not link to the rows anymore
+                _rows = null;
+                _parsingState = ResultPacketState.ShouldEnd;//***  
+                return true;//end
+            }
         }
         //---------------------
         void StoreBuffer(MySqlStreamReader reader, int length)
@@ -378,7 +425,7 @@ namespace SharpConnect.MySql.Internal
                 //then stop parsing and return 
                 if (_supportPartialRelease)
                 {
-                    _parseResult = new MySqlTableResult(_tableHeader, _rows) { IsPartialTable = true };
+                    _parseResult = new MySqlTableResult(_tableHeader, _rows) { HasFollowerTable = true };
                     if (_generateResultMode)
                     {
                         _rows = new List<DataRowPacket>();
