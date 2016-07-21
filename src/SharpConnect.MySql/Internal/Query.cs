@@ -105,6 +105,8 @@ namespace SharpConnect.MySql.Internal
         }
         bool LateClose()
         {
+            if (this._execState == QueryExecState.Closed) { return true; }
+
             if (_queryUsedMode == QueryUseMode.ExecNoneQuery && _prepareContext == null)
             {
                 this.Close();
@@ -237,11 +239,9 @@ namespace SharpConnect.MySql.Internal
                     _conn.InitWait();
                     ClosePrepareStmt_A(_conn.UnWait);
                     _conn.Wait();
+
                 }
-                else
-                {
-                    _execState = QueryExecState.Closed;
-                }
+                _execState = QueryExecState.Closed;
             }
             else
             {
@@ -325,6 +325,8 @@ namespace SharpConnect.MySql.Internal
             {
                 _sqlParserMx.UseResultParser();
                 _writer.Reset();
+                _execState = QueryExecState.Closed;
+
                 ComStmtClosePacket.Write(_writer, _prepareContext.statementId);
                 //when close, not wait for recv
                 SendPacket_A(_writer.ToArray(), nextAction);
@@ -407,6 +409,7 @@ namespace SharpConnect.MySql.Internal
                             {
                                 MySqlOkResult ok = result as MySqlOkResult;
                                 OkPacket = ok.okpacket;
+
                                 RecvComplete();
                             }
                             break;
