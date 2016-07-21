@@ -318,7 +318,7 @@ namespace SharpConnect.MySql.Internal
                 default:
                     //TODO: review here
                     throw new NotSupportedException();
-                    //writer.WriteLengthCodedNull();
+                //writer.WriteLengthCodedNull();
             }
         }
 
@@ -515,7 +515,8 @@ namespace SharpConnect.MySql.Internal
         public uint warningCount;
         public uint serverStatus;
         public bool protocol41;
-        public EofPacket(PacketHeader header, bool protocol41) : base(header)
+        public EofPacket(PacketHeader header, bool protocol41)
+            : base(header)
         {
             this.protocol41 = protocol41;
         }
@@ -684,7 +685,8 @@ namespace SharpConnect.MySql.Internal
         public byte[] scrambleBuff2;
         public byte filler3;
         public string pluginData;
-        public HandshakePacket(PacketHeader header) : base(header)
+        public HandshakePacket(PacketHeader header)
+            : base(header)
         {
         }
         public override void ParsePacketContent(MySqlStreamReader r)
@@ -758,7 +760,8 @@ namespace SharpConnect.MySql.Internal
         uint _warningCount;
         string _message;
         bool _protocol41;
-        public OkPacket(PacketHeader header, bool protocol41) : base(header)
+        public OkPacket(PacketHeader header, bool protocol41)
+            : base(header)
         {
             _protocol41 = protocol41;
         }
@@ -858,7 +861,7 @@ namespace SharpConnect.MySql.Internal
             _tableHeader = tableHeader;
             _myDataList = new MyStructData[tableHeader.ColumnCount];
         }
- 
+
         public override void ParsePacketContent(MySqlStreamReader r)
         {
             //function parse(parser, fieldPackets, typeCast, nestTables, connection) {
@@ -1265,7 +1268,7 @@ namespace SharpConnect.MySql.Internal
 
 
 #if DEBUG
-    public struct dbugBufferView
+    struct dbugBufferView
     {
         public readonly byte[] buffer;
         public readonly int start;
