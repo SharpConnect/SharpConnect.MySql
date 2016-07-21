@@ -9,6 +9,10 @@ namespace SharpConnect.MySql
         Query _query;
         bool _isPreparedStmt;
         SqlStringTemplate _sqlStringTemplate;
+        public MySqlCommand(string sql)
+            : this(new SqlStringTemplate(sql), null)
+        {
+        }
         public MySqlCommand(string sql, MySqlConnection conn)
             : this(new SqlStringTemplate(sql), conn)
         {
@@ -37,7 +41,7 @@ namespace SharpConnect.MySql
         {
             get { return this._sqlStringTemplate.UserRawSql; }
         }
-        public MySqlConnection Connection { get; private set; }
+        public MySqlConnection Connection { get; set; }
         public void Prepare(Action nextAction = null)
         {
             //prepare sql command;
