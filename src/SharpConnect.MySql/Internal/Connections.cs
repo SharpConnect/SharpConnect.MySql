@@ -392,7 +392,15 @@ namespace SharpConnect.MySql.Internal
         //---------------------------------------------------------------
         public bool IsStoredInConnPool { get; set; }
         public Query BindingQuery { get; set; }
-
+        public void ForceReleaseBindingQuery()
+        {
+            //force release binding query
+            if (BindingQuery != null)
+            {
+                BindingQuery.Close();
+                this.BindingQuery = null;
+            }
+        }
         internal MySqlStreamWrtier PacketWriter
         {
             get { return _writer; }
