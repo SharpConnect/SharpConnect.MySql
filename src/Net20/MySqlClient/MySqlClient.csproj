@@ -78,6 +78,9 @@
     <Compile Include="..\..\MySqlClient\TestSuite\Test6_Blob.cs">
       <Link>TestSuite\Test6_Blob.cs</Link>
     </Compile>
+    <Compile Include="..\..\MySqlClient\TestSuite\Test7_StoreProc.cs">
+      <Link>TestSuite\Test7_StoreProc.cs</Link>
+    </Compile>
     <Compile Include="..\..\MySqlClient\TestSuite\TestSuite.cs">
       <Link>TestSuite\TestSuite.cs</Link>
     </Compile>
