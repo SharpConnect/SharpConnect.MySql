@@ -91,6 +91,9 @@
     <Compile Include="..\SharpConnect.MySql\Internal\SendIO_RecvIO.cs">
       <Link>Internal\SendIO_RecvIO.cs</Link>
     </Compile>
+    <Compile Include="..\SharpConnect.MySql\Internal\ServerCapabilityFlags.cs">
+      <Link>Internal\ServerCapabilityFlags.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />

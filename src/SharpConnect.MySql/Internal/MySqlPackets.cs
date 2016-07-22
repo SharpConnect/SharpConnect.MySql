@@ -109,22 +109,21 @@ namespace SharpConnect.MySql.Internal
             : base(header)
         {
             SetDefaultValues();
-        }
-
+        } 
         void SetDefaultValues()
-        {
-            clientFlags = 455631;
+        { 
+            clientFlags = (uint)GetDefaultServerCapFlags();
             maxPacketSize = 0;
             charsetNumber = 33;
             user = "";
             scrambleBuff = new byte[20];
             database = "";
             protocol41 = true;
-        }
-
+        } 
         public void SetValues(string username, byte[] scrambleBuff, string databaseName, bool protocol41)
         {
-            clientFlags = 455631;
+           
+            clientFlags = (uint)GetDefaultServerCapFlags();
             maxPacketSize = 0;
             charsetNumber = 33;
             this.user = username;
@@ -132,7 +131,32 @@ namespace SharpConnect.MySql.Internal
             this.database = databaseName;
             this.protocol41 = protocol41;
         }
+        ServerCapabilityFlags GetDefaultServerCapFlags()
+        {
+            //if ((int)serverCap != 455631)
+            //{ 
+            //}
 
+            //455631
+            //note: 455631 = 0b_1101111001111001111  
+            return ServerCapabilityFlags.CLIENT_LONG_PASSWORD |
+                ServerCapabilityFlags.CLIENT_FOUND_ROWS |
+                ServerCapabilityFlags.CLIENT_LONG_FLAG |
+                ServerCapabilityFlags.CLIENT_CONNECT_WITH_DB |
+                //skip 4,5
+                ServerCapabilityFlags.CLIENT_ODBC |
+                ServerCapabilityFlags.CLIENT_LOCAL_FILES |//TODO: review remove this if not use
+                ServerCapabilityFlags.CLIENT_IGNORE_SPACE |
+                ServerCapabilityFlags.CLIENT_PROTOCOL_41 |
+                //skip 10,11
+                ServerCapabilityFlags.CLIENT_IGNORE_SIGPIPE |
+                ServerCapabilityFlags.CLIENT_TRANSACTIONS |
+                ServerCapabilityFlags.CLIENT_RESERVED |
+                ServerCapabilityFlags.CLIENT_SECURE_CONNECTION |
+                //skip 16 
+                ServerCapabilityFlags.CLIENT_MULTI_RESULTS |
+                ServerCapabilityFlags.CLIENT_PS_MULTI_RESULTS;
+        }
         public override void ParsePacketContent(MySqlStreamReader r)
         {
 
