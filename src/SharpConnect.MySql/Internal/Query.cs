@@ -446,7 +446,7 @@ namespace SharpConnect.MySql.Internal
                                 }
 
                                 //----------------------------------------- 
-                                if (!tableResult.HasFollowerTable)
+                                if (!tableResult.HasFollower)
                                 {
                                     RecvComplete();
                                 }
@@ -464,7 +464,7 @@ namespace SharpConnect.MySql.Internal
                                     {
                                         //not the last one
                                         //(the last one may complete or not complete)
-                                        table.HasFollowerTable = true;
+                                        table.HasFollower = true;
                                         if (_tableResultListener != null)
                                         {
                                             //the _tableResultListener may modifid by other state (Close)
@@ -482,7 +482,7 @@ namespace SharpConnect.MySql.Internal
                                             _tableResultListener(table);
                                         }
 
-                                        if (!table.HasFollowerTable)
+                                        if (!table.HasFollower)
                                         {
                                             RecvComplete();
                                         }

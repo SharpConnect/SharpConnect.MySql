@@ -29,7 +29,7 @@ namespace SharpConnect.MySql
                 lock (subTables)
                 {
                     subTables.Enqueue(subtable);
-                    tableResultIsNotComplete = subtable.HasFollowerTable; //***
+                    tableResultIsNotComplete = subtable.HasFollower; //***
                 }
             });
         }

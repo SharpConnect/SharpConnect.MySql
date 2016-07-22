@@ -68,7 +68,7 @@ namespace SharpConnect.MySql.Internal
         TableHeader _tableHeader;
         MySqlResult _parseResult;
         List<DataRowPacket> _rows;
-        MySqlMultiTableResult currentMultResultSet;
+        MySqlMultiTableResult _currentMultResultSet;
 
         bool _supportPartialRelease = true;
         bool _generateResultMode = true;
@@ -156,17 +156,17 @@ namespace SharpConnect.MySql.Internal
         bool Parse_Ok_Content(MySqlStreamReader reader)
         {
 
-            if (this.currentMultResultSet != null)
+            if (this._currentMultResultSet != null)
             {
                 //in multiple result set mode ***
                 //see https://dev.mysql.com/doc/internals/en/multi-resultset.html
                 //
                 var okPacket = new OkPacket(_currentHeader, this._isProtocol41);
                 okPacket.ParsePacketContent(reader);
-                _parseResult = currentMultResultSet;
+                _parseResult = _currentMultResultSet;
                 _parsingState = ResultPacketState.ShouldEnd; //*
                 //
-                currentMultResultSet = null;//reset 
+                _currentMultResultSet = null;//reset 
             }
             else
             {
@@ -351,15 +351,15 @@ namespace SharpConnect.MySql.Internal
 
                 //more than one result table
                 //mu
-                if (currentMultResultSet != null)
+                if (_currentMultResultSet != null)
                 {
-                    currentMultResultSet.AddTableResult(tableResult);
+                    _currentMultResultSet.AddTableResult(tableResult);
                 }
                 else
                 {
                     //first time 
-                    currentMultResultSet = new MySqlMultiTableResult();
-                    currentMultResultSet.AddTableResult(tableResult); ;
+                    _currentMultResultSet = new MySqlMultiTableResult();
+                    _currentMultResultSet.AddTableResult(tableResult); ;
                     //not set _parseResult*** because this not finish
                 }
                 //--------------------
@@ -375,6 +375,7 @@ namespace SharpConnect.MySql.Internal
                 _parseResult = new MySqlTableResult(_tableHeader, _rows);
                 //not link to the rows anymore
                 _rows = null;
+                _currentMultResultSet = null;
                 _parsingState = ResultPacketState.ShouldEnd;//***  
                 return true;//end
             }
@@ -425,7 +426,12 @@ namespace SharpConnect.MySql.Internal
                 //then stop parsing and return 
                 if (_supportPartialRelease)
                 {
-                    _parseResult = new MySqlTableResult(_tableHeader, _rows) { HasFollowerTable = true };
+                    if (_rows != null)
+                    {
+                        _parseResult = new MySqlTableResult(_tableHeader, _rows) { HasFollower = true };
+                    }
+                    
+
                     if (_generateResultMode)
                     {
                         _rows = new List<DataRowPacket>();

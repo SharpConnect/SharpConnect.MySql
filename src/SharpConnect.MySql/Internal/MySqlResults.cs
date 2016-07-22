@@ -92,11 +92,14 @@ namespace SharpConnect.MySql.Internal
         {
             this.tableHeader = tableHeader;
             this.rows = rows;
+            if (rows == null)
+            {
+            }
         }
         /// <summary>
         /// this is not the last table of result, It has one or more follower table
         /// </summary>
-        public bool HasFollowerTable { get; set; }
+        public bool HasFollower { get; set; }
         public override MySqlResultKind Kind { get { return MySqlResultKind.TableResult; } }
     }
 
