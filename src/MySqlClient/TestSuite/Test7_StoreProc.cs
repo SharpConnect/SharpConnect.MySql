@@ -12,11 +12,14 @@ namespace MySqlTest
         {
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
-            conn.Open();
 
+            Console.WriteLine("1");
+            conn.Open();
+            Console.WriteLine("2");
             {
                 string createStoreProcSql = @"DROP PROCEDURE IF EXISTS multi;";
                 var cmd = new MySqlCommand(createStoreProcSql, conn);
+                Console.WriteLine("3");
                 cmd.ExecuteNonQuery();
             }
             {
@@ -24,22 +27,23 @@ namespace MySqlTest
                               SELECT 1;
                               SELECT 2;
                               END";
-
+                Console.WriteLine("4");
                 var cmd = new MySqlCommand(createStoreProcSql, conn);
                 cmd.ExecuteNonQuery();
             }
             {
-
+                Console.WriteLine("5");
                 string callProc = "call multi();";
                 var cmd = new MySqlCommand(callProc, conn);
                 var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
+                    Console.WriteLine("6");
                     //we read each row from 
                     int data1 = reader.GetInt32(0);
                 }
+                Console.WriteLine("7");
                 reader.Close();
-
             }
             //--------------------------
             conn.Close();

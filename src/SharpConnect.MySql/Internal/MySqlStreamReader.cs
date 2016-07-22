@@ -367,6 +367,8 @@ namespace SharpConnect.MySql.Internal
             uint high = U4();
             if ((uint)(high >> 21) > 0)
             {
+                //TODO: review here 
+                //support big number
                 long value = low + ((2 << 32) * high);
             }
             return low + ((2 << 32) * high);

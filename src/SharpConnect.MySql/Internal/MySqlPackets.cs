@@ -109,9 +109,9 @@ namespace SharpConnect.MySql.Internal
             : base(header)
         {
             SetDefaultValues();
-        } 
+        }
         void SetDefaultValues()
-        { 
+        {
             clientFlags = (uint)GetDefaultServerCapFlags();
             maxPacketSize = 0;
             charsetNumber = 33;
@@ -119,10 +119,10 @@ namespace SharpConnect.MySql.Internal
             scrambleBuff = new byte[20];
             database = "";
             protocol41 = true;
-        } 
+        }
         public void SetValues(string username, byte[] scrambleBuff, string databaseName, bool protocol41)
         {
-           
+
             clientFlags = (uint)GetDefaultServerCapFlags();
             maxPacketSize = 0;
             charsetNumber = 33;
@@ -662,7 +662,8 @@ namespace SharpConnect.MySql.Internal
                 orgTable = r.ReadLengthCodedString();
                 name = r.ReadLengthCodedString();
                 orgName = r.ReadLengthCodedString();
-                if (r.ReadLengthCodedNumber() != 0x0c)
+                uint lengthCodedNumber = r.ReadLengthCodedNumber();
+                if (lengthCodedNumber != 0x0c)
                 {
                     //var err  = new TypeError('Received invalid field length');
                     //err.code = 'PARSER_INVALID_FIELD_LENGTH';
