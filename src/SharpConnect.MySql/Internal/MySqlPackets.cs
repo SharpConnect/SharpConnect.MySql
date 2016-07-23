@@ -268,7 +268,7 @@ namespace SharpConnect.MySql.Internal
             //just write it into a stream
             writer.ReserveHeader();
             writer.WriteUnsigned1((byte)Command.QUIT);
-            var h = new PacketHeader((uint)writer.Length, writer.IncrementPacketNumber());
+            var h = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
             writer.WriteHeader(h);
             return h;
         }
