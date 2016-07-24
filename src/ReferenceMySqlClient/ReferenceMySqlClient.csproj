@@ -9,9 +9,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ReferenceMySqlClient</RootNamespace>
     <AssemblyName>ReferenceMySqlClient</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -52,6 +53,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestSuite\MyTestSet.cs" />
     <Compile Include="TestSuite\Test2.cs" />
+    <Compile Include="TestSuite\Test7_StoreProc.cs" />
     <Compile Include="TestSuite\TestSuite.cs" />
     <EmbeddedResource Include="FormTestSuite.resx">
       <DependentUpon>FormTestSuite.cs</DependentUpon>
@@ -64,6 +66,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -79,7 +82,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\programs\mysql-connector-net-7.0.3-src\Source\MySql.Data\MySql.Data.csproj">
+    <ProjectReference Include="..\..\..\mysql-connector-net-6.1.3-src\mysql-connector-net-6.1.3-src\MySql.Data\Provider\MySql.Data.csproj">
       <Project>{e9df5ed1-4cbd-4226-b931-9a51610ac14d}</Project>
       <Name>MySql.Data</Name>
     </ProjectReference>

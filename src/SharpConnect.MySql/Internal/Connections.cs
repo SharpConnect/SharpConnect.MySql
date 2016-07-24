@@ -27,14 +27,7 @@ using System.Text;
 using SharpConnect.Internal;
 namespace SharpConnect.MySql.Internal
 {
-    static class dbugConsole
-    {
-        [System.Diagnostics.Conditional("DEBUG")]
-        public static void WriteLine(string str)
-        {
-            //Console.WriteLine(str);
-        }
-    }
+
 
     enum ConnectionState
     {
@@ -144,6 +137,8 @@ namespace SharpConnect.MySql.Internal
         void UnBindSocket(bool keepAlive)
         {
             //TODO: review here ***
+            //eg. server shutdown etc
+
             throw new NotImplementedException();
         }
         void HandleReceive(RecvEventCode recvEventCode)
@@ -247,13 +242,20 @@ namespace SharpConnect.MySql.Internal
                     break;
             }
         }
-
-
-
         //----------------------------------------------------------------
+
+        interface IEmptyCall
+        {
+            void JustEmptyMethod();
+        }
+        class EmptyCallImpl : IEmptyCall
+        {
+            public void JustEmptyMethod() { }
+        }
+
         DateTime _startWait;
         bool _globalWaiting = false;
-
+        IEmptyCall _justEmptyCall = new EmptyCallImpl();
         public void InitWait()
         {
             if (_globalWaiting)
@@ -267,9 +269,12 @@ namespace SharpConnect.MySql.Internal
             //blocking***
             //wait *** tight loop
             //TODO: implement wait logic,timeout logic,cancel logic here*** 
-            //-------------------------------         
+            //------------------------------
             _startWait = DateTime.Now;
-            while (_globalWaiting) ;  //tight loop,*** wait, or use thread sleep 
+            while (_globalWaiting)
+            {   //tight loop,*** wait, or use thread sleep 
+                _justEmptyCall.JustEmptyMethod();
+            } 
         }
         public void UnWait()
         {
@@ -392,7 +397,15 @@ namespace SharpConnect.MySql.Internal
         //---------------------------------------------------------------
         public bool IsStoredInConnPool { get; set; }
         public Query BindingQuery { get; set; }
-
+        public void ForceReleaseBindingQuery()
+        {
+            //force release binding query
+            if (BindingQuery != null)
+            {
+                BindingQuery.Close();
+                this.BindingQuery = null;
+            }
+        }
         internal MySqlStreamWrtier PacketWriter
         {
             get { return _writer; }

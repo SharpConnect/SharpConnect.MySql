@@ -28,8 +28,9 @@ namespace SharpConnect.MySql.Internal
         Handshake,
         Error,
         Ok,
+        PrepareResponse,
         TableResult,
-        PrepareResponse
+        MultiTableResult,
     }
     abstract class MySqlResult
     {
@@ -91,8 +92,27 @@ namespace SharpConnect.MySql.Internal
         {
             this.tableHeader = tableHeader;
             this.rows = rows;
+            if (rows == null)
+            {
+            }
         }
-        public bool IsPartialTable { get; set; }
+        /// <summary>
+        /// this is not the last table of result, It has one or more follower table
+        /// </summary>
+        public bool HasFollower { get; set; }
         public override MySqlResultKind Kind { get { return MySqlResultKind.TableResult; } }
+    }
+
+    class MySqlMultiTableResult : MySqlResult
+    {
+        public readonly List<MySqlTableResult> subTables = new List<MySqlTableResult>();
+        public MySqlMultiTableResult()
+        {
+        }
+        public void AddTableResult(MySqlTableResult table)
+        {
+            subTables.Add(table);
+        }
+        public override MySqlResultKind Kind { get { return MySqlResultKind.MultiTableResult; } }
     }
 }
