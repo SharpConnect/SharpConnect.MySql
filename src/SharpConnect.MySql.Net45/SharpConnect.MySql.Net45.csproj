@@ -94,6 +94,9 @@
     <Compile Include="..\SharpConnect.MySql\Internal\ServerCapabilityFlags.cs">
       <Link>Internal\ServerCapabilityFlags.cs</Link>
     </Compile>
+    <Compile Include="..\SharpConnect.MySql\Internal\WaitingTaskItem.cs">
+      <Link>Internal\WaitingTaskItem.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />
