@@ -217,7 +217,6 @@ namespace SharpConnect.MySql.Internal
                     _parsingState = ResultPacketState.Field_EOF;
                     break;
                 default:
-
                     //next state => field content of this field
                     _parsingState = ResultPacketState.Field_Content;
                     break;
@@ -226,13 +225,33 @@ namespace SharpConnect.MySql.Internal
         }
         bool Parse_Field_Content(MySqlStreamReader reader)
         {
+
+#if DEBUG
+            //long readPos = reader.ReadPosition;
+            if (reader.CurrentInputLength == 74)
+            {
+
+            }
+#endif
             if (!reader.Ensure(_currentHeader.ContentLength)) //check if length is enough to parse 
             {
+
+#if DEBUG
+                reader.dbugMonitorData1 = true;
+#endif
                 return _needMoreData = true;
             }
 
+            //uint contentLen = _currentHeader.ContentLength;
             var fieldPacket = new FieldPacket(_currentHeader, this._isProtocol41);
             fieldPacket.ParsePacketContent(reader);
+#if DEBUG
+            //TODO:review here
+            if (fieldPacket.dbugFailure)
+            {
+                throw new NotSupportedException();
+            }
+#endif
             _tableHeader.AddField(fieldPacket);
             //next state => field header of next field
             _parsingState = ResultPacketState.Field_Header;
@@ -435,14 +454,13 @@ namespace SharpConnect.MySql.Internal
                 //then stop parsing and return 
                 if (_supportPartialRelease)
                 {
-                    if (_rows != null)
+                    if (_rows != null && _rows.Count > 0)
                     {
                         _parseResult = new MySqlTableResult(_tableHeader, _rows) { HasFollower = true };
                     }
-
-
                     if (_generateResultMode)
                     {
+                        //generate new result
                         _rows = new List<DataRowPacket>();
                     }
                 }
@@ -614,8 +632,8 @@ namespace SharpConnect.MySql.Internal
             {
                 return _needMoreData = true; //need more
             }
-            _currentHeader = reader.ReadPacketHeader();//4
-            byte type = reader.PeekByte();//1
+            _currentHeader = reader.ReadPacketHeader();
+            byte type = reader.PeekByte();
             switch (type)
             {
                 case ERROR_CODE:
@@ -760,7 +778,7 @@ namespace SharpConnect.MySql.Internal
             //1.create connection frame  
             //_writer.Reset();        
             PacketHeader header = reader.ReadPacketHeader();
-            _handshake = new HandshakePacket(header); 
+            _handshake = new HandshakePacket(header);
             //check if  
             _handshake.ParsePacketContent(reader);
             _finalResult = new MySqlHandshakeResult(_handshake);

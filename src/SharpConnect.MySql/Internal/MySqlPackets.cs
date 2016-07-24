@@ -648,7 +648,9 @@ namespace SharpConnect.MySql.Internal
         {
             this.protocol41 = protocol41;
         }
-        public bool Failure { get; set; }
+#if DEBUG
+        public bool dbugFailure { get; set; }
+#endif
         public override void ParsePacketContent(MySqlStreamReader r)
         {
 
@@ -667,14 +669,16 @@ namespace SharpConnect.MySql.Internal
                     //var err  = new TypeError('Received invalid field length');
                     //err.code = 'PARSER_INVALID_FIELD_LENGTH';
                     //throw err;
+#if DEBUG
                     if (lengthCodedNumber == 0)
                     {
                         //error
                         //this package is error packet 
                         //server may send the correct one?
-                        Failure = true;
+                        dbugFailure = true;
                         return;
                     }
+#endif
                     throw new Exception("Received invalid field length");
                 }
 
