@@ -7,6 +7,69 @@ using System.IO;
 using System.Net.Sockets;
 namespace SharpConnect.Internal
 {
+#if DEBUG
+    static class dbugConsole
+    {
+
+        static LogWriter logWriter;
+        static dbugConsole()
+        {
+            //set
+            logWriter = new LogWriter(null);//not write anything to disk
+            //logWriter = new LogWriter("d:\\WImageTest\\log1.txt");
+        }
+        [System.Diagnostics.Conditional("DEBUG")]
+        public static void WriteLine(string str)
+        {
+            logWriter.Write(str);
+            logWriter.Write("\r\n");
+        }
+        [System.Diagnostics.Conditional("DEBUG")]
+        public static void Write(string str)
+        {
+            logWriter.Write(str);
+        }
+        class LogWriter : IDisposable
+        {
+            string filename;
+            FileStream fs;
+            StreamWriter writer;
+            public LogWriter(string logFilename)
+            {
+                filename = logFilename;
+                if (!string.IsNullOrEmpty(logFilename))
+                {
+                    fs = new FileStream(logFilename, FileMode.Create);
+                    writer = new StreamWriter(fs);
+                }
+            }
+            public void Dispose()
+            {
+                if (writer != null)
+                {
+                    writer.Flush();
+                    writer.Dispose();
+                    writer = null;
+                }
+                if (fs != null)
+                {
+                    fs.Dispose();
+                    fs = null;
+                }
+            }
+            public void Write(string data)
+            {
+                if (writer != null)
+                {
+                    writer.Write(data);
+                    writer.Flush();
+                }
+            }
+        }
+
+    }
+#endif
+    //--------------------------------------------------
     enum RecvEventCode
     {
         SocketError,
@@ -49,6 +112,16 @@ namespace SharpConnect.Internal
         }
         public void CopyTo(int srcIndex, MemoryStream ms, int count)
         {
+            //copy 
+            //dump data 
+#if DEBUG
+            //byte[] buffer = recvArgs.Buffer;
+            //for (int i = 0; i < count; ++i)
+            //{
+            //    dbugConsole.WriteLine("[" + i + "]>>b>>" + buffer[recvStartOffset + srcIndex + i]);
+            //}
+#endif
+
             ms.Write(recvArgs.Buffer,
                 recvStartOffset + srcIndex,
                 count);
