@@ -51,7 +51,11 @@ namespace MySqlClient
 
             //TestSet1.T_NumRange();
             //TestSet1.T_FloatingRange();
-            Test_StoreProc_MultiResultSet.T_StoreProcMultiResultSet();
+            for (int i = 0; i < 100; ++i)
+            {
+                //Console.WriteLine("ROUND: " + i);
+                Test_StoreProc_MultiResultSet.T_StoreProcMultiResultSet();
+            }
             // TestSet_Blob.T_InsertBlobData();
             //dbugInternal.Test1();
 #endif
