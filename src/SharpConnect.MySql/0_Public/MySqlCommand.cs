@@ -10,11 +10,11 @@ namespace SharpConnect.MySql
         bool _isPreparedStmt;
         SqlStringTemplate _sqlStringTemplate;
         public MySqlCommand(string sql)
-            : this(new SqlStringTemplate(sql), null)
+            : this(new SqlStringTemplate(sql), new CommandParams(), null)
         {
         }
         public MySqlCommand(string sql, MySqlConnection conn)
-            : this(new SqlStringTemplate(sql), conn)
+            : this(new SqlStringTemplate(sql), new CommandParams(), conn)
         {
         }
         public MySqlCommand(string sql, CommandParams cmds, MySqlConnection conn)

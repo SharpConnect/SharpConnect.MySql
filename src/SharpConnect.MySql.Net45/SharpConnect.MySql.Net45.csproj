@@ -21,7 +21,7 @@
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <PlatformTarget>x86</PlatformTarget>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -90,6 +90,9 @@
     </Compile>
     <Compile Include="..\SharpConnect.MySql\Internal\SendIO_RecvIO.cs">
       <Link>Internal\SendIO_RecvIO.cs</Link>
+    </Compile>
+    <Compile Include="..\SharpConnect.MySql\Internal\ServerCapabilityFlags.cs">
+      <Link>Internal\ServerCapabilityFlags.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -11,6 +11,7 @@
     <AssemblyName>SharpConnect.MySql</AssemblyName>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -83,6 +84,9 @@
     </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\SendIO_RecvIO.cs">
       <Link>Internal\SendIO_RecvIO.cs</Link>
+    </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\ServerCapabilityFlags.cs">
+      <Link>Internal\ServerCapabilityFlags.cs</Link>
     </Compile>
     <Compile Include="ForNet20\ForNet20.cs" />
     <Compile Include="ForNet20\MySqlTaskBasedExtensions.cs" />

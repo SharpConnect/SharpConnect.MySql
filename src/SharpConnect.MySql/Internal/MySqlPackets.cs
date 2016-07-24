@@ -30,16 +30,16 @@ namespace SharpConnect.MySql.Internal
     {
         public readonly uint ContentLength;
         public readonly byte PacketNumber;
-        public PacketHeader(uint length, byte number)
+        public PacketHeader(uint contentLength, byte number)
         {
-            ContentLength = length;
+            if (contentLength == 5 && number == 0)
+            {
+
+            }
+            ContentLength = contentLength;
             PacketNumber = number;
         }
-        public bool IsEmpty()
-        {
-            return PacketNumber == 0 && ContentLength == 0;
-        }
-        public static readonly PacketHeader Empty = new PacketHeader();
+
     }
 
     abstract class Packet
@@ -60,10 +60,7 @@ namespace SharpConnect.MySql.Internal
         {
             get { return _header; }
         }
-        public uint GetPacketLength()
-        {
-            return _header.ContentLength;
-        }
+
 
         public abstract void WritePacket(MySqlStreamWrtier writer);
         // The maximum precision JS Numbers can hold precisely
@@ -71,6 +68,30 @@ namespace SharpConnect.MySql.Internal
         public const long IEEE_754_BINARY_64_PRECISION = (long)1 << 53;
         public const int MAX_PACKET_LENGTH = (int)(1 << 24) - 1;//(int)Math.Pow(2, 24) - 1;
     }
+
+
+    public enum MySqlServerStatus
+    {
+        //
+        //https://dev.mysql.com/doc/internals/en/status-flags.html
+        //
+        SERVER_STATUS_IN_TRANS = 0x0001, //	a transaction is active
+        SERVER_STATUS_AUTOCOMMIT = 0x0002, //	auto-commit is enabled
+        SERVER_MORE_RESULTS_EXISTS = 0x0008,
+        SERVER_STATUS_NO_GOOD_INDEX_USED = 0x0010,
+        SERVER_STATUS_NO_INDEX_USED = 0x0020,
+        SERVER_STATUS_CURSOR_EXISTS = 0x0040, //	Used by Binary Protocol Resultset to signal that COM_STMT_FETCH must be used to fetch the row-data.
+        SERVER_STATUS_LAST_ROW_SENT = 0x0080,
+        SERVER_STATUS_DB_DROPPED = 0x0100,
+        SERVER_STATUS_NO_BACKSLASH_ESCAPES = 0x0200,
+        SERVER_STATUS_METADATA_CHANGED = 0x0400,
+        SERVER_QUERY_WAS_SLOW = 0x0800,
+        SERVER_PS_OUT_PARAMS = 0x1000,
+        SERVER_STATUS_IN_TRANS_READONLY = 0x2000,//	in a read-only transaction
+        SERVER_SESSION_STATE_CHANGED = 0x4000,  //connection state information has changed 
+    }
+
+
 
     class ClientAuthenticationPacket : Packet
     {
@@ -86,10 +107,9 @@ namespace SharpConnect.MySql.Internal
         {
             SetDefaultValues();
         }
-
         void SetDefaultValues()
         {
-            clientFlags = 455631;
+            clientFlags = (uint)GetDefaultServerCapFlags();
             maxPacketSize = 0;
             charsetNumber = 33;
             user = "";
@@ -97,10 +117,10 @@ namespace SharpConnect.MySql.Internal
             database = "";
             protocol41 = true;
         }
-
         public void SetValues(string username, byte[] scrambleBuff, string databaseName, bool protocol41)
         {
-            clientFlags = 455631;
+
+            clientFlags = (uint)GetDefaultServerCapFlags();
             maxPacketSize = 0;
             charsetNumber = 33;
             this.user = username;
@@ -108,7 +128,32 @@ namespace SharpConnect.MySql.Internal
             this.database = databaseName;
             this.protocol41 = protocol41;
         }
+        ServerCapabilityFlags GetDefaultServerCapFlags()
+        {
+            //if ((int)serverCap != 455631)
+            //{ 
+            //}
 
+            //455631
+            //note: 455631 = 0b_1101111001111001111  
+            return ServerCapabilityFlags.CLIENT_LONG_PASSWORD |
+                ServerCapabilityFlags.CLIENT_FOUND_ROWS |
+                ServerCapabilityFlags.CLIENT_LONG_FLAG |
+                ServerCapabilityFlags.CLIENT_CONNECT_WITH_DB |
+                //skip 4,5
+                ServerCapabilityFlags.CLIENT_ODBC |
+                ServerCapabilityFlags.CLIENT_LOCAL_FILES |//TODO: review remove this if not use
+                ServerCapabilityFlags.CLIENT_IGNORE_SPACE |
+                ServerCapabilityFlags.CLIENT_PROTOCOL_41 |
+                //skip 10,11
+                ServerCapabilityFlags.CLIENT_IGNORE_SIGPIPE |
+                ServerCapabilityFlags.CLIENT_TRANSACTIONS |
+                ServerCapabilityFlags.CLIENT_RESERVED |
+                ServerCapabilityFlags.CLIENT_SECURE_CONNECTION |
+                //skip 16 
+                ServerCapabilityFlags.CLIENT_MULTI_RESULTS |
+                ServerCapabilityFlags.CLIENT_PS_MULTI_RESULTS;
+        }
         public override void ParsePacketContent(MySqlStreamReader r)
         {
 
@@ -157,7 +202,7 @@ namespace SharpConnect.MySql.Internal
                     writer.WriteBuffer(Encoding.ASCII.GetBytes(database));
                 }
             }
-            _header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            _header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(_header);
         }
 
@@ -193,7 +238,7 @@ namespace SharpConnect.MySql.Internal
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.QUERY);
             writer.WriteString(sql);
-            var header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
             return header;
         }
@@ -220,7 +265,7 @@ namespace SharpConnect.MySql.Internal
             //just write it into a stream
             writer.ReserveHeader();
             writer.WriteUnsigned1((byte)Command.QUIT);
-            var h = new PacketHeader((uint)writer.Length, writer.IncrementPacketNumber());
+            var h = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(h);
             return h;
         }
@@ -252,7 +297,7 @@ namespace SharpConnect.MySql.Internal
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_PREPARE);
             writer.WriteString(sql);
-            var h = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            var h = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(h);
             return h;
         }
@@ -318,7 +363,7 @@ namespace SharpConnect.MySql.Internal
                 default:
                     //TODO: review here
                     throw new NotSupportedException();
-                //writer.WriteLengthCodedNull();
+                    //writer.WriteLengthCodedNull();
             }
         }
 
@@ -383,7 +428,7 @@ namespace SharpConnect.MySql.Internal
             {
                 WriteValueByType(writer, ref _prepareValues[i]);
             }
-            var header = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
+            var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
             return header;
         }
@@ -414,7 +459,7 @@ namespace SharpConnect.MySql.Internal
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_CLOSE);
             writer.WriteUnsigned4(stmtId);
-            var h = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
+            var h = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(h);
             return h;
         }
@@ -441,7 +486,7 @@ namespace SharpConnect.MySql.Internal
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_RESET);
             writer.WriteUnsigned4(stmtId);
-            var _header = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
+            var _header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(_header);
             return _header;
         }
@@ -520,7 +565,6 @@ namespace SharpConnect.MySql.Internal
         {
             this.protocol41 = protocol41;
         }
-
         public override void ParsePacketContent(MySqlStreamReader r)
         {
             fieldCount = r.ReadByte();
@@ -604,28 +648,43 @@ namespace SharpConnect.MySql.Internal
         {
             this.protocol41 = protocol41;
         }
+#if DEBUG
+        public bool dbugFailure { get; set; }
+#endif
         public override void ParsePacketContent(MySqlStreamReader r)
         {
 
             if (protocol41)
             {
-                catalog = r.ReadLengthCodedString();
+                catalog = r.ReadLengthCodedString();//3,100,101,102,103
                 db = r.ReadLengthCodedString();
                 table = r.ReadLengthCodedString();
                 orgTable = r.ReadLengthCodedString();
                 name = r.ReadLengthCodedString();
                 orgName = r.ReadLengthCodedString();
-                if (r.ReadLengthCodedNumber() != 0x0c)
+                uint lengthCodedNumber = r.ReadLengthCodedNumber();
+
+                if (lengthCodedNumber != 0x0c)
                 {
                     //var err  = new TypeError('Received invalid field length');
                     //err.code = 'PARSER_INVALID_FIELD_LENGTH';
                     //throw err;
+#if DEBUG
+                    if (lengthCodedNumber == 0)
+                    {
+                        //error
+                        //this package is error packet 
+                        //server may send the correct one?
+                        dbugFailure = true;
+                        return;
+                    }
+#endif
                     throw new Exception("Received invalid field length");
                 }
 
                 charsetNr = r.U2();//2
                 length = r.U4();//4
-                type = r.ReadByte();
+                type = r.ReadByte();//1
                 flags = r.U2();//2
                 decimals = r.ReadByte();
                 filler = r.ReadBuffer(2);
@@ -756,9 +815,9 @@ namespace SharpConnect.MySql.Internal
         uint _fieldCount;
         public uint affectedRows;
         public uint insertId;
-        uint _serverStatus;
-        uint _warningCount;
-        string _message;
+        public uint _serverStatus;
+        public uint _warningCount;
+        public string _message;
         bool _protocol41;
         public OkPacket(PacketHeader header, bool protocol41)
             : base(header)
@@ -777,6 +836,10 @@ namespace SharpConnect.MySql.Internal
                 _serverStatus = r.U2();
                 _warningCount = r.U2();
             }
+
+            //TODO: review here again
+            //https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
+
             _message = r.ReadPacketTerminatedString();
             //var m = this.message.match(/\schanged:\s * (\d +) / i);
 
@@ -790,6 +853,8 @@ namespace SharpConnect.MySql.Internal
         {
             throw new NotImplementedException();
         }
+
+
     }
 
     class OkPrepareStmtPacket : Packet
@@ -1260,11 +1325,8 @@ namespace SharpConnect.MySql.Internal
                     break;
             }
         }
-
-
-
-
     }
+
 
 
 #if DEBUG
