@@ -3,8 +3,10 @@
 using System;
 using System.Collections.Generic;
 using SharpConnect.MySql.Internal;
+
 namespace SharpConnect.MySql
 {
+    public delegate void OnEachSubTable(MySqlSubTable subtable);
 
     public class MySqlDataReader
     {
@@ -15,11 +17,13 @@ namespace SharpConnect.MySql
         int currentTableRowCount = 0;
         int currentRowIndex = 0;
         bool tableResultIsNotComplete;
-        //
+
+
         DataRowPacket currentRow;
         bool firstResultArrived;
         internal MySqlDataReader(Query query)
         {
+
             _query = query;
             //start 
             query.SetResultListener(subtable =>
@@ -67,8 +71,10 @@ namespace SharpConnect.MySql
                             //wait ***
                             //------------------
                             //TODO: review here *** tight loop
-                            while (tableResultIsNotComplete) ; //*** tigh loop
-                                                               //------------------
+                            //*** tigh loop
+                            //wait on this
+                            while (tableResultIsNotComplete) ;
+
                             goto TRY_AGAIN;
                         }
                     }
@@ -96,8 +102,89 @@ namespace SharpConnect.MySql
                     && currentTableResult.rows.Count > 0;
             }
         }
+
+        public void Read(OnEachSubTable onEachSubTable)
+        {
+            TRY_AGAIN:
+            if (currentTableResult == null)
+            {
+                //no current table
+                currentRowIndex = 0;
+                currentTableRows = null;
+                bool hasSomeSubTables = false;
+                lock (subTables)
+                {
+                    if (subTables.Count > 0)
+                    {
+                        currentTableResult = subTables.Dequeue();
+                        hasSomeSubTables = true;
+                    }
+                }
+                if (!hasSomeSubTables)
+                {
+                    if (tableResultIsNotComplete)
+                    {
+                        //we are in isPartial table mode (not complete)
+                        //so must wait until the table arrive **
+                        //------------------                    
+                        CentralWaitingTasks.AddWaitingTask(new WaitingTask(() =>
+                        {
+                            if (tableResultIsNotComplete)
+                            {
+                               //not complete, continue waiting
+                               return false;
+                            }
+                            else
+                            {
+                               //try again
+                               Read(onEachSubTable);
+                               return true;
+                            }
+                        }));
+
+                    }
+                    else if (!firstResultArrived)
+                    {
+                        //another tight loop
+                        //wait for first result arrive
+                        //TODO: review here *** tight loop 
+                        //push this to 
+                        CentralWaitingTasks.AddWaitingTask(new WaitingTask(() =>
+                        {
+                            if (!firstResultArrived)
+                            {
+                                //not complete, continue waiting
+                                return false;
+                            }
+                            else
+                            {
+                                //try again
+                                Read(onEachSubTable);
+                                return true;
+                            }
+                        }));
+                    }
+                    else
+                    {
+                        //finish
+                        return;
+                    }
+                }
+                else
+                {
+                    //has some subtable
+                    //so start clear here
+                    onEachSubTable(CurrentSubTable);
+                    //after invoke
+                    currentTableResult = null;
+                    goto TRY_AGAIN;
+                }
+            }
+        }
         public bool Read()
         {
+
+
             TRY_AGAIN:
             if (currentTableResult == null)
             {
@@ -325,7 +412,7 @@ namespace SharpConnect.MySql
             }
         }
     }
-     
+
 
     static class MySqlTypeConversionInfo
     {
@@ -401,6 +488,11 @@ namespace SharpConnect.MySql
         {
             get { return this.tableResult.tableHeader; }
         }
+        
+        public bool IsLastTable
+        {
+            get { return !tableResult.HasFollower; }
+        }
         public static bool operator ==(MySqlSubTable sub1, MySqlSubTable sub2)
         {
             return sub1.tableResult == sub2.tableResult;
@@ -422,4 +514,8 @@ namespace SharpConnect.MySql
             return false;
         }
     }
+
+
+
+
 }
