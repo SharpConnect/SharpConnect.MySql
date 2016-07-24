@@ -92,12 +92,12 @@ namespace SharpConnect.MySql.Internal
             //  var buffer   = this._buffer;
             //int maxPacketLength = MAX_PACKET_LENGTH;
 
-            long curPacketLength = CurrentPacketLength();
-            dbugConsole.WriteLine("Current Packet Length = " + curPacketLength);
+            long totalPacketLength = OnlyPacketContentLength + 4;
+            SharpConnect.Internal.dbugConsole.WriteLine("Current Packet Length = " + totalPacketLength);
 
             //TODO: review MAX_PACKET_LENGTH here ****
             //it should be 
-            int packetCount = (int)((curPacketLength - 4) / _maxAllowedLength) + 1;//-4 bytes of reserve header
+            int packetCount = (int)((totalPacketLength - 4) / _maxAllowedLength) + 1;//-4 bytes of reserve header
             //int packetCount = (int)((curPacketLength - 4) / Packet.MAX_PACKET_LENGTH) + 1;//-4 bytes of reserve header
             if (packetCount == 1)
             {
@@ -112,7 +112,7 @@ namespace SharpConnect.MySql.Internal
             else //>1 
             {
                 _packetNumber = header.PacketNumber;//set start current packet number
-                long allDataLength = (curPacketLength - 4) + (packetCount * 4);
+                long allDataLength = (totalPacketLength - 4) + (packetCount * 4);
                 if (allDataLength > _maxAllowedLength)
                 {
                     throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
@@ -129,7 +129,7 @@ namespace SharpConnect.MySql.Internal
                     //      ? buffer.length % MAX_PACKET_LENGTH
                     //      : MAX_PACKET_LENGTH;
                     int packetLength = (packet + 1 == packetCount)
-                        ? (int)((curPacketLength - 4) % _maxAllowedLength)
+                        ? (int)((totalPacketLength - 4) % _maxAllowedLength)
                         : _maxAllowedLength;
                     //    var packetNumber = parser.incrementPacketNumber();
 
@@ -150,9 +150,13 @@ namespace SharpConnect.MySql.Internal
                 _writer.RewindWriteAndJumpBack(allBuffer, (int)_startPacketPosition);
             }
         }
-        public long CurrentPacketLength()
+
+        public uint OnlyPacketContentLength
         {
-            return _writer.OriginalStreamPosition - _startPacketPosition;
+            get
+            {
+                return ((uint)(_writer.OriginalStreamPosition - _startPacketPosition)) - 4;
+            }
         }
         public void WriteNullTerminatedString(string str)
         {

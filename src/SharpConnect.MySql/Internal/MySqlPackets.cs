@@ -30,16 +30,16 @@ namespace SharpConnect.MySql.Internal
     {
         public readonly uint ContentLength;
         public readonly byte PacketNumber;
-        public PacketHeader(uint length, byte number)
+        public PacketHeader(uint contentLength, byte number)
         {
-            ContentLength = length;
+            if (contentLength == 5 && number == 0)
+            {
+
+            }
+            ContentLength = contentLength;
             PacketNumber = number;
         }
-        public bool IsEmpty()
-        {
-            return PacketNumber == 0 && ContentLength == 0;
-        }
-        public static readonly PacketHeader Empty = new PacketHeader();
+
     }
 
     abstract class Packet
@@ -60,10 +60,7 @@ namespace SharpConnect.MySql.Internal
         {
             get { return _header; }
         }
-        public uint GetPacketLength()
-        {
-            return _header.ContentLength;
-        }
+
 
         public abstract void WritePacket(MySqlStreamWrtier writer);
         // The maximum precision JS Numbers can hold precisely
@@ -205,7 +202,7 @@ namespace SharpConnect.MySql.Internal
                     writer.WriteBuffer(Encoding.ASCII.GetBytes(database));
                 }
             }
-            _header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            _header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(_header);
         }
 
@@ -241,7 +238,7 @@ namespace SharpConnect.MySql.Internal
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.QUERY);
             writer.WriteString(sql);
-            var header = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
             return header;
         }
@@ -268,7 +265,7 @@ namespace SharpConnect.MySql.Internal
             //just write it into a stream
             writer.ReserveHeader();
             writer.WriteUnsigned1((byte)Command.QUIT);
-            var h = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            var h = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(h);
             return h;
         }
@@ -300,7 +297,7 @@ namespace SharpConnect.MySql.Internal
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_PREPARE);
             writer.WriteString(sql);
-            var h = new PacketHeader((uint)writer.Length - 4, writer.IncrementPacketNumber());
+            var h = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(h);
             return h;
         }
@@ -431,7 +428,7 @@ namespace SharpConnect.MySql.Internal
             {
                 WriteValueByType(writer, ref _prepareValues[i]);
             }
-            var header = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
+            var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(header);
             return header;
         }
@@ -462,7 +459,7 @@ namespace SharpConnect.MySql.Internal
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_CLOSE);
             writer.WriteUnsigned4(stmtId);
-            var h = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
+            var h = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(h);
             return h;
         }
@@ -489,7 +486,7 @@ namespace SharpConnect.MySql.Internal
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_RESET);
             writer.WriteUnsigned4(stmtId);
-            var _header = new PacketHeader((uint)writer.CurrentPacketLength() - 4, writer.IncrementPacketNumber());
+            var _header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(_header);
             return _header;
         }
@@ -651,29 +648,39 @@ namespace SharpConnect.MySql.Internal
         {
             this.protocol41 = protocol41;
         }
+        public bool Failure { get; set; }
         public override void ParsePacketContent(MySqlStreamReader r)
         {
 
             if (protocol41)
             {
-                catalog = r.ReadLengthCodedString();
+                catalog = r.ReadLengthCodedString();//3,100,101,102,103
                 db = r.ReadLengthCodedString();
                 table = r.ReadLengthCodedString();
                 orgTable = r.ReadLengthCodedString();
                 name = r.ReadLengthCodedString();
                 orgName = r.ReadLengthCodedString();
                 uint lengthCodedNumber = r.ReadLengthCodedNumber();
+
                 if (lengthCodedNumber != 0x0c)
                 {
                     //var err  = new TypeError('Received invalid field length');
                     //err.code = 'PARSER_INVALID_FIELD_LENGTH';
                     //throw err;
+                    if (lengthCodedNumber == 0)
+                    {
+                        //error
+                        //this package is error packet 
+                        //server may send the correct one?
+                        Failure = true;
+                        return;
+                    }
                     throw new Exception("Received invalid field length");
                 }
 
                 charsetNr = r.U2();//2
                 length = r.U4();//4
-                type = r.ReadByte();
+                type = r.ReadByte();//1
                 flags = r.U2();//2
                 decimals = r.ReadByte();
                 filler = r.ReadBuffer(2);
