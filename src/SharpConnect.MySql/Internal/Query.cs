@@ -609,7 +609,7 @@ namespace SharpConnect.MySql.Internal
 
 
 
-    class TableHeader
+    public class TableHeader
     {
         QueryParsingConfig _parsingConfig;
         List<FieldPacket> _fields;
@@ -619,11 +619,11 @@ namespace SharpConnect.MySql.Internal
             _fields = new List<FieldPacket>();
         }
 
-        public void AddField(FieldPacket field)
+        internal void AddField(FieldPacket field)
         {
             _fields.Add(field);
         }
-        public List<FieldPacket> GetFields()
+        internal List<FieldPacket> GetFields()
         {
             return _fields;
         }
@@ -655,7 +655,7 @@ namespace SharpConnect.MySql.Internal
 
         public bool TypeCast { get; private set; }
         public bool NestTables { get; set; }
-        public QueryParsingConfig ParsingConfig
+        internal QueryParsingConfig ParsingConfig
         {
             get { return _parsingConfig; }
             set

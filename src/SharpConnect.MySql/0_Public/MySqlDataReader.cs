@@ -35,6 +35,10 @@ namespace SharpConnect.MySql
         }
         //-------------------------
 
+        public MySqlSubTable CurrentSubTable
+        {
+            get { return new MySqlSubTable(currentTableResult); }
+        }
         public int FieldCount
         {
             get
@@ -64,7 +68,7 @@ namespace SharpConnect.MySql
                             //------------------
                             //TODO: review here *** tight loop
                             while (tableResultIsNotComplete) ; //*** tigh loop
-                                                     //------------------
+                                                               //------------------
                             goto TRY_AGAIN;
                         }
                     }
@@ -321,7 +325,7 @@ namespace SharpConnect.MySql
             }
         }
     }
-
+     
 
     static class MySqlTypeConversionInfo
     {
@@ -385,4 +389,37 @@ namespace SharpConnect.MySql
         //----------
     }
 
+    public struct MySqlSubTable
+    {
+        public static readonly MySqlSubTable Empty = new MySqlSubTable();
+        readonly MySqlTableResult tableResult;
+        internal MySqlSubTable(MySqlTableResult tableResult)
+        {
+            this.tableResult = tableResult;
+        }
+        public TableHeader Header
+        {
+            get { return this.tableResult.tableHeader; }
+        }
+        public static bool operator ==(MySqlSubTable sub1, MySqlSubTable sub2)
+        {
+            return sub1.tableResult == sub2.tableResult;
+        }
+        public static bool operator !=(MySqlSubTable sub1, MySqlSubTable sub2)
+        {
+            return sub1.tableResult != sub2.tableResult;
+        }
+        public override int GetHashCode()
+        {
+            return tableResult.GetHashCode();
+        }
+        public override bool Equals(object obj)
+        {
+            if (obj is MySqlSubTable)
+            {
+                return ((MySqlSubTable)obj).tableResult == this.tableResult;
+            }
+            return false;
+        }
+    }
 }
