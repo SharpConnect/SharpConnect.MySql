@@ -93,8 +93,9 @@ namespace SharpConnect.MySql.Internal
             //int maxPacketLength = MAX_PACKET_LENGTH;
 
             long totalPacketLength = OnlyPacketContentLength + 4;
+#if DEBUG
             SharpConnect.Internal.dbugConsole.WriteLine("Current Packet Length = " + totalPacketLength);
-
+#endif
             //TODO: review MAX_PACKET_LENGTH here ****
             //it should be 
             int packetCount = (int)((totalPacketLength - 4) / _maxAllowedLength) + 1;//-4 bytes of reserve header
