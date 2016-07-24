@@ -35,7 +35,7 @@ namespace SharpConnect.MySql.Internal
         BinaryReader _reader;
         MemoryStream _stream;
         int _currentInputLength;
-        long _startPosition;
+        long _packetHeaderStartAt;
         long _packetLength;
         Encoding _encoding = Encoding.UTF8;
         List<byte> _bList = new List<byte>();
@@ -43,14 +43,24 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
         static int dbugTotalId;
         public readonly int dbugId = dbugTotalId++;
+        public bool dbugMonitorData1;
+        public int debugLastPacketNum = 1;
 #endif
         public MySqlStreamReader(Encoding encoding)
         {
             _encoding = encoding;
             _stream = new MemoryStream();
-            _startPosition = _stream.Position;//stream.Position = 0;
             _reader = new BinaryReader(_stream, encoding);
         }
+#if DEBUG
+        [System.Diagnostics.Conditional("DEBUG")]
+        void dbugBreakOnMonitorData()
+        {
+            if (dbugMonitorData1)
+            {
+            }
+        }
+#endif
 
         ~MySqlStreamReader()
         {
@@ -100,15 +110,29 @@ namespace SharpConnect.MySql.Internal
         }
         public void Reset()
         {
+#if DEBUG
+            dbugBreakOnMonitorData(); 
+            if (_stream.Position < _currentInputLength)
+            {
+
+            }
+#endif
+            //_stream = new MemoryStream();
+            //_reader = new BinaryReader(_stream); 
+
             _stream.Position = 0;
-            _startPosition = 0;
+            _packetHeaderStartAt = 0;
             _currentInputLength = 0;
         }
-        //------------------------------------------------------
-
+        //------------------------------------------------------ 
         internal void AppendBuffer(SharpConnect.Internal.RecvIO recvIO, int count)
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
+
             long saved_pos = _stream.Position;
+
             _stream.Position = _currentInputLength;
             //----------------------------
             recvIO.CopyTo(0, _stream, count);
@@ -121,6 +145,9 @@ namespace SharpConnect.MySql.Internal
         //------------------------------------------------------
         public string ReadNullTerminatedString()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             _bList.Clear();
             byte temp = _reader.ReadByte();
             _bList.Add(temp);
@@ -136,6 +163,10 @@ namespace SharpConnect.MySql.Internal
 
         public byte[] ReadNullTerminatedBuffer()
         {
+
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             _bList.Clear();
             var temp = _reader.ReadByte();
             _bList.Add(temp);
@@ -149,11 +180,17 @@ namespace SharpConnect.MySql.Internal
 
         public byte ReadByte()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             return _reader.ReadByte();
         }
 
         public byte[] ReadBuffer(int n)
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             if (n > 0)
                 return _reader.ReadBytes(n);
             else
@@ -161,10 +198,16 @@ namespace SharpConnect.MySql.Internal
         }
         public void SkipForward(int byteOffset)
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             _reader.BaseStream.Position += byteOffset;
         }
         public bool ReadLengthCodedDateTime(out DateTime result)
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             byte dateLength = ReadByte(); //***     
             int year = 0;
             int month = 0;
@@ -249,34 +292,25 @@ namespace SharpConnect.MySql.Internal
 
             //return dateTime;
         }
-#if DEBUG
-        static int debugLastPacketNum = 1;
-        public void dbugLoadNewBuffer(byte[] newBuffer, int count)
-        {
-            Reset();
-            _stream.Write(newBuffer, 0, count);
-            _stream.Position = 0;
-            _startPosition = 0;
-            _currentInputLength = count;
-        }
-        public void dbugAppendBuffer(byte[] buffer, int count)
-        {
-            long saved_pos = _stream.Position;
-            _stream.Position = _currentInputLength;
-            _stream.Write(buffer, 0, count);
-            _stream.Position = saved_pos;
-            _currentInputLength += count;
-        }
-#endif
+
         public PacketHeader ReadPacketHeader()
         {
-            _startPosition = _stream.Position;
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
+            _packetHeaderStartAt = _stream.Position;
+
             PacketHeader header = new PacketHeader(U3(), ReadByte());
 #if DEBUG
             if (header.PacketNumber > debugLastPacketNum + 1)
             {
-                Console.WriteLine("header.PacketNumber : " + header.PacketNumber + " > lastPacketNumber :" + debugLastPacketNum);
+                SharpConnect.Internal.dbugConsole.WriteLine("header.PacketNumber : " + header.PacketNumber + " > lastPacketNumber :" + debugLastPacketNum);
             }
+            else if (header.PacketNumber > 0 && header.PacketNumber < debugLastPacketNum && debugLastPacketNum != 2)
+            {
+                //?
+            }
+            SharpConnect.Internal.dbugConsole.WriteLine("h>> " + header.PacketNumber + ":" + debugLastPacketNum + ":" + _packetHeaderStartAt);
             debugLastPacketNum = header.PacketNumber;
 #endif
             _packetLength = header.ContentLength + 4;
@@ -285,6 +319,9 @@ namespace SharpConnect.MySql.Internal
 
         public string ReadLengthCodedString()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             //var length = this.parseLengthCodedNumber();
             uint length = ReadLengthCodedNumber();
             //if (length === null) {
@@ -296,6 +333,9 @@ namespace SharpConnect.MySql.Internal
 
         public byte[] ReadLengthCodedBuffer()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             //var length = this.parseLengthCodedNumber();
             uint length = ReadLengthCodedNumber();
             //  if (length === null) {
@@ -307,11 +347,17 @@ namespace SharpConnect.MySql.Internal
 
         public void ReadFiller(int length)
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             _stream.Position += length;
         }
 
         public uint ReadLengthCodedNumber()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             //if (this._offset >= this._buffer.length)
             //    {
             //        var err = new Error('Parser: read past end');
@@ -401,6 +447,9 @@ namespace SharpConnect.MySql.Internal
         /// <returns></returns>
         public byte U1()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             return _reader.ReadByte();
         }
 
@@ -410,6 +459,9 @@ namespace SharpConnect.MySql.Internal
         /// <returns></returns>
         public uint U2()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             uint b0 = _reader.ReadByte(); //low bit
             uint b1 = _reader.ReadByte(); //high bit
             return (b1 << 8) | (b0);
@@ -421,6 +473,9 @@ namespace SharpConnect.MySql.Internal
         /// <returns></returns>
         public uint U3()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             uint b0 = _reader.ReadByte(); //low bit
             uint b1 = _reader.ReadByte();
             uint b2 = _reader.ReadByte(); //high bit
@@ -432,6 +487,9 @@ namespace SharpConnect.MySql.Internal
         /// <returns></returns>
         public uint U4()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             uint b0 = _reader.ReadByte(); //low bit
             uint b1 = _reader.ReadByte();
             uint b2 = _reader.ReadByte();
@@ -441,26 +499,41 @@ namespace SharpConnect.MySql.Internal
 
         public float ReadFloat()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             return _reader.ReadSingle();
         }
 
         public double ReadDouble()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             return _reader.ReadDouble();
         }
 
         public decimal ReadDecimal()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             return _reader.ReadDecimal();
         }
 
         public long ReadInt64()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             return _reader.ReadInt64();
         }
 
         public uint ReadUnsigedNumber(int n)
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             switch (n)
             {
                 case 0: throw new NotSupportedException();
@@ -524,7 +597,10 @@ namespace SharpConnect.MySql.Internal
 
         public string ReadPacketTerminatedString()
         {
-            long distance = (_startPosition + _packetLength) - ReadPosition;
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
+            long distance = (_packetHeaderStartAt + _packetLength) - ReadPosition;
             if (distance > 0)
             {
                 return new string(_reader.ReadChars((int)distance));
@@ -537,16 +613,25 @@ namespace SharpConnect.MySql.Internal
 
         public char ReadChar()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             return _reader.ReadChar();
         }
 
         public string ReadString(uint length)
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             return _encoding.GetString(_reader.ReadBytes((int)length));
         }
 
         public List<Geometry> ReadGeometryValues()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             //var buffer = this.parseLengthCodedBuffer();
             //var offset = 4;
             byte[] buffer = ReadLengthCodedBuffer();
@@ -575,6 +660,9 @@ namespace SharpConnect.MySql.Internal
 
         void ReadGeometry(List<Geometry> result, byte[] buffer, int byteOrder, int wkbType, int offset)
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             double x;
             double y;
             int numPoints;
@@ -669,6 +757,9 @@ namespace SharpConnect.MySql.Internal
 
         int ReadInt32LE(byte[] buffer, int start)
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             //byte[] temp = new byte[n];
             //uint value = 0;
             //for (int i = n - 1; i >= 0; i--)
@@ -688,21 +779,33 @@ namespace SharpConnect.MySql.Internal
 
         int ReadInt32BE(byte[] buffer, int start)
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             return 0;
         }
 
         double ReadDoubleLE(byte[] buffer, int start)
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             return 0;
         }
 
         double ReadDoubleBE(byte[] buffer, int start)
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             return 0;
         }
 
         public byte PeekByte()
         {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
             byte result = _reader.ReadByte();
             _reader.BaseStream.Position--;
             return result;
@@ -711,7 +814,7 @@ namespace SharpConnect.MySql.Internal
 
         public bool ReachedPacketEnd()
         {
-            return this.ReadPosition == _startPosition + _packetLength;
+            return this.ReadPosition == _packetHeaderStartAt + _packetLength;
         }
 
     }
