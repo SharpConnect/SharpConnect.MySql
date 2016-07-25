@@ -59,6 +59,7 @@ namespace SharpConnect.MySql
                         {
                             currentTableResult = subTables.Dequeue();
                             hasSomeSubTables = true;
+                            currentTableRowCount = currentTableResult.rows.Count;
                         }
                     }
                     if (!hasSomeSubTables)
@@ -662,7 +663,7 @@ namespace SharpConnect.MySql
             get
             {
                 if (tableResult == null)
-                {   
+                {
                     //empty subtable header
                     return new SubTableHeader();
                 }
