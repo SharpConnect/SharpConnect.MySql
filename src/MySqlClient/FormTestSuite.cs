@@ -55,7 +55,8 @@ namespace MySqlClient
             {
                 //Console.WriteLine("ROUND: " + i);
                 //Test_StoreProc_MultiResultSet.T_StoreProcMultiResultSet();
-                Test_StoreProc_MultiResultSet.T_StoreProcMultiResultSet2();
+                //Test_StoreProc_MultiResultSet.T_StoreProcMultiResultSet2();
+                Test_StoreProc_MultiResultSet.T_StoreProcMultiResultSet3();
             }
             // TestSet_Blob.T_InsertBlobData();
             //dbugInternal.Test1();

@@ -131,14 +131,14 @@ namespace SharpConnect.MySql
                         {
                             if (tableResultIsNotComplete)
                             {
-                               //not complete, continue waiting
-                               return false;
+                                //not complete, continue waiting
+                                return false;
                             }
                             else
                             {
-                               //try again
-                               Read(onEachSubTable);
-                               return true;
+                                //try again
+                                Read(onEachSubTable);
+                                return true;
                             }
                         }));
 
@@ -476,6 +476,179 @@ namespace SharpConnect.MySql
         //----------
     }
 
+
+    public struct MySubTableDataReader
+    {
+        //for read on each subtable
+        readonly MySqlTableResult tableResult;
+        int currentRowIndex;
+        DataRowPacket currentRow;
+        internal MySubTableDataReader(MySqlTableResult tableResult)
+        {
+            this.tableResult = tableResult;
+            currentRowIndex = 0;
+            currentRow = null;
+            SetCurrentRowIndex(0);
+        }
+        public int RowIndex { get { return this.currentRowIndex; } }
+        public void SetCurrentRowIndex(int index)
+        {
+            this.currentRowIndex = index;
+            if (index < tableResult.rows.Count)
+            {
+                currentRow = tableResult.rows[index];
+            }
+        }
+        public int RowCount
+        {
+            get { return this.tableResult.rows.Count; }
+        }
+        public sbyte GetInt8(int colIndex)
+        {
+
+            //TODO: check match type and check index here
+            return (sbyte)currentRow.Cells[colIndex].myInt32;
+        }
+        public byte GetUInt8(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return (byte)currentRow.Cells[colIndex].myInt32;
+        }
+        public short GetInt16(int colIndex)
+        {   //TODO: check match type and check index here
+            return (short)currentRow.Cells[colIndex].myInt32;
+        }
+        public ushort GetUInt16(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return (ushort)currentRow.Cells[colIndex].myInt32;
+        }
+
+        public int GetInt32(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myInt32;
+        }
+        public uint GetUInt32(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myUInt32;
+        }
+        public long GetLong(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myInt64;
+        }
+        public ulong GetULong(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myUInt64;
+        }
+        public decimal GetDecimal(int colIndex)
+        {
+            //TODO: check match type and index here
+            return currentRow.Cells[colIndex].myDecimal;
+        }
+        public string GetString(int colIndex)
+        {
+            //TODO: check match type and index here
+            return currentRow.Cells[colIndex].myString;
+        }
+        public string GetString(int colIndex, System.Text.Encoding encoding)
+        {
+            //TODO: check match type and index here
+            return currentRow.Cells[colIndex].myString;
+        }
+        public byte[] GetBuffer(int colIndex)
+        {
+            //TODO: check match type and index here
+            return currentRow.Cells[colIndex].myBuffer;
+        }
+
+        public DateTime GetDateTime(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myDateTime;
+        }
+        public object GetValue(int colIndex)
+        {
+            MyStructData data = currentRow.Cells[colIndex];
+            switch (data.type)
+            {
+                case Types.BLOB:
+                case Types.LONG_BLOB:
+                case Types.MEDIUM_BLOB:
+                case Types.TINY_BLOB:
+                    return data.myBuffer;
+
+                case Types.DATE:
+                case Types.NEWDATE:
+                    return data.myDateTime;
+                //stbuilder.Append('\'');
+                //stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd"));
+                //stbuilder.Append('\'');
+                //break;
+                case Types.DATETIME:
+                    //stbuilder.Append('\'');
+                    //stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd hh:mm:ss"));
+                    //stbuilder.Append('\'');
+                    //break;
+                    return data.myDateTime;
+                case Types.TIMESTAMP:
+                case Types.TIME:
+                    ////TODO: review here
+                    //stbuilder.Append('\'');
+                    //stbuilder.Append(data.myDateTime.ToString("hh:mm:ss"));
+                    //stbuilder.Append('\'');
+                    //break;
+                    return data.myDateTime;
+                case Types.STRING:
+                case Types.VARCHAR:
+                case Types.VAR_STRING:
+
+                    //stbuilder.Append('\'');
+                    ////TODO: check /escape string here ****
+                    //stbuilder.Append(data.myString);
+                    //stbuilder.Append('\'');
+                    //break;
+                    return data.myString;
+                case Types.BIT:
+                    throw new NotSupportedException();
+                // stbuilder.Append(Encoding.ASCII.GetString(new byte[] { (byte)data.myInt32 }));
+
+                case Types.DOUBLE:
+                    return data.myDouble;
+                //stbuilder.Append(data.myDouble.ToString());
+                //break;
+                case Types.FLOAT:
+                    return data.myDouble;//TODO: review here
+                //stbuilder.Append(((float)data.myDouble).ToString());
+
+                case Types.TINY:
+                case Types.SHORT:
+                case Types.LONG:
+                case Types.INT24:
+                case Types.YEAR:
+                    return data.myInt32;
+                //stbuilder.Append(data.myInt32.ToString());
+
+                case Types.LONGLONG:
+                    return data.myInt64;
+                //stbuilder.Append(data.myInt64.ToString());
+
+                case Types.DECIMAL:
+                    //stbuilder.Append(data.myDecimal.ToString());
+                    return data.myDecimal;
+
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+    }
+
+
+
     public struct MySqlSubTable
     {
         public static readonly MySqlSubTable Empty = new MySqlSubTable();
@@ -484,15 +657,65 @@ namespace SharpConnect.MySql
         {
             this.tableResult = tableResult;
         }
-        public TableHeader Header
+        public SubTableHeader Header
         {
-            get { return this.tableResult.tableHeader; }
+            get
+            {
+                if (tableResult == null)
+                {   
+                    //empty subtable header
+                    return new SubTableHeader();
+                }
+                else
+                {
+                    return new SubTableHeader(this.tableResult.tableHeader);
+                }
+
+            }
         }
-        
+        public int RowCount
+        {
+            get { return tableResult.rows.Count; }
+        }
+        public bool HasRows
+        {
+            get
+            {
+                return tableResult.rows != null && tableResult.rows.Count > 0;
+            }
+        }
+
+        public MySubTableDataReader CreateDataReader()
+        {
+            return new MySubTableDataReader(this.tableResult);
+        }
+
+        public int FieldCount
+        {
+            get
+            {
+                return tableResult.tableHeader.ColumnCount;
+            }
+        }
+        public FieldDefinition GetFieldDefinition(int index)
+        {
+            return new MySql.FieldDefinition(tableResult.tableHeader.GetField(index));
+        }
+        public string GetFieldName(int index)
+        {
+            return tableResult.tableHeader.GetField(index).name;
+        }
+        public int GetFieldType(int index)
+        {
+            return tableResult.tableHeader.GetField(index).type;
+        }
+        //----------------------------
         public bool IsLastTable
         {
             get { return !tableResult.HasFollower; }
         }
+
+        //-------------------------------------------------------
         public static bool operator ==(MySqlSubTable sub1, MySqlSubTable sub2)
         {
             return sub1.tableResult == sub2.tableResult;
@@ -513,9 +736,56 @@ namespace SharpConnect.MySql
             }
             return false;
         }
+        //-------------------------------------------------------
+
+
     }
 
 
+    public struct SubTableHeader
+    {
+        TableHeader tableHeader;
+        internal SubTableHeader(TableHeader tableHeader)
+        {
+            this.tableHeader = tableHeader;
+        }
+        public static bool operator ==(SubTableHeader sub1, SubTableHeader sub2)
+        {
+            return sub1.tableHeader == sub2.tableHeader;
+        }
+        public static bool operator !=(SubTableHeader sub1, SubTableHeader sub2)
+        {
+            return sub1.tableHeader != sub2.tableHeader;
+        }
+        public override int GetHashCode()
+        {
+            return tableHeader.GetHashCode();
+        }
+        public override bool Equals(object obj)
+        {
+            if (obj is SubTableHeader)
+            {
+                return ((SubTableHeader)obj).tableHeader == this.tableHeader;
+            }
+            return false;
+        }
+    }
 
+    public struct FieldDefinition
+    {
+        FieldPacket fieldPacket;
+        internal FieldDefinition(FieldPacket fieldPacket)
+        {
+            this.fieldPacket = fieldPacket;
+        }
+        public int FieldType
+        {
+            get { return this.fieldPacket.type; }
+        }
+        public string Name
+        {
+            get { return this.fieldPacket.name; }
+        }
+    }
 
 }

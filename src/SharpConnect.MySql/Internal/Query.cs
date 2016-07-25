@@ -67,6 +67,10 @@ namespace SharpConnect.MySql.Internal
         QueryExecState _execState = QueryExecState.Rest;
         Action<MySqlTableResult> _tableResultListener;
 
+        //------------
+        //we create query for each command and not reuse it
+        //------------
+
         internal Query(Connection conn, string sql, CommandParams cmdParams)
             : this(conn, new SqlStringTemplate(sql), cmdParams)
         {
@@ -434,10 +438,11 @@ namespace SharpConnect.MySql.Internal
                             break;
                         case MySqlResultKind.TableResult:
                             {
-                                MySqlTableResult tableResult = result as MySqlTableResult;
                                 //support partial table mode 
                                 //last sub table is not partial table  
-                                //must notify reader first***
+                                //and must notify reader first***
+                                //before call  RecvComplete();
+                                MySqlTableResult tableResult = result as MySqlTableResult;
                                 if (_tableResultListener != null)
                                 {
                                     //the _tableResultListener may modifid by other state (Close)
@@ -474,19 +479,23 @@ namespace SharpConnect.MySql.Internal
                                     }
                                     else
                                     {
-                                        //this is the last one
+                                        //this is the last one in the series
+                                        //support partial table mode 
+                                        //last sub table is not partial table  
+                                        //and must notify reader first***
+                                        //before call  RecvComplete();
+
                                         if (_tableResultListener != null)
                                         {
                                             //the _tableResultListener may modifid by other state (Close)
                                             //if don't lock we need to store it to local var
                                             _tableResultListener(table);
                                         }
-
+                                        
                                         if (!table.HasFollower)
                                         {
                                             RecvComplete();
                                         }
-
                                     }
                                 }
 
@@ -608,8 +617,7 @@ namespace SharpConnect.MySql.Internal
 
 
 
-
-    public class TableHeader
+    class TableHeader
     {
         QueryParsingConfig _parsingConfig;
         List<FieldPacket> _fields;
@@ -619,13 +627,17 @@ namespace SharpConnect.MySql.Internal
             _fields = new List<FieldPacket>();
         }
 
-        internal void AddField(FieldPacket field)
+        public void AddField(FieldPacket field)
         {
             _fields.Add(field);
         }
-        internal List<FieldPacket> GetFields()
+        public List<FieldPacket> GetFields()
         {
             return _fields;
+        }
+        public FieldPacket GetField(int index)
+        {
+            return _fields[index];
         }
         public int ColumnCount
         {
@@ -655,7 +667,7 @@ namespace SharpConnect.MySql.Internal
 
         public bool TypeCast { get; private set; }
         public bool NestTables { get; set; }
-        internal QueryParsingConfig ParsingConfig
+        public QueryParsingConfig ParsingConfig
         {
             get { return _parsingConfig; }
             set
