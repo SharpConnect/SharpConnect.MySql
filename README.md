@@ -7,6 +7,7 @@ features
    - Standard Sql Query
    - Prepared Sql Statment
    - Store Procedure with multiple result set
+   - SocketAsyncEventArgs technique on socket layer
    - async / await on C#5
    - nuget => https://www.nuget.org/packages/SharpConnect.MySql
 
