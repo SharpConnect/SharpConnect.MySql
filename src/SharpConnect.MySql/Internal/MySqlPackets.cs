@@ -648,6 +648,7 @@ namespace SharpConnect.MySql.Internal
         {
             this.protocol41 = protocol41;
         }
+        internal int FieldIndex { get; set; }
 #if DEBUG
         public bool dbugFailure { get; set; }
 #endif

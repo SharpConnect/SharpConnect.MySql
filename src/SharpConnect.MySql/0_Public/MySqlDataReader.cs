@@ -700,7 +700,7 @@ namespace SharpConnect.MySql
         }
         public FieldDefinition GetFieldDefinition(int index)
         {
-            return new MySql.FieldDefinition(tableResult.tableHeader.GetField(index));
+            return new FieldDefinition(tableResult.tableHeader.GetField(index));
         }
         public string GetFieldName(int index)
         {
@@ -709,6 +709,18 @@ namespace SharpConnect.MySql
         public int GetFieldType(int index)
         {
             return tableResult.tableHeader.GetField(index).type;
+        }
+        public FieldDefinition GetFieldDefinition(string fieldname)
+        {
+            int index = tableResult.tableHeader.GetFieldIndex(fieldname);
+            if (index > -1)
+            {
+                return GetFieldDefinition(index);
+            }
+            else
+            {
+                return new FieldDefinition();
+            }
         }
         //----------------------------
         public bool IsLastTable
@@ -775,9 +787,14 @@ namespace SharpConnect.MySql
     public struct FieldDefinition
     {
         FieldPacket fieldPacket;
+
         internal FieldDefinition(FieldPacket fieldPacket)
         {
             this.fieldPacket = fieldPacket;
+        }
+        public bool IsEmpty
+        {
+            get { return fieldPacket == null; }
         }
         public int FieldType
         {
@@ -786,6 +803,13 @@ namespace SharpConnect.MySql
         public string Name
         {
             get { return this.fieldPacket.name; }
+        }
+        public int FieldIndex
+        {
+            get
+            {
+                return fieldPacket.FieldIndex;
+            }
         }
     }
 
