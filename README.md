@@ -1,5 +1,5 @@
 # SharpConnect.MySql
-MIT license, MySQL Connector / MySQL Driver for .NET
+MIT license, MySQL Connector / MySQL Driver for .NET / support .NET >=2.0 and .NETCore !
  
  ported from node-mysql (https://github.com/felixge/node-mysql) , node-mysql2 (https://github.com/sidorares/node-mysql2)
  
