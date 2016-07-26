@@ -54,6 +54,7 @@
     <Compile Include="TestSuite2_TAP\Test8_TAP_InsertAndSelect.cs" />
     <Compile Include="TestSuite\Test1.cs" />
     <Compile Include="TestSuite\Test2.cs" />
+    <Compile Include="TestSuite\Test2_SimpleMapper.cs" />
     <Compile Include="TestSuite\Test3_AsyncSocket.cs" />
     <Compile Include="TestSuite\MyTestSet.cs" />
     <Compile Include="TestSuite\Test4_PreparedStatement.cs" />

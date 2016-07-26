@@ -3,8 +3,10 @@
 using System;
 using System.Collections.Generic;
 using SharpConnect.MySql.Internal;
+
 namespace SharpConnect.MySql
 {
+    public delegate void OnEachSubTable(MySqlSubTable subtable);
 
     public class MySqlDataReader
     {
@@ -15,11 +17,13 @@ namespace SharpConnect.MySql
         int currentTableRowCount = 0;
         int currentRowIndex = 0;
         bool tableResultIsNotComplete;
-        //
+
+
         DataRowPacket currentRow;
         bool firstResultArrived;
         internal MySqlDataReader(Query query)
         {
+
             _query = query;
             //start 
             query.SetResultListener(subtable =>
@@ -35,6 +39,10 @@ namespace SharpConnect.MySql
         }
         //-------------------------
 
+        public MySqlSubTable CurrentSubTable
+        {
+            get { return new MySqlSubTable(currentTableResult); }
+        }
         public int FieldCount
         {
             get
@@ -51,6 +59,7 @@ namespace SharpConnect.MySql
                         {
                             currentTableResult = subTables.Dequeue();
                             hasSomeSubTables = true;
+                            currentTableRowCount = currentTableResult.rows.Count;
                         }
                     }
                     if (!hasSomeSubTables)
@@ -63,8 +72,10 @@ namespace SharpConnect.MySql
                             //wait ***
                             //------------------
                             //TODO: review here *** tight loop
-                            while (tableResultIsNotComplete) ; //*** tigh loop
-                                                     //------------------
+                            //*** tigh loop
+                            //wait on this
+                            while (tableResultIsNotComplete) ;
+
                             goto TRY_AGAIN;
                         }
                     }
@@ -92,8 +103,89 @@ namespace SharpConnect.MySql
                     && currentTableResult.rows.Count > 0;
             }
         }
+
+        public void Read(OnEachSubTable onEachSubTable)
+        {
+            TRY_AGAIN:
+            if (currentTableResult == null)
+            {
+                //no current table
+                currentRowIndex = 0;
+                currentTableRows = null;
+                bool hasSomeSubTables = false;
+                lock (subTables)
+                {
+                    if (subTables.Count > 0)
+                    {
+                        currentTableResult = subTables.Dequeue();
+                        hasSomeSubTables = true;
+                    }
+                }
+                if (!hasSomeSubTables)
+                {
+                    if (tableResultIsNotComplete)
+                    {
+                        //we are in isPartial table mode (not complete)
+                        //so must wait until the table arrive **
+                        //------------------                    
+                        CentralWaitingTasks.AddWaitingTask(new WaitingTask(() =>
+                        {
+                            if (tableResultIsNotComplete)
+                            {
+                                //not complete, continue waiting
+                                return false;
+                            }
+                            else
+                            {
+                                //try again
+                                Read(onEachSubTable);
+                                return true;
+                            }
+                        }));
+
+                    }
+                    else if (!firstResultArrived)
+                    {
+                        //another tight loop
+                        //wait for first result arrive
+                        //TODO: review here *** tight loop 
+                        //push this to 
+                        CentralWaitingTasks.AddWaitingTask(new WaitingTask(() =>
+                        {
+                            if (!firstResultArrived)
+                            {
+                                //not complete, continue waiting
+                                return false;
+                            }
+                            else
+                            {
+                                //try again
+                                Read(onEachSubTable);
+                                return true;
+                            }
+                        }));
+                    }
+                    else
+                    {
+                        //finish
+                        return;
+                    }
+                }
+                else
+                {
+                    //has some subtable
+                    //so start clear here
+                    onEachSubTable(CurrentSubTable);
+                    //after invoke
+                    currentTableResult = null;
+                    goto TRY_AGAIN;
+                }
+            }
+        }
         public bool Read()
         {
+
+
             TRY_AGAIN:
             if (currentTableResult == null)
             {
@@ -251,36 +343,36 @@ namespace SharpConnect.MySql
             MyStructData data = currentRow.Cells[colIndex];
             switch (data.type)
             {
-                case Types.BLOB:
-                case Types.LONG_BLOB:
-                case Types.MEDIUM_BLOB:
-                case Types.TINY_BLOB:
+                case MySqlDataType.BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.TINY_BLOB:
                     return data.myBuffer;
 
-                case Types.DATE:
-                case Types.NEWDATE:
+                case MySqlDataType.DATE:
+                case MySqlDataType.NEWDATE:
                     return data.myDateTime;
                 //stbuilder.Append('\'');
                 //stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd"));
                 //stbuilder.Append('\'');
                 //break;
-                case Types.DATETIME:
+                case MySqlDataType.DATETIME:
                     //stbuilder.Append('\'');
                     //stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd hh:mm:ss"));
                     //stbuilder.Append('\'');
                     //break;
                     return data.myDateTime;
-                case Types.TIMESTAMP:
-                case Types.TIME:
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.TIME:
                     ////TODO: review here
                     //stbuilder.Append('\'');
                     //stbuilder.Append(data.myDateTime.ToString("hh:mm:ss"));
                     //stbuilder.Append('\'');
                     //break;
                     return data.myDateTime;
-                case Types.STRING:
-                case Types.VARCHAR:
-                case Types.VAR_STRING:
+                case MySqlDataType.STRING:
+                case MySqlDataType.VARCHAR:
+                case MySqlDataType.VAR_STRING:
 
                     //stbuilder.Append('\'');
                     ////TODO: check /escape string here ****
@@ -288,31 +380,31 @@ namespace SharpConnect.MySql
                     //stbuilder.Append('\'');
                     //break;
                     return data.myString;
-                case Types.BIT:
+                case MySqlDataType.BIT:
                     throw new NotSupportedException();
                 // stbuilder.Append(Encoding.ASCII.GetString(new byte[] { (byte)data.myInt32 }));
 
-                case Types.DOUBLE:
+                case MySqlDataType.DOUBLE:
                     return data.myDouble;
                 //stbuilder.Append(data.myDouble.ToString());
                 //break;
-                case Types.FLOAT:
+                case MySqlDataType.FLOAT:
                     return data.myDouble;//TODO: review here
                 //stbuilder.Append(((float)data.myDouble).ToString());
 
-                case Types.TINY:
-                case Types.SHORT:
-                case Types.LONG:
-                case Types.INT24:
-                case Types.YEAR:
+                case MySqlDataType.TINY:
+                case MySqlDataType.SHORT:
+                case MySqlDataType.LONG:
+                case MySqlDataType.INT24:
+                case MySqlDataType.YEAR:
                     return data.myInt32;
                 //stbuilder.Append(data.myInt32.ToString());
 
-                case Types.LONGLONG:
+                case MySqlDataType.LONGLONG:
                     return data.myInt64;
                 //stbuilder.Append(data.myInt64.ToString());
 
-                case Types.DECIMAL:
+                case MySqlDataType.DECIMAL:
                     //stbuilder.Append(data.myDecimal.ToString());
                     return data.myDecimal;
 
@@ -323,41 +415,7 @@ namespace SharpConnect.MySql
     }
 
 
-    static class MySqlTypeConversionInfo
-    {
-        //built in type conversion 
-        static Dictionary<Type, ProperDataType> dataTypeMaps = new Dictionary<Type, ProperDataType>();
-        static MySqlTypeConversionInfo()
-        {
-            //-----------------------------------------------------------
-            dataTypeMaps.Add(typeof(bool), ProperDataType.Bool);
-            dataTypeMaps.Add(typeof(byte), ProperDataType.Byte);
-            dataTypeMaps.Add(typeof(sbyte), ProperDataType.Sbyte);
-            dataTypeMaps.Add(typeof(char), ProperDataType.Char);
-            dataTypeMaps.Add(typeof(Int16), ProperDataType.Int16);
-            dataTypeMaps.Add(typeof(UInt16), ProperDataType.UInt16);
-            dataTypeMaps.Add(typeof(int), ProperDataType.Int32);
-            dataTypeMaps.Add(typeof(uint), ProperDataType.UInt32);
-            dataTypeMaps.Add(typeof(long), ProperDataType.Int64);
-            dataTypeMaps.Add(typeof(ulong), ProperDataType.UInt64);
-            dataTypeMaps.Add(typeof(float), ProperDataType.Float32);
-            dataTypeMaps.Add(typeof(double), ProperDataType.Double64);
-            dataTypeMaps.Add(typeof(DateTime), ProperDataType.DateTime);
-            dataTypeMaps.Add(typeof(string), ProperDataType.String);
-            dataTypeMaps.Add(typeof(byte[]), ProperDataType.Buffer);
-            //-----------------------------------------------------------
 
-        }
-        public static ProperDataType GetProperDataType(object o)
-        {
-            ProperDataType foundProperType;
-            if (!dataTypeMaps.TryGetValue(o.GetType(), out foundProperType))
-            {
-                return ProperDataType.Unknown;
-            }
-            return foundProperType;
-        }
-    }
     enum ProperDataType
     {
         Unknown,
@@ -383,6 +441,344 @@ namespace SharpConnect.MySql
         String,
         Buffer,
         //----------
+    }
+
+
+    public struct MySubTableDataReader
+    {
+        //for read on each subtable
+        readonly MySqlTableResult tableResult;
+        int currentRowIndex;
+        DataRowPacket currentRow;
+        internal MySubTableDataReader(MySqlTableResult tableResult)
+        {
+            this.tableResult = tableResult;
+            currentRowIndex = 0;
+            currentRow = null;
+            SetCurrentRowIndex(0);
+        }
+        public int RowIndex { get { return this.currentRowIndex; } }
+        public void SetCurrentRowIndex(int index)
+        {
+            this.currentRowIndex = index;
+            if (index < tableResult.rows.Count)
+            {
+                currentRow = tableResult.rows[index];
+            }
+        }
+        public int RowCount
+        {
+            get { return this.tableResult.rows.Count; }
+        }
+        public sbyte GetInt8(int colIndex)
+        {
+
+            //TODO: check match type and check index here
+            return (sbyte)currentRow.Cells[colIndex].myInt32;
+        }
+        public byte GetUInt8(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return (byte)currentRow.Cells[colIndex].myInt32;
+        }
+        public short GetInt16(int colIndex)
+        {   //TODO: check match type and check index here
+            return (short)currentRow.Cells[colIndex].myInt32;
+        }
+        public ushort GetUInt16(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return (ushort)currentRow.Cells[colIndex].myInt32;
+        }
+
+        public int GetInt32(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myInt32;
+        }
+        public uint GetUInt32(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myUInt32;
+        }
+        public long GetLong(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myInt64;
+        }
+        public ulong GetULong(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myUInt64;
+        }
+        public decimal GetDecimal(int colIndex)
+        {
+            //TODO: check match type and index here
+            return currentRow.Cells[colIndex].myDecimal;
+        }
+        public string GetString(int colIndex)
+        {
+            //TODO: check match type and index here
+            return currentRow.Cells[colIndex].myString;
+        }
+        public string GetString(int colIndex, System.Text.Encoding encoding)
+        {
+            //TODO: check match type and index here
+            return currentRow.Cells[colIndex].myString;
+        }
+        public byte[] GetBuffer(int colIndex)
+        {
+            //TODO: check match type and index here
+            return currentRow.Cells[colIndex].myBuffer;
+        }
+
+        public DateTime GetDateTime(int colIndex)
+        {
+            //TODO: check match type and check index here
+            return currentRow.Cells[colIndex].myDateTime;
+        }
+        public object GetValue(int colIndex)
+        {
+            MyStructData data = currentRow.Cells[colIndex];
+            switch (data.type)
+            {
+                case MySqlDataType.BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.TINY_BLOB:
+                    return data.myBuffer;
+
+                case MySqlDataType.DATE:
+                case MySqlDataType.NEWDATE:
+                    return data.myDateTime;
+                //stbuilder.Append('\'');
+                //stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd"));
+                //stbuilder.Append('\'');
+                //break;
+                case MySqlDataType.DATETIME:
+                    //stbuilder.Append('\'');
+                    //stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd hh:mm:ss"));
+                    //stbuilder.Append('\'');
+                    //break;
+                    return data.myDateTime;
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.TIME:
+                    ////TODO: review here
+                    //stbuilder.Append('\'');
+                    //stbuilder.Append(data.myDateTime.ToString("hh:mm:ss"));
+                    //stbuilder.Append('\'');
+                    //break;
+                    return data.myDateTime;
+                case MySqlDataType.STRING:
+                case MySqlDataType.VARCHAR:
+                case MySqlDataType.VAR_STRING:
+
+                    //stbuilder.Append('\'');
+                    ////TODO: check /escape string here ****
+                    //stbuilder.Append(data.myString);
+                    //stbuilder.Append('\'');
+                    //break;
+                    return data.myString;
+                case MySqlDataType.BIT:
+                    throw new NotSupportedException();
+                // stbuilder.Append(Encoding.ASCII.GetString(new byte[] { (byte)data.myInt32 }));
+
+                case MySqlDataType.DOUBLE:
+                    return data.myDouble;
+                //stbuilder.Append(data.myDouble.ToString());
+                //break;
+                case MySqlDataType.FLOAT:
+                    return data.myDouble;//TODO: review here
+                                         //stbuilder.Append(((float)data.myDouble).ToString());
+
+                case MySqlDataType.TINY:
+                case MySqlDataType.SHORT:
+                case MySqlDataType.LONG:
+                case MySqlDataType.INT24:
+                case MySqlDataType.YEAR:
+                    return data.myInt32;
+                //stbuilder.Append(data.myInt32.ToString());
+
+                case MySqlDataType.LONGLONG:
+                    return data.myInt64;
+                //stbuilder.Append(data.myInt64.ToString());
+
+                case MySqlDataType.DECIMAL:
+                    //stbuilder.Append(data.myDecimal.ToString());
+                    return data.myDecimal;
+
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+    }
+
+
+
+    public struct MySqlSubTable
+    {
+        public static readonly MySqlSubTable Empty = new MySqlSubTable();
+        readonly MySqlTableResult tableResult;
+        internal MySqlSubTable(MySqlTableResult tableResult)
+        {
+            this.tableResult = tableResult;
+        }
+        public SubTableHeader Header
+        {
+            get
+            {
+                if (tableResult == null)
+                {
+                    //empty subtable header
+                    return new SubTableHeader();
+                }
+                else
+                {
+                    return new SubTableHeader(this.tableResult.tableHeader);
+                }
+
+            }
+        }
+        public int RowCount
+        {
+            get { return tableResult.rows.Count; }
+        }
+        public bool HasRows
+        {
+            get
+            {
+                return tableResult.rows != null && tableResult.rows.Count > 0;
+            }
+        }
+
+        public MySubTableDataReader CreateDataReader()
+        {
+            return new MySubTableDataReader(this.tableResult);
+        }
+
+        public int FieldCount
+        {
+            get
+            {
+                return tableResult.tableHeader.ColumnCount;
+            }
+        }
+        public MySqlFieldDefinition GetFieldDefinition(int index)
+        {
+            return new MySqlFieldDefinition(tableResult.tableHeader.GetField(index));
+        }
+        public string GetFieldName(int index)
+        {
+            return tableResult.tableHeader.GetField(index).name;
+        }
+        public int GetFieldType(int index)
+        {
+            return tableResult.tableHeader.GetField(index).columnType;
+        }
+        public MySqlFieldDefinition GetFieldDefinition(string fieldname)
+        {
+            int index = tableResult.tableHeader.GetFieldIndex(fieldname);
+            if (index > -1)
+            {
+                return GetFieldDefinition(index);
+            }
+            else
+            {
+                return new MySqlFieldDefinition();
+            }
+        }
+        //----------------------------
+        public bool IsLastTable
+        {
+            get { return !tableResult.HasFollower; }
+        }
+
+        //-------------------------------------------------------
+        public static bool operator ==(MySqlSubTable sub1, MySqlSubTable sub2)
+        {
+            return sub1.tableResult == sub2.tableResult;
+        }
+        public static bool operator !=(MySqlSubTable sub1, MySqlSubTable sub2)
+        {
+            return sub1.tableResult != sub2.tableResult;
+        }
+        public override int GetHashCode()
+        {
+            return tableResult.GetHashCode();
+        }
+        public override bool Equals(object obj)
+        {
+            if (obj is MySqlSubTable)
+            {
+                return ((MySqlSubTable)obj).tableResult == this.tableResult;
+            }
+            return false;
+        }
+        //-------------------------------------------------------
+
+
+    }
+
+
+    public struct SubTableHeader
+    {
+        TableHeader tableHeader;
+        internal SubTableHeader(TableHeader tableHeader)
+        {
+            this.tableHeader = tableHeader;
+        }
+        public static bool operator ==(SubTableHeader sub1, SubTableHeader sub2)
+        {
+            return sub1.tableHeader == sub2.tableHeader;
+        }
+        public static bool operator !=(SubTableHeader sub1, SubTableHeader sub2)
+        {
+            return sub1.tableHeader != sub2.tableHeader;
+        }
+        public override int GetHashCode()
+        {
+            return tableHeader.GetHashCode();
+        }
+        public override bool Equals(object obj)
+        {
+            if (obj is SubTableHeader)
+            {
+                return ((SubTableHeader)obj).tableHeader == this.tableHeader;
+            }
+            return false;
+        }
+    }
+
+    public struct MySqlFieldDefinition
+    {
+        FieldPacket fieldPacket;
+
+        public static readonly MySqlFieldDefinition Empty = new MySqlFieldDefinition();
+
+        internal MySqlFieldDefinition(FieldPacket fieldPacket)
+        {
+            this.fieldPacket = fieldPacket;
+        }
+        public bool IsEmpty
+        {
+            get { return fieldPacket == null; }
+        }
+        public int FieldType
+        {
+            get { return this.fieldPacket.columnType; }
+        }
+        public string Name
+        {
+            get { return this.fieldPacket.name; }
+        }
+        public int FieldIndex
+        {
+            get
+            {
+                return fieldPacket.FieldIndex;
+            }
+        }
     }
 
 }
