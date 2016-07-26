@@ -67,6 +67,9 @@
     <Compile Include="..\..\MySqlClient\TestSuite\Test2.cs">
       <Link>TestSuite\Test2.cs</Link>
     </Compile>
+    <Compile Include="..\..\MySqlClient\TestSuite\Test2_SimpleMapper.cs">
+      <Link>TestSuite\Test2_SimpleMapper.cs</Link>
+    </Compile>
     <Compile Include="..\..\MySqlClient\TestSuite\Test3_AsyncSocket.cs">
       <Link>TestSuite\Test3_AsyncSocket.cs</Link>
     </Compile>

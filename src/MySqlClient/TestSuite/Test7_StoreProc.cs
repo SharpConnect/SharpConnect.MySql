@@ -152,7 +152,7 @@ namespace MySqlTest
 
                     }
                     currentSubTable = subtable;
-                    //on eachsub table
+                    //on each subtable
                     //create data reader for the subtable
                     MySubTableDataReader r = subtable.CreateDataReader();
                     int rowCount = r.RowCount;

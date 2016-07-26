@@ -47,17 +47,19 @@ namespace MySqlClient
         {
 
 #if DEBUG
+
+          
             //DateTime d = new DateTime(0, 0, 0, 0, 0, 0);
 
             //TestSet1.T_NumRange();
             //TestSet1.T_FloatingRange();
-            for (int i = 0; i < 2; ++i)
-            {
-                //Console.WriteLine("ROUND: " + i);
-                //Test_StoreProc_MultiResultSet.T_StoreProcMultiResultSet();
-                //Test_StoreProc_MultiResultSet.T_StoreProcMultiResultSet2();
-                Test_StoreProc_MultiResultSet.T_StoreProcMultiResultSet3();
-            }
+            //for (int i = 0; i < 2; ++i)
+            //{
+            //    //Console.WriteLine("ROUND: " + i);
+            //    //Test_StoreProc_MultiResultSet.T_StoreProcMultiResultSet();
+            //    //Test_StoreProc_MultiResultSet.T_StoreProcMultiResultSet2();
+            //    Test_StoreProc_MultiResultSet.T_StoreProcMultiResultSet3();
+            //}
             // TestSet_Blob.T_InsertBlobData();
             //dbugInternal.Test1();
 #endif
