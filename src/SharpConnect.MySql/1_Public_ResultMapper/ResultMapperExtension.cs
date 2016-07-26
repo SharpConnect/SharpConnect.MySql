@@ -1,10 +1,10 @@
 ﻿//MIT, 2015-2016, brezza92, EngineKit and contributors
 
-using System.Text;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System;
 
+using SharpConnect.MySql.Internal;
 namespace SharpConnect.MySql.Mapper
 {
 
@@ -13,11 +13,50 @@ namespace SharpConnect.MySql.Mapper
         MethodInfo metInfo;
         protected MySqlDataReader reader;
         protected bool checkTableDefinition;
+
+
+        struct MySqlFieldMap
+        {
+            public readonly MySqlFieldDefinition fielddef;
+            int fieldIndex;
+            MySqlDataConversionTechnique convTechnique;
+            public MySqlFieldMap(MySqlFieldDefinition fielddef, MySqlDataConversionTechnique convTechnique)
+            {
+                this.fielddef = fielddef;
+                if (fielddef.IsEmpty)
+                {
+                    fieldIndex = -1;
+                }
+                else
+                {
+                    this.fieldIndex = fielddef.FieldIndex;
+                }
+                this.convTechnique = convTechnique;
+            }
+            public int OriginalFieldIndex
+            {
+                get { return fieldIndex; }
+            }
+            public T GetMapValue<T>(MySqlDataReader reader)
+            {
+                object value = reader.GetValue(this.OriginalFieldIndex);
+                switch (convTechnique)
+                {
+                    case MySqlDataConversionTechnique.Direct:
+                        return (T)value;
+                    case MySqlDataConversionTechnique.GenString:
+                        return (T)((object)(value.ToString()));
+                    default:
+                        throw new NotSupportedException();
+                }
+            }
+        }
+
         public RecordMapBase(Delegate del)
         {
             this.metInfo = del.GetMethodInfo();
         }
-        protected List<MySqlFieldDefinition> arrangedFields = new List<MySqlFieldDefinition>();
+        List<MySqlFieldMap> mapFields = new List<MySqlFieldMap>();
         public MySqlDataReader DataReader
         {
             get { return this.reader; }
@@ -35,9 +74,12 @@ namespace SharpConnect.MySql.Mapper
             }
             else
             {
+                //get actual value from reader
+
                 return (U)reader.GetValue(actualIndex);
             }
         }
+
         protected U GetValueOrDefaultFromMapIndex<U>(int mapIndex)
         {
             if (mapIndex < 0)
@@ -46,11 +88,18 @@ namespace SharpConnect.MySql.Mapper
             }
             else
             {
-                return (U)reader.GetValue(arrangedFields[mapIndex].FieldIndex);
+                //this check plan
+                //get data from reader at original field 
+                //lets do proper conv technique
+                return mapFields[mapIndex].GetMapValue<U>(this.reader);
             }
         }
         public R Map(R r)
         {
+            //--------------------------------------------------------------
+            //TODO: we can optimize how to map data with dynamic method ***
+            //--------------------------------------------------------------
+
             //map data from currrent record in data reader
             if (!checkTableDefinition)
             {
@@ -60,34 +109,48 @@ namespace SharpConnect.MySql.Mapper
             OnMap(r);
             return r;
         }
+        //--------------------------------------------------------------
+        //TODO: we can optimize how to map data with dynamic method ***
+        //--------------------------------------------------------------
+
         protected abstract void OnMap(R r);
         void EvaluateTableDefinition(MethodInfo met)
         {
             //check current table defintioin first ***
             MySqlSubTable subTable = reader.CurrentSubTable;
-            var methodPars = met.GetParameters();
+            var metPars = met.GetParameters();
             //target method that we need 
-            int j = methodPars.Length;//**
-            arrangedFields.Clear();
+            int j = metPars.Length;//**
+            mapFields.Clear();
             for (int i = 1; i < j; ++i)
             {
                 //get parameter fieldname
                 //and type and check proper type conversion
-                var methodPar = methodPars[i];
-                string parName = methodPar.Name;
-                MySqlFieldDefinition fieldDef = subTable.GetFieldDefinition(methodPar.Name);
-                if (fieldDef.IsEmpty)
+                ParameterInfo metPar = metPars[i];
+                string parName = metPar.Name;
+                MySqlFieldDefinition fieldDef = subTable.GetFieldDefinition(metPar.Name);
+                //----------------------------------
+                //check field type conversion 
+                //1. some basic can do direct conversion
+                //2. use can provide custom protocol for field conversion
+                //3. some need user dicision
+                //----------------------------------
+                //in this version we support only primitive type  ***
+                MySqlDataConversionTechnique foundConv;
+                if (!MySqlTypeConversionInfo.TryGetImplicitConversion((MySqlDataType)fieldDef.FieldType, metPar.ParameterType, out foundConv))
                 {
-                    //not found this field
-                    arrangedFields.Add(new MySqlFieldDefinition());
+                    //not found
+                    //TODO: 
+                    //so make notification by let use make a dicision
+                    throw new NotSupportedException();
                 }
-                else
-                {
-                    //get index and type
-                    arrangedFields.Add(fieldDef);
-                }
+                //-----------------
+                MySqlFieldMap fieldMap =
+                    fieldDef.IsEmpty ?
+                     new MySqlFieldMap(MySqlFieldDefinition.Empty, foundConv) :
+                     new MySqlFieldMap(fieldDef, foundConv);
+                mapFields.Add(fieldMap);
             }
-
         }
     }
 
@@ -100,7 +163,10 @@ namespace SharpConnect.MySql.Mapper
             this.recordMapDel = recordMapDel;
         }
         protected override void OnMap(R r)
-        {
+        {    //--------------------------------------------------------------
+            //TODO: we can optimize how to map data with dynamic method ***
+            //--------------------------------------------------------------
+
             //after evaluate table definition
             //we can use field map to map value of record and then invoke
             recordMapDel(r, GetValueOrDefaultFromMapIndex<T>(0));
@@ -114,7 +180,10 @@ namespace SharpConnect.MySql.Mapper
             this.recordMapDel = recordMapDel;
         }
         protected override void OnMap(R r)
-        {
+        {    //--------------------------------------------------------------
+            //TODO: we can optimize how to map data with dynamic method ***
+            //--------------------------------------------------------------
+
             recordMapDel(r,
                 GetValueOrDefaultFromMapIndex<T1>(0),
                 GetValueOrDefaultFromMapIndex<T2>(1));
@@ -128,7 +197,10 @@ namespace SharpConnect.MySql.Mapper
             this.recordMapDel = recordMapDel;
         }
         protected override void OnMap(R r)
-        {
+        {    //--------------------------------------------------------------
+            //TODO: we can optimize how to map data with dynamic method ***
+            //--------------------------------------------------------------
+
             recordMapDel(r,
                 GetValueOrDefaultFromMapIndex<T1>(0),
                 GetValueOrDefaultFromMapIndex<T2>(1),
@@ -145,6 +217,10 @@ namespace SharpConnect.MySql.Mapper
         }
         protected override void OnMap(R r)
         {
+            //--------------------------------------------------------------
+            //TODO: we can optimize how to map data with dynamic method ***
+            //--------------------------------------------------------------
+
             recordMapDel(r,
                 GetValueOrDefaultFromMapIndex<T1>(0),
                 GetValueOrDefaultFromMapIndex<T2>(1),
@@ -506,7 +582,7 @@ namespace SharpConnect.MySql.Mapper
         {
             return new RecordMap<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(ac);
         }
-         
+
     }
 
 }
