@@ -13,7 +13,9 @@ features
 ---
  ported and modified from 
  - node-mysql (https://github.com/felixge/node-mysql)
+ 
  - node-mysql2 (https://github.com/sidorares/node-mysql2)
+ 
  - MySQL documentation
  
    
