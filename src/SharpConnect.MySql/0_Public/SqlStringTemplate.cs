@@ -240,59 +240,59 @@ namespace SharpConnect.MySql
             //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             switch (data.type)
             {
-                case Types.BLOB:
-                case Types.LONG_BLOB:
-                case Types.MEDIUM_BLOB:
-                case Types.TINY_BLOB:
+                case MySqlDataType.BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.TINY_BLOB:
                     MySqlStringToHexUtils.ConvertByteArrayToHexWithMySqlPrefix(data.myBuffer, stbuilder);
                     break;
-                case Types.DATE:
-                case Types.NEWDATE:
+                case MySqlDataType.DATE:
+                case MySqlDataType.NEWDATE:
                     stbuilder.Append('\'');
                     stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd"));
                     stbuilder.Append('\'');
                     break;
-                case Types.DATETIME:
+                case MySqlDataType.DATETIME:
                     stbuilder.Append('\'');
                     stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd hh:mm:ss"));
                     stbuilder.Append('\'');
                     break;
-                case Types.TIMESTAMP:
-                case Types.TIME:
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.TIME:
                     //TODO: review here
                     stbuilder.Append('\'');
                     stbuilder.Append(data.myDateTime.ToString("hh:mm:ss"));
                     stbuilder.Append('\'');
                     break;
-                case Types.STRING:
-                case Types.VARCHAR:
-                case Types.VAR_STRING:
+                case MySqlDataType.STRING:
+                case MySqlDataType.VARCHAR:
+                case MySqlDataType.VAR_STRING:
 
                     stbuilder.Append('\'');
                     //TODO: check /escape string here ****
                     stbuilder.Append(data.myString);
                     stbuilder.Append('\'');
                     break;
-                case Types.BIT:
+                case MySqlDataType.BIT:
                     stbuilder.Append(Encoding.ASCII.GetString(new byte[] { (byte)data.myInt32 }));
                     break;
-                case Types.DOUBLE:
+                case MySqlDataType.DOUBLE:
                     stbuilder.Append(data.myDouble.ToString());
                     break;
-                case Types.FLOAT:
+                case MySqlDataType.FLOAT:
                     stbuilder.Append(((float)data.myDouble).ToString());
                     break;
-                case Types.TINY:
-                case Types.SHORT:
-                case Types.LONG:
-                case Types.INT24:
-                case Types.YEAR:
+                case MySqlDataType.TINY:
+                case MySqlDataType.SHORT:
+                case MySqlDataType.LONG:
+                case MySqlDataType.INT24:
+                case MySqlDataType.YEAR:
                     stbuilder.Append(data.myInt32.ToString());
                     break;
-                case Types.LONGLONG:
+                case MySqlDataType.LONGLONG:
                     stbuilder.Append(data.myInt64.ToString());
                     break;
-                case Types.DECIMAL:
+                case MySqlDataType.DECIMAL:
                     stbuilder.Append(data.myDecimal.ToString());
                     break;
                 default:

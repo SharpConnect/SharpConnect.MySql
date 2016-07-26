@@ -329,35 +329,35 @@ namespace SharpConnect.MySql.Internal
         {
             switch (dataTemp.type)
             {
-                case Types.VARCHAR:
-                case Types.VAR_STRING:
-                case Types.STRING:
+                case MySqlDataType.VARCHAR:
+                case MySqlDataType.VAR_STRING:
+                case MySqlDataType.STRING:
                     writer.WriteLengthCodedString(dataTemp.myString);
                     break;
-                case Types.TINY:
+                case MySqlDataType.TINY:
                     writer.WriteUnsignedNumber(1, dataTemp.myUInt32);
                     break;
-                case Types.SHORT:
+                case MySqlDataType.SHORT:
                     var a = dataTemp.myInt32;
                     writer.WriteUnsignedNumber(2, dataTemp.myUInt32);
                     break;
-                case Types.LONG:
+                case MySqlDataType.LONG:
                     //writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
                     writer.WriteUnsignedNumber(4, dataTemp.myUInt32);
                     break;
-                case Types.LONGLONG:
+                case MySqlDataType.LONGLONG:
                     writer.WriteInt64(dataTemp.myInt64);
                     break;
-                case Types.FLOAT:
+                case MySqlDataType.FLOAT:
                     writer.WriteFloat((float)dataTemp.myDouble);
                     break;
-                case Types.DOUBLE:
+                case MySqlDataType.DOUBLE:
                     writer.WriteDouble(dataTemp.myDouble);
                     break;
-                case Types.BIT:
-                case Types.BLOB:
-                case Types.MEDIUM_BLOB:
-                case Types.LONG_BLOB:
+                case MySqlDataType.BIT:
+                case MySqlDataType.BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
                     writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
                     break;
                 default:
@@ -386,8 +386,8 @@ namespace SharpConnect.MySql.Internal
                 uint bitValue = 1;
                 for (int i = 0; i < paramNum; i++)
                 {
-                    Types dataType = _prepareValues[i].type;
-                    if (dataType == Types.NULL)
+                    MySqlDataType dataType = _prepareValues[i].type;
+                    if (dataType == MySqlDataType.NULL)
                     {
                         bitmap += bitValue;
                     }
@@ -524,27 +524,27 @@ namespace SharpConnect.MySql.Internal
         {
             switch (dataTemp.type)
             {
-                case Types.VARCHAR:
-                case Types.VAR_STRING:
-                case Types.STRING:
+                case MySqlDataType.VARCHAR:
+                case MySqlDataType.VAR_STRING:
+                case MySqlDataType.STRING:
                     writer.WriteLengthCodedString(dataTemp.myString);
                     break;
-                case Types.LONG:
+                case MySqlDataType.LONG:
                     writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
                     break;
-                case Types.LONGLONG:
+                case MySqlDataType.LONGLONG:
                     writer.WriteInt64(dataTemp.myInt64);
                     break;
-                case Types.FLOAT:
+                case MySqlDataType.FLOAT:
                     writer.WriteFloat((float)dataTemp.myDouble);
                     break;
-                case Types.DOUBLE:
+                case MySqlDataType.DOUBLE:
                     writer.WriteDouble(dataTemp.myDouble);
                     break;
-                case Types.BIT:
-                case Types.BLOB:
-                case Types.MEDIUM_BLOB:
-                case Types.LONG_BLOB:
+                case MySqlDataType.BIT:
+                case MySqlDataType.BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
                     writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
                     break;
                 default:
@@ -625,19 +625,59 @@ namespace SharpConnect.MySql.Internal
         }
     }
 
+    /// <summary>
+    /// https://dev.mysql.com/doc/internals/en/com-query-response.html#column-definition
+    /// </summary>
     class FieldPacket : Packet
     {
+        /// <summary>
+        /// catalog (always "def")
+        /// </summary>
         public string catalog;
-        public string db;
+        /// <summary>
+        /// schema-name
+        /// </summary>
+        public string schema;
+        /// <summary>
+        /// vittual table name
+        /// </summary>
         public string table;
+        /// <summary>
+        /// physical table name
+        /// </summary>
         public string orgTable;
+        /// <summary>
+        /// virtual column name
+        /// </summary>
         public string name;
+        /// <summary>
+        /// physical column name
+        /// </summary>
         public string orgName;
+        /// <summary>
+        /// character set (2 byte)
+        /// </summary>
         public uint charsetNr;
-        public uint length;
-        public int type;
+        /// <summary>
+        /// maximum length of field
+        /// </summary>
+        public uint maxLengthOfField;
+        /// <summary>
+        /// mysql type (1 byte) in protocol 4
+        /// </summary>
+        public int columnType;
         public uint flags;
-        public byte decimals;
+        /// <summary>
+        /// decimals (1) -- max shown decimal digits 
+        /// 
+        /// 0x00 for integers and static strings
+        /// 0x1f for dynamic strings, double, float
+        /// 0x00 to 0x51 for decimals
+        /// </summary>
+        public byte maxShownDecimalDigits;
+        //decimals and column_length can be used for text-output formatting. 
+
+
         public byte[] filler;
         public bool zeroFill;
         public string strDefault;
@@ -657,16 +697,18 @@ namespace SharpConnect.MySql.Internal
 
             if (protocol41)
             {
-                catalog = r.ReadLengthCodedString();//3,100,101,102,103
-                db = r.ReadLengthCodedString();
+                catalog = r.ReadLengthCodedString();//3,100,101,102,103  (always "def")
+                schema = r.ReadLengthCodedString();
                 table = r.ReadLengthCodedString();
                 orgTable = r.ReadLengthCodedString();
                 name = r.ReadLengthCodedString();
                 orgName = r.ReadLengthCodedString();
-                uint lengthCodedNumber = r.ReadLengthCodedNumber();
 
+                //next_length (lenenc_int) -- length of the following fields (always 0x0c)  ***
+                uint lengthCodedNumber = r.ReadLengthCodedNumber();
                 if (lengthCodedNumber != 0x0c)
                 {
+
                     //var err  = new TypeError('Received invalid field length');
                     //err.code = 'PARSER_INVALID_FIELD_LENGTH';
                     //throw err;
@@ -684,10 +726,10 @@ namespace SharpConnect.MySql.Internal
                 }
 
                 charsetNr = r.U2();//2
-                length = r.U4();//4
-                type = r.ReadByte();//1
+                maxLengthOfField = r.U4();//4
+                columnType = r.ReadByte();//1
                 flags = r.U2();//2
-                decimals = r.ReadByte();
+                maxShownDecimalDigits = r.ReadByte();
                 filler = r.ReadBuffer(2);
                 if (filler[0] != 0x0 || filler[1] != 0x0)
                 {
@@ -699,21 +741,23 @@ namespace SharpConnect.MySql.Internal
                 // parsed flags
                 //this.zeroFill = (this.flags & 0x0040 ? true : false);
                 zeroFill = ((flags & 0x0040) == 0x0040 ? true : false);
-                //    if (parser.reachedPacketEnd()) {
-                //      return;
-                //    }
                 if (r.ReachedPacketEnd())
                 {
                     return;
                 }
+                //----
+                //if command was COM_FIELD_LIST {
+                //   lenenc_int length of default- values
+                //string[$len]   default values
+                //}
                 strDefault = r.ReadLengthCodedString();
             }
             else
             {
                 table = r.ReadLengthCodedString();
                 name = r.ReadLengthCodedString();
-                length = r.ReadUnsigedNumber(r.ReadByte());
-                type = (int)r.ReadUnsigedNumber(r.ReadByte());
+                maxLengthOfField = r.ReadUnsigedNumber(r.ReadByte());
+                columnType = (int)r.ReadUnsigedNumber(r.ReadByte());
             }
         }
 
@@ -974,7 +1018,7 @@ namespace SharpConnect.MySql.Internal
                     if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
                     {
                         _myDataList[i].myBuffer = r.ReadLengthCodedBuffer();
-                        _myDataList[i].type = (Types)fieldInfo.type;
+                        _myDataList[i].type = (MySqlDataType)fieldInfo.columnType;
                         //value = new MyStructData();
                         //value.myBuffer = parser.ParseLengthCodedBuffer();
                         //value.type = (Types)fieldInfos[i].type;
@@ -982,7 +1026,7 @@ namespace SharpConnect.MySql.Internal
                     else
                     {
                         _myDataList[i].myString = r.ReadLengthCodedString();
-                        _myDataList[i].type = (Types)fieldInfo.type;
+                        _myDataList[i].type = (MySqlDataType)fieldInfo.columnType;
                         //value = new MyStructData();
                         //value.myString = parser.ParseLengthCodedString();
                         //value.type = (Types)fieldInfos[i].type;
@@ -1038,13 +1082,13 @@ namespace SharpConnect.MySql.Internal
         void ReadCellWithTypeCast(MySqlStreamReader r, FieldPacket fieldPacket, ref MyStructData data)
         {
             string numberString;
-            Types type = (Types)fieldPacket.type;
+            MySqlDataType type = (MySqlDataType)fieldPacket.columnType;
             switch (type)
             {
-                case Types.TIMESTAMP:
-                case Types.DATE:
-                case Types.DATETIME:
-                case Types.NEWDATE:
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
                     {
                         StringBuilder tmpStringBuilder = r.TempStringBuilder;
                         QueryParsingConfig qparsingConfig = _tableHeader.ParsingConfig;
@@ -1060,7 +1104,7 @@ namespace SharpConnect.MySql.Internal
 
                         if (data.myString == null)
                         {
-                            data.type = Types.NULL;
+                            data.type = MySqlDataType.NULL;
                             return;
                         }
 
@@ -1070,7 +1114,7 @@ namespace SharpConnect.MySql.Internal
                         //    }
                         tmpStringBuilder.Append(data.myString);
                         //string originalString = dateString;
-                        if (fieldPacket.type == (int)Types.DATE)
+                        if (fieldPacket.columnType == (int)MySqlDataType.DATE)
                         {
                             tmpStringBuilder.Append(" 00:00:00");
                         }
@@ -1094,17 +1138,17 @@ namespace SharpConnect.MySql.Internal
 
                     }
                     return;
-                case Types.TINY:
-                case Types.SHORT:
-                case Types.LONG:
-                case Types.INT24:
-                case Types.YEAR:
+                case MySqlDataType.TINY:
+                case MySqlDataType.SHORT:
+                case MySqlDataType.LONG:
+                case MySqlDataType.INT24:
+                case MySqlDataType.YEAR:
 
                     //TODO: review here,                    
                     data.myString = numberString = r.ReadLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0') || numberString.Length == 0)
                     {
-                        data.type = Types.NULL;
+                        data.type = MySqlDataType.NULL;
                     }
                     else
                     {
@@ -1112,13 +1156,13 @@ namespace SharpConnect.MySql.Internal
                         data.type = type;
                     }
                     return;
-                case Types.FLOAT:
-                case Types.DOUBLE:
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
                     data.myString = numberString = r.ReadLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
                         data.myString = numberString;
-                        data.type = Types.NULL;
+                        data.type = MySqlDataType.NULL;
                     }
                     else
                     {
@@ -1128,8 +1172,8 @@ namespace SharpConnect.MySql.Internal
                     return;
                 //    return (numberString === null || (field.zeroFill && numberString[0] == "0"))
                 //      ? numberString : Number(numberString);
-                case Types.NEWDECIMAL:
-                case Types.LONGLONG:
+                case MySqlDataType.NEWDECIMAL:
+                case MySqlDataType.LONGLONG:
                     //    numberString = parser.parseLengthCodedString();
                     //    return (numberString === null || (field.zeroFill && numberString[0] == "0"))
                     //      ? numberString
@@ -1142,7 +1186,7 @@ namespace SharpConnect.MySql.Internal
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
                         data.myString = numberString;
-                        data.type = Types.NULL;
+                        data.type = MySqlDataType.NULL;
                     }
                     else if (config.SupportBigNumbers && (config.BigNumberStrings || (Convert.ToInt64(numberString) > IEEE_754_BINARY_64_PRECISION)))
                     {
@@ -1152,7 +1196,7 @@ namespace SharpConnect.MySql.Internal
                         data.type = type;
                         throw new NotSupportedException();
                     }
-                    else if (type == Types.LONGLONG)
+                    else if (type == MySqlDataType.LONGLONG)
                     {
                         data.myInt64 = Convert.ToInt64(numberString);
                         data.type = type;
@@ -1163,18 +1207,18 @@ namespace SharpConnect.MySql.Internal
                         data.type = type;
                     }
                     return;
-                case Types.BIT:
+                case MySqlDataType.BIT:
 
                     data.myBuffer = r.ReadLengthCodedBuffer();
                     data.type = type;
                     return;
                 //    return parser.parseLengthCodedBuffer();
-                case Types.STRING:
-                case Types.VAR_STRING:
-                case Types.TINY_BLOB:
-                case Types.MEDIUM_BLOB:
-                case Types.LONG_BLOB:
-                case Types.BLOB:
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
                     if (fieldPacket.charsetNr == (int)CharSets.BINARY)
                     {
                         data.myBuffer = r.ReadLengthCodedBuffer(); //CodedBuffer
@@ -1189,9 +1233,9 @@ namespace SharpConnect.MySql.Internal
                 //    return (field.charsetNr === Charsets.BINARY)
                 //      ? parser.parseLengthCodedBuffer()
                 //      : parser.parseLengthCodedString();
-                case Types.GEOMETRY:
+                case MySqlDataType.GEOMETRY:
                     //TODO: unfinished
-                    data.type = Types.GEOMETRY;
+                    data.type = MySqlDataType.GEOMETRY;
                     return;
                 default:
                     data.myString = r.ReadLengthCodedString();
@@ -1264,65 +1308,65 @@ namespace SharpConnect.MySql.Internal
 
         static void ParseValues(MySqlStreamReader r, FieldPacket fieldInfo, ref MyStructData myData)
         {
-            Types fieldType = (Types)fieldInfo.type;
+            MySqlDataType fieldType = (MySqlDataType)fieldInfo.columnType;
             switch (fieldType)
             {
-                case Types.TIMESTAMP://
-                case Types.DATE://
-                case Types.DATETIME://
-                case Types.NEWDATE://
+                case MySqlDataType.TIMESTAMP://
+                case MySqlDataType.DATE://
+                case MySqlDataType.DATETIME://
+                case MySqlDataType.NEWDATE://
                     r.ReadLengthCodedDateTime(out myData.myDateTime);
                     myData.type = fieldType;
                     break;
-                case Types.TINY://length = 1;
+                case MySqlDataType.TINY://length = 1;
                     myData.myInt32 = r.U1();
                     myData.type = fieldType;
                     break;
-                case Types.SHORT://length = 2;
-                case Types.YEAR://length = 2;
+                case MySqlDataType.SHORT://length = 2;
+                case MySqlDataType.YEAR://length = 2;
                     myData.myInt32 = (int)r.U2();
                     myData.type = fieldType;
                     break;
-                case Types.INT24:
-                case Types.LONG://length = 4;
+                case MySqlDataType.INT24:
+                case MySqlDataType.LONG://length = 4;
                     myData.myInt32 = (int)r.U4();
                     myData.type = fieldType;
                     break;
-                case Types.FLOAT:
+                case MySqlDataType.FLOAT:
                     myData.myDouble = r.ReadFloat();
                     myData.type = fieldType;
                     break;
-                case Types.DOUBLE:
+                case MySqlDataType.DOUBLE:
                     myData.myDouble = r.ReadDouble();
                     myData.type = fieldType;
                     break;
-                case Types.NEWDECIMAL:
+                case MySqlDataType.NEWDECIMAL:
                     myData.myDecimal = r.ReadDecimal();
                     myData.type = fieldType;
                     break;
-                case Types.LONGLONG:
+                case MySqlDataType.LONGLONG:
                     myData.myInt64 = r.ReadInt64();
                     myData.type = fieldType;
                     break;
-                case Types.STRING:
-                case Types.VARCHAR:
-                case Types.VAR_STRING:
+                case MySqlDataType.STRING:
+                case MySqlDataType.VARCHAR:
+                case MySqlDataType.VAR_STRING:
                     myData.myString = r.ReadLengthCodedString();
                     myData.type = fieldType;
                     break;
-                case Types.TINY_BLOB:
-                case Types.MEDIUM_BLOB:
-                case Types.LONG_BLOB:
-                case Types.BLOB:
-                case Types.BIT:
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                case MySqlDataType.BIT:
                     myData.myBuffer = r.ReadLengthCodedBuffer();
                     myData.type = fieldType;
                     break;
-                case Types.GEOMETRY:
+                case MySqlDataType.GEOMETRY:
 
                 default:
                     myData.myBuffer = r.ReadLengthCodedBuffer();
-                    myData.type = Types.NULL;
+                    myData.type = MySqlDataType.NULL;
                     break;
             }
         }

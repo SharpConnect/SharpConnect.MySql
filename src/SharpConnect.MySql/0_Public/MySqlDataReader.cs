@@ -343,36 +343,36 @@ namespace SharpConnect.MySql
             MyStructData data = currentRow.Cells[colIndex];
             switch (data.type)
             {
-                case Types.BLOB:
-                case Types.LONG_BLOB:
-                case Types.MEDIUM_BLOB:
-                case Types.TINY_BLOB:
+                case MySqlDataType.BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.TINY_BLOB:
                     return data.myBuffer;
 
-                case Types.DATE:
-                case Types.NEWDATE:
+                case MySqlDataType.DATE:
+                case MySqlDataType.NEWDATE:
                     return data.myDateTime;
                 //stbuilder.Append('\'');
                 //stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd"));
                 //stbuilder.Append('\'');
                 //break;
-                case Types.DATETIME:
+                case MySqlDataType.DATETIME:
                     //stbuilder.Append('\'');
                     //stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd hh:mm:ss"));
                     //stbuilder.Append('\'');
                     //break;
                     return data.myDateTime;
-                case Types.TIMESTAMP:
-                case Types.TIME:
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.TIME:
                     ////TODO: review here
                     //stbuilder.Append('\'');
                     //stbuilder.Append(data.myDateTime.ToString("hh:mm:ss"));
                     //stbuilder.Append('\'');
                     //break;
                     return data.myDateTime;
-                case Types.STRING:
-                case Types.VARCHAR:
-                case Types.VAR_STRING:
+                case MySqlDataType.STRING:
+                case MySqlDataType.VARCHAR:
+                case MySqlDataType.VAR_STRING:
 
                     //stbuilder.Append('\'');
                     ////TODO: check /escape string here ****
@@ -380,31 +380,31 @@ namespace SharpConnect.MySql
                     //stbuilder.Append('\'');
                     //break;
                     return data.myString;
-                case Types.BIT:
+                case MySqlDataType.BIT:
                     throw new NotSupportedException();
                 // stbuilder.Append(Encoding.ASCII.GetString(new byte[] { (byte)data.myInt32 }));
 
-                case Types.DOUBLE:
+                case MySqlDataType.DOUBLE:
                     return data.myDouble;
                 //stbuilder.Append(data.myDouble.ToString());
                 //break;
-                case Types.FLOAT:
+                case MySqlDataType.FLOAT:
                     return data.myDouble;//TODO: review here
                 //stbuilder.Append(((float)data.myDouble).ToString());
 
-                case Types.TINY:
-                case Types.SHORT:
-                case Types.LONG:
-                case Types.INT24:
-                case Types.YEAR:
+                case MySqlDataType.TINY:
+                case MySqlDataType.SHORT:
+                case MySqlDataType.LONG:
+                case MySqlDataType.INT24:
+                case MySqlDataType.YEAR:
                     return data.myInt32;
                 //stbuilder.Append(data.myInt32.ToString());
 
-                case Types.LONGLONG:
+                case MySqlDataType.LONGLONG:
                     return data.myInt64;
                 //stbuilder.Append(data.myInt64.ToString());
 
-                case Types.DECIMAL:
+                case MySqlDataType.DECIMAL:
                     //stbuilder.Append(data.myDecimal.ToString());
                     return data.myDecimal;
 
@@ -415,41 +415,7 @@ namespace SharpConnect.MySql
     }
 
 
-    static class MySqlTypeConversionInfo
-    {
-        //built in type conversion 
-        static Dictionary<Type, ProperDataType> dataTypeMaps = new Dictionary<Type, ProperDataType>();
-        static MySqlTypeConversionInfo()
-        {
-            //-----------------------------------------------------------
-            dataTypeMaps.Add(typeof(bool), ProperDataType.Bool);
-            dataTypeMaps.Add(typeof(byte), ProperDataType.Byte);
-            dataTypeMaps.Add(typeof(sbyte), ProperDataType.Sbyte);
-            dataTypeMaps.Add(typeof(char), ProperDataType.Char);
-            dataTypeMaps.Add(typeof(Int16), ProperDataType.Int16);
-            dataTypeMaps.Add(typeof(UInt16), ProperDataType.UInt16);
-            dataTypeMaps.Add(typeof(int), ProperDataType.Int32);
-            dataTypeMaps.Add(typeof(uint), ProperDataType.UInt32);
-            dataTypeMaps.Add(typeof(long), ProperDataType.Int64);
-            dataTypeMaps.Add(typeof(ulong), ProperDataType.UInt64);
-            dataTypeMaps.Add(typeof(float), ProperDataType.Float32);
-            dataTypeMaps.Add(typeof(double), ProperDataType.Double64);
-            dataTypeMaps.Add(typeof(DateTime), ProperDataType.DateTime);
-            dataTypeMaps.Add(typeof(string), ProperDataType.String);
-            dataTypeMaps.Add(typeof(byte[]), ProperDataType.Buffer);
-            //-----------------------------------------------------------
 
-        }
-        public static ProperDataType GetProperDataType(object o)
-        {
-            ProperDataType foundProperType;
-            if (!dataTypeMaps.TryGetValue(o.GetType(), out foundProperType))
-            {
-                return ProperDataType.Unknown;
-            }
-            return foundProperType;
-        }
-    }
     enum ProperDataType
     {
         Unknown,
@@ -576,36 +542,36 @@ namespace SharpConnect.MySql
             MyStructData data = currentRow.Cells[colIndex];
             switch (data.type)
             {
-                case Types.BLOB:
-                case Types.LONG_BLOB:
-                case Types.MEDIUM_BLOB:
-                case Types.TINY_BLOB:
+                case MySqlDataType.BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.TINY_BLOB:
                     return data.myBuffer;
 
-                case Types.DATE:
-                case Types.NEWDATE:
+                case MySqlDataType.DATE:
+                case MySqlDataType.NEWDATE:
                     return data.myDateTime;
                 //stbuilder.Append('\'');
                 //stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd"));
                 //stbuilder.Append('\'');
                 //break;
-                case Types.DATETIME:
+                case MySqlDataType.DATETIME:
                     //stbuilder.Append('\'');
                     //stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd hh:mm:ss"));
                     //stbuilder.Append('\'');
                     //break;
                     return data.myDateTime;
-                case Types.TIMESTAMP:
-                case Types.TIME:
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.TIME:
                     ////TODO: review here
                     //stbuilder.Append('\'');
                     //stbuilder.Append(data.myDateTime.ToString("hh:mm:ss"));
                     //stbuilder.Append('\'');
                     //break;
                     return data.myDateTime;
-                case Types.STRING:
-                case Types.VARCHAR:
-                case Types.VAR_STRING:
+                case MySqlDataType.STRING:
+                case MySqlDataType.VARCHAR:
+                case MySqlDataType.VAR_STRING:
 
                     //stbuilder.Append('\'');
                     ////TODO: check /escape string here ****
@@ -613,31 +579,31 @@ namespace SharpConnect.MySql
                     //stbuilder.Append('\'');
                     //break;
                     return data.myString;
-                case Types.BIT:
+                case MySqlDataType.BIT:
                     throw new NotSupportedException();
                 // stbuilder.Append(Encoding.ASCII.GetString(new byte[] { (byte)data.myInt32 }));
 
-                case Types.DOUBLE:
+                case MySqlDataType.DOUBLE:
                     return data.myDouble;
                 //stbuilder.Append(data.myDouble.ToString());
                 //break;
-                case Types.FLOAT:
+                case MySqlDataType.FLOAT:
                     return data.myDouble;//TODO: review here
-                //stbuilder.Append(((float)data.myDouble).ToString());
+                                         //stbuilder.Append(((float)data.myDouble).ToString());
 
-                case Types.TINY:
-                case Types.SHORT:
-                case Types.LONG:
-                case Types.INT24:
-                case Types.YEAR:
+                case MySqlDataType.TINY:
+                case MySqlDataType.SHORT:
+                case MySqlDataType.LONG:
+                case MySqlDataType.INT24:
+                case MySqlDataType.YEAR:
                     return data.myInt32;
                 //stbuilder.Append(data.myInt32.ToString());
 
-                case Types.LONGLONG:
+                case MySqlDataType.LONGLONG:
                     return data.myInt64;
                 //stbuilder.Append(data.myInt64.ToString());
 
-                case Types.DECIMAL:
+                case MySqlDataType.DECIMAL:
                     //stbuilder.Append(data.myDecimal.ToString());
                     return data.myDecimal;
 
@@ -708,7 +674,7 @@ namespace SharpConnect.MySql
         }
         public int GetFieldType(int index)
         {
-            return tableResult.tableHeader.GetField(index).type;
+            return tableResult.tableHeader.GetField(index).columnType;
         }
         public MySqlFieldDefinition GetFieldDefinition(string fieldname)
         {
@@ -788,6 +754,8 @@ namespace SharpConnect.MySql
     {
         FieldPacket fieldPacket;
 
+        public static readonly MySqlFieldDefinition Empty = new MySqlFieldDefinition();
+
         internal MySqlFieldDefinition(FieldPacket fieldPacket)
         {
             this.fieldPacket = fieldPacket;
@@ -798,7 +766,7 @@ namespace SharpConnect.MySql
         }
         public int FieldType
         {
-            get { return this.fieldPacket.type; }
+            get { return this.fieldPacket.columnType; }
         }
         public string Name
         {
