@@ -64,6 +64,9 @@
     <Compile Include="..\..\SharpConnect.MySql\Internal\DataModel.cs">
       <Link>Internal\DataModel.cs</Link>
     </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlDataConversion.cs">
+      <Link>Internal\MySqlDataConversion.cs</Link>
+    </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\MySqlPacketParsers.cs">
       <Link>Internal\MySqlPacketParsers.cs</Link>
     </Compile>
