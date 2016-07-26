@@ -84,9 +84,8 @@ namespace MySqlTest
                 string callProc = "call multi();";
                 var cmd = new MySqlCommand(callProc, conn);
                 var reader = cmd.ExecuteReader();
-                //access to sub table
-
-                var currentSubTable = MySqlSubTable.Empty;
+                //access to sub table 
+                MySqlSubTable currentSubTable;
                 while (reader.Read())
                 {
                     MySqlSubTable subTable = reader.CurrentSubTable;
@@ -94,6 +93,7 @@ namespace MySqlTest
                     {
                         //change to new table
                         currentSubTable = subTable;
+
                     }
                     // Console.WriteLine("6");
                     //we read each row from 
@@ -105,7 +105,72 @@ namespace MySqlTest
             }
             //--------------------------
             conn.Close();
-            // Report.WriteLine("ok");
+            // Report.WriteLine("ok"); 
+        }
+
+        [Test]
+        public static void T_StoreProcMultiResultSet3()
+        {
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+
+            //Console.WriteLine("1");
+            conn.Open();
+            PrepareTable1(conn);
+            // Console.WriteLine("2");
+            {
+                string createStoreProcSql = @"DROP PROCEDURE IF EXISTS multi;";
+                var cmd = new MySqlCommand(createStoreProcSql, conn);
+                // Console.WriteLine("3");
+                cmd.ExecuteNonQuery();
+            }
+            {
+                string createStoreProcSql = @"CREATE PROCEDURE multi() BEGIN
+                              SELECT 1011 as A;
+                              SELECT 1022 as B;
+                              select col_id from test001;
+                              END";
+                //Console.WriteLine("4");
+                var cmd = new MySqlCommand(createStoreProcSql, conn);
+                cmd.ExecuteNonQuery();
+            }
+            {
+                // Console.WriteLine("5");
+                string callProc = "call multi();";
+                var cmd = new MySqlCommand(callProc, conn);
+                var reader = cmd.ExecuteReader();
+                //access to sub table
+
+                var currentSubTable = MySqlSubTable.Empty;
+                reader.Read(subtable =>
+                {
+
+                    if (subtable.Header != currentSubTable.Header)
+                    {
+                        //change main table
+                        //some table may split into many sub table
+
+                    }
+                    currentSubTable = subtable;
+                    //on each subtable
+                    //create data reader for the subtable
+                    MySubTableDataReader r = subtable.CreateDataReader();
+                    int rowCount = r.RowCount;
+                    for (int i = 0; i < rowCount; ++i)
+                    {
+                        r.SetCurrentRowIndex(i);
+                        //get data
+                        Console.WriteLine(r.GetInt32(0));
+                    }
+
+
+                    if (subtable.IsLastTable)
+                    {
+                        reader.Close();
+                        conn.Close();
+                    }
+                });
+            }
 
         }
         static void DropTableIfExists(MySqlConnection conn)
