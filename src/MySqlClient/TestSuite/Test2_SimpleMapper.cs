@@ -22,7 +22,7 @@ namespace MySqlTest
 
                 DropTableIfExists(conn);
                 CreateTable(conn);
-                for (int i = 0; i < 2000; ++i)
+                for (int i = 0; i < 100; ++i)
                 {
                     InsertData(conn);
                 }
@@ -67,22 +67,25 @@ namespace MySqlTest
 #endif
             //this is very basic mapper***
             var reader = cmd.ExecuteReader();
-            //------------------------------------------------------
-
-            var mapper = Mapper.Map((object target, int col_id) =>
+            var mapper = Mapper.Map((SimpleInfo t, int col_id, string col2, string col3) =>
             {
-
+                t.col1 = col_id;
+                t.col2 = col2;
             });
-            //------------------------------------------------------
-            //create sample record
-            //var targetRecordSample = new { col_id = 0, col1 = 0, col2 = "", col3 = "", colo4 = DateTime.MinValue };
+            mapper.DataReader = reader;
             while (reader.Read())
             {
-                //simple map query result to member of the target object
-                //reader.NewRecordLike(targetRecordSample);
-                 
+                //simple map query result to member of the target object  
+                //we create simpleinfo and use mapper to map field 
+                var simpleInfo = mapper.Map(new SimpleInfo());
             }
             reader.Close();
+        }
+
+        class SimpleInfo
+        {
+            public int col1;
+            public string col2;
         }
     }
 }
