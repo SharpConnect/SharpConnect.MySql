@@ -17,7 +17,7 @@ namespace SharpConnect.MySql.Mapper
         {
             this.metInfo = del.GetMethodInfo();
         }
-        protected List<FieldDefinition> arrangedFields = new List<FieldDefinition>();
+        protected List<MySqlFieldDefinition> arrangedFields = new List<MySqlFieldDefinition>();
         public MySqlDataReader DataReader
         {
             get { return this.reader; }
@@ -75,11 +75,11 @@ namespace SharpConnect.MySql.Mapper
                 //and type and check proper type conversion
                 var methodPar = methodPars[i];
                 string parName = methodPar.Name;
-                FieldDefinition fieldDef = subTable.GetFieldDefinition(methodPar.Name);
+                MySqlFieldDefinition fieldDef = subTable.GetFieldDefinition(methodPar.Name);
                 if (fieldDef.IsEmpty)
                 {
                     //not found this field
-                    arrangedFields.Add(new FieldDefinition());
+                    arrangedFields.Add(new MySqlFieldDefinition());
                 }
                 else
                 {

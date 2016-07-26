@@ -698,9 +698,9 @@ namespace SharpConnect.MySql
                 return tableResult.tableHeader.ColumnCount;
             }
         }
-        public FieldDefinition GetFieldDefinition(int index)
+        public MySqlFieldDefinition GetFieldDefinition(int index)
         {
-            return new FieldDefinition(tableResult.tableHeader.GetField(index));
+            return new MySqlFieldDefinition(tableResult.tableHeader.GetField(index));
         }
         public string GetFieldName(int index)
         {
@@ -710,7 +710,7 @@ namespace SharpConnect.MySql
         {
             return tableResult.tableHeader.GetField(index).type;
         }
-        public FieldDefinition GetFieldDefinition(string fieldname)
+        public MySqlFieldDefinition GetFieldDefinition(string fieldname)
         {
             int index = tableResult.tableHeader.GetFieldIndex(fieldname);
             if (index > -1)
@@ -719,7 +719,7 @@ namespace SharpConnect.MySql
             }
             else
             {
-                return new FieldDefinition();
+                return new MySqlFieldDefinition();
             }
         }
         //----------------------------
@@ -784,11 +784,11 @@ namespace SharpConnect.MySql
         }
     }
 
-    public struct FieldDefinition
+    public struct MySqlFieldDefinition
     {
         FieldPacket fieldPacket;
 
-        internal FieldDefinition(FieldPacket fieldPacket)
+        internal MySqlFieldDefinition(FieldPacket fieldPacket)
         {
             this.fieldPacket = fieldPacket;
         }
