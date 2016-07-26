@@ -1,10 +1,26 @@
 # SharpConnect.MySql
 MIT license, MySQL Connector / MySQL Driver for .NET
+
+features
+   
+   - .NET >=2.0 and .NETCore !
+   - Standard Sql Query
+   - Prepared Sql Statment
+   - Store Procedure with multiple result set
+   - SocketAsyncEventArgs technique on socket layer
+   - async / await on C#5
+   - nuget => https://www.nuget.org/packages/SharpConnect.MySql
+
+---
+ ported and modified from 
+ - node-mysql (https://github.com/felixge/node-mysql)
  
- ported from node-mysql (https://github.com/felixge/node-mysql) , node-mysql2 (https://github.com/sidorares/node-mysql2)
+ - node-mysql2 (https://github.com/sidorares/node-mysql2)
+ 
+ - MySQL documentation
  
    
- LICENSE: MIT
+LICENSE: **MIT**
 
   
  Copyright (c) 2012 Felix Geisendörfer (felix@debuggable.com) and contributors
@@ -31,6 +47,4 @@ MIT license, MySQL Connector / MySQL Driver for .NET
  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
- 
-
-***nuget package:***  https://www.nuget.org/packages/SharpConnect.MySql
+  
