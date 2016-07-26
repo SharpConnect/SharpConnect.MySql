@@ -10,7 +10,7 @@ features
    - async / await on C#5
    - nuget => https://www.nuget.org/packages/SharpConnect.MySql
 
- 
+---
  ported from node-mysql (https://github.com/felixge/node-mysql) , node-mysql2 (https://github.com/sidorares/node-mysql2)
  
    
