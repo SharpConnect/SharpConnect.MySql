@@ -52,6 +52,9 @@
     <Compile Include="..\..\SharpConnect.MySql\0_Public\SqlStringTemplate.cs">
       <Link>ForNet20\SqlStringTemplate.cs</Link>
     </Compile>
+    <Compile Include="..\..\SharpConnect.MySql\1_Public_ResultMapper\ResultMapperExtension.cs">
+      <Link>1_ResultMapperExtension\ResultMapperExtension.cs</Link>
+    </Compile>
     <Compile Include="..\..\SharpConnect.MySql\Internal\ConnectionPool.cs">
       <Link>Internal\ConnectionPool.cs</Link>
     </Compile>
