@@ -19,7 +19,7 @@ features
  - MySQL documentation
  
    
- LICENSE: MIT
+LICENSE: **MIT**
 
   
  Copyright (c) 2012 Felix Geisendörfer (felix@debuggable.com) and contributors
