@@ -245,6 +245,9 @@ namespace SharpConnect.MySql.Internal
             //uint contentLen = _currentHeader.ContentLength;
             var fieldPacket = new FieldPacket(_currentHeader, this._isProtocol41);
             fieldPacket.ParsePacketContent(reader);
+            fieldPacket.FieldIndex = _tableHeader.ColumnCount; //set this before  add to field list
+            _tableHeader.AddField(fieldPacket);
+
 #if DEBUG
             //TODO:review here
             if (fieldPacket.dbugFailure)
@@ -252,7 +255,7 @@ namespace SharpConnect.MySql.Internal
                 throw new NotSupportedException();
             }
 #endif
-            _tableHeader.AddField(fieldPacket);
+
             //next state => field header of next field
             _parsingState = ResultPacketState.Field_Header;
             return false;
@@ -657,6 +660,7 @@ namespace SharpConnect.MySql.Internal
 
             var field = new FieldPacket(_currentHeader, _isProtocol41);
             field.ParsePacketContent(reader);
+            field.FieldIndex = _tableHeader.ColumnCount; //set this before  add to field list
             _tableHeader.AddField(field);
             //back to binding params field again
             _parsingState = PrepareResponseParseState.BindingField_Header;
@@ -718,7 +722,8 @@ namespace SharpConnect.MySql.Internal
                 return _needMoreData = true;
             }
             var field = new FieldPacket(_currentHeader, _isProtocol41);
-            field.ParsePacketContent(reader);
+            field.ParsePacketContent(reader);            
+            field.FieldIndex = _tableHeader.ColumnCount; //set this before  add to field list
             _tableHeader.AddField(field);
             //back to field header
             _parsingState = PrepareResponseParseState.ColumnField_Header;

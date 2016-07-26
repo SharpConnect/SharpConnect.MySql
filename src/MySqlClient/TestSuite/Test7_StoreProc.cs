@@ -93,6 +93,7 @@ namespace MySqlTest
                     {
                         //change to new table
                         currentSubTable = subTable;
+
                     }
                     // Console.WriteLine("6");
                     //we read each row from 
@@ -143,6 +144,26 @@ namespace MySqlTest
                 var currentSubTable = MySqlSubTable.Empty;
                 reader.Read(subtable =>
                 {
+
+                    if (subtable.Header != currentSubTable.Header)
+                    {
+                        //change main table
+                        //some table may split into many sub table
+
+                    }
+                    currentSubTable = subtable;
+                    //on each subtable
+                    //create data reader for the subtable
+                    MySubTableDataReader r = subtable.CreateDataReader();
+                    int rowCount = r.RowCount;
+                    for (int i = 0; i < rowCount; ++i)
+                    {
+                        r.SetCurrentRowIndex(i);
+                        //get data
+                        Console.WriteLine(r.GetInt32(0));
+                    }
+
+
                     if (subtable.IsLastTable)
                     {
                         reader.Close();

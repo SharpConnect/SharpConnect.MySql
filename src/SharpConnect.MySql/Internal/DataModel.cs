@@ -289,7 +289,20 @@ namespace SharpConnect.MySql.Internal
         UTF32 = UTF32_GENERAL_CI        //exports.UTF32    = exports.UTF32_GENERAL_CI;
     }
 
-    enum Types : byte
+    /*
+    https://dev.mysql.com/doc/internals/en/integer.html#fixed-length-integer
+    14.1) Integer Types
+        14.1.1) Fixed Length, int<1>, int<2>,int<3>,int<4>, int<6>,int<8>
+        14.1.2) Length-Encoded Integer Type
+    14.2) String Types
+        14.2.1) FixedLengthString
+        14.2.2) NulTerminatedString
+        14.2.3) VariableLengthString
+        14.2.4) LengthEncodedString 
+    */
+
+
+    enum MySqlDataType : byte
     {
         // Manually extracted from mysql-5.5.23/include/mysql_com.h
         // some more info here: http://dev.mysql.com/doc/refman/5.5/en/c-api-prepared-statement-type-codes.html
@@ -414,40 +427,40 @@ namespace SharpConnect.MySql.Internal
         [System.Runtime.InteropServices.FieldOffset(16)]
         public string myString;
         [System.Runtime.InteropServices.FieldOffset(24)]
-        public Types type;
+        public MySqlDataType type;
         public override string ToString()
         {
             switch (type)
             {
-                case Types.TIMESTAMP:
-                case Types.DATE:
-                case Types.DATETIME:
-                case Types.NEWDATE:
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
                     return myDateTime.ToString();
-                case Types.TINY:
-                case Types.SHORT:
-                case Types.LONG:
-                case Types.INT24:
-                case Types.YEAR:
+                case MySqlDataType.TINY:
+                case MySqlDataType.SHORT:
+                case MySqlDataType.LONG:
+                case MySqlDataType.INT24:
+                case MySqlDataType.YEAR:
                     return myInt32.ToString();
-                case Types.FLOAT:
-                case Types.DOUBLE:
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
                     return myDouble.ToString();
-                case Types.NEWDECIMAL:
+                case MySqlDataType.NEWDECIMAL:
                     return myDecimal.ToString();
-                case Types.LONGLONG:
+                case MySqlDataType.LONGLONG:
                     return myInt64.ToString();
-                case Types.BIT:
+                case MySqlDataType.BIT:
                     return myBuffer.ToString();
-                case Types.STRING:
-                case Types.VAR_STRING:
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
                     return myString;
-                case Types.TINY_BLOB:
-                case Types.MEDIUM_BLOB:
-                case Types.LONG_BLOB:
-                case Types.BLOB:
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
                     return myBuffer.ToString();
-                case Types.GEOMETRY:
+                case MySqlDataType.GEOMETRY:
                 default: return base.ToString();
             }
         }

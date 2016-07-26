@@ -58,6 +58,9 @@
     <Compile Include="..\SharpConnect.MySql\0_Public_TaskAsync\MySqlTaskBasedExtensions.cs">
       <Link>0_Public_TaskAsync\MySqlTaskBasedExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\SharpConnect.MySql\1_Public_ResultMapper\ResultMapperExtension.cs">
+      <Link>1_Public_ResultMapper\ResultMapperExtension.cs</Link>
+    </Compile>
     <Compile Include="..\SharpConnect.MySql\Internal\ConnectionPool.cs">
       <Link>Internal\ConnectionPool.cs</Link>
     </Compile>
@@ -66,6 +69,9 @@
     </Compile>
     <Compile Include="..\SharpConnect.MySql\Internal\DataModel.cs">
       <Link>Internal\DataModel.cs</Link>
+    </Compile>
+    <Compile Include="..\SharpConnect.MySql\Internal\MySqlDataConversion.cs">
+      <Link>Internal\MySqlDataConversion.cs</Link>
     </Compile>
     <Compile Include="..\SharpConnect.MySql\Internal\MySqlPacketParsers.cs">
       <Link>Internal\MySqlPacketParsers.cs</Link>

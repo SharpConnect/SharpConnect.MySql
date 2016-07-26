@@ -78,7 +78,7 @@ namespace MySqlTest
                     object[] founds = m.GetCustomAttributes(testAttrType, false);
                     if (founds.Length > 0)
                     {
-                        output.Add(new TestCase(m.Name, m));
+                        output.Add(new TestCase(fromType.Name + ":" + m.Name, m));
                     }
                 }
             }
