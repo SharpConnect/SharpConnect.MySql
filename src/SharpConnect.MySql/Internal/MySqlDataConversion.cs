@@ -4,16 +4,7 @@ using System;
 using System.Collections.Generic;
 
 namespace SharpConnect.MySql.Internal
-{
-
-    public static class T1
-    {
-        public static void Init1()
-        {
-            MySqlTypeConversionInfo.GetProperDataType(1);
-        }
-    }
-
+{ 
     static class MySqlTypeConversionInfo
     {
         //built in type conversion 
@@ -42,20 +33,23 @@ namespace SharpConnect.MySql.Internal
                 //mysql src is blob
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.BLOB);
                 //target
-                plan.AddConvTarget(typeof(byte[]), MySqlDataConversionTechnique.Direct); 
-                RegisterConv(plan);
+                plan.AddConvTarget(typeof(byte[]), MySqlDataConversionTechnique.Direct);
+                plan.AddConvTarget(typeof(string), MySqlDataConversionTechnique.BlobToString);
+                Register(plan);
             }
             {
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.LONG_BLOB);
                 //target
-                plan.AddConvTarget(typeof(byte[]), MySqlDataConversionTechnique.Direct); 
-                RegisterConv(plan);
+                plan.AddConvTarget(typeof(byte[]), MySqlDataConversionTechnique.Direct);
+                plan.AddConvTarget(typeof(string), MySqlDataConversionTechnique.BlobToString);
+                Register(plan);
             }
             {
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.MEDIUM_BLOB);
                 //target
-                plan.AddConvTarget(typeof(byte[]), MySqlDataConversionTechnique.Direct); 
-                RegisterConv(plan);
+                plan.AddConvTarget(typeof(byte[]), MySqlDataConversionTechnique.Direct);
+                plan.AddConvTarget(typeof(string), MySqlDataConversionTechnique.BlobToString);
+                Register(plan);
             }
 
             //----------------------------------------------------------- 
@@ -63,17 +57,20 @@ namespace SharpConnect.MySql.Internal
                 //mysql src is string
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.STRING);
                 //target 
-                RegisterConv(plan);
+                plan.AddConvTarget(typeof(string), MySqlDataConversionTechnique.StringToString);
+                Register(plan);
             }
             {
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.VARCHAR);
                 //target 
-                RegisterConv(plan);
+                plan.AddConvTarget(typeof(string), MySqlDataConversionTechnique.StringToString);
+                Register(plan);
             }
             {
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.VAR_STRING);
                 //target 
-                RegisterConv(plan);
+                plan.AddConvTarget(typeof(string), MySqlDataConversionTechnique.StringToString);
+                Register(plan);
             }
             //----------------------------------------------------------- 
             {
@@ -102,7 +99,7 @@ namespace SharpConnect.MySql.Internal
                         MySqlDataConversionTechnique.Direct);
                 //TODO: review sbyte?
                 //conv bool  
-                RegisterConv(plan);
+                RegisterWithDefaultStringConv(plan);
             }
             //----------------------------------------------------------- 
             {
@@ -116,7 +113,7 @@ namespace SharpConnect.MySql.Internal
                            typeof(float),typeof(double),typeof(decimal)
                        },
                        MySqlDataConversionTechnique.Direct);
-                RegisterConv(plan);
+                RegisterWithDefaultStringConv(plan);
             }
 
             //----------------------------------------------------------- 
@@ -129,7 +126,7 @@ namespace SharpConnect.MySql.Internal
                            typeof(float),typeof(double),typeof(decimal)
                        },
                        MySqlDataConversionTechnique.Direct);
-                RegisterConv(plan);
+                RegisterWithDefaultStringConv(plan);
             }
             {
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.LONG); //4 byte int
@@ -139,7 +136,7 @@ namespace SharpConnect.MySql.Internal
                           typeof(float),typeof(double),typeof(decimal)
                       },
                       MySqlDataConversionTechnique.Direct);
-                RegisterConv(plan);
+                RegisterWithDefaultStringConv(plan);
             }
             {
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.LONGLONG); //8 byte int 
@@ -150,7 +147,7 @@ namespace SharpConnect.MySql.Internal
                           typeof(double),typeof(decimal)
                        },
                        MySqlDataConversionTechnique.Direct);
-                RegisterConv(plan);
+                RegisterWithDefaultStringConv(plan);
             }
             //-----------------------------------------------------------
             {
@@ -161,7 +158,7 @@ namespace SharpConnect.MySql.Internal
                           typeof(decimal)
                        },
                        MySqlDataConversionTechnique.Direct);
-                RegisterConv(plan);
+                RegisterWithDefaultStringConv(plan);
             }
             {
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.DOUBLE);  //4  byte
@@ -171,7 +168,7 @@ namespace SharpConnect.MySql.Internal
                           typeof(decimal)
                        },
                        MySqlDataConversionTechnique.Direct);
-                RegisterConv(plan);
+                RegisterWithDefaultStringConv(plan);
             }
             //-----------------------------------------------------------
             {
@@ -180,33 +177,33 @@ namespace SharpConnect.MySql.Internal
                   new[] {  typeof(decimal)
                         },
                         MySqlDataConversionTechnique.Direct);
-                RegisterConv(plan);
+                RegisterWithDefaultStringConv(plan);
             }
             {
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.NEWDATE);
-                RegisterConv(plan);
+                RegisterWithDefaultStringConv(plan);
             }
             //----------------------------------------------------------- 
             {
 
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.DATE);
                 plan.AddConvTarget(typeof(DateTime), MySqlDataConversionTechnique.GenDateTime);
-                RegisterConv(plan);
+                RegisterWithDefaultStringConv(plan);
             }
             {
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.TIME);
                 plan.AddConvTarget(typeof(DateTime), MySqlDataConversionTechnique.GenDateTime);
-                RegisterConv(plan);
+                RegisterWithDefaultStringConv(plan);
             }
             {
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.DATETIME);
                 plan.AddConvTarget(typeof(DateTime), MySqlDataConversionTechnique.GenDateTime);
-                RegisterConv(plan);
+                RegisterWithDefaultStringConv(plan);
             }
             {
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.TIMESTAMP);
                 plan.AddConvTarget(typeof(DateTime), MySqlDataConversionTechnique.GenDateTime);
-                RegisterConv(plan);
+                RegisterWithDefaultStringConv(plan);
             }
             //----------------------------------------------------------- 
         }
@@ -219,10 +216,14 @@ namespace SharpConnect.MySql.Internal
             }
             return foundProperType;
         }
-        static void RegisterConv(MySqlTypeConversionPlan plan)
+        static void RegisterWithDefaultStringConv(MySqlTypeConversionPlan plan)
         {
             //for all plan
             plan.AddConvTarget(typeof(string), MySqlDataConversionTechnique.GenString);
+            implicitConvPlan.Add(plan.SourceMySqlType, plan);
+        }
+        static void Register(MySqlTypeConversionPlan plan)
+        {
             implicitConvPlan.Add(plan.SourceMySqlType, plan);
         }
         public static bool TryGetImplicitConversion(MySqlDataType mysqlDataType, Type targetType, out MySqlDataConversionTechnique foundTechnique)
@@ -246,24 +247,12 @@ namespace SharpConnect.MySql.Internal
     {
         Unknown,
         Direct,
+        StringToString,
         BlobToString,
         GenDateTime,
         GenString,
         Custom
     }
-    //enum MySqlDataConversionTechnique:byte
-    //{
-
-    //    public static readonly MySqlDataConversionTechnique Direct = new MySqlDataConversionTechnique(ConvTechniqueName.Direct);
-    //    public static readonly MySqlDataConversionTechnique BlobToString = new MySqlDataConversionTechnique(ConvTechniqueName.BlobToString);
-    //    public static readonly MySqlDataConversionTechnique GenDateTime = new MySqlDataConversionTechnique(ConvTechniqueName.GenDateTime);
-    //    public static readonly MySqlDataConversionTechnique GenString = new MySqlDataConversionTechnique(ConvTechniqueName.GenString);
-    //    ConvTechniqueName convTechName;
-    //    public MySqlDataConversionTechnique(ConvTechniqueName convTechName)
-    //    {
-
-    //    }
-    //}
 
     class MySqlTypeConversionPlan
     {
