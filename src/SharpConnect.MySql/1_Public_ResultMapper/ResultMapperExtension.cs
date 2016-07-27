@@ -40,6 +40,11 @@ namespace SharpConnect.MySql.Mapper
             public T GetMapValue<T>(MySqlDataReader reader)
             {
                 object value = reader.GetValue(this.OriginalFieldIndex);
+
+#if DEBUG
+                Type srcType = value.GetType();
+                Type targetType = typeof(T);
+#endif
                 switch (convTechnique)
                 {
                     case MySqlDataConversionTechnique.Direct:
@@ -175,7 +180,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2> : RecordMapBase<R>
     {
         MapAction<R, T1, T2> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
@@ -192,7 +198,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2, T3> : RecordMapBase<R>
     {
         MapAction<R, T1, T2, T3> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2, T3> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2, T3> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
@@ -211,7 +218,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2, T3, T4> : RecordMapBase<R>
     {
         MapAction<R, T1, T2, T3, T4> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2, T3, T4> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2, T3, T4> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
@@ -232,7 +240,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2, T3, T4, T5> : RecordMapBase<R>
     {
         MapAction<R, T1, T2, T3, T4, T5> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2, T3, T4, T5> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2, T3, T4, T5> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
@@ -250,7 +259,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2, T3, T4, T5, T6> : RecordMapBase<R>
     {
         MapAction<R, T1, T2, T3, T4, T5, T6> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
@@ -269,7 +279,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2, T3, T4, T5, T6, T7> : RecordMapBase<R>
     {
         MapAction<R, T1, T2, T3, T4, T5, T6, T7> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
@@ -289,7 +300,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2, T3, T4, T5, T6, T7, T8> : RecordMapBase<R>
     {
         MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
@@ -310,7 +322,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2, T3, T4, T5, T6, T7, T8, T9> : RecordMapBase<R>
     {
         MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
@@ -332,7 +345,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> : RecordMapBase<R>
     {
         MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
@@ -355,7 +369,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> : RecordMapBase<R>
     {
         MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
@@ -379,7 +394,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> : RecordMapBase<R>
     {
         MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
@@ -404,7 +420,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> : RecordMapBase<R>
     {
         MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
@@ -430,7 +447,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> : RecordMapBase<R>
     {
         MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
@@ -457,7 +475,8 @@ namespace SharpConnect.MySql.Mapper
     public class RecordMap<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> : RecordMapBase<R>
     {
         MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> recordMapDel;
-        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> recordMapDel) : base(recordMapDel)
+        public RecordMap(MapAction<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> recordMapDel)
+            : base(recordMapDel)
         {
             this.recordMapDel = recordMapDel;
         }
