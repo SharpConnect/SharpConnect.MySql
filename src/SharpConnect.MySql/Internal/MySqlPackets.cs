@@ -961,6 +961,7 @@ namespace SharpConnect.MySql.Internal
     }
 
 
+
     class DataRowPacket : Packet
     {
         protected MyStructData[] _myDataList;//cell
@@ -978,13 +979,10 @@ namespace SharpConnect.MySql.Internal
             //  var self = this;
             //  var next = function () {
             //    return self._typeCast(fieldPacket, parser, connection.config.timezone, connection.config.supportBigNumbers, connection.config.bigNumberStrings, connection.config.dateStrings);
-            //  };
-
+            //  }; 
             //  for (var i = 0; i < fieldPackets.length; i++) {
             //    var fieldPacket = fieldPackets[i];
-            //    var value;
-
-
+            //    var value; 
             //---------------------------------------------
             //danger!
             //please note that  ***
@@ -1013,8 +1011,7 @@ namespace SharpConnect.MySql.Internal
             {
                 for (int i = 0; i < j; i++)
                 {
-                    FieldPacket fieldInfo = fieldInfos[i];
-
+                    FieldPacket fieldInfo = fieldInfos[i]; 
                     if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
                     {
                         _myDataList[i].myBuffer = r.ReadLengthCodedBuffer();
@@ -1251,6 +1248,7 @@ namespace SharpConnect.MySql.Internal
 
         public override string ToString()
         {
+            //this for debug ***
             int count = _myDataList.Length;
             switch (count)
             {
