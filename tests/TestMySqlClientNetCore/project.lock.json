@@ -6637,8 +6637,8 @@
     },
     "SharpConnect.MySql/1.0.1": {
       "type": "project",
-      "path": "../SharpConnect.MySql/project.json",
-      "msbuildProject": "../SharpConnect.MySql/SharpConnect.MySql.xproj"
+      "path": "../../src/SharpConnect.MySql/project.json",
+      "msbuildProject": "../../src/SharpConnect.MySql/SharpConnect.MySql.xproj"
     }
   },
   "projectFileDependencyGroups": {

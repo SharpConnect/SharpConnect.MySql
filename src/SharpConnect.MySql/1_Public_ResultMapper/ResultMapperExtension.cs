@@ -133,7 +133,7 @@ namespace SharpConnect.MySql.Mapper
                 //check field type conversion 
                 //1. some basic can do direct conversion
                 //2. use can provide custom protocol for field conversion
-                //3. some need user dicision
+                //3. some need user decision
                 //----------------------------------
                 //in this version we support only primitive type  ***
                 MySqlDataConversionTechnique foundConv;

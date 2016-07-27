@@ -427,4 +427,322 @@ namespace SharpConnect.Internal
             }
         }
     }
+
+
+    class SimpleBufferReader
+    {
+        //TODO: check endian  ***
+        byte[] originalBuffer;
+        int bufferStartIndex;
+        int readIndex;
+        int bufferSize;
+        byte[] buffer = new byte[16];
+        public SimpleBufferReader(byte[] originalBuffer, int bufferStartIndex, int bufferSize)
+        {
+            this.bufferSize = bufferSize;
+            this.originalBuffer = originalBuffer;
+            this.bufferStartIndex = bufferStartIndex;
+#if DEBUG
+
+            if (dbug_EnableLog)
+            {
+                dbugInit();
+            }
+#endif
+        }
+        public int Position
+        {
+            get
+            {
+                return readIndex;
+            }
+            set
+            {
+                readIndex = value;
+            }
+        }
+        public void Close()
+        {
+        }
+        public bool EndOfStream
+        {
+            get
+            {
+                return readIndex == bufferSize;
+            }
+        }
+        public byte ReadByte()
+        {
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                //read from current index 
+                //and advanced the readIndex to next***
+                dbugWriteInfo(Position - 1 + " (byte) " + originalBuffer[readIndex + 1]);
+            }
+#endif          
+
+            return originalBuffer[readIndex++];
+        }
+        public uint ReadUInt32()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 4;
+            uint u = (uint)(mybuffer[s] | mybuffer[s + 1] << 8 |
+                mybuffer[s + 2] << 16 | mybuffer[s + 3] << 24);
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - 4 + " (uint32) " + u);
+            }
+#endif
+
+            return u;
+        }
+        public unsafe double ReadDouble()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 8;
+
+            uint num = (uint)(((mybuffer[s] | (mybuffer[s + 1] << 8)) | (mybuffer[s + 2] << 0x10)) | (mybuffer[s + 3] << 0x18));
+            uint num2 = (uint)(((mybuffer[s + 4] | (mybuffer[s + 5] << 8)) | (mybuffer[s + 6] << 0x10)) | (mybuffer[s + 7] << 0x18));
+            ulong num3 = (num2 << 0x20) | num;
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - 8 + " (double) " + *(((double*)&num3)));
+            }
+#endif
+
+            return *(((double*)&num3));
+        }
+        public unsafe float ReadFloat()
+        {
+
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 4;
+
+            uint num = (uint)(((mybuffer[s] | (mybuffer[s + 1] << 8)) | (mybuffer[s + 2] << 0x10)) | (mybuffer[s + 3] << 0x18));
+#if DEBUG
+
+
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - 4 + " (float)");
+            }
+#endif
+
+            return *(((float*)&num));
+        }
+        public int ReadInt32()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 4;
+            int i32 = (mybuffer[s] | mybuffer[s + 1] << 8 |
+                    mybuffer[s + 2] << 16 | mybuffer[s + 3] << 24);
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - 4 + " (int32) " + i32);
+            }
+
+#endif          
+            return i32;
+
+        }
+        public short ReadInt16()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 2;
+            short i16 = (Int16)(mybuffer[s] | mybuffer[s + 1] << 8);
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+
+            if (dbug_EnableLog)
+            {
+
+                dbugWriteInfo(Position - 2 + " (int16) " + i16);
+            }
+#endif
+
+            return i16;
+        }
+        public ushort ReadUInt16()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 2;
+            ushort ui16 = (ushort)(mybuffer[s + 0] | mybuffer[s + 1] << 8);
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - 2 + " (uint16) " + ui16);
+            }
+
+#endif
+            return ui16;
+        }
+        public long ReadInt64()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 8;
+            //
+            uint num = (uint)(((mybuffer[s] | (mybuffer[s + 1] << 8)) | (mybuffer[s + 2] << 0x10)) | (mybuffer[s + 3] << 0x18));
+            uint num2 = (uint)(((mybuffer[s + 4] | (mybuffer[s + 5] << 8)) | (mybuffer[s + 6] << 0x10)) | (mybuffer[s + 7] << 0x18));
+            long i64 = ((long)num2 << 0x20) | num;
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+
+                dbugWriteInfo(Position - 8 + " (int64) " + i64);
+
+            }
+#endif
+            return i64;
+        }
+        public ulong ReadUInt64()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 8;
+            //
+            uint num = (uint)(((mybuffer[s] | (mybuffer[s + 1] << 8)) | (mybuffer[s + 2] << 0x10)) | (mybuffer[s + 3] << 0x18));
+            uint num2 = (uint)(((mybuffer[s + 4] | (mybuffer[s + 5] << 8)) | (mybuffer[s + 6] << 0x10)) | (mybuffer[s + 7] << 0x18));
+            ulong ui64 = ((ulong)num2 << 0x20) | num;
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - 8 + " (int64) " + ui64);
+            }
+#endif
+
+            return ui64;
+        }
+
+        public byte[] ReadBytes(int num)
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += num;
+            byte[] buffer = new byte[num];
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - num + " (buffer:" + num + ")");
+            }
+#endif
+            Buffer.BlockCopy(originalBuffer, s, buffer, 0, num);
+            return buffer;
+        }
+
+#if DEBUG
+        void dbugCheckBreakPoint()
+        {
+            if (dbug_enableBreak)
+            {
+                //if (Position == 35)
+                //{
+                //}
+            }
+        }
+
+        bool dbug_EnableLog = false;
+        bool dbug_enableBreak = false;
+        FileStream dbug_fs;
+        StreamWriter dbug_fsWriter;
+
+
+        void dbugWriteInfo(string info)
+        {
+            if (dbug_EnableLog)
+            {
+                dbug_fsWriter.WriteLine(info);
+                dbug_fsWriter.Flush();
+            }
+        }
+        void dbugInit()
+        {
+            if (dbug_EnableLog)
+            {
+                //if (this.stream.Position > 0)
+                //{
+
+                //    dbug_fs = new FileStream(((FileStream)stream).Name + ".r_bin_debug", FileMode.Append);
+                //    dbug_fsWriter = new StreamWriter(dbug_fs);
+                //}
+                //else
+                //{
+                //    dbug_fs = new FileStream(((FileStream)stream).Name + ".r_bin_debug", FileMode.Create);
+                //    dbug_fsWriter = new StreamWriter(dbug_fs);
+                //} 
+            }
+        }
+        void dbugClose()
+        {
+            if (dbug_EnableLog)
+            {
+
+                dbug_fs.Dispose();
+                dbug_fsWriter = null;
+                dbug_fs = null;
+            }
+
+        }
+
+#endif
+    }
+
+
 }

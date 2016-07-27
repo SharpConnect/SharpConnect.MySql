@@ -77,10 +77,18 @@ namespace SharpConnect.MySql.Internal
             //----------------------------------------------------------- 
             {
                 //TODO: review here
+                //1. if we use prepared statement, we have information about signed/unsiged field
+                //see ... a flag byte which has the highest bit set if the type is unsigned [80]  ...
+                //https://dev.mysql.com/doc/internals/en/com-stmt-execute.html#packet-COM_STMT_EXECUTE
+                //
+                //2. if we not use prepared statement then ..
                 //WARNING: 
                 //my sql not store sign or unsign data in field packet ?
                 //but we can get it from sql that show table information
                 //so only at this point, we have a tiny (int) -> it can be interpreted as byte or sbyte?              
+
+
+
 
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.TINY); //1 byte int     
                 plan.AddConvTargets(
