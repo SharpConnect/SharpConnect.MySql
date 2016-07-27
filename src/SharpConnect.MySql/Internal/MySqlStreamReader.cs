@@ -52,6 +52,7 @@ namespace SharpConnect.MySql.Internal
             _stream = new MemoryStream();
             _reader = new BinaryReader(_stream, encoding);
         }
+
 #if DEBUG
         [System.Diagnostics.Conditional("DEBUG")]
         void dbugBreakOnMonitorData()
@@ -131,8 +132,7 @@ namespace SharpConnect.MySql.Internal
             dbugBreakOnMonitorData();
 #endif
 
-            long saved_pos = _stream.Position;
-
+            long saved_pos = _stream.Position; 
             _stream.Position = _currentInputLength;
             //----------------------------
             recvIO.CopyTo(0, _stream, count);
