@@ -4,19 +4,7 @@ using System;
 using System.Collections.Generic;
 
 namespace SharpConnect.MySql.Internal
-{
-
-#if DEBUG
-    public static class dbugTest1
-    {
-        public static void Init1()
-        {
-            MySqlTypeConversionInfo.GetProperDataType(1);
-        }
-    }
-#endif
-
-
+{ 
     static class MySqlTypeConversionInfo
     {
         //built in type conversion 
