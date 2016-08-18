@@ -15,6 +15,7 @@ namespace MySqlTest
             conn.Open(() =>
             {
                 conn.UpdateMaxAllowPacket();
+                conn.Close();
             });
             //conn.Close();
         }

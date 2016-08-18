@@ -43,7 +43,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
         {
             return new BasicTask(ch =>
             {
-                cmd.ExecuteReader(ch.Next);
+                cmd.ExecuteReader_A(ch.Next);
             });
         }
         //-----------------------------------------------------------------------------

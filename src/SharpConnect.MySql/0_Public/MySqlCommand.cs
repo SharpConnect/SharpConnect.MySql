@@ -49,21 +49,57 @@ namespace SharpConnect.MySql
             _query = new Query(Connection.Conn, _sqlStringTemplate, Parameters);
             _query.Prepare(nextAction);
         }
-        public MySqlDataReader ExecuteReader(Action nextAction = null)
+        public MySqlDataReader ExecuteReader()
         {
             if (_isPreparedStmt)
             {
                 var reader = new MySqlDataReader(_query);
-                _query.Execute(true, nextAction);
+                _query.Execute(true, null);
                 return reader;
             }
             else
             {
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
                 var reader = new MySqlDataReader(_query);
-                _query.Execute(true, nextAction);
+                _query.Execute(true, null);
                 return reader;
             }
+        }
+
+        internal void ExecuteReader_A(Action nextAction)
+        {
+            if (_isPreparedStmt)
+            {
+                var reader = new MySqlDataReader(_query);
+                _query.Execute(true, nextAction);
+
+            }
+            else
+            {
+                _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
+                var reader = new MySqlDataReader(_query);
+                _query.Execute(true, nextAction);
+
+            }
+        }
+
+        /// <summary>
+        /// +/- blocking, read only single value
+        /// </summary>
+        /// <param name="nextAction"></param>
+        /// <returns></returns>
+        public object ExecuteScalar()
+        {
+            //TODO: impl async version
+            object result = null;
+            MySqlDataReader reader = ExecuteReader();
+            if (reader.Read())
+            {
+                result = reader.GetValue(0);
+            }
+            reader.Close();
+            return result;
+
         }
         internal void ExecuteReader(Internal.Action<MySqlDataReader> nextAction)
         {
