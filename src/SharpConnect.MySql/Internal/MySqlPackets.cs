@@ -1129,7 +1129,8 @@ namespace SharpConnect.MySql.Internal
                         //      return originalString;
                         //    }
 
-                        data.myDateTime = DateTime.Parse(tmpStringBuilder.ToString());
+                        data.myDateTime = DateTime.Parse(tmpStringBuilder.ToString(),
+                            System.Globalization.CultureInfo.InvariantCulture);
                         data.type = type;
                         tmpStringBuilder.Length = 0;
 
