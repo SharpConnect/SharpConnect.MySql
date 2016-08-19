@@ -24,59 +24,59 @@ namespace MySqlTest
 
             var tc = new TaskChain();
             //add task chain too connection object 
-            conn.OpenAsync(tc);
+            conn.AsyncOpen(tc);
             //-----------------------------------------
             {
                 //drop table if exist
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
-                cmd.ExecuteNonQueryAsync(tc);
+                cmd.AsyncExecuteNonQuery(tc);
             }
             //----------------------------------------- 
             {
                 //drop table if exist
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
-                cmd.ExecuteNonQueryAsync(tc);
+                cmd.AsyncExecuteNonQuery(tc);
             }
             //----------------------------------------- 
             {
                 string sql = "create table test001(col_id  int(10) unsigned not null auto_increment, col1 int(10)," +
                    "col2 char(2),col3 varchar(255),col4 datetime, primary key(col_id) )";
                 var cmd = new MySqlCommand(sql, conn);
-                cmd.ExecuteNonQueryAsync(tc);
+                cmd.AsyncExecuteNonQuery(tc);
             }
             //-----------------------------------------
             for (int i = 0; i < 100; ++i)
             {
                 string sql = "insert into test001(col1,col2,col3,col4) values(10,'AA','123456789','0001-01-01')";
                 var cmd = new MySqlCommand(sql, conn);
-                cmd.ExecuteNonQueryAsync(tc);
+                cmd.AsyncExecuteNonQuery(tc);
             }
             //-----------------------------------------
             {
                 string sql = "select * from test001";
                 var cmd = new MySqlCommand(sql, conn);
 
-                cmd.ExecuteReaderAsync(tc, reader =>
+                cmd.AsyncExecuteReader(tc, reader =>
                 {
 
                     //when new task is add after tc is started
                     //then this new task is immmediately insert 
                     //after current task
-                    reader.CloseAsync(tc);
+                    reader.AsyncClose(tc);
                 });
             }
             {
                 string sql = "select sysdate()";
                 var cmd = new MySqlCommand(sql, conn);
-                cmd.ExecuteScalarAsync(tc, obj =>
+                cmd.AsyncExecuteScalar(tc, obj =>
                 {
 
                 });
             }
             //-----------------------------------------
-            conn.CloseAsync(tc);
+            conn.AsyncClose(tc);
             tc.WhenFinish(() =>
             {
                 stopW.Stop();

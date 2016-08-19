@@ -16,7 +16,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
     //------------------------------------
     public static class MySqlTaskBasedExtension
     {
-        public static ActionTask OpenAsync(this MySqlConnection conn, TaskChain ch)
+        public static ActionTask AsyncOpen(this MySqlConnection conn, TaskChain ch)
         {
             return ch.AddTask(() =>
             {
@@ -25,7 +25,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
                 conn.Open(ch.Next);
             });
         }
-        public static ActionTask CloseAsync(this MySqlConnection conn, TaskChain ch)
+        public static ActionTask AsyncClose(this MySqlConnection conn, TaskChain ch)
         {
             return ch.AddTask(() =>
             {
@@ -33,7 +33,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             });
         }
         //------------------------------------------------------------
-        public static ActionTask PrepareAsync(this MySqlCommand cmd, TaskChain ch)
+        public static ActionTask AsyncPrepare(this MySqlCommand cmd, TaskChain ch)
         {
             return ch.AddTask(() =>
             {
@@ -41,7 +41,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             });
 
         }
-        public static ActionTask ExecuteNonQueryAsync(this MySqlCommand cmd, TaskChain ch)
+        public static ActionTask AsyncExecuteNonQuery(this MySqlCommand cmd, TaskChain ch)
         {
             return ch.AddTask(() =>
             {
@@ -49,7 +49,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             });
         }
 
-        public static ActionTask ExecuteReaderAsync(this MySqlCommand cmd, TaskChain ch, Action<MySqlDataReader> readerReady)
+        public static ActionTask AsyncExecuteReader(this MySqlCommand cmd, TaskChain ch, Action<MySqlDataReader> readerReady)
         {
             return ch.AddTask(() =>
             {
@@ -63,7 +63,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
 
         }
 
-        public static ActionTask ExecuteScalarAsync(this MySqlCommand cmd, TaskChain ch, Action<object> resultReady)
+        public static ActionTask AsyncExecuteScalar(this MySqlCommand cmd, TaskChain ch, Action<object> resultReady)
         {
             return ch.AddTask(() =>
             {
@@ -75,7 +75,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             });
         }
         //-----------------------------------------------------------------------------
-        public static ActionTask CloseAsync(this MySqlDataReader reader, TaskChain ch)
+        public static ActionTask AsyncClose(this MySqlDataReader reader, TaskChain ch)
         {
             return ch.AddTask(() =>
             {
