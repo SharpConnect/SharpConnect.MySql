@@ -82,7 +82,7 @@ namespace MySqlTest
                 stopW.Stop();
                 Report.WriteLine("avg:" + stopW.ElapsedTicks);
             });
-            tc.WhenTaskBegin(() =>
+            tc.BeforeEachTaskBegin(() =>
             {
                 Console.WriteLine(tc.CurrentTaskIndex + "/" + tc.TaskCount);
             });
