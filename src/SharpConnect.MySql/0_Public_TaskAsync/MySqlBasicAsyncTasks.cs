@@ -62,10 +62,10 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             {
                 cmd.ExecuteReader(reader =>
                 {
-                    
+
                     readerReady(reader);
                     ch.Next();
-                     
+
                 });
 
             }, false);
@@ -175,40 +175,59 @@ namespace SharpConnect.MySql.BasicAsyncTasks
 
     public class TaskChain
     {
+        /// <summary>
+        /// latest run task index
+        /// </summary>
         int currentIndex = -1;
+        int insertIndex = -1;
         Action onFinish;
         Action onBeginTask;
         bool pleaseStop;
         List<BasicTaskBase> taskList = new List<BasicTaskBase>();
 
-        public ActionTask AddTask(Action a, bool autoCallNext = true)
+
+        void AddTask(BasicTaskBase actionTask)
         {
-            var actionTask = new ActionTask(this, a, autoCallNext);
-            if (currentIndex < 0)
+            if (insertIndex < 0)
             {
                 //un-start so
                 taskList.Add(actionTask);
             }
             else
             {
-                if (currentIndex == taskList.Count - 1)
+                if (insertIndex == taskList.Count - 1)
                 {
                     //append to last task
                     taskList.Add(actionTask);
                 }
                 else
                 {
-                    taskList.Insert(currentIndex + 1, actionTask);
+                    taskList.Insert(insertIndex + 1, actionTask);
                 }
+
+                insertIndex++;
             }
+        }
+
+        public ActionTask AddTask(Action a, bool autoCallNext = true)
+        {
+            var actionTask = new ActionTask(this, a, autoCallNext);
+            AddTask(actionTask);
             return actionTask;
+        }
+        public void Wait(Action<WaitState> action)
+        {
+            AutoCallNext = false;
+            WaitTask waitTask = new WaitTask(this, action);
+            AddTask(waitTask);
         }
         public void Start()
         {
             pleaseStop = false;
             if (taskList.Count > 0)
             {
-                currentIndex = 0;
+                //update insert index= current index
+                insertIndex = currentIndex = 0;
                 if (onBeginTask != null)
                 {
                     onBeginTask();
@@ -241,7 +260,10 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             {
                 if (currentIndex + 1 < taskList.Count)
                 {
-                    currentIndex++;
+
+                    insertIndex = (currentIndex++);
+                    //update insert index= current index
+
                     if (onBeginTask != null)
                     {
                         onBeginTask();
@@ -273,33 +295,12 @@ namespace SharpConnect.MySql.BasicAsyncTasks
 
             }
         }
-
-
         public bool AutoCallNext
         {
             get;
             set;
         }
-        public void Wait(Action<WaitState> action)
-        {
-            AutoCallNext = false;
-            if (currentIndex == 0)
-            {
-                taskList.Add(new WaitTask(this, action));
-            }
-            else
-            {
-                if (currentIndex == taskList.Count - 1)
-                {
-                    //append to last task
-                    taskList.Add(new WaitTask(this, action));
-                }
-                else
-                {
-                    taskList.Insert(currentIndex + 1, new WaitTask(this, action));
-                }
-            }
-        }
+
     }
     public class WaitState
     {
