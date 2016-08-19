@@ -8,54 +8,76 @@ namespace SharpConnect.MySql.BasicAsyncTasks
     //------------------------------------
     //this sample is designed for .net2.0 
     //that dose not have Task library
+    //but we intend to design the api different from 
+    //original TAP model
+    //here:
+    //we pass TaskChain as an arg to async method
+    //and make sure that the task is add into the taskchain
     //------------------------------------
     public static class MySqlTaskBasedExtension
     {
-        public static ActionTask OpenAsync(this MySqlConnection conn)
+        public static ActionTask OpenAsync(this MySqlConnection conn, TaskChain ch)
         {
-            return new ActionTask(ch =>
+            return ch.AddTask(() =>
             {
+                //open connection async
+                //after finish then call next task in task chain
                 conn.Open(ch.Next);
             });
         }
-        public static ActionTask CloseAsync(this MySqlConnection conn)
+        public static ActionTask CloseAsync(this MySqlConnection conn, TaskChain ch)
         {
-            return new ActionTask(ch =>
+            return ch.AddTask(() =>
             {
                 conn.Close(ch.Next);
             });
         }
         //------------------------------------------------------------
-        public static ActionTask PrepareAsync(this MySqlCommand cmd)
+        public static ActionTask PrepareAsync(this MySqlCommand cmd, TaskChain ch)
         {
-            return new ActionTask(ch =>
+            return ch.AddTask(() =>
             {
                 cmd.Prepare(ch.Next);
             });
+
         }
-        public static ActionTask ExecuteNonQueryAsync(this MySqlCommand cmd)
+        public static ActionTask ExecuteNonQueryAsync(this MySqlCommand cmd, TaskChain ch)
         {
-            return new ActionTask(ch =>
+            return ch.AddTask(() =>
             {
                 cmd.ExecuteNonQuery(ch.Next);
             });
         }
-        public static ActionTask ExecuteReaderAsync(this MySqlCommand cmd, Action<MySqlDataReader> readerReady)
+
+        public static ActionTask ExecuteReaderAsync(this MySqlCommand cmd, TaskChain ch, Action<MySqlDataReader> readerReady)
         {
-            return new ActionTask(ch =>
+            return ch.AddTask(() =>
             {
                 cmd.ExecuteReader(reader =>
                 {
-                    //reader is ready for read
                     readerReady(reader);
+                    //
+                    ch.Next();
+                });
+            });
+
+        }
+
+        public static ActionTask ExecuteScalarAsync(this MySqlCommand cmd, TaskChain ch, Action<object> resultReady)
+        {
+            return ch.AddTask(() =>
+            {
+                cmd.ExecuteScalar(result =>
+                {
+                    resultReady(result);
                     ch.Next();
                 });
             });
         }
         //-----------------------------------------------------------------------------
-        public static ActionTask CloseAsync(this MySqlDataReader reader)
+        public static ActionTask CloseAsync(this MySqlDataReader reader, TaskChain ch)
         {
-            return new ActionTask(ch =>
+            return ch.AddTask(() =>
             {
                 reader.Close(ch.Next);
             });
@@ -81,22 +103,48 @@ namespace SharpConnect.MySql.BasicAsyncTasks
         {
 
         }
+
+        //user can assign name for this task
+        //mainly purpose for debuging
+        public string Name { get; set; }
+
+    }
+
+    public enum TaskStatus
+    {
+        Init,
+        Running,
+        Finish
     }
 
     public class ActionTask : BasicTaskBase
     {
-        Action<TaskChain> action;
-        public ActionTask(Action<TaskChain> action)
+        Action action;
+        TaskStatus taskStatus;
+        public ActionTask(Action action)
         {
             this.action = action;
         }
+        public TaskStatus Status
+        {
+            get { return taskStatus; }
+        }
         public override void Start()
         {
-            action(this.OwnerTaskChain);
+            //each task must run once ***
+            switch (taskStatus)
+            {
+                case TaskStatus.Init:
+                    taskStatus = TaskStatus.Running;
+                    action();
+                    taskStatus = TaskStatus.Finish;
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
+
         }
     }
-
-    
 
     public class TaskChain
     {
@@ -105,20 +153,30 @@ namespace SharpConnect.MySql.BasicAsyncTasks
         Action onBeginTask;
         bool pleaseStop;
         List<BasicTaskBase> taskList = new List<BasicTaskBase>();
-        public BasicTaskBase AddTask(BasicTaskBase t)
-        {
-            t.OwnerTaskChain = this;
-            taskList.Add(t);
-            return t;
-        }
-        public BasicTaskBase AddTask(Action<TaskChain> a)
-        {
-            BasicTaskBase basicTask = new ActionTask(a);
-            basicTask.OwnerTaskChain = this;
-            taskList.Add(basicTask);
-            return basicTask;
-        }
 
+        public ActionTask AddTask(Action a)
+        {
+            ActionTask actionTask = new ActionTask(a);
+            actionTask.OwnerTaskChain = this;
+            if (currentIndex == 0)
+            {
+                taskList.Add(actionTask);
+            }
+            else
+            {
+                if (currentIndex == taskList.Count - 1)
+                {
+                    //append to last task
+                    taskList.Add(actionTask);
+                }
+                else
+                {
+                    taskList.Insert(currentIndex + 1, actionTask);
+                }
+
+            }
+            return actionTask;
+        }
         public void Start()
         {
             pleaseStop = false;
@@ -191,11 +249,6 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             }
         }
 
-        public static TaskChain operator +(TaskChain taskChain, BasicTaskBase task)
-        {
-            taskChain.AddTask(task);
-            return taskChain;
-        }
     }
 
 }

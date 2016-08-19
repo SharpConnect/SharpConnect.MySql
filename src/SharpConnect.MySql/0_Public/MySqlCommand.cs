@@ -113,8 +113,11 @@ namespace SharpConnect.MySql
                 {
                     //table is ready for read***
                     //just read single value
-                    object result = reader.GetValue(0);
+                    var tableReader = subt.CreateDataReader();
+                    object result = tableReader.GetValue(0);
+                    // 
                     resultReady(result);
+                    //
                     reader.Close(() => { });
                 });
             });
