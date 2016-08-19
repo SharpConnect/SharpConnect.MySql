@@ -51,36 +51,36 @@ namespace SharpConnect.MySql
         }
         public MySqlDataReader ExecuteReader()
         {
-            if (_isPreparedStmt)
-            {
-                var reader = new MySqlDataReader(_query);
-                _query.Execute(true, null);
-                return reader;
-            }
-            else
+            if (!_isPreparedStmt)
             {
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
-                var reader = new MySqlDataReader(_query);
-                _query.Execute(true, null);
-                return reader;
             }
+            var reader = new MySqlDataReader(_query);
+            _query.Execute(true, null);
+            reader.WaitUntilFirstDataArrive();
+            //
+            //after execute in sync mode (this method)
+            //reader will wait unit first result arrive            
+            return reader;
         }
 
-        internal void ExecuteReader_A(Action nextAction)
+        public void ExecuteReader(Action<MySqlDataReader> dataReaderReady)
         {
-            if (_isPreparedStmt)
-            {
-                var reader = new MySqlDataReader(_query);
-                _query.Execute(true, nextAction);
-
-            }
-            else
+            if (!_isPreparedStmt)
             {
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
-                var reader = new MySqlDataReader(_query);
-                _query.Execute(true, nextAction);
-
             }
+            var reader = new MySqlDataReader(_query);
+            //in non bloking mode, set this
+            reader.SetFirstDataArriveDelegate(dataReaderReady);
+
+            //after execute in asyn mode( this method)
+            //reader just return, not block,
+            //
+            //and when the first data arrive,
+            //in invoke dataReaderReader delegate
+            _query.Execute(true, () => { });//send empty lambda for async 
+
         }
 
         /// <summary>
@@ -101,38 +101,14 @@ namespace SharpConnect.MySql
             return result;
 
         }
-        internal void ExecuteReader(Internal.Action<MySqlDataReader> nextAction)
-        {
-            //for internal use only (Task Async Programming)
-#if DEBUG
-            if (nextAction == null)
-            {
-                throw new Exception("nextAction must not be null");
-            }
-#endif
-            if (_isPreparedStmt)
-            {
-                var reader = new MySqlDataReader(_query);
-                _query.Execute(true, () => { nextAction(reader); });
-            }
-            else
-            {
-                _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
-                var reader = new MySqlDataReader(_query);
-                _query.Execute(true, () => { nextAction(reader); });
-            }
-        }
+
         public void ExecuteNonQuery(Action nextAction = null)
         {
-            if (_isPreparedStmt)
-            {
-                _query.Execute(false, nextAction);
-            }
-            else
+            if (!_isPreparedStmt)
             {
                 _query = new Query(Connection.Conn, _sqlStringTemplate, Parameters);
-                _query.Execute(false, nextAction);
             }
+            _query.Execute(false, nextAction);
         }
 
         public uint LastInsertedId

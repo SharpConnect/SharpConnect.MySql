@@ -17,69 +17,91 @@ namespace SharpConnect.MySql
         int currentTableRowCount = 0;
         int currentRowIndex = 0;
         bool tableResultIsNotComplete;
-
-
         DataRowPacket currentRow;
         bool firstResultArrived;
+        Action<MySqlDataReader> onFirstDataArrived;
         internal MySqlDataReader(Query query)
         {
 
             _query = query;
-            //start 
+            //set result listener for query object  before actual query.Read()
             query.SetResultListener(subtable =>
             {
                 //we need the subtable must arrive in correct order ***
-                firstResultArrived = true;
+
                 lock (subTables)
                 {
                     subTables.Enqueue(subtable);
                     tableResultIsNotComplete = subtable.HasFollower; //***
                 }
+                if (!firstResultArrived)
+                {
+                    firstResultArrived = true;
+                    if (onFirstDataArrived != null)
+                    {
+                        onFirstDataArrived(this);
+                        onFirstDataArrived = null;
+                    }
+                }
             });
         }
-        //-------------------------
 
         public MySqlSubTable CurrentSubTable
         {
             get { return new MySqlSubTable(currentTableResult); }
         }
+
+        /// <summary>
+        /// blocking, wait for first data arrive
+        /// </summary>
+        internal void WaitUntilFirstDataArrive()
+        {
+            TRY_AGAIN:
+            if (currentTableResult == null)
+            {
+                //no current table 
+                bool hasSomeSubTables = false;
+                lock (subTables)
+                {
+                    if (subTables.Count > 0)
+                    {
+                        currentTableResult = subTables.Dequeue();
+                        hasSomeSubTables = true;
+                        currentTableRowCount = currentTableResult.rows.Count;
+                    }
+                }
+                if (!hasSomeSubTables)
+                {
+                    if (tableResultIsNotComplete)
+                    {
+                        //we are in isPartial table mode (not complete)
+                        //so must wait until the table arrive **
+                        //------------------                    
+                        //wait ***
+                        //------------------
+                        //TODO: review here *** tight loop
+                        //*** tigh loop
+                        //wait on this
+                        while (tableResultIsNotComplete) ;
+                        goto TRY_AGAIN;
+                    }
+                }
+            }
+        }
+        /// <summary>
+        /// non blocking
+        /// </summary>
+        /// <param name="onFirstDataArrived"></param>
+        internal void SetFirstDataArriveDelegate(Action<MySqlDataReader> onFirstDataArrived)
+        {
+            this.onFirstDataArrived = onFirstDataArrived;
+        }
+
         public int FieldCount
         {
             get
             {
-                //similar to Read()
-                TRY_AGAIN:
-                if (currentTableResult == null)
-                {
-                    //no current table 
-                    bool hasSomeSubTables = false;
-                    lock (subTables)
-                    {
-                        if (subTables.Count > 0)
-                        {
-                            currentTableResult = subTables.Dequeue();
-                            hasSomeSubTables = true;
-                            currentTableRowCount = currentTableResult.rows.Count;
-                        }
-                    }
-                    if (!hasSomeSubTables)
-                    {
-                        if (tableResultIsNotComplete)
-                        {
-                            //we are in isPartial table mode (not complete)
-                            //so must wait until the table arrive **
-                            //------------------                    
-                            //wait ***
-                            //------------------
-                            //TODO: review here *** tight loop
-                            //*** tigh loop
-                            //wait on this
-                            while (tableResultIsNotComplete) ;
-
-                            goto TRY_AGAIN;
-                        }
-                    }
-                }
+                //similar to Read() 
                 return (currentTableResult == null) ?
                     0 :
                     currentTableResult.tableHeader.ColumnCount;
@@ -103,7 +125,10 @@ namespace SharpConnect.MySql
                     && currentTableResult.rows.Count > 0;
             }
         }
-
+        /// <summary>
+        /// async read ***
+        /// </summary>
+        /// <param name="onEachSubTable"></param>
         public void Read(OnEachSubTable onEachSubTable)
         {
             TRY_AGAIN:
@@ -142,14 +167,10 @@ namespace SharpConnect.MySql
                                 return true;
                             }
                         }));
-
                     }
                     else if (!firstResultArrived)
                     {
-                        //another tight loop
-                        //wait for first result arrive
-                        //TODO: review here *** tight loop 
-                        //push this to 
+
                         CentralWaitingTasks.AddWaitingTask(new WaitingTask(() =>
                         {
                             if (!firstResultArrived)
@@ -182,10 +203,12 @@ namespace SharpConnect.MySql
                 }
             }
         }
+        /// <summary>
+        /// sync read
+        /// </summary>
+        /// <returns></returns>
         public bool Read()
         {
-
-
             TRY_AGAIN:
             if (currentTableResult == null)
             {
@@ -255,7 +278,6 @@ namespace SharpConnect.MySql
             {
                 //block
                 _query.Close();
-
             }
             else
             {

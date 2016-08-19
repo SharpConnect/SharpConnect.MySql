@@ -20,7 +20,7 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.UseConnectionPool = true;
-            var tasks = new TaskChain(); 
+            var tasks = new TaskChain();
             tasks.AddTask(ch =>
             {
                 conn.Open(ch.Next);
@@ -57,7 +57,7 @@ namespace MySqlTest
             });
 
             //----------------------------------------
-            tasks.Finish(() =>
+            tasks.WhenFinish(() =>
             {
                 stopW.Stop();
                 Report.WriteLine("avg:" + stopW.ElapsedTicks);
@@ -111,7 +111,7 @@ namespace MySqlTest
             }
 
             tasks.AddTask(conn.CloseAsync());
-            tasks.Finish(() =>
+            tasks.WhenFinish(() =>
             {
                 stopW.Stop();
                 Report.WriteLine("avg:" + stopW.ElapsedTicks);
@@ -160,12 +160,28 @@ namespace MySqlTest
                 var cmd = new MySqlCommand(sql, conn);
                 tasks += cmd.ExecuteNonQueryAsync();
             }
-            tasks += conn.CloseAsync();
+            //-----------------------------------------
+            {
+                string sql = "select * from test001";
+                var cmd = new MySqlCommand(sql, conn);
+                tasks += cmd.ExecuteReaderAsync(reader =>
+                {
 
-            tasks.Finish(() =>
+
+
+                });
+            }
+
+            //-----------------------------------------
+            tasks += conn.CloseAsync();
+            tasks.WhenFinish(() =>
             {
                 stopW.Stop();
                 Report.WriteLine("avg:" + stopW.ElapsedTicks);
+            });
+            tasks.WhenTaskBegin(() =>
+            {
+                Console.WriteLine(tasks.CurrentTaskIndex + "/" + tasks.TaskCount);
             });
             //----------------------------------------
             tasks.Start();
