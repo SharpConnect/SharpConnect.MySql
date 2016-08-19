@@ -35,7 +35,7 @@ namespace SharpConnect.MySql.Internal
         public bool typeCast;
     }
 
-    delegate void Action<T>(T a);
+     
 
     enum QueryExecState
     {
