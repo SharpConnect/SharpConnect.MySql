@@ -111,6 +111,7 @@ namespace MySqlTest
                 CreateTable(conn, tc);
                 for (int i = 0; i < 100; ++i)
                 {
+
                     InsertData(conn, tc);
                 }
                 SelectDataBack(conn, tc);
@@ -152,11 +153,11 @@ namespace MySqlTest
         {
             string sql = "insert into test001(col1,col2,col3,col4) values(10,'AA','123456789','0001-01-01')";
             var cmd = new MySqlCommand(sql, conn);
-            cmd.AsyncExecuteNonQuery(tc)
-                .Then(() =>
-                {
-                    var lastInsertedId = cmd.LastInsertedId;
-                });
+            cmd.AsyncExecuteNonQuery(tc);
+            tc.AddTask(() =>
+            {
+                var lastInsertId = cmd.LastInsertedId;
+            });
 
         }
         static void SelectDataBack(MySqlConnection conn, TaskChain tc)
@@ -185,13 +186,34 @@ namespace MySqlTest
                 mapper.DataReader = reader;
                 //reader is ready for read
                 //do read logic where
-                while (reader.Read())
+             
+                //add wait task
+                tc.Wait(w =>
                 {
-                    //simple map query result to member of the target object  
-                    //we create simpleinfo and use mapper to map field 
-                    var simpleInfo = mapper.Map(new SimpleInfo());
-                }
-
+                    reader.Read(st =>
+                    {
+                        //when new table arrive 
+                        //this lambda is call
+                        //
+                        var tblReader = st.CreateDataReader();
+                        int j = tblReader.RowCount;
+                        for (int i = 0; i < j; ++i)
+                        {
+                            //then read
+                            tblReader.SetCurrentRowIndex(i);
+                        }
+                        ////simple map query result to member of the target object  
+                        ////we create simpleinfo and use mapper to map field 
+                        //var simpleInfo = mapper.Map(new SimpleInfo()); 
+                    }); 
+                });
+                //next task is not call 
+                //while (reader.Read())
+                //{
+                //    //simple map query result to member of the target object  
+                //    //we create simpleinfo and use mapper to map field 
+                //    var simpleInfo = mapper.Map(new SimpleInfo());
+                //} 
                 //next task
                 reader.AsyncClose(tc);
             });

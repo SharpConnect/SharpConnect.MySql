@@ -62,9 +62,12 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             {
                 cmd.ExecuteReader(reader =>
                 {
+                    
                     readerReady(reader);
                     ch.Next();
+                     
                 });
+
             }, false);
             //not use autocall next task, let the cmd call it when ready ***
         }
@@ -161,10 +164,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
                     throw new NotSupportedException();
             }
         }
-        public void Then(Action another, bool autoCallNext = true)
-        {
-            this.OwnerTaskChain.AddTask(another, autoCallNext);
-        }
+
         public bool AutoCallNextTask
         {
             get;
@@ -175,7 +175,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
 
     public class TaskChain
     {
-        int currentIndex = 0;
+        int currentIndex = -1;
         Action onFinish;
         Action onBeginTask;
         bool pleaseStop;
@@ -184,8 +184,9 @@ namespace SharpConnect.MySql.BasicAsyncTasks
         public ActionTask AddTask(Action a, bool autoCallNext = true)
         {
             var actionTask = new ActionTask(this, a, autoCallNext);
-            if (currentIndex == 0)
+            if (currentIndex < 0)
             {
+                //un-start so
                 taskList.Add(actionTask);
             }
             else
@@ -208,7 +209,6 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             if (taskList.Count > 0)
             {
                 currentIndex = 0;
-
                 if (onBeginTask != null)
                 {
                     onBeginTask();
@@ -274,6 +274,50 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             }
         }
 
+
+        public bool AutoCallNext
+        {
+            get;
+            set;
+        }
+        public void Wait(Action<WaitState> action)
+        {
+            AutoCallNext = false;
+            if (currentIndex == 0)
+            {
+                taskList.Add(new WaitTask(this, action));
+            }
+            else
+            {
+                if (currentIndex == taskList.Count - 1)
+                {
+                    //append to last task
+                    taskList.Add(new WaitTask(this, action));
+                }
+                else
+                {
+                    taskList.Insert(currentIndex + 1, new WaitTask(this, action));
+                }
+            }
+        }
     }
+    public class WaitState
+    {
+    }
+
+    class WaitTask : BasicTaskBase
+    {
+        Action<WaitState> action;
+        public WaitTask(TaskChain tc, Action<WaitState> action)
+            : base(tc)
+        {
+            this.action = action;
+        }
+        public override void Start()
+        {
+            //start wait task
+        }
+    }
+
 
 }
