@@ -4,28 +4,31 @@ using System;
 using SharpConnect.MySql.Internal;
 namespace SharpConnect.MySql
 {
+
+
     public class MySqlCommand
     {
         Query _query;
         bool _isPreparedStmt;
         SqlStringTemplate _sqlStringTemplate;
         public MySqlCommand(string sql)
-            : this(new SqlStringTemplate(sql), new CommandParams(), null)
+                : this(new SqlStringTemplate(sql), new CommandParams(), null)
         {
         }
         public MySqlCommand(string sql, MySqlConnection conn)
-            : this(new SqlStringTemplate(sql), new CommandParams(), conn)
+                : this(new SqlStringTemplate(sql), new CommandParams(), conn)
         {
         }
         public MySqlCommand(string sql, CommandParams cmds, MySqlConnection conn)
-            : this(new SqlStringTemplate(sql), cmds, conn)
+                : this(new SqlStringTemplate(sql), cmds, conn)
         {
 
         }
         public MySqlCommand(SqlStringTemplate sql, MySqlConnection conn)
-            : this(sql, new CommandParams(), conn)
+                : this(sql, new CommandParams(), conn)
         {
         }
+
         public MySqlCommand(SqlStringTemplate sql, CommandParams cmds, MySqlConnection conn)
         {
             _sqlStringTemplate = sql;
@@ -49,6 +52,10 @@ namespace SharpConnect.MySql
             _query = new Query(Connection.Conn, _sqlStringTemplate, Parameters);
             _query.Prepare(nextAction);
         }
+        /// <summary>
+        /// sync execute reader
+        /// </summary>
+        /// <returns></returns>
         public MySqlDataReader ExecuteReader()
         {
             if (!_isPreparedStmt)
@@ -108,17 +115,20 @@ namespace SharpConnect.MySql
         {
             ExecuteReader(reader =>
             {
-                //reader is ready here ***                
+                //reader is ready here ***       
+
                 reader.Read(subt =>
                 {
                     //table is ready for read***
                     //just read single value
                     var tableReader = subt.CreateDataReader();
                     object result = tableReader.GetValue(0);
-                    // 
-                    resultReady(result);
-                    //
-                    reader.Close(() => { });
+                    reader.Close(() =>
+                    {   //call user result ready***
+                        resultReady(result);
+                        //
+                    });                  
+
                 });
             });
         }
@@ -145,7 +155,8 @@ namespace SharpConnect.MySql
                 return _query.OkPacket.affectedRows;
             }
         }
-
     }
+
+
 
 }

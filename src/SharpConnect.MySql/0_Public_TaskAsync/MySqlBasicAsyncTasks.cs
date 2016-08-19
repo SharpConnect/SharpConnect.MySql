@@ -23,14 +23,18 @@ namespace SharpConnect.MySql.BasicAsyncTasks
                 //open connection async
                 //after finish then call next task in task chain
                 conn.Open(ch.Next);
-            });
+
+            }, false);
+            //not use autocall next task, let the connection call it when ready ***
         }
         public static ActionTask AsyncClose(this MySqlConnection conn, TaskChain ch)
         {
             return ch.AddTask(() =>
             {
                 conn.Close(ch.Next);
-            });
+
+            }, false);
+            //not use autocall next task, let the connection call it when ready ***
         }
         //------------------------------------------------------------
         public static ActionTask AsyncPrepare(this MySqlCommand cmd, TaskChain ch)
@@ -38,15 +42,18 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             return ch.AddTask(() =>
             {
                 cmd.Prepare(ch.Next);
-            });
 
+            }, false);
+            //not use autocall next task, let the cmd call it when ready ***
         }
         public static ActionTask AsyncExecuteNonQuery(this MySqlCommand cmd, TaskChain ch)
         {
             return ch.AddTask(() =>
             {
                 cmd.ExecuteNonQuery(ch.Next);
-            });
+
+            }, false);
+            //not use autocall next task, let the cmd call it when ready ***
         }
 
         public static ActionTask AsyncExecuteReader(this MySqlCommand cmd, TaskChain ch, Action<MySqlDataReader> readerReady)
@@ -56,11 +63,10 @@ namespace SharpConnect.MySql.BasicAsyncTasks
                 cmd.ExecuteReader(reader =>
                 {
                     readerReady(reader);
-                    //
                     ch.Next();
                 });
-            });
-
+            }, false);
+            //not use autocall next task, let the cmd call it when ready ***
         }
 
         public static ActionTask AsyncExecuteScalar(this MySqlCommand cmd, TaskChain ch, Action<object> resultReady)
@@ -72,27 +78,32 @@ namespace SharpConnect.MySql.BasicAsyncTasks
                     resultReady(result);
                     ch.Next();
                 });
-            });
+            }, false);
+            //not use autocall next task, let the cmd call it when ready ***
         }
+
         //-----------------------------------------------------------------------------
         public static ActionTask AsyncClose(this MySqlDataReader reader, TaskChain ch)
         {
             return ch.AddTask(() =>
             {
                 reader.Close(ch.Next);
-            });
+            }, false);
+            //not use autocall next task, let the reader call it when ready ***
         }
+
     }
 
     public abstract class BasicTaskBase
     {
-        public BasicTaskBase()
+        public BasicTaskBase(TaskChain tc)
         {
+            this.OwnerTaskChain = tc;
         }
         public TaskChain OwnerTaskChain
         {
             get;
-            set;
+            private set;
         }
         public abstract void Start();
         public void Wait()
@@ -121,8 +132,11 @@ namespace SharpConnect.MySql.BasicAsyncTasks
     {
         Action action;
         TaskStatus taskStatus;
-        public ActionTask(Action action)
+
+        public ActionTask(TaskChain tc, Action action, bool autoCallNextTask = true)
+            : base(tc)
         {
+            this.AutoCallNextTask = autoCallNextTask;//default
             this.action = action;
         }
         public TaskStatus Status
@@ -138,12 +152,25 @@ namespace SharpConnect.MySql.BasicAsyncTasks
                     taskStatus = TaskStatus.Running;
                     action();
                     taskStatus = TaskStatus.Finish;
+                    if (AutoCallNextTask)
+                    {
+                        this.OwnerTaskChain.Next();
+                    }
                     break;
                 default:
                     throw new NotSupportedException();
             }
-
         }
+        public void Then(Action another, bool autoCallNext = true)
+        {
+            this.OwnerTaskChain.AddTask(another, autoCallNext);
+        }
+        public bool AutoCallNextTask
+        {
+            get;
+            private set;
+        }
+
     }
 
     public class TaskChain
@@ -154,10 +181,9 @@ namespace SharpConnect.MySql.BasicAsyncTasks
         bool pleaseStop;
         List<BasicTaskBase> taskList = new List<BasicTaskBase>();
 
-        public ActionTask AddTask(Action a)
+        public ActionTask AddTask(Action a, bool autoCallNext = true)
         {
-            ActionTask actionTask = new ActionTask(a);
-            actionTask.OwnerTaskChain = this;
+            var actionTask = new ActionTask(this, a, autoCallNext);
             if (currentIndex == 0)
             {
                 taskList.Add(actionTask);
@@ -173,7 +199,6 @@ namespace SharpConnect.MySql.BasicAsyncTasks
                 {
                     taskList.Insert(currentIndex + 1, actionTask);
                 }
-
             }
             return actionTask;
         }
@@ -195,7 +220,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
         {
             this.onFinish = onFinish;
         }
-        public void WhenTaskBegin(Action onBeginTask)
+        public void BeforeEachTaskBegin(Action onBeginTask)
         {
             this.onBeginTask = onBeginTask;
         }

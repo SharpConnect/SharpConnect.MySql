@@ -162,7 +162,7 @@ namespace SharpConnect.MySql
                             }
                             else
                             {
-                                //try again
+                                //try again 
                                 Read(onEachSubTable);
                                 return true;
                             }
