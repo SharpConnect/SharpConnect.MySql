@@ -114,14 +114,7 @@ namespace MySqlTest
             Test(n, TimeUnit.Ticks, out total, out avg, () =>
             {
                 var cmd = new MySqlCommand("select sysdate()", conn);
-                object result = cmd.ExecuteScalar();
-
-                //var reader = cmd.ExecuteReader();
-                //if (reader.Read())
-                //{
-                //    var dtm = reader.GetDateTime(0);
-                //}
-                //reader.Close();
+                object result = cmd.ExecuteScalar(); 
             });
             Report.WriteLine("avg:" + avg);
             conn.Close();

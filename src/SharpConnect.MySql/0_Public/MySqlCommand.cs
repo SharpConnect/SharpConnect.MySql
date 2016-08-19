@@ -84,13 +84,12 @@ namespace SharpConnect.MySql
         }
 
         /// <summary>
-        /// +/- blocking, read only single value
+        /// blocking, read only single value
         /// </summary>
         /// <param name="nextAction"></param>
         /// <returns></returns>
         public object ExecuteScalar()
         {
-            //TODO: impl async version
             object result = null;
             MySqlDataReader reader = ExecuteReader();
             if (reader.Read())
@@ -99,9 +98,27 @@ namespace SharpConnect.MySql
             }
             reader.Close();
             return result;
-
         }
-
+        /// <summary>
+        /// non-blocking, read only single value
+        /// </summary>
+        /// <param name="nextAction"></param>
+        /// <returns></returns>
+        public void ExecuteScalar(Action<object> resultReady)
+        {
+            ExecuteReader(reader =>
+            {
+                //reader is ready here ***                
+                reader.Read(subt =>
+                {
+                    //table is ready for read***
+                    //just read single value
+                    object result = reader.GetValue(0);
+                    resultReady(result);
+                    reader.Close(() => { });
+                });
+            });
+        }
         public void ExecuteNonQuery(Action nextAction = null)
         {
             if (!_isPreparedStmt)
