@@ -62,10 +62,8 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             {
                 cmd.ExecuteReader(reader =>
                 {
-
                     readerReady(reader);
                     ch.Next();
-
                 });
 
             }, false);
@@ -84,7 +82,16 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             }, false);
             //not use autocall next task, let the cmd call it when ready ***
         }
+        //-----------------------------------------------------------------------------
+        public static ActionTask AsyncRead(this MySqlDataReader reader, TaskChain ch, OnEachSubTable onEachSubTable)
+        {
+            return ch.AddTask(() =>
+            {
+                reader.Read(onEachSubTable);
 
+            }, false);
+            //not use autocall next task, let the reader call it when ready ***
+        }
         //-----------------------------------------------------------------------------
         public static ActionTask AsyncClose(this MySqlDataReader reader, TaskChain ch)
         {
@@ -215,12 +222,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             AddTask(actionTask);
             return actionTask;
         }
-        public void Wait(Action<WaitState> action)
-        {
-            AutoCallNext = false;
-            WaitTask waitTask = new WaitTask(this, action);
-            AddTask(waitTask);
-        }
+        
         public void Start()
         {
             pleaseStop = false;
@@ -261,8 +263,9 @@ namespace SharpConnect.MySql.BasicAsyncTasks
                 if (currentIndex + 1 < taskList.Count)
                 {
 
-                    insertIndex = (currentIndex++);
-                    //update insert index= current index
+
+                    insertIndex = ++currentIndex;
+                    //update insert index= current index***
 
                     if (onBeginTask != null)
                     {
@@ -295,30 +298,10 @@ namespace SharpConnect.MySql.BasicAsyncTasks
 
             }
         }
-        public bool AutoCallNext
-        {
-            get;
-            set;
-        }
+
 
     }
-    public class WaitState
-    {
-    }
-
-    class WaitTask : BasicTaskBase
-    {
-        Action<WaitState> action;
-        public WaitTask(TaskChain tc, Action<WaitState> action)
-            : base(tc)
-        {
-            this.action = action;
-        }
-        public override void Start()
-        {
-            //start wait task
-        }
-    }
+ 
 
 
 }

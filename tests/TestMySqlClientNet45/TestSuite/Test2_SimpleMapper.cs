@@ -186,34 +186,28 @@ namespace MySqlTest
                 mapper.DataReader = reader;
                 //reader is ready for read
                 //do read logic where
-             
                 //add wait task
-                tc.Wait(w =>
+                reader.AsyncRead(tc, st =>
                 {
-                    reader.Read(st =>
+                    //when new table arrive 
+                    //this lambda is call 
+                    var tblReader = st.CreateDataReader();
+                    int j = tblReader.RowCount;
+                    for (int i = 0; i < j; ++i)
                     {
-                        //when new table arrive 
-                        //this lambda is call
-                        //
-                        var tblReader = st.CreateDataReader();
-                        int j = tblReader.RowCount;
-                        for (int i = 0; i < j; ++i)
-                        {
-                            //then read
-                            tblReader.SetCurrentRowIndex(i);
-                        }
-                        ////simple map query result to member of the target object  
-                        ////we create simpleinfo and use mapper to map field 
-                        //var simpleInfo = mapper.Map(new SimpleInfo()); 
-                    }); 
+                        //then read
+                        tblReader.SetCurrentRowIndex(i);
+                    }
+                    ////simple map query result to member of the target object  
+                    ////we create simpleinfo and use mapper to map field 
+                    //var simpleInfo = mapper.Map(new SimpleInfo()); 
+
+                    if (st.IsLastTable)
+                    {
+                        tc.Next();
+                    }
                 });
-                //next task is not call 
-                //while (reader.Read())
-                //{
-                //    //simple map query result to member of the target object  
-                //    //we create simpleinfo and use mapper to map field 
-                //    var simpleInfo = mapper.Map(new SimpleInfo());
-                //} 
+
                 //next task
                 reader.AsyncClose(tc);
             });
