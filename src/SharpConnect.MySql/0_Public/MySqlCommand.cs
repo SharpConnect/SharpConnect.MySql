@@ -96,7 +96,7 @@ namespace SharpConnect.MySql
             _query.Execute(true, () => { });//send empty lambda for async  
         }
         /// <summary>
-        /// async exec
+        /// async exec, 
         /// </summary>
         public void ExecuteReadEachSubTable(Action<MySqlSubTable> onEachSubTable)
         {
@@ -156,13 +156,17 @@ namespace SharpConnect.MySql
         {
             ExecuteReadEachSubTable(subt =>
             {
-                var tableReader = subt.CreateDataReader();
+                MySqlDataReader tableReader = subt.CreateDataReader();
                 object result = tableReader.GetValue(0);
                 //call user result ready***
                 resultReady(result);
                 //
             });
         }
+        /// <summary>
+        /// async execute non query
+        /// </summary>
+        /// <param name="nextAction"></param>
         public void ExecuteNonQuery(Action nextAction = null)
         {
             if (!_isPreparedStmt)

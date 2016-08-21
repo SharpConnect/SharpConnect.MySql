@@ -93,17 +93,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             });
             //not use autocall next task, let the cmd call it when ready ***
         }
-        //-----------------------------------------------------------------------------
-        //public static ActionTask AsyncRead(this MySqlDataReader reader, TaskChain ch, OnEachSubTable onEachSubTable)
-        //{
-        //    return ch.AddTask(() =>
-        //    {
-        //        ch.AutoCallNext = false;
-        //        reader.ReadSubTable(onEachSubTable);
-        //    });
-        //    //not use autocall next task, let the reader call it when ready ***
-        //}
-        //-----------------------------------------------------------------------------
+
         public static ActionTask AsyncClose(this MySqlDataReader reader, TaskChain ch)
         {
             return ch.AddTask(() =>
