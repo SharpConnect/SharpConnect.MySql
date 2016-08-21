@@ -142,14 +142,13 @@ namespace MySqlTest
                 //access to sub table
 
                 var currentSubTable = MySqlSubTable.Empty;
-                reader.Read(subtable =>
+                reader.ReadSubTable(subtable =>
                 {
 
                     if (subtable.Header != currentSubTable.Header)
                     {
                         //change main table
                         //some table may split into many sub table
-
                     }
                     currentSubTable = subtable;
                     //on each subtable

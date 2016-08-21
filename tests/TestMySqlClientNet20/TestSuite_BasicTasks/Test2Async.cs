@@ -60,7 +60,6 @@ namespace MySqlTest
 
                 cmd.AsyncExecuteReader(tc, reader =>
                 {
-
                     //when new task is add after tc is started
                     //then this new task is immmediately insert 
                     //after current task
