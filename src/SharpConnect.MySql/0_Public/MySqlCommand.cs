@@ -102,7 +102,7 @@ namespace SharpConnect.MySql
         /// <summary>
         /// async exec, on each sub table
         /// </summary>
-        public void ExecuteReadEachSubTable(Action<MySqlSubTable> onEachSubTable)
+        public void ExecuteSubTableReader(Action<MySqlDataReader> onEachSubTable)
         {
             if (!_isPreparedStmt)
             {
@@ -118,7 +118,8 @@ namespace SharpConnect.MySql
                 {
                     //table is ready for read***
                     //just read single value 
-                    onEachSubTable(subt);
+                    var subTReader = subt.CreateDataReader();
+                    onEachSubTable(subTReader);
                     if (subt.IsLastTable)
                     {
                         //atuo close reader 
@@ -158,10 +159,9 @@ namespace SharpConnect.MySql
         /// <returns></returns>
         public void ExecuteScalar(Action<object> resultReady)
         {
-            ExecuteReadEachSubTable(subt =>
+            ExecuteSubTableReader(reader =>
             {
-                MySqlDataReader tableReader = subt.CreateDataReader();
-                object result = tableReader.GetValue(0);
+                object result = reader.GetValue(0);
                 //call user result ready***
                 resultReady(result);
                 //

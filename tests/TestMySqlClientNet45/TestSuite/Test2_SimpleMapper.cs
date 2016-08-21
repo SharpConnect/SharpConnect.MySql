@@ -174,23 +174,20 @@ namespace MySqlTest
                 t.col2 = col2;
             });
 
-            cmd.AsyncExecuteReadEachSubTable(tc, subt =>
+            cmd.AsyncExecuteReadEachSubTable(tc, reader =>
             {
-                MySqlDataReader reader = subt.CreateDataReader();
+
                 mapper.DataReader = reader;
-                int j = subt.RowCount;
-                for (int i = 0; i < j; ++i)
+                while (reader.Read())
                 {
-                    //then read
-                    reader.SetCurrentRowIndex(i);
                     var simpleInfo = mapper.Map(new SimpleInfo());
-                    
                 }
+                
                 ////simple map query result to member of the target object  
                 ////we create simpleinfo and use mapper to map field 
-               
 
-                tc.AutoCallNext = subt.IsLastTable;
+
+                tc.AutoCallNext = reader.CurrentSubTable.IsLastTable;
 
             });
         }

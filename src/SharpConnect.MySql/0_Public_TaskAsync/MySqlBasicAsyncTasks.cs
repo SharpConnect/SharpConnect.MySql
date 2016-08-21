@@ -59,12 +59,12 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             //not use autocall next task, let the cmd call it when ready ***
         }
 
-        public static ActionTask AsyncExecuteReadEachSubTable(this MySqlCommand cmd, TaskChain ch, Action<MySqlSubTable> readerReady)
+        public static ActionTask AsyncExecuteReadEachSubTable(this MySqlCommand cmd, TaskChain ch, Action<MySqlDataReader> readerReady)
         {
             return ch.AddTask(() =>
             {
                 ch.AutoCallNext = false;
-                cmd.ExecuteReadEachSubTable(subtable =>
+                cmd.ExecuteSubTableReader(subtable =>
                 {
                     ch.AutoCallNext = true;
                     readerReady(subtable);
@@ -118,8 +118,8 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             private set;
         }
         public abstract void Start();
-        
-       
+
+
 
         //user can assign name for this task
         //mainly purpose for debuging
