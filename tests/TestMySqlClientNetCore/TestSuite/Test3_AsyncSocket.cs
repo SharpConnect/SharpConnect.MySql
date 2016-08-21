@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using SharpConnect.MySql;
+using SharpConnect.MySql.AsyncPatt;
 namespace MySqlTest
 {
     public class TestSet3_AsyncSocket : MySqlTestSet

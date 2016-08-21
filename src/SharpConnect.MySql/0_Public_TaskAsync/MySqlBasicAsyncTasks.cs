@@ -59,7 +59,7 @@ namespace SharpConnect.MySql.AsyncPatt
             //not use autocall next task, let the cmd call it when ready ***
         }
 
-        public static ActionTask AsyncExecuteReadEachSubTable(this MySqlCommand cmd, TaskChain ch, Action<MySqlDataReader> readerReady)
+        public static ActionTask AsyncExecuteSubTableReader(this MySqlCommand cmd, TaskChain ch, Action<MySqlDataReader> readerReady)
         {
             return ch.AddTask(() =>
             {
