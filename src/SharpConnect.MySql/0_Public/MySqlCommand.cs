@@ -45,6 +45,10 @@ namespace SharpConnect.MySql
             get { return this._sqlStringTemplate.UserRawSql; }
         }
         public MySqlConnection Connection { get; set; }
+        /// <summary>
+        /// sync/async prepare
+        /// </summary>
+        /// <param name="nextAction"></param>
         public void Prepare(Action nextAction = null)
         {
             //prepare sql command;
@@ -164,7 +168,7 @@ namespace SharpConnect.MySql
             });
         }
         /// <summary>
-        /// async execute non query
+        /// sync/async execute non query
         /// </summary>
         /// <param name="nextAction"></param>
         public void ExecuteNonQuery(Action nextAction = null)
@@ -180,13 +184,14 @@ namespace SharpConnect.MySql
         {
             get
             {
+                //after execute non query
                 return _query.OkPacket.insertId;
             }
         }
         public uint AffectedRows
         {
             get
-            {
+            {//after execute non query
                 return _query.OkPacket.affectedRows;
             }
         }

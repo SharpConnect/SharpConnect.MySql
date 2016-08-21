@@ -92,11 +92,7 @@ namespace MySqlTest
             var conn = new MySqlConnection(connStr);
             conn.Open();
             var cmd = new MySqlCommand("select sysdate()", conn);
-            cmd.ExecuteReadEachSubTable(subtable =>
-            {
-                
-
-            });
+         
             cmd.ExecuteReader(reader =>
             {
                 if (reader.Read())
