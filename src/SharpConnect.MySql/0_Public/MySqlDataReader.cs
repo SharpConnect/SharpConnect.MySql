@@ -6,14 +6,33 @@ using SharpConnect.MySql.Internal;
 
 namespace SharpConnect.MySql
 {
-
+    namespace SyncPatt
+    {
+        public static partial class MySqlSyncPattExtension
+        {
+            public static void Close(this MySqlDataReader reader)
+            {
+                reader.InternalClose();
+            }
+        }
+    }
+    namespace AsyncPatt
+    {
+        public static partial class MySqlAsyncPattExtension
+        {
+            public static void Close(this MySqlDataReader reader, Action nextAction)
+            {
+                reader.InternalClose(nextAction);
+            }
+        }
+    }
 
     public abstract class MySqlDataReader
     {
         DataRowPacket currentRow;
 
         public abstract bool Read();
-        public virtual void Close(Action nextAction = null) { }
+        internal virtual void InternalClose(Action nextAction = null) { }
 
         public abstract void SetCurrentRowIndex(int index);
         public abstract MySqlSubTable CurrentSubTable
@@ -388,7 +407,7 @@ namespace SharpConnect.MySql
                 if (st.IsLastTable)
                 {
                     //async close
-                    this.Close(() => { });
+                    this.InternalClose(() => { });
                 }
             });
         }
@@ -461,7 +480,7 @@ namespace SharpConnect.MySql
             }
 
         }
-        public override void Close(Action nextAction = null)
+        internal override void InternalClose(Action nextAction = null)
         {
             if (nextAction == null)
             {

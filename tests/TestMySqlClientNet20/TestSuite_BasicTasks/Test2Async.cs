@@ -2,7 +2,7 @@
 
 using System;
 using SharpConnect.MySql;
-using SharpConnect.MySql.BasicAsyncTasks;//***
+using SharpConnect.MySql.AsyncPatt;//***
 namespace MySqlTest
 {
     //------------------------------------
@@ -58,7 +58,7 @@ namespace MySqlTest
                 string sql = "select * from test001";
                 var cmd = new MySqlCommand(sql, conn);
 
-                cmd.AsyncExecuteReadEachSubTable(tc, subtable =>
+                cmd.AsyncExecuteSubTableReader(tc, subtable =>
                 {
                     //when new task is add after tc is started
                     //then this new task is immmediately insert 

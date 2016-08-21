@@ -2,7 +2,8 @@
 using System;
 using System.Collections.Generic;
 using SharpConnect.MySql;
-
+using SharpConnect.MySql.SyncPatt;
+using SharpConnect.MySql.AsyncPatt;
 
 namespace MySqlTest
 {
