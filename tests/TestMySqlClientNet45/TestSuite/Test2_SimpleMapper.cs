@@ -109,7 +109,7 @@ namespace MySqlTest
 
                 DropTableIfExists(conn, tc);
                 CreateTable(conn, tc);
-                for (int i = 0; i < 100; ++i)
+                for (int i = 0; i < 1; ++i)
                 {
 
                     InsertData(conn, tc);
@@ -202,10 +202,7 @@ namespace MySqlTest
                     ////we create simpleinfo and use mapper to map field 
                     //var simpleInfo = mapper.Map(new SimpleInfo()); 
 
-                    if (st.IsLastTable)
-                    {
-                        tc.Next();
-                    }
+                    tc.AutoCallNext = st.IsLastTable;                   
                 });
 
                 //next task
