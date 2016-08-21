@@ -58,12 +58,12 @@ namespace MySqlTest
                 string sql = "select * from test001";
                 var cmd = new MySqlCommand(sql, conn);
 
-                cmd.AsyncExecuteReader(tc, reader =>
+                cmd.AsyncExecuteReadEachSubTable(tc, subtable =>
                 {
                     //when new task is add after tc is started
                     //then this new task is immmediately insert 
                     //after current task
-                    reader.AsyncClose(tc);
+                   
                 });
             }
             {

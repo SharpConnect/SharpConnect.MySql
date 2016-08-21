@@ -449,7 +449,15 @@ namespace SharpConnect.MySql.Internal
                                 //last sub table is not partial table  
                                 //and must notify reader first***
                                 //before call  RecvComplete();
+
+                                //----------------------------------------- 
+
+
+
                                 MySqlTableResult tableResult = result as MySqlTableResult;
+                                //***
+                                _recvComplete = !tableResult.HasFollower;
+
                                 if (_tableResultListener != null)
                                 {
                                     //the _tableResultListener may modifid by other state (Close)

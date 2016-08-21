@@ -62,7 +62,7 @@ namespace SharpConnect.MySql
             {
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
             }
-            var reader = new MySqlDataReader(_query);
+            var reader = new MySqlQueryDataReader(_query);
             _query.Execute(true, null);
             reader.WaitUntilFirstDataArrive();
             //
@@ -71,24 +71,65 @@ namespace SharpConnect.MySql
             return reader;
         }
 
-        public void ExecuteReader(Action<MySqlDataReader> dataReaderReady)
+        /// <summary>
+        /// async exec
+        /// </summary>
+        public void ExecuteReader(Action<MySqlDataReader> readerReady)
         {
             if (!_isPreparedStmt)
             {
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
             }
-            var reader = new MySqlDataReader(_query);
+            var reader = new MySqlQueryDataReader(_query);
             //in non bloking mode, set this
-            reader.SetFirstDataArriveDelegate(dataReaderReady);
-
+            reader.SetFirstDataArriveDelegate(dataReader =>
+            {
+                //data reader is ready
+                //then start async read on each sub table
+                readerReady(dataReader);
+            });
             //after execute in asyn mode( this method)
             //reader just return, not block,
             //
             //and when the first data arrive,
             //in invoke dataReaderReader delegate
-            _query.Execute(true, () => { });//send empty lambda for async 
-
+            _query.Execute(true, () => { });//send empty lambda for async  
         }
+        /// <summary>
+        /// async exec
+        /// </summary>
+        public void ExecuteReadEachSubTable(Action<MySqlSubTable> onEachSubTable)
+        {
+            if (!_isPreparedStmt)
+            {
+                _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
+            }
+            MySqlQueryDataReader reader = new MySqlQueryDataReader(_query);
+            //in non bloking mode, set this
+            reader.SetFirstDataArriveDelegate(dataReader =>
+            {
+                //data reader is ready
+                //then start async read on each sub table
+                dataReader.ReadSubTable(subt =>
+                {
+                    //table is ready for read***
+                    //just read single value 
+                    onEachSubTable(subt);
+                    if (subt.IsLastTable)
+                    {
+                        //atuo close reader 
+                        dataReader.Close(() => { });
+                    }
+                });
+            });
+            //after execute in asyn mode( this method)
+            //reader just return, not block,
+            //
+            //and when the first data arrive,
+            //in invoke dataReaderReader delegate
+            _query.Execute(true, () => { });//send empty lambda for async  
+        }
+
 
         /// <summary>
         /// blocking, read only single value
@@ -113,23 +154,13 @@ namespace SharpConnect.MySql
         /// <returns></returns>
         public void ExecuteScalar(Action<object> resultReady)
         {
-            ExecuteReader(reader =>
+            ExecuteReadEachSubTable(subt =>
             {
-                //reader is ready here ***       
-
-                reader.ReadSubTable(subt =>
-                {
-                    //table is ready for read***
-                    //just read single value
-                    var tableReader = subt.CreateDataReader();
-                    object result = tableReader.GetValue(0);
-                    reader.Close(() =>
-                    {   //call user result ready***
-                        resultReady(result);
-                        //
-                    });                  
-
-                });
+                var tableReader = subt.CreateDataReader();
+                object result = tableReader.GetValue(0);
+                //call user result ready***
+                resultReady(result);
+                //
             });
         }
         public void ExecuteNonQuery(Action nextAction = null)

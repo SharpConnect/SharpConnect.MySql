@@ -14,28 +14,23 @@ namespace MySqlTest
         public static void T_InsertAndSelect()
         {
 
-            try
+
+
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.UseConnectionPool = true;
+            conn.Open();
+
+            DropTableIfExists(conn);
+            CreateTable(conn);
+            for (int i = 0; i < 100; ++i)
             {
-
-                var connStr = GetMySqlConnString();
-                var conn = new MySqlConnection(connStr);
-                conn.UseConnectionPool = true;
-                conn.Open();
-
-                DropTableIfExists(conn);
-                CreateTable(conn);
-                for (int i = 0; i < 100; ++i)
-                {
-                    InsertData(conn);
-                }
-                SelectDataBack(conn);
-                conn.Close();
-
+                InsertData(conn);
             }
-            catch (Exception ex)
-            {
+            SelectDataBack(conn);
+            conn.Close();
 
-            }
+
         }
         static void DropTableIfExists(MySqlConnection conn)
         {
@@ -111,13 +106,11 @@ namespace MySqlTest
                 CreateTable(conn, tc);
                 for (int i = 0; i < 1; ++i)
                 {
-
                     InsertData(conn, tc);
                 }
                 SelectDataBack(conn, tc);
 
                 conn.AsyncClose(tc);
-
                 //
                 tc.WhenFinish(() =>
                 {
@@ -181,32 +174,21 @@ namespace MySqlTest
                 t.col2 = col2;
             });
 
-            cmd.AsyncExecuteReader(tc, reader =>
+            cmd.AsyncExecuteReadEachSubTable(tc, subt =>
             {
-                mapper.DataReader = reader;
-                //reader is ready for read
-                //do read logic where
-                //add wait task
-                reader.AsyncRead(tc, st =>
+                MySqlDataReader tblReader = subt.CreateDataReader();
+                int j = subt.RowCount;
+                for (int i = 0; i < j; ++i)
                 {
-                    //when new table arrive 
-                    //this lambda is call 
-                    var tblReader = st.CreateDataReader();
-                    int j = tblReader.RowCount;
-                    for (int i = 0; i < j; ++i)
-                    {
-                        //then read
-                        tblReader.SetCurrentRowIndex(i);
-                    }
-                    ////simple map query result to member of the target object  
-                    ////we create simpleinfo and use mapper to map field 
-                    //var simpleInfo = mapper.Map(new SimpleInfo()); 
+                    //then read
+                    tblReader.SetCurrentRowIndex(i);
+                }
+                ////simple map query result to member of the target object  
+                ////we create simpleinfo and use mapper to map field 
+                //var simpleInfo = mapper.Map(new SimpleInfo()); 
 
-                    tc.AutoCallNext = st.IsLastTable;                   
-                });
+                tc.AutoCallNext = subt.IsLastTable;
 
-                //next task
-                reader.AsyncClose(tc);
             });
         }
 

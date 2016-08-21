@@ -59,22 +59,20 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             //not use autocall next task, let the cmd call it when ready ***
         }
 
-        public static ActionTask AsyncExecuteReader(this MySqlCommand cmd, TaskChain ch, Action<MySqlDataReader> readerReady)
+        public static ActionTask AsyncExecuteReadEachSubTable(this MySqlCommand cmd, TaskChain ch, Action<MySqlSubTable> readerReady)
         {
             return ch.AddTask(() =>
             {
                 ch.AutoCallNext = false;
-                cmd.ExecuteReader(reader =>
+                cmd.ExecuteReadEachSubTable(subtable =>
                 {
-                    //send to user exec
                     ch.AutoCallNext = true;
-                    readerReady(reader);
+                    readerReady(subtable);
                     if (ch.AutoCallNext)
                     {
                         ch.Next();
                     }
                 });
-
             });
             //not use autocall next task, let the cmd call it when ready ***
         }
@@ -96,16 +94,15 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             //not use autocall next task, let the cmd call it when ready ***
         }
         //-----------------------------------------------------------------------------
-        public static ActionTask AsyncRead(this MySqlDataReader reader, TaskChain ch, OnEachSubTable onEachSubTable)
-        {
-            return ch.AddTask(() =>
-            {
-                ch.AutoCallNext = false;
-                reader.ReadSubTable(onEachSubTable);
-
-            });
-            //not use autocall next task, let the reader call it when ready ***
-        }
+        //public static ActionTask AsyncRead(this MySqlDataReader reader, TaskChain ch, OnEachSubTable onEachSubTable)
+        //{
+        //    return ch.AddTask(() =>
+        //    {
+        //        ch.AutoCallNext = false;
+        //        reader.ReadSubTable(onEachSubTable);
+        //    });
+        //    //not use autocall next task, let the reader call it when ready ***
+        //}
         //-----------------------------------------------------------------------------
         public static ActionTask AsyncClose(this MySqlDataReader reader, TaskChain ch)
         {
@@ -283,7 +280,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
                     {
                         onBeginTask();
                     }
-                    
+
                     taskList[currentIndex].Start();
                 }
                 else

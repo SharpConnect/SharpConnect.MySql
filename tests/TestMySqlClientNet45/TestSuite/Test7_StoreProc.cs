@@ -138,13 +138,11 @@ namespace MySqlTest
                 // Console.WriteLine("5");
                 string callProc = "call multi();";
                 var cmd = new MySqlCommand(callProc, conn);
-                var reader = cmd.ExecuteReader();
+
                 //access to sub table
-
                 var currentSubTable = MySqlSubTable.Empty;
-                reader.ReadSubTable(subtable =>
+                cmd.ExecuteReadEachSubTable(subtable =>
                 {
-
                     if (subtable.Header != currentSubTable.Header)
                     {
                         //change main table
@@ -153,8 +151,8 @@ namespace MySqlTest
                     currentSubTable = subtable;
                     //on each subtable
                     //create data reader for the subtable
-                    MySubTableDataReader r = subtable.CreateDataReader();
-                    int rowCount = r.RowCount;
+                    var r = subtable.CreateDataReader();
+                    int rowCount = subtable.RowCount;
                     for (int i = 0; i < rowCount; ++i)
                     {
                         r.SetCurrentRowIndex(i);
@@ -162,13 +160,12 @@ namespace MySqlTest
                         Console.WriteLine(r.GetInt32(0));
                     }
 
-
                     if (subtable.IsLastTable)
                     {
-                        reader.Close();
                         conn.Close();
                     }
                 });
+
             }
 
         }
