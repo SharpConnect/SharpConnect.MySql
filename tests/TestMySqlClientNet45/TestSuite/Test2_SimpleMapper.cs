@@ -4,7 +4,8 @@ using System;
 using System.Collections.Generic;
 using SharpConnect.MySql;
 using SharpConnect.MySql.Mapper;
-using SharpConnect.MySql.BasicAsyncTasks;
+using SharpConnect.MySql.AsyncPatt;
+using SharpConnect.MySql.SyncPatt;
 
 namespace MySqlTest
 {

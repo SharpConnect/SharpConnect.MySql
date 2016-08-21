@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using SharpConnect.MySql.Internal;
+using SharpConnect.MySql.SyncPatt;
 namespace SharpConnect.MySql
 {
 #if DEBUG 
@@ -187,7 +188,7 @@ namespace SharpConnect.MySql
             config.database = "test";
             MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             sqlConn.UseConnectionPool = true;
-            sqlConn.Open();
+            sqlConn.InternalOpen();
             string sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             int testN1 = 4510;
             int testN2 = 4520;
@@ -221,7 +222,7 @@ namespace SharpConnect.MySql
             config.database = "test";
             MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             sqlConn.UseConnectionPool = true;
-            sqlConn.Open();
+            sqlConn.InternalOpen();
             string sql = "INSERT INTO ??t1 SET ??c2 = ?buffer1";
             MySqlCommand command = new MySqlCommand(sql, sqlConn);
             command.Parameters.SetSqlPart("??t1", "saveimage");
@@ -236,7 +237,7 @@ namespace SharpConnect.MySql
             config.database = "test";
             MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             sqlConn.UseConnectionPool = true;
-            sqlConn.Open();
+            sqlConn.InternalOpen();
             string sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             int testN1 = 4510;
             int testN2 = 4520;
@@ -253,7 +254,7 @@ namespace SharpConnect.MySql
             config.database = "test";
             MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             sqlConn.UseConnectionPool = true;
-            sqlConn.Open();
+            sqlConn.InternalOpen();
             string sql = "select * from ??t1 where ??c1 > ?n1 and ??c1 < ?n2";
             int testN1 = 4510;
             int testN2 = 4520;

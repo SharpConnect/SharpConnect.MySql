@@ -4,7 +4,79 @@ using System;
 using SharpConnect.MySql.Internal;
 namespace SharpConnect.MySql
 {
+    namespace SyncPatt
+    {
+        public static partial class MySqlSyncPattExtension
+        {
 
+            public static void Prepare(this MySqlCommand cmd)
+            {
+                cmd.InternalPrepare();
+            }
+            public static MySqlDataReader ExecuteReader(this MySqlCommand cmd)
+            {
+                return cmd.ExecuteReader();
+            }
+            public static object ExecuteScalar(this MySqlCommand cmd)
+            {
+                object result = null;
+                MySqlDataReader reader = cmd.InternalExecuteReader();
+                if (reader.Read())
+                {
+                    result = reader.GetValue(0);
+                }
+                reader.Close();
+                return result;
+            }
+
+            public static void ExecuteNonQuery(this MySqlCommand cmd)
+            {
+                cmd.InternalExecuteNonQuery();
+            }
+        }
+    }
+    namespace AsyncPatt
+    {
+        public static partial class MySqlAsyncPattExtension
+        {
+
+            public static void Prepare(this MySqlCommand cmd, Action nextAction)
+            {
+                cmd.InternalPrepare(nextAction);
+            }
+            public static void ExecuteReader(this MySqlCommand cmd, Action<MySqlDataReader> readerReady)
+            {
+                cmd.InternalExecuteReader(readerReady);
+            }
+            public static void ExecuteSubTableReader(this MySqlCommand cmd, Action<MySqlDataReader> readerReady)
+            {
+                cmd.InternalExecuteSubTableReader(readerReady);
+            }
+            /// <summary>
+            /// non-blocking, read only single value
+            /// </summary>
+            /// <param name="nextAction"></param>
+            /// <returns></returns>
+            public static void ExecuteScalar(this MySqlCommand cmd, Action<object> resultReady)
+            {
+                cmd.InternalExecuteSubTableReader(reader =>
+                {
+                    object result = reader.GetValue(0);
+                    //call user result ready***
+                    resultReady(result);
+                    //
+                });
+            }
+            /// <summary>
+            /// sync/async execute non query
+            /// </summary>
+            /// <param name="nextAction"></param>
+            public static void ExecuteNonQuery(this MySqlCommand cmd, Action nextAction)
+            {
+                cmd.InternalExecuteNonQuery(nextAction);
+            }
+        }
+    }
 
     public class MySqlCommand
     {
@@ -49,7 +121,7 @@ namespace SharpConnect.MySql
         /// sync/async prepare
         /// </summary>
         /// <param name="nextAction"></param>
-        public void Prepare(Action nextAction = null)
+        internal void InternalPrepare(Action nextAction = null)
         {
             //prepare sql command;
             _isPreparedStmt = true;
@@ -60,7 +132,7 @@ namespace SharpConnect.MySql
         /// sync execute reader
         /// </summary>
         /// <returns></returns>
-        public MySqlDataReader ExecuteReader()
+        internal MySqlDataReader InternalExecuteReader()
         {
             if (!_isPreparedStmt)
             {
@@ -78,7 +150,7 @@ namespace SharpConnect.MySql
         /// <summary>
         /// async exec reader, notify the when reader is ready
         /// </summary>
-        public void ExecuteReader(Action<MySqlDataReader> readerReady)
+        internal void InternalExecuteReader(Action<MySqlDataReader> readerReady)
         {
             if (!_isPreparedStmt)
             {
@@ -102,7 +174,7 @@ namespace SharpConnect.MySql
         /// <summary>
         /// async exec, on each sub table
         /// </summary>
-        public void ExecuteSubTableReader(Action<MySqlDataReader> onEachSubTable)
+        internal void InternalExecuteSubTableReader(Action<MySqlDataReader> onEachSubTable)
         {
             if (!_isPreparedStmt)
             {
@@ -123,7 +195,7 @@ namespace SharpConnect.MySql
                     if (subt.IsLastTable)
                     {
                         //atuo close reader 
-                        dataReader.Close(() => { });
+                        dataReader.InternalClose(() => { });
                     }
                 });
             });
@@ -135,43 +207,11 @@ namespace SharpConnect.MySql
             _query.Execute(true, () => { });//send empty lambda for async  
         }
 
-
-        /// <summary>
-        /// blocking, read only single value
-        /// </summary>
-        /// <param name="nextAction"></param>
-        /// <returns></returns>
-        public object ExecuteScalar()
-        {
-            object result = null;
-            MySqlDataReader reader = ExecuteReader();
-            if (reader.Read())
-            {
-                result = reader.GetValue(0);
-            }
-            reader.Close();
-            return result;
-        }
-        /// <summary>
-        /// non-blocking, read only single value
-        /// </summary>
-        /// <param name="nextAction"></param>
-        /// <returns></returns>
-        public void ExecuteScalar(Action<object> resultReady)
-        {
-            ExecuteSubTableReader(reader =>
-            {
-                object result = reader.GetValue(0);
-                //call user result ready***
-                resultReady(result);
-                //
-            });
-        }
         /// <summary>
         /// sync/async execute non query
         /// </summary>
         /// <param name="nextAction"></param>
-        public void ExecuteNonQuery(Action nextAction = null)
+        internal void InternalExecuteNonQuery(Action nextAction = null)
         {
             if (!_isPreparedStmt)
             {

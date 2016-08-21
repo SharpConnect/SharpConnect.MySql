@@ -2,7 +2,7 @@
 
 using System;
 using SharpConnect.MySql;
-using SharpConnect.MySql.BasicAsyncTasks;//***
+using SharpConnect.MySql.AsyncPatt;//***
 namespace MySqlTest
 {
     //------------------------------------
