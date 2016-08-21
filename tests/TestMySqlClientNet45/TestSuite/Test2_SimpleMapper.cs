@@ -176,16 +176,19 @@ namespace MySqlTest
 
             cmd.AsyncExecuteReadEachSubTable(tc, subt =>
             {
-                MySqlDataReader tblReader = subt.CreateDataReader();
+                MySqlDataReader reader = subt.CreateDataReader();
+                mapper.DataReader = reader;
                 int j = subt.RowCount;
                 for (int i = 0; i < j; ++i)
                 {
                     //then read
-                    tblReader.SetCurrentRowIndex(i);
+                    reader.SetCurrentRowIndex(i);
+                    var simpleInfo = mapper.Map(new SimpleInfo());
+                    
                 }
                 ////simple map query result to member of the target object  
                 ////we create simpleinfo and use mapper to map field 
-                //var simpleInfo = mapper.Map(new SimpleInfo()); 
+               
 
                 tc.AutoCallNext = subt.IsLastTable;
 
