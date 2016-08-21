@@ -48,7 +48,7 @@ namespace MySqlClient
 
 #if DEBUG
 
-          
+            TestSet2_SimpleMapper.T_InsertAndSelect();
             //DateTime d = new DateTime(0, 0, 0, 0, 0, 0);
 
             //TestSet1.T_NumRange();

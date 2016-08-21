@@ -76,9 +76,6 @@
     <Compile Include="..\..\tests\TestMySqlClientNet45\TestSuite\Test4_PreparedStatement.cs">
       <Link>TestSuite\Test4_PreparedStatement.cs</Link>
     </Compile>
-    <Compile Include="..\..\tests\TestMySqlClientNet45\TestSuite\Test5_SimpleUtils.cs">
-      <Link>TestSuite\Test5_SimpleUtils.cs</Link>
-    </Compile>
     <Compile Include="..\..\tests\TestMySqlClientNet45\TestSuite\Test6_Blob.cs">
       <Link>TestSuite\Test6_Blob.cs</Link>
     </Compile>

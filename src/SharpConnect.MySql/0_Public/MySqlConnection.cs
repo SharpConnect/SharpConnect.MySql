@@ -18,7 +18,7 @@ namespace SharpConnect.MySql
             Password = p;
             Database = d;
             PortNumber = 3306;//default mysql port
-            _signature = string.Concat(h, u, p, d);
+            _signature = string.Concat(h, u, d, PortNumber);
         }
         public string Host { get; private set; }
         public string Username { get; private set; }
