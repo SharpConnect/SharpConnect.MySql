@@ -129,7 +129,7 @@ namespace SharpConnect.MySql
         /// async read ***
         /// </summary>
         /// <param name="onEachSubTable"></param>
-        public void Read(OnEachSubTable onEachSubTable)
+        public void ReadSubTable(OnEachSubTable onEachSubTable)
         {
             TRY_AGAIN:
             if (currentTableResult == null)
@@ -162,8 +162,8 @@ namespace SharpConnect.MySql
                             }
                             else
                             {
-                                //try again
-                                Read(onEachSubTable);
+                                //try again 
+                                ReadSubTable(onEachSubTable);
                                 return true;
                             }
                         }));
@@ -181,7 +181,7 @@ namespace SharpConnect.MySql
                             else
                             {
                                 //try again
-                                Read(onEachSubTable);
+                                ReadSubTable(onEachSubTable);
                                 return true;
                             }
                         }));
@@ -204,7 +204,7 @@ namespace SharpConnect.MySql
             }
         }
         /// <summary>
-        /// sync read
+        /// sync read row
         /// </summary>
         /// <returns></returns>
         public bool Read()

@@ -35,7 +35,7 @@ namespace SharpConnect.MySql.Internal
         public bool typeCast;
     }
 
-     
+
 
     enum QueryExecState
     {
@@ -168,6 +168,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
+
         /// <summary>
         ///+/- blocking 
         /// </summary>
@@ -207,6 +208,12 @@ namespace SharpConnect.MySql.Internal
                 _conn.Wait();
             }
         }
+
+
+
+
+
+
 
         /// <summary>
         ///  +/- blocking
@@ -491,7 +498,7 @@ namespace SharpConnect.MySql.Internal
                                             //if don't lock we need to store it to local var
                                             _tableResultListener(table);
                                         }
-                                        
+
                                         if (!table.HasFollower)
                                         {
                                             RecvComplete();

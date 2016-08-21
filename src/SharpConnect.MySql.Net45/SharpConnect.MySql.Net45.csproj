@@ -56,6 +56,9 @@
     <Compile Include="..\SharpConnect.MySql\0_Public\SqlStringTemplate.cs">
       <Link>0_Public\SqlStringTemplate.cs</Link>
     </Compile>
+    <Compile Include="..\SharpConnect.MySql\0_Public_TaskAsync\MySqlBasicAsyncTasks.cs">
+      <Link>0_Public_TaskAsync\MySqlBasicAsyncTasks.cs</Link>
+    </Compile>
     <Compile Include="..\SharpConnect.MySql\0_Public_TaskAsync\MySqlTaskBasedExtensions.cs">
       <Link>0_Public_TaskAsync\MySqlTaskBasedExtensions.cs</Link>
     </Compile>
