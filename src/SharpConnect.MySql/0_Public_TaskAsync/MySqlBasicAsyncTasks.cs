@@ -118,14 +118,8 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             private set;
         }
         public abstract void Start();
-        public void Wait()
-        {
-            //wait until this task complete
-        }
-        public void StartAndWait()
-        {
-
-        }
+        
+       
 
         //user can assign name for this task
         //mainly purpose for debuging

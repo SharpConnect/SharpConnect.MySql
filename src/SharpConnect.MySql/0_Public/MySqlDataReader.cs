@@ -6,7 +6,7 @@ using SharpConnect.MySql.Internal;
 
 namespace SharpConnect.MySql
 {
-  
+
 
     public abstract class MySqlDataReader
     {
@@ -290,7 +290,7 @@ namespace SharpConnect.MySql
 
 
         /// <summary>
-        /// async read ***
+        /// async, read each sub table
         /// </summary>
         /// <param name="onEachSubTable"></param>
         internal void ReadSubTable(Action<MySqlSubTable> onEachSubTable)
