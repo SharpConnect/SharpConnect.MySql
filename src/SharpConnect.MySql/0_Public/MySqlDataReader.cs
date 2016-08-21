@@ -12,13 +12,14 @@ namespace SharpConnect.MySql
     {
         Query _query;
         Queue<MySqlTableResult> subTables = new Queue<MySqlTableResult>();
-        MySqlTableResult currentTableResult = null;
-        List<DataRowPacket> currentTableRows;
+        MySqlSubTable currentSubTable = MySqlSubTable.Empty;
+        //-------------------------
+        MySubTableDataReader subTableReader;
         int currentTableRowCount = 0;
         int currentRowIndex = 0;
-        bool tableResultIsNotComplete;
-        DataRowPacket currentRow;
+        //-------------------------
         bool firstResultArrived;
+        bool tableResultIsNotComplete;
         Action<MySqlDataReader> onFirstDataArrived;
         internal MySqlDataReader(Query query)
         {
@@ -48,7 +49,7 @@ namespace SharpConnect.MySql
 
         public MySqlSubTable CurrentSubTable
         {
-            get { return new MySqlSubTable(currentTableResult); }
+            get { return currentSubTable; }
         }
 
         /// <summary>
@@ -57,7 +58,7 @@ namespace SharpConnect.MySql
         internal void WaitUntilFirstDataArrive()
         {
             TRY_AGAIN:
-            if (currentTableResult == null)
+            if (currentSubTable.IsEmpty)
             {
                 //no current table 
                 bool hasSomeSubTables = false;
@@ -65,9 +66,9 @@ namespace SharpConnect.MySql
                 {
                     if (subTables.Count > 0)
                     {
-                        currentTableResult = subTables.Dequeue();
+                        currentSubTable = new MySqlSubTable(subTables.Dequeue());
+                        currentTableRowCount = currentSubTable.RowCount;
                         hasSomeSubTables = true;
-                        currentTableRowCount = currentTableResult.rows.Count;
                     }
                 }
                 if (!hasSomeSubTables)
@@ -101,10 +102,7 @@ namespace SharpConnect.MySql
         {
             get
             {
-                //similar to Read() 
-                return (currentTableResult == null) ?
-                    0 :
-                    currentTableResult.tableHeader.ColumnCount;
+                return currentSubTable.IsEmpty ? 0 : currentSubTable.FieldCount;
             }
         }
         /// <summary>
@@ -114,15 +112,15 @@ namespace SharpConnect.MySql
         /// <returns></returns>
         public string GetName(int colIndex)
         {
-            return currentTableResult.tableHeader.GetFields()[colIndex].name;
+            return currentSubTable.GetFieldDefinition(colIndex).Name;
+
         }
         //-------------------------
         public bool HasRows
         {
             get
             {
-                return currentTableResult != null
-                    && currentTableResult.rows.Count > 0;
+                return !currentSubTable.IsEmpty && currentSubTable.RowCount > 0;
             }
         }
         /// <summary>
@@ -132,17 +130,16 @@ namespace SharpConnect.MySql
         public void ReadSubTable(OnEachSubTable onEachSubTable)
         {
             TRY_AGAIN:
-            if (currentTableResult == null)
+            if (currentSubTable.IsEmpty)
             {
-                //no current table
-                currentRowIndex = 0;
-                currentTableRows = null;
+                //no current table  
+
                 bool hasSomeSubTables = false;
                 lock (subTables)
                 {
                     if (subTables.Count > 0)
                     {
-                        currentTableResult = subTables.Dequeue();
+                        currentSubTable = new MySqlSubTable(subTables.Dequeue());
                         hasSomeSubTables = true;
                     }
                 }
@@ -198,10 +195,35 @@ namespace SharpConnect.MySql
                     //so start clear here
                     onEachSubTable(CurrentSubTable);
                     //after invoke
-                    currentTableResult = null;
+                    currentSubTable = MySqlSubTable.Empty;
                     goto TRY_AGAIN;
                 }
             }
+        }
+
+
+        /// <summary>
+        /// async read row
+        /// </summary>
+        /// <param name="onEachRow"></param>
+        public void Read(Action onEachRow)
+        {
+            ReadSubTable(st =>
+            {
+                //on each subtable
+                var tableReader = st.CreateDataReader();
+                int j = tableReader.RowCount;
+                for (int i = 0; i < j; ++i)
+                {
+                    tableReader.SetCurrentRowIndex(i);
+                }
+                //if last one
+                if (st.IsLastTable)
+                {
+                    //async close
+                    this.Close(() => { });
+                }
+            });
         }
         /// <summary>
         /// sync read row
@@ -210,20 +232,22 @@ namespace SharpConnect.MySql
         public bool Read()
         {
             TRY_AGAIN:
-            if (currentTableResult == null)
+            if (currentSubTable.IsEmpty)
             {
-                //no current table
-                currentRowIndex = 0;
-                currentTableRows = null;
+                //no current table 
                 bool hasSomeSubTables = false;
                 lock (subTables)
                 {
                     if (subTables.Count > 0)
                     {
-                        currentTableResult = subTables.Dequeue();
+                        currentSubTable = new MySqlSubTable(subTables.Dequeue());
+                        //
                         hasSomeSubTables = true;
                     }
                 }
+                currentRowIndex = 0;
+                currentTableRowCount = currentSubTable.RowCount;
+
                 if (!hasSomeSubTables)
                 {
                     if (tableResultIsNotComplete)
@@ -252,25 +276,22 @@ namespace SharpConnect.MySql
                         return false;
                     }
                 }
-                //
-                currentTableRows = currentTableResult.rows;
-                currentTableRowCount = currentTableRows.Count;
+
             }
-            //
+            //------------------------------------------------------------------
             if (currentRowIndex < currentTableRowCount)
             {
-                //------
-                //Console.WriteLine(currentRowIndex.ToString());
-                //------
-                currentRow = currentTableResult.rows[currentRowIndex];
+                subTableReader.SetCurrentRowIndex(currentRowIndex);
                 currentRowIndex++;
                 return true;
             }
             else
             {
-                currentTableResult = null;
+                currentSubTable = MySqlSubTable.Empty;
+                subTableReader = MySubTableDataReader.Empty;
                 goto TRY_AGAIN;
             }
+
         }
         public void Close(Action nextAction = null)
         {
@@ -284,9 +305,10 @@ namespace SharpConnect.MySql
                 //unblock
                 _query.Close(() =>
                 {
-                    currentTableResult = null;
                     currentRowIndex = 0;
-                    currentRow = null;
+                    currentTableRowCount = 0;
+                    currentSubTable = MySqlSubTable.Empty;
+                    subTableReader = MySubTableDataReader.Empty;
                     subTables.Clear();
                     nextAction();
                 });
@@ -295,144 +317,65 @@ namespace SharpConnect.MySql
         //-------------------------------------------
         public sbyte GetInt8(int colIndex)
         {
+            return subTableReader.GetInt8(colIndex);
 
-            //TODO: check match type and check index here
-            return (sbyte)currentRow.Cells[colIndex].myInt32;
         }
         public byte GetUInt8(int colIndex)
         {
-            //TODO: check match type and check index here
-            return (byte)currentRow.Cells[colIndex].myInt32;
+            return subTableReader.GetUInt8(colIndex);
         }
         public short GetInt16(int colIndex)
-        {   //TODO: check match type and check index here
-            return (short)currentRow.Cells[colIndex].myInt32;
+        {
+            return subTableReader.GetInt16(colIndex);
         }
         public ushort GetUInt16(int colIndex)
         {
-            //TODO: check match type and check index here
-            return (ushort)currentRow.Cells[colIndex].myInt32;
+            return subTableReader.GetUInt16(colIndex);
         }
 
         public int GetInt32(int colIndex)
         {
-            //TODO: check match type and check index here
-            return currentRow.Cells[colIndex].myInt32;
+            return subTableReader.GetInt32(colIndex);
         }
         public uint GetUInt32(int colIndex)
         {
-            //TODO: check match type and check index here
-            return currentRow.Cells[colIndex].myUInt32;
+            return subTableReader.GetUInt32(colIndex);
         }
         public long GetLong(int colIndex)
         {
-            //TODO: check match type and check index here
-            return currentRow.Cells[colIndex].myInt64;
+            return subTableReader.GetLong(colIndex);
+
         }
         public ulong GetULong(int colIndex)
         {
-            //TODO: check match type and check index here
-            return currentRow.Cells[colIndex].myUInt64;
+            return subTableReader.GetULong(colIndex);
+
         }
         public decimal GetDecimal(int colIndex)
         {
-            //TODO: check match type and index here
-            return currentRow.Cells[colIndex].myDecimal;
+            return subTableReader.GetDecimal(colIndex);
         }
         public string GetString(int colIndex)
         {
-            //TODO: check match type and index here
-            return currentRow.Cells[colIndex].myString;
+            return subTableReader.GetString(colIndex);
         }
         public string GetString(int colIndex, System.Text.Encoding encoding)
         {
-            //TODO: check match type and index here
-            return currentRow.Cells[colIndex].myString;
+            return subTableReader.GetString(colIndex, encoding);
         }
         public byte[] GetBuffer(int colIndex)
         {
-            //TODO: check match type and index here
-            return currentRow.Cells[colIndex].myBuffer;
+            return subTableReader.GetBuffer(colIndex);
         }
 
         public DateTime GetDateTime(int colIndex)
         {
-            //TODO: check match type and check index here
-            return currentRow.Cells[colIndex].myDateTime;
+            return subTableReader.GetDateTime(colIndex);
+
         }
         public object GetValue(int colIndex)
         {
-            MyStructData data = currentRow.Cells[colIndex];
-            switch (data.type)
-            {
-                case MySqlDataType.BLOB:
-                case MySqlDataType.LONG_BLOB:
-                case MySqlDataType.MEDIUM_BLOB:
-                case MySqlDataType.TINY_BLOB:
-                    return data.myBuffer;
-
-                case MySqlDataType.DATE:
-                case MySqlDataType.NEWDATE:
-                    return data.myDateTime;
-                //stbuilder.Append('\'');
-                //stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd"));
-                //stbuilder.Append('\'');
-                //break;
-                case MySqlDataType.DATETIME:
-                    //stbuilder.Append('\'');
-                    //stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd hh:mm:ss"));
-                    //stbuilder.Append('\'');
-                    //break;
-                    return data.myDateTime;
-                case MySqlDataType.TIMESTAMP:
-                case MySqlDataType.TIME:
-                    ////TODO: review here
-                    //stbuilder.Append('\'');
-                    //stbuilder.Append(data.myDateTime.ToString("hh:mm:ss"));
-                    //stbuilder.Append('\'');
-                    //break;
-                    return data.myDateTime;
-                case MySqlDataType.STRING:
-                case MySqlDataType.VARCHAR:
-                case MySqlDataType.VAR_STRING:
-
-                    //stbuilder.Append('\'');
-                    ////TODO: check /escape string here ****
-                    //stbuilder.Append(data.myString);
-                    //stbuilder.Append('\'');
-                    //break;
-                    return data.myString;
-                case MySqlDataType.BIT:
-                    throw new NotSupportedException();
-                // stbuilder.Append(Encoding.ASCII.GetString(new byte[] { (byte)data.myInt32 }));
-
-                case MySqlDataType.DOUBLE:
-                    return data.myDouble;
-                //stbuilder.Append(data.myDouble.ToString());
-                //break;
-                case MySqlDataType.FLOAT:
-                    return data.myDouble;//TODO: review here
-                //stbuilder.Append(((float)data.myDouble).ToString());
-
-                case MySqlDataType.TINY:
-                case MySqlDataType.SHORT:
-                case MySqlDataType.LONG:
-                case MySqlDataType.INT24:
-                case MySqlDataType.YEAR:
-                    return data.myInt32;
-                //stbuilder.Append(data.myInt32.ToString());
-
-                case MySqlDataType.LONGLONG:
-                    return data.myInt64;
-                //stbuilder.Append(data.myInt64.ToString());
-
-                case MySqlDataType.DECIMAL:
-                    //stbuilder.Append(data.myDecimal.ToString());
-                    return data.myDecimal;
-
-                default:
-                    throw new NotSupportedException();
-            }
+            return subTableReader.GetValue(colIndex);
         }
     }
 
@@ -468,6 +411,9 @@ namespace SharpConnect.MySql
 
     public struct MySubTableDataReader
     {
+
+        public static readonly MySubTableDataReader Empty = new MySubTableDataReader();
+
         //for read on each subtable
         readonly MySqlTableResult tableResult;
         int currentRowIndex;
@@ -478,6 +424,11 @@ namespace SharpConnect.MySql
             currentRowIndex = 0;
             currentRow = null;
             SetCurrentRowIndex(0);
+        }
+
+        public bool IsEmpty
+        {
+            get { return tableResult == null; }
         }
         public int RowIndex { get { return this.currentRowIndex; } }
         public void SetCurrentRowIndex(int index)
@@ -672,6 +623,10 @@ namespace SharpConnect.MySql
             {
                 return tableResult.rows != null && tableResult.rows.Count > 0;
             }
+        }
+        public bool IsEmpty
+        {
+            get { return tableResult == null; }
         }
 
         public MySubTableDataReader CreateDataReader()
