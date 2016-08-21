@@ -117,7 +117,7 @@ namespace SharpConnect.MySql
             {
                 //reader is ready here ***       
 
-                reader.Read(subt =>
+                reader.ReadSubTable(subt =>
                 {
                     //table is ready for read***
                     //just read single value
