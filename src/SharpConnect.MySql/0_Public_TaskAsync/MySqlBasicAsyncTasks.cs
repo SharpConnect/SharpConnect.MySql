@@ -3,7 +3,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace SharpConnect.MySql.BasicAsyncTasks
+namespace SharpConnect.MySql.AsyncPatt
 {
     //------------------------------------
     //this sample is designed for .net2.0 
@@ -23,7 +23,7 @@ namespace SharpConnect.MySql.BasicAsyncTasks
                 ch.AutoCallNext = false;
                 //open connection async
                 //after finish then call next task in task chain
-                conn.Open(ch.Next);
+                conn.InternalOpen(ch.Next);
             });
             //not use autocall next task, let the connection call it when ready ***
         }
