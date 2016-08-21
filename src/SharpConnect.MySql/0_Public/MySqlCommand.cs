@@ -72,7 +72,7 @@ namespace SharpConnect.MySql
         }
 
         /// <summary>
-        /// async exec
+        /// async exec reader, notify when ready
         /// </summary>
         public void ExecuteReader(Action<MySqlDataReader> readerReady)
         {

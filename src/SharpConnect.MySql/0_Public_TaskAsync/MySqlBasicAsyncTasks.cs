@@ -199,6 +199,8 @@ namespace SharpConnect.MySql.BasicAsyncTasks
         Action onFinish;
         Action onBeginTask;
         bool pleaseStop;
+        bool isStarted = false;
+        bool finish = false;
         List<BasicTaskBase> taskList = new List<BasicTaskBase>();
 
 
@@ -234,9 +236,22 @@ namespace SharpConnect.MySql.BasicAsyncTasks
 
         public void Start()
         {
+            //start once ***
+            if (isStarted)
+            {
+                throw new Exception("task chain has started!");
+            }
+
+            isStarted = true;
             pleaseStop = false;
             if (taskList.Count > 0)
             {
+                //finish task
+                this.AddTask(() =>
+                {
+                });
+
+                //---------------------------------
                 //update insert index= current index
                 insertIndex = currentIndex = 0;
                 if (onBeginTask != null)
@@ -271,8 +286,6 @@ namespace SharpConnect.MySql.BasicAsyncTasks
             {
                 if (currentIndex + 1 < taskList.Count)
                 {
-
-
                     insertIndex = ++currentIndex;
                     //update insert index= current index***
 
@@ -285,10 +298,16 @@ namespace SharpConnect.MySql.BasicAsyncTasks
                 }
                 else
                 {
-                    //finish
-                    if (onFinish != null)
+                    if (!finish)
                     {
-                        onFinish();
+                        //run once
+                        finish = true;
+
+                        //finish
+                        if (onFinish != null)
+                        {
+                            onFinish();
+                        }
                     }
                 }
             }
