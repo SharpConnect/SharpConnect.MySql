@@ -72,7 +72,7 @@ namespace SharpConnect.MySql
         }
 
         /// <summary>
-        /// async exec reader, notify when ready
+        /// async exec reader, notify the when reader is ready
         /// </summary>
         public void ExecuteReader(Action<MySqlDataReader> readerReady)
         {
@@ -96,7 +96,7 @@ namespace SharpConnect.MySql
             _query.Execute(true, () => { });//send empty lambda for async  
         }
         /// <summary>
-        /// async exec, 
+        /// async exec, on each sub table
         /// </summary>
         public void ExecuteReadEachSubTable(Action<MySqlSubTable> onEachSubTable)
         {
