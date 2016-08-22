@@ -12,7 +12,7 @@ namespace System
     public delegate void Action<T1, T2, T3, T4>(T1 t1, T2 t2, T3 t3, T4 t4);
     //
     public delegate R Func<R>();
-    public delegate R Func<T, R>(T t);
+    //public delegate R Func<T, R>(T t);
     //
 
     public static class DelegateExtensionMethods
