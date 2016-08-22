@@ -15,7 +15,7 @@ namespace SharpConnect.MySql
             }
             public static MySqlDataReader ExecuteReader(this MySqlCommand cmd)
             {
-                return cmd.ExecuteReader();
+                return cmd.InternalExecuteReader();
             }
             public static object ExecuteScalar(this MySqlCommand cmd)
             {
