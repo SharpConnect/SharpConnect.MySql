@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using SharpConnect.MySql;
+using SharpConnect.MySql.SyncPatt;
 namespace MySqlTest
 {
     public class TestSet2 : MySqlTestSet

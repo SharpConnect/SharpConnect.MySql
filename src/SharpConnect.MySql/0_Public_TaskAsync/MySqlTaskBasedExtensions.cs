@@ -2,6 +2,7 @@
 
 
 using System.Threading.Tasks;
+using SharpConnect.MySql.AsyncPatt;
 namespace SharpConnect.MySql
 {
     public static class MySqlTaskBasedExtensions
@@ -9,7 +10,7 @@ namespace SharpConnect.MySql
         public static Task OpenAsync(this MySqlConnection conn)
         {
             var tcs = new TaskCompletionSource<int>();
-            conn.Open(() => tcs.SetResult(0));
+            conn.InternalOpen(() => tcs.SetResult(0));
             return tcs.Task;
         }
         public static Task CloseAsync(this MySqlConnection conn)

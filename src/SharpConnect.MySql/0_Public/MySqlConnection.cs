@@ -4,6 +4,40 @@ using System;
 using SharpConnect.MySql.Internal;
 namespace SharpConnect.MySql
 {
+    namespace SyncPatt
+    {
+        public static partial class MySqlSyncPattExtension
+        {
+
+            public static void Open(this MySqlConnection conn)
+            {
+                conn.InternalOpen();
+            }
+            public static void Close(this MySqlConnection conn)
+            {
+                conn.InternalClose();
+            }
+        }
+    }
+    namespace AsyncPatt
+    {
+        public static partial class MySqlAsyncPattExtension
+        {
+
+            public static void Open(this MySqlConnection conn, Action onComplete)
+            {
+                conn.InternalOpen(onComplete);
+            }
+            public static void Close(this MySqlConnection conn, Action onComplete)
+            {
+                conn.InternalClose(onComplete);
+            }
+        }
+    }
+
+
+
+
     public class MySqlConnectionString
     {
         string _signature;
@@ -18,7 +52,7 @@ namespace SharpConnect.MySql
             Password = p;
             Database = d;
             PortNumber = 3306;//default mysql port
-            _signature = string.Concat(h, u, p, d);
+            _signature = string.Concat(h, u, d, PortNumber);
         }
         public string Host { get; private set; }
         public string Username { get; private set; }
@@ -54,23 +88,28 @@ namespace SharpConnect.MySql
                     case "server":
                         {
                             server = value;
-                        } break;
+                        }
+                        break;
                     case "uid":
                         {
                             uid = value;
-                        } break;
+                        }
+                        break;
                     case "pwd":
                         {
                             pwd = value;
-                        } break;
+                        }
+                        break;
                     case "database":
                         {
                             database = value;
-                        } break;
+                        }
+                        break;
                     case "port":
                         {
                             int.TryParse(value, out portNumber);
-                        } break;
+                        }
+                        break;
                     default:
                         throw new Exception("unknown key?");
                 }
@@ -102,7 +141,7 @@ namespace SharpConnect.MySql
         }
         public bool FromConnectionPool { get; private set; }
 
-        public void Open(Action onComplete = null)
+        internal void InternalOpen(Action onComplete = null)
         {
             this.FromConnectionPool = false;//reset
             //get connection from pool
@@ -125,7 +164,8 @@ namespace SharpConnect.MySql
                             _connStr.Host,
                             _connStr.Username,
                             _connStr.Password,
-                            _connStr.Database) { port = _connStr.PortNumber });
+                            _connStr.Database)
+                        { port = _connStr.PortNumber });
                     _conn.Connect(onComplete);
                 }
             }
@@ -137,11 +177,12 @@ namespace SharpConnect.MySql
                         _connStr.Host,
                         _connStr.Username,
                         _connStr.Password,
-                        _connStr.Database) { port = _connStr.PortNumber }); 
+                        _connStr.Database)
+                    { port = _connStr.PortNumber });
                 _conn.Connect(onComplete);
             }
         }
-        public void Close(Action onComplete = null)
+        internal void InternalClose(Action onComplete = null)
         {
             if (UseConnectionPool)
             {

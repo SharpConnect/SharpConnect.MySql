@@ -3,6 +3,8 @@
 using System;
 using System.Collections.Generic;
 using SharpConnect.MySql;
+using SharpConnect.MySql.SyncPatt;
+
 namespace MySqlTest
 {
     public class TestSet1 : MySqlTestSet
@@ -85,7 +87,24 @@ namespace MySqlTest
             Report.WriteLine("avg:" + avg);
             conn.Close();
         }
-
+   
+        [Test]
+        public static void T_Select_ExecuteScalar()
+        {
+            int n = 100;
+            long total;
+            long avg;
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+            Test(n, TimeUnit.Ticks, out total, out avg, () =>
+            {
+                var cmd = new MySqlCommand("select sysdate()", conn);
+                object result = cmd.ExecuteScalar();
+            });
+            Report.WriteLine("avg:" + avg);
+            conn.Close();
+        }
         [Test]
         public static void T_CreateTable()
         {

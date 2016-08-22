@@ -121,7 +121,7 @@ namespace SharpConnect.MySql.Mapper
             object value = reader.GetValue(mapField.OriginalFieldIndex);
 #if DEBUG
             Type srcType = value.GetType();
-           
+
 #endif
 
             switch (mapField.ConvTechnique)

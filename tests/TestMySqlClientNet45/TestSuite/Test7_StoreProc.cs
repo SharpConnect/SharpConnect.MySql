@@ -2,7 +2,8 @@
 using System;
 using System.Collections.Generic;
 using SharpConnect.MySql;
-
+using SharpConnect.MySql.SyncPatt;
+using SharpConnect.MySql.AsyncPatt;
 
 namespace MySqlTest
 {
@@ -138,38 +139,32 @@ namespace MySqlTest
                 // Console.WriteLine("5");
                 string callProc = "call multi();";
                 var cmd = new MySqlCommand(callProc, conn);
-                var reader = cmd.ExecuteReader();
+
                 //access to sub table
-
                 var currentSubTable = MySqlSubTable.Empty;
-                reader.Read(subtable =>
+                cmd.ExecuteSubTableReader(reader =>
                 {
-
-                    if (subtable.Header != currentSubTable.Header)
+                    if (reader.CurrentSubTable.Header != currentSubTable.Header)
                     {
                         //change main table
                         //some table may split into many sub table
-
                     }
-                    currentSubTable = subtable;
+                    currentSubTable = reader.CurrentSubTable;
                     //on each subtable
                     //create data reader for the subtable
-                    MySubTableDataReader r = subtable.CreateDataReader();
-                    int rowCount = r.RowCount;
-                    for (int i = 0; i < rowCount; ++i)
+                    while (reader.Read())
                     {
-                        r.SetCurrentRowIndex(i);
-                        //get data
-                        Console.WriteLine(r.GetInt32(0));
+                        Console.WriteLine(reader.GetInt32(0));
                     }
 
+                    //last table
 
-                    if (subtable.IsLastTable)
+                    if (currentSubTable.IsLastTable)
                     {
-                        reader.Close();
                         conn.Close();
                     }
                 });
+
             }
 
         }

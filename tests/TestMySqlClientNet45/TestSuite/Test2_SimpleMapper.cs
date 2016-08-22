@@ -4,6 +4,9 @@ using System;
 using System.Collections.Generic;
 using SharpConnect.MySql;
 using SharpConnect.MySql.Mapper;
+ 
+using SharpConnect.MySql.SyncPatt;
+
 namespace MySqlTest
 {
     public class TestSet2_SimpleMapper : MySqlTestSet
@@ -12,28 +15,23 @@ namespace MySqlTest
         public static void T_InsertAndSelect()
         {
 
-            try
+
+
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.UseConnectionPool = true;
+            conn.Open();
+
+            DropTableIfExists(conn);
+            CreateTable(conn);
+            for (int i = 0; i < 100; ++i)
             {
-
-                var connStr = GetMySqlConnString();
-                var conn = new MySqlConnection(connStr);
-                conn.UseConnectionPool = true;
-                conn.Open();
-
-                DropTableIfExists(conn);
-                CreateTable(conn);
-                for (int i = 0; i < 100; ++i)
-                {
-                    InsertData(conn);
-                }
-                SelectDataBack(conn);
-                conn.Close();
-
+                InsertData(conn);
             }
-            catch (Exception ex)
-            {
+            SelectDataBack(conn);
+            conn.Close();
 
-            }
+
         }
         static void DropTableIfExists(MySqlConnection conn)
         {
@@ -87,5 +85,6 @@ namespace MySqlTest
             public int col1;
             public string col2;
         }
-    }
+    } 
+
 }

@@ -35,7 +35,7 @@ namespace SharpConnect.MySql.Internal
         public bool typeCast;
     }
 
-    delegate void Action<T>(T a);
+
 
     enum QueryExecState
     {
@@ -168,6 +168,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
+
         /// <summary>
         ///+/- blocking 
         /// </summary>
@@ -207,6 +208,12 @@ namespace SharpConnect.MySql.Internal
                 _conn.Wait();
             }
         }
+
+
+
+
+
+
 
         /// <summary>
         ///  +/- blocking
@@ -442,7 +449,15 @@ namespace SharpConnect.MySql.Internal
                                 //last sub table is not partial table  
                                 //and must notify reader first***
                                 //before call  RecvComplete();
+
+                                //----------------------------------------- 
+
+
+
                                 MySqlTableResult tableResult = result as MySqlTableResult;
+                                //***
+                                _recvComplete = !tableResult.HasFollower;
+
                                 if (_tableResultListener != null)
                                 {
                                     //the _tableResultListener may modifid by other state (Close)
@@ -491,7 +506,7 @@ namespace SharpConnect.MySql.Internal
                                             //if don't lock we need to store it to local var
                                             _tableResultListener(table);
                                         }
-                                        
+
                                         if (!table.HasFollower)
                                         {
                                             RecvComplete();
