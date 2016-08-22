@@ -66,6 +66,7 @@ namespace SharpConnect.MySql.AsyncPatt
                 ch.AutoCallNext = false;
                 cmd.ExecuteSubTableReader(subtable =>
                 {
+                    //this method is respond for call next ***
                     ch.AutoCallNext = true;
                     readerReady(subtable);
                     if (ch.AutoCallNext)
@@ -142,7 +143,7 @@ namespace SharpConnect.MySql.AsyncPatt
         public ActionTask(TaskChain tc, Action action)
             : base(tc)
         {
-            //this.AutoCallNextTask = autoCallNextTask;//default
+
             this.action = action;
         }
         public TaskStatus Status
@@ -160,11 +161,11 @@ namespace SharpConnect.MySql.AsyncPatt
                     taskStatus = TaskStatus.Running;
                     action();
                     taskStatus = TaskStatus.Finish;
+
                     if (this.OwnerTaskChain.AutoCallNext)
                     {
                         this.OwnerTaskChain.Next();
                     }
-
                     break;
                 default:
                     throw new NotSupportedException();
@@ -218,23 +219,34 @@ namespace SharpConnect.MySql.AsyncPatt
             return actionTask;
         }
 
-        public void Start()
+        public void Start(Action whenFinish = null)
         {
             //start once ***
             if (isStarted)
             {
                 throw new Exception("task chain has started!");
             }
-
+            if (whenFinish != null)
+            {
+                if (this.onFinish != null)
+                {
+                    throw new Exception("task chain has on finish handler!");
+                }
+                else
+                {
+                    this.onFinish = whenFinish;
+                }
+            }
+            //------------------------------
             isStarted = true;
             pleaseStop = false;
+            this.AutoCallNext = true;
             if (taskList.Count > 0)
             {
                 //finish task
                 this.AddTask(() =>
                 {
                 });
-
                 //---------------------------------
                 //update insert index= current index
                 insertIndex = currentIndex = 0;
@@ -259,6 +271,7 @@ namespace SharpConnect.MySql.AsyncPatt
             //but not cancel task execution
             pleaseStop = true;
         }
+
         internal void Next()
         {
             if (pleaseStop)

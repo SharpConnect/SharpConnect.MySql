@@ -274,7 +274,7 @@ namespace SharpConnect.MySql.Internal
             while (_globalWaiting)
             {   //tight loop,*** wait, or use thread sleep 
                 _justEmptyCall.JustEmptyMethod();
-            } 
+            }
         }
         public void UnWait()
         {
@@ -397,12 +397,12 @@ namespace SharpConnect.MySql.Internal
         //---------------------------------------------------------------
         public bool IsStoredInConnPool { get; set; }
         public Query BindingQuery { get; set; }
-        public void ForceReleaseBindingQuery()
+        public void ForceReleaseBindingQuery(Action nextAction = null)
         {
             //force release binding query
             if (BindingQuery != null)
             {
-                BindingQuery.Close();
+                BindingQuery.Close(nextAction);
                 this.BindingQuery = null;
             }
         }
