@@ -39,7 +39,10 @@ namespace SharpConnect.MySql
         {
             get;
         }
-
+        public bool IsLastTable
+        {
+            get { return CurrentSubTable.IsLastTable; }
+        }
         public int FieldCount
         {
             get
@@ -492,10 +495,13 @@ namespace SharpConnect.MySql
                 //unblock
                 _query.Close(() =>
                 {
-                    currentRowIndex = 0;
-                    currentTableRowCount = 0;
-                    currentSubTable = MySqlSubTable.Empty;
-                    subTables.Clear();
+                    //after close  (just close relation with the connection)
+                    //we can continue read cache data in this reader ***
+                    //so we don't clear the cache data . 
+                    //currentRowIndex = 0;
+                    //currentTableRowCount = 0;
+                    //currentSubTable = MySqlSubTable.Empty;
+                    //subTables.Clear(); 
                     nextAction();
                 });
             }

@@ -191,11 +191,14 @@ namespace SharpConnect.MySql
                     //table is ready for read***
                     //just read single value 
                     var subTReader = subt.CreateDataReader();
+                   
+
                     onEachSubTable(subTReader);
+
                     if (subt.IsLastTable)
                     {
-                        //atuo close reader 
-                        dataReader.InternalClose(() => { });
+                        //auto close reader 
+                        dataReader.InternalClose(() => { });//send empty lambda for async  
                     }
                 });
             });

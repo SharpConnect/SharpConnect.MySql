@@ -207,13 +207,7 @@ namespace SharpConnect.MySql.Internal
                 }
                 _conn.Wait();
             }
-        }
-
-
-
-
-
-
+        } 
 
         /// <summary>
         ///  +/- blocking
@@ -224,6 +218,7 @@ namespace SharpConnect.MySql.Internal
             //-------------------------------------------------
             switch (_execState)
             {
+                //can close twice without error
                 case QueryExecState.Closed:
                     if (nextAction != null)
                     {
@@ -450,10 +445,7 @@ namespace SharpConnect.MySql.Internal
                                 //and must notify reader first***
                                 //before call  RecvComplete();
 
-                                //----------------------------------------- 
-
-
-
+                                //-----------------------------------------  
                                 MySqlTableResult tableResult = result as MySqlTableResult;
                                 //***
                                 _recvComplete = !tableResult.HasFollower;
@@ -500,6 +492,7 @@ namespace SharpConnect.MySql.Internal
                                         //and must notify reader first***
                                         //before call  RecvComplete();
 
+                                        _recvComplete = !table.HasFollower;
                                         if (_tableResultListener != null)
                                         {
                                             //the _tableResultListener may modifid by other state (Close)

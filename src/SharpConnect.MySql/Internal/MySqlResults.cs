@@ -91,10 +91,7 @@ namespace SharpConnect.MySql.Internal
         public MySqlTableResult(TableHeader tableHeader, List<DataRowPacket> rows)
         {
             this.tableHeader = tableHeader;
-            this.rows = rows;
-            if (rows == null)
-            {
-            }
+            this.rows = rows; 
         }
         /// <summary>
         /// this is not the last table of result, It has one or more follower table
