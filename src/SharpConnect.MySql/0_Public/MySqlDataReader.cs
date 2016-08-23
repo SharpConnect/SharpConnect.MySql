@@ -138,7 +138,10 @@ namespace SharpConnect.MySql
             //TODO: check match type and index here
             return currentRow.Cells[colIndex].myBuffer;
         }
-
+        public bool IsDBNull(int colIndex)
+        {
+            return currentRow.Cells[colIndex].type == MySqlDataType.NULL;
+        }
         public DateTime GetDateTime(int colIndex)
         {
             //TODO: check match type and check index here

@@ -28,6 +28,9 @@ namespace SharpConnect.MySql.Internal
     class QueryParsingConfig
     {
         public bool UseLocalTimeZone;
+        /// <summary>
+        /// use string as datetime, not convert to datetime value
+        /// </summary>
         public bool DateStrings;
         public string TimeZone;
         public bool SupportBigNumbers;
@@ -60,7 +63,7 @@ namespace SharpConnect.MySql.Internal
         bool _prepareStatementMode;
         QueryUseMode _queryUsedMode;
 
-        MySqlStreamWrtier _writer;
+        MySqlStreamWriter _writer;
         SqlStringTemplate _sqlStrTemplate;
         PreparedContext _prepareContext;
         MySqlParserMx _sqlParserMx;
@@ -111,7 +114,7 @@ namespace SharpConnect.MySql.Internal
         {
             if (this._execState == QueryExecState.Closed) { return true; }
 
-            if (_queryUsedMode == QueryUseMode.ExecNoneQuery && _prepareContext == null)
+            if (_queryUsedMode == QueryUseMode.ExecNoneQuery)
             {
                 this.Close();
                 this._conn.BindingQuery = null;

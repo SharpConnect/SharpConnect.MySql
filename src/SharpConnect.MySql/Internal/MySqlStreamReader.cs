@@ -112,7 +112,7 @@ namespace SharpConnect.MySql.Internal
         public void Reset()
         {
 #if DEBUG
-            dbugBreakOnMonitorData(); 
+            dbugBreakOnMonitorData();
             if (_stream.Position < _currentInputLength)
             {
 
@@ -132,7 +132,7 @@ namespace SharpConnect.MySql.Internal
             dbugBreakOnMonitorData();
 #endif
 
-            long saved_pos = _stream.Position; 
+            long saved_pos = _stream.Position;
             _stream.Position = _currentInputLength;
             //----------------------------
             recvIO.CopyTo(0, _stream, count);
@@ -323,11 +323,14 @@ namespace SharpConnect.MySql.Internal
             dbugBreakOnMonitorData();
 #endif
             //var length = this.parseLengthCodedNumber();
-            uint length = ReadLengthCodedNumber();
+            bool isNull;
+            uint length = ReadLengthCodedNumber(out isNull);
             //if (length === null) {
             //  return null;
             //}
-            return ReadString(length);
+            return isNull ? null : ReadString(length);
+
+
             //return this.parseString(length);
         }
 
@@ -337,11 +340,13 @@ namespace SharpConnect.MySql.Internal
             dbugBreakOnMonitorData();
 #endif
             //var length = this.parseLengthCodedNumber();
-            uint length = ReadLengthCodedNumber();
+            bool isNull;
+            uint length = ReadLengthCodedNumber(out isNull);
             //  if (length === null) {
             //    return null;
             //  }
-            return ReadBuffer((int)length);
+            return isNull ? null : ReadBuffer((int)length);
+            
             //  return this.parseBuffer(length);
         }
 
@@ -355,9 +360,16 @@ namespace SharpConnect.MySql.Internal
 
         public uint ReadLengthCodedNumber()
         {
+            //ignore is null
+            bool isNull;
+            return ReadLengthCodedNumber(out isNull);
+        }
+        public uint ReadLengthCodedNumber(out bool isNullData)
+        {
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
+            isNullData = false;
             //if (this._offset >= this._buffer.length)
             //    {
             //        var err = new Error('Parser: read past end');
@@ -400,7 +412,9 @@ namespace SharpConnect.MySql.Internal
 
             switch (bits)
             {
-                case 251: return 0;
+                case 251:
+                    isNullData = true;
+                    return 0;
                 case 252: return U2();
                 case 253: return U3();
                 case 254: break;

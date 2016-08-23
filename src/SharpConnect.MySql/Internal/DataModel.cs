@@ -427,7 +427,9 @@ namespace SharpConnect.MySql.Internal
         [System.Runtime.InteropServices.FieldOffset(16)]
         public string myString;
         [System.Runtime.InteropServices.FieldOffset(24)]
-        public MySqlDataType type;
+        public MySqlDataType type; //1  byte
+       
+
         public override string ToString()
         {
             switch (type)

@@ -62,7 +62,7 @@ namespace SharpConnect.MySql.Internal
         }
 
 
-        public abstract void WritePacket(MySqlStreamWrtier writer);
+        public abstract void WritePacket(MySqlStreamWriter writer);
         // The maximum precision JS Numbers can hold precisely
         // Don't panic: Good enough to represent byte values up to 8192 TB
         public const long IEEE_754_BINARY_64_PRECISION = (long)1 << 53;
@@ -177,7 +177,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             writer.ReserveHeader();//allocate header
             if (protocol41)
@@ -226,12 +226,12 @@ namespace SharpConnect.MySql.Internal
             _sql = r.ReadPacketTerminatedString();
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             this._header = Write(writer, this._sql);
         }
 
-        public static PacketHeader Write(MySqlStreamWrtier writer, string sql)
+        public static PacketHeader Write(MySqlStreamWriter writer, string sql)
         {
             //for those who don't want to alloc an new packet
             //just write it into a stream
@@ -255,11 +255,11 @@ namespace SharpConnect.MySql.Internal
             //ParsePacketHeader(parser);
             //this.command = parser.ParseByte();
         }
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             this._header = Write(writer);
         }
-        public static PacketHeader Write(MySqlStreamWrtier writer)
+        public static PacketHeader Write(MySqlStreamWriter writer)
         {
             //for those who don't want to alloc an new packet
             //just write it into a stream
@@ -286,11 +286,11 @@ namespace SharpConnect.MySql.Internal
             throw new NotImplementedException();
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             this._header = Write(writer, this._sql);
         }
-        public static PacketHeader Write(MySqlStreamWrtier writer, string sql)
+        public static PacketHeader Write(MySqlStreamWriter writer, string sql)
         {
             //for those who don't want to alloc an new packet
             //just write it into a stream
@@ -320,12 +320,12 @@ namespace SharpConnect.MySql.Internal
             throw new NotImplementedException();
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             Write(writer, this._statementId, _prepareValues);
         }
 
-        static void WriteValueByType(MySqlStreamWrtier writer, ref MyStructData dataTemp)
+        static void WriteValueByType(MySqlStreamWriter writer, ref MyStructData dataTemp)
         {
             switch (dataTemp.type)
             {
@@ -367,7 +367,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public static PacketHeader Write(MySqlStreamWrtier writer, uint stmtId, MyStructData[] _prepareValues)
+        public static PacketHeader Write(MySqlStreamWriter writer, uint stmtId, MyStructData[] _prepareValues)
         {
             //for those who don't want to alloc an new packet
             //just write it into a stream
@@ -448,11 +448,11 @@ namespace SharpConnect.MySql.Internal
         {
             throw new NotImplementedException();
         }
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             _header = Write(writer, _statementId);
         }
-        public static PacketHeader Write(MySqlStreamWrtier writer, uint stmtId)
+        public static PacketHeader Write(MySqlStreamWriter writer, uint stmtId)
         {
             //for those who don't want to alloc an new packet
             //just write it into a stream
@@ -477,11 +477,11 @@ namespace SharpConnect.MySql.Internal
         {
             throw new NotImplementedException();
         }
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             _header = Write(writer, this._statementId);
         }
-        public static PacketHeader Write(MySqlStreamWrtier writer, uint stmtId)
+        public static PacketHeader Write(MySqlStreamWriter writer, uint stmtId)
         {
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_RESET);
@@ -512,7 +512,7 @@ namespace SharpConnect.MySql.Internal
             throw new NotImplementedException();
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             writer.ReserveHeader();
             writer.WriteUnsigned4(_statement_id);
@@ -520,7 +520,7 @@ namespace SharpConnect.MySql.Internal
             WriteValueByType(writer, _data);
         }
 
-        void WriteValueByType(MySqlStreamWrtier writer, MyStructData dataTemp)
+        void WriteValueByType(MySqlStreamWriter writer, MyStructData dataTemp)
         {
             switch (dataTemp.type)
             {
@@ -574,7 +574,7 @@ namespace SharpConnect.MySql.Internal
                 serverStatus = r.U2();//2
             }
         }
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
             //writer.ReserveHeader();//allocate packet header
@@ -614,7 +614,7 @@ namespace SharpConnect.MySql.Internal
 #endif
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
         }
@@ -761,7 +761,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
         }
@@ -831,7 +831,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
             //writer.writeUnsignedNumber(1, this.protocolVersion);
@@ -894,7 +894,7 @@ namespace SharpConnect.MySql.Internal
             //}
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
         }
@@ -923,7 +923,7 @@ namespace SharpConnect.MySql.Internal
             waring_count = r.ReadUnsigedNumber(2);
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
         }
@@ -954,7 +954,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
         }
@@ -1011,7 +1011,7 @@ namespace SharpConnect.MySql.Internal
             {
                 for (int i = 0; i < j; i++)
                 {
-                    FieldPacket fieldInfo = fieldInfos[i]; 
+                    FieldPacket fieldInfo = fieldInfos[i];
                     if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
                     {
                         _myDataList[i].myBuffer = r.ReadLengthCodedBuffer();
@@ -1091,20 +1091,18 @@ namespace SharpConnect.MySql.Internal
                         QueryParsingConfig qparsingConfig = _tableHeader.ParsingConfig;
                         tmpStringBuilder.Length = 0;//clear 
                         data.myString = r.ReadLengthCodedString();
-                        if (qparsingConfig.DateStrings)
-                        {
-                            //return new FieldData<string>(type, dateString);
-                            //data.myString = dateString;
-                            data.type = type;
-                            return;
-                        }
-
+                        data.type = type;
                         if (data.myString == null)
                         {
                             data.type = MySqlDataType.NULL;
                             return;
                         }
+                        if (qparsingConfig.DateStrings)
+                        {
+                            return;
+                        }
 
+                        //-------------------------------------------------------------
                         //    var originalString = dateString;
                         //    if (field.type === Types.DATE) {
                         //      dateString += ' 00:00:00';
@@ -1132,8 +1130,7 @@ namespace SharpConnect.MySql.Internal
                         data.myDateTime = DateTime.Parse(tmpStringBuilder.ToString(),
                             System.Globalization.CultureInfo.InvariantCulture);
                         data.type = type;
-                        tmpStringBuilder.Length = 0;
-
+                        tmpStringBuilder.Length = 0;//clear 
                     }
                     return;
                 case MySqlDataType.TINY:
@@ -1144,7 +1141,9 @@ namespace SharpConnect.MySql.Internal
 
                     //TODO: review here,                    
                     data.myString = numberString = r.ReadLengthCodedString();
-                    if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0') || numberString.Length == 0)
+                    if (numberString == null ||
+                        (fieldPacket.zeroFill && numberString[0] == '0') ||
+                        numberString.Length == 0)
                     {
                         data.type = MySqlDataType.NULL;
                     }
@@ -1159,7 +1158,6 @@ namespace SharpConnect.MySql.Internal
                     data.myString = numberString = r.ReadLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
-                        data.myString = numberString;
                         data.type = MySqlDataType.NULL;
                     }
                     else
@@ -1183,7 +1181,6 @@ namespace SharpConnect.MySql.Internal
                     data.myString = numberString = r.ReadLengthCodedString();
                     if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
                     {
-                        data.myString = numberString;
                         data.type = MySqlDataType.NULL;
                     }
                     else if (config.SupportBigNumbers && (config.BigNumberStrings || (Convert.ToInt64(numberString) > IEEE_754_BINARY_64_PRECISION)))
@@ -1219,13 +1216,13 @@ namespace SharpConnect.MySql.Internal
                 case MySqlDataType.BLOB:
                     if (fieldPacket.charsetNr == (int)CharSets.BINARY)
                     {
-                        data.myBuffer = r.ReadLengthCodedBuffer(); //CodedBuffer
-                        data.type = type;
+                        data.myBuffer = r.ReadLengthCodedBuffer();
+                        data.type = (data.myBuffer != null) ? type : MySqlDataType.NULL;
                     }
                     else
                     {
-                        data.myString = r.ReadLengthCodedString();//codeString
-                        data.type = type;
+                        data.myString = r.ReadLengthCodedString();
+                        data.type = (data.myString != null) ? type : MySqlDataType.NULL;
                     }
                     return;
                 //    return (field.charsetNr === Charsets.BINARY)
@@ -1242,7 +1239,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
         }
