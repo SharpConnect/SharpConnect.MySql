@@ -50,6 +50,12 @@ namespace SharpConnect.MySql
                 return CurrentSubTable.FieldCount;
             }
         }
+        public System.Text.Encoding StringEncoding
+        {
+            get;
+            set;
+        }
+
         /// <summary>
         /// get field name of specific column index
         /// </summary>
@@ -400,6 +406,8 @@ namespace SharpConnect.MySql
             {
                 //on each subtable
                 var tableReader = st.CreateDataReader();
+                tableReader.StringEncoding = this.StringEncoding;
+
                 int j = st.RowCount;
                 for (int i = 0; i < j; ++i)
                 {
