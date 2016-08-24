@@ -26,7 +26,7 @@ using System.IO;
 using System.Text;
 namespace SharpConnect.MySql.Internal
 {
-    class MySqlStreamWrtier
+    class MySqlStreamWriter
     {
         MyBinaryWriter _writer;
         byte _packetNumber;
@@ -36,7 +36,7 @@ namespace SharpConnect.MySql.Internal
         byte[] _headerBuffer = new byte[4];//reusable header buffer
         const int BIT_16 = (int)1 << 16;//(int)Math.Pow(2, 16);
         const int BIT_24 = (int)1 << 24;//(int)Math.Pow(2, 24);
-        public MySqlStreamWrtier(Encoding encoding)
+        public MySqlStreamWriter(Encoding encoding)
         {
             _writer = new MyBinaryWriter();
             _writer.Reset();
@@ -45,7 +45,7 @@ namespace SharpConnect.MySql.Internal
             _encoding = encoding;
         }
 
-        ~MySqlStreamWrtier()
+        ~MySqlStreamWriter()
         {
             Dispose();
         }

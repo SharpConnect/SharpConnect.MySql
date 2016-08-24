@@ -25,7 +25,7 @@ namespace MySqlTest
 
                     DropTableIfExists(conn);
                     CreateTable(conn);
-                    for (int i = 0; i < 2000; ++i)
+                    for (int i = 0; i < 100; ++i)
                     {
                         InsertData(conn);
                     }
@@ -72,7 +72,12 @@ namespace MySqlTest
             while (reader.Read())
             {
                 //test immediate close
-                reader.Close();
+                //reader.Close();
+                object o0 = reader.GetValue(0);
+                object o1 = reader.GetValue(1);
+                object o2 = reader.GetValue(2);
+                object o3 = reader.GetValue(3);
+
             }
             reader.Close();
         }
