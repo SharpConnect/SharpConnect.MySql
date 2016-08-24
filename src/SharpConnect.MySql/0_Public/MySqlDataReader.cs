@@ -137,14 +137,25 @@ namespace SharpConnect.MySql
             {
                 //read each cell , binary protocol ***
                 //1. skip start packet byte [00]
-                //2. skip null-bitmap, length:(column-count+7+2)/8
-                //r.ReadFiller(1);//skip start packet byte [00]
-                //r.ReadFiller((columnCount + 7 + 2) / 8);//skip null-bitmap, length:(column-count+7+2)/8
+                bufferReader.Position = 1;
+                //2. read null-bitmap, length:(column-count+7+2)/8
+                //A Binary Protocol Resultset Row is made up of the NULL bitmap containing as many bits as we have columns in the resultset +2 and the values for columns that are not NULL in the Binary Protocol Value format.
+                //see: https://dev.mysql.com/doc/internals/en/binary-protocol-resultset-row.html#packet-ProtocolBinary::ResultsetRow
+
                 int columnCount = currentSubTable.FieldCount;
-                bufferReader.Position = 1 + ((columnCount + 7 + 2) / 8); //skip 1+ bitmap len
+                int nullBmpLen = (columnCount + 7 + 2) / 8;
+                byte[] nullBitmap = bufferReader.ReadBytes(nullBmpLen);
                 for (int i = 0; i < columnCount; ++i)
                 {
-                    cells[i] = ReadCurrentRowBinaryProtocol(currentSubTable.GetFieldDefinition(i));
+                    //check if this cell is null (1) or not (0)
+                    int logicalBitPos = i + 2;
+                    byte nullBmpByte = nullBitmap[logicalBitPos / 8];
+                    int shift = logicalBitPos % 8;
+                    if (((nullBmpByte >> shift) & 1) == 0)
+                    {
+                        //not null
+                        cells[i] = ReadCurrentRowBinaryProtocol(currentSubTable.GetFieldDefinition(i));
+                    }
                 }
 
             }
