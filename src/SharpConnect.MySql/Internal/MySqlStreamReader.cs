@@ -334,22 +334,26 @@ namespace SharpConnect.MySql.Internal
             //return this.parseString(length);
         }
 
-        public byte[] ReadLengthCodedBuffer()
+        public bool ReadLengthCodedBuffer(out byte[] outputBuffer)
         {
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            //var length = this.parseLengthCodedNumber();
             bool isNull;
             uint length = ReadLengthCodedNumber(out isNull);
-            //  if (length === null) {
-            //    return null;
-            //  }
-            return isNull ? null : ReadBuffer((int)length);
-            
-            //  return this.parseBuffer(length);
+            outputBuffer = isNull ? null : ReadBuffer((int)length);
+            return isNull;
         }
 
+        public byte[] ReadLengthCodedBuffer()
+        {
+            byte[] output = null;
+            if (ReadLengthCodedBuffer(out output))
+            {
+                return output;
+            }
+            return null;
+        }
         public void ReadFiller(int length)
         {
 #if DEBUG

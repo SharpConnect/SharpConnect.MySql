@@ -341,7 +341,7 @@ namespace SharpConnect.MySql.Internal
                         new PreparedDataRowPacket(_currentHeader, _tableHeader) :
                         new DataRowPacket(_currentHeader, _tableHeader);
                 //----------------------------------
-                dataRow.ParsePacketContent(reader);
+                dataRow.ParseRowData(reader, _tableHeader, _currentHeader.ContentLength);
                 _rows.Add(dataRow);
             }
             else
@@ -722,7 +722,7 @@ namespace SharpConnect.MySql.Internal
                 return _needMoreData = true;
             }
             var field = new FieldPacket(_currentHeader, _isProtocol41);
-            field.ParsePacketContent(reader);            
+            field.ParsePacketContent(reader);
             field.FieldIndex = _tableHeader.ColumnCount; //set this before  add to field list
             _tableHeader.AddField(field);
             //back to field header

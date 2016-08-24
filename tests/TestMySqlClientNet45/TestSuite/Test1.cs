@@ -330,13 +330,13 @@ namespace MySqlTest
             {
                 string sql = "select myname,col2,mydtm from test001";
                 var cmd = new MySqlCommand(sql, conn);
+                cmd.Prepare();
                 var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
                     string f0 = reader.GetString(0);
                     string f1 = reader.GetString(1);
-                    DateTime dtm = reader.GetDateTime(2);
-                    
+                    DateTime dtm = reader.GetDateTime(2); 
 
                 }
                 reader.Close();

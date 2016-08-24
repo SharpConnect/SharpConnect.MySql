@@ -111,6 +111,9 @@
     <Compile Include="..\SharpConnect.MySql\1_Public_ResultMapper\ResultMapperExtension.cs">
       <Link>1_ResultMapperExtension\ResultMapperExtension.cs</Link>
     </Compile>
+    <Compile Include="..\SharpConnect.MySql\Internal\BufferReader.cs">
+      <Link>Internal\BufferReader.cs</Link>
+    </Compile>
     <Compile Include="..\SharpConnect.MySql\Internal\ConnectionPool.cs">
       <Link>Internal\ConnectionPool.cs</Link>
     </Compile>
@@ -119,6 +122,9 @@
     </Compile>
     <Compile Include="..\SharpConnect.MySql\Internal\DataModel.cs">
       <Link>Internal\DataModel.cs</Link>
+    </Compile>
+    <Compile Include="..\SharpConnect.MySql\Internal\MySqlBufferReaderExtension.cs">
+      <Link>Internal\MySqlBufferReaderExtension.cs</Link>
     </Compile>
     <Compile Include="..\SharpConnect.MySql\Internal\MySqlDataConversion.cs">
       <Link>Internal\MySqlDataConversion.cs</Link>

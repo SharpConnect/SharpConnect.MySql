@@ -964,17 +964,37 @@ namespace SharpConnect.MySql.Internal
 
     class DataRowPacket : Packet
     {
-        protected MyStructData[] _myDataList;//cell
-        protected TableHeader _tableHeader;
+         
+        internal byte[] _rowDataBuffer;
         public DataRowPacket(PacketHeader header, TableHeader tableHeader)
             : base(header)
-        {
-            _tableHeader = tableHeader;
-            _myDataList = new MyStructData[tableHeader.ColumnCount];
+        {          
         }
+        public void ParseRowData(MySqlStreamReader r, TableHeader tableHeader, uint totalRowBufferLen)
+        {
+            //in  this version row buffer len must < int.MaxLength
+            if (totalRowBufferLen > int.MaxValue)
+            {
+                throw new NotSupportedException("not support this length");
+            }
+            //------------------------------------
+            _rowDataBuffer = r.ReadBuffer((int)totalRowBufferLen);
+            //int j = tableHeader.ColumnCount;
+            //_myDataList = new MyStructData[j];
+            //List<FieldPacket> fieldInfos = tableHeader.GetFields();
+            //for (int i = 0; i < j; ++i)
+            //{
+            //    _myDataList[i].type = (r.ReadLengthCodedBuffer(out _myDataList[i].myBuffer)) ?
+            //                 MySqlDataType.NULL :
+            //                 (MySqlDataType)fieldInfos[i].columnType;
+            //}
 
+        }
         public override void ParsePacketContent(MySqlStreamReader r)
         {
+            //not use this func ***
+            throw new NotSupportedException("not use this method, please use ParseRowData()");
+
             //function parse(parser, fieldPackets, typeCast, nestTables, connection) {
             //  var self = this;
             //  var next = function () {
@@ -992,380 +1012,148 @@ namespace SharpConnect.MySql.Internal
             //we just replace some part of it ***
             //---------------------------------------------
 
-            List<FieldPacket> fieldInfos = _tableHeader.GetFields();
-            int j = _tableHeader.ColumnCount;
-            //---------------------------------------------
-            if (_tableHeader.TypeCast)
-            {
-                if (_tableHeader.NestTables)
-                {
-                    throw new NotSupportedException("nest table");
-                }
-                //------------
-                for (int i = 0; i < j; i++)
-                {
-                    ReadCellWithTypeCast(r, fieldInfos[i], ref _myDataList[i]);
-                }
-            }
-            else
-            {
-                for (int i = 0; i < j; i++)
-                {
-                    FieldPacket fieldInfo = fieldInfos[i];
-                    if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
-                    {
-                        _myDataList[i].myBuffer = r.ReadLengthCodedBuffer();
-                        _myDataList[i].type = (MySqlDataType)fieldInfo.columnType;
-                        //value = new MyStructData();
-                        //value.myBuffer = parser.ParseLengthCodedBuffer();
-                        //value.type = (Types)fieldInfos[i].type;
-                    }
-                    else
-                    {
-                        _myDataList[i].myString = r.ReadLengthCodedString();
-                        _myDataList[i].type = (MySqlDataType)fieldInfo.columnType;
-                        //value = new MyStructData();
-                        //value.myString = parser.ParseLengthCodedString();
-                        //value.type = (Types)fieldInfos[i].type;
-                    }
-                    //    if (typeof typeCast == "function") {
-                    //      value = typeCast.apply(connection, [ new Field({ packet: fieldPacket, parser: parser }), next ]);
-                    //    } else {
-                    //      value = (typeCast)
-                    //        ? this._typeCast(fieldPacket, parser, connection.config.timezone, connection.config.supportBigNumbers, connection.config.bigNumberStrings, connection.config.dateStrings)
-                    //        : ( (fieldPacket.charsetNr === Charsets.BINARY)
-                    //          ? parser.parseLengthCodedBuffer()
-                    //          : parser.parseLengthCodedString() );
-                    //    }
+            //List<FieldPacket> fieldInfos = _tableHeader.GetFields();
+            //int j = _tableHeader.ColumnCount;
+            ////---------------------------------------------
+            //if (_tableHeader.TypeCast)
+            //{
+            //    if (_tableHeader.NestTables)
+            //    {
+            //        throw new NotSupportedException("nest table");
+            //    }
+            //    //------------
+            //    for (int i = 0; i < j; i++)
+            //    {
+            //        ReadCellWithTypeCast(r, fieldInfos[i], ref _myDataList[i]);
+            //    }
+            //}
+            //else
+            //{
+            //    for (int i = 0; i < j; i++)
+            //    {
+            //        FieldPacket fieldInfo = fieldInfos[i];
+            //        if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
+            //        {
+            //            _myDataList[i].myBuffer = r.ReadLengthCodedBuffer();
+            //            _myDataList[i].type = (MySqlDataType)fieldInfo.columnType;
+            //            //value = new MyStructData();
+            //            //value.myBuffer = parser.ParseLengthCodedBuffer();
+            //            //value.type = (Types)fieldInfos[i].type;
+            //        }
+            //        else
+            //        {
+            //            _myDataList[i].myString = r.ReadLengthCodedString();
+            //            _myDataList[i].type = (MySqlDataType)fieldInfo.columnType;
+            //            //value = new MyStructData();
+            //            //value.myString = parser.ParseLengthCodedString();
+            //            //value.type = (Types)fieldInfos[i].type;
+            //        }
+            //        //    if (typeof typeCast == "function") {
+            //        //      value = typeCast.apply(connection, [ new Field({ packet: fieldPacket, parser: parser }), next ]);
+            //        //    } else {
+            //        //      value = (typeCast)
+            //        //        ? this._typeCast(fieldPacket, parser, connection.config.timezone, connection.config.supportBigNumbers, connection.config.bigNumberStrings, connection.config.dateStrings)
+            //        //        : ( (fieldPacket.charsetNr === Charsets.BINARY)
+            //        //          ? parser.parseLengthCodedBuffer()
+            //        //          : parser.parseLengthCodedString() );
+            //        //    }
 
 
-                    //TODO: review here
-                    //nestTables=? 
+            //        //TODO: review here
+            //        //nestTables=? 
 
 
-                    //if (nestTables)
-                    //{
-                    //    //      this[fieldPacket.table] = this[fieldPacket.table] || {};
-                    //    //      this[fieldPacket.table][fieldPacket.name] = value;
-                    //}
-                    //else
-                    //{
-                    //    //      this[fieldPacket.name] = value;
-                    //    myDataList[i] = value;
-                    //}
+            //        //if (nestTables)
+            //        //{
+            //        //    //      this[fieldPacket.table] = this[fieldPacket.table] || {};
+            //        //    //      this[fieldPacket.table][fieldPacket.name] = value;
+            //        //}
+            //        //else
+            //        //{
+            //        //    //      this[fieldPacket.name] = value;
+            //        //    myDataList[i] = value;
+            //        //}
 
 
-                    //    if (typeof nestTables == "string" && nestTables.length) {
-                    //      this[fieldPacket.table + nestTables + fieldPacket.name] = value;
-                    //    } else if (nestTables) {
-                    //      this[fieldPacket.table] = this[fieldPacket.table] || {};
-                    //      this[fieldPacket.table][fieldPacket.name] = value;
-                    //    } else {
-                    //      this[fieldPacket.name] = value;
-                    //    }
-                    //  }
-                    //}
-                }
-            }
+            //        //    if (typeof nestTables == "string" && nestTables.length) {
+            //        //      this[fieldPacket.table + nestTables + fieldPacket.name] = value;
+            //        //    } else if (nestTables) {
+            //        //      this[fieldPacket.table] = this[fieldPacket.table] || {};
+            //        //      this[fieldPacket.table][fieldPacket.name] = value;
+            //        //    } else {
+            //        //      this[fieldPacket.name] = value;
+            //        //    }
+            //        //  }
+            //        //}
+            //    }
+            //}
 
         }
 
-        /// <summary>
-        /// read a data cell with type cast
-        /// </summary>
-        /// <param name="r"></param>
-        /// <param name="fieldPacket"></param>
-        /// <param name="data"></param>
-        void ReadCellWithTypeCast(MySqlStreamReader r, FieldPacket fieldPacket, ref MyStructData data)
+        ///// <summary>
+        ///// read a data cell with type cast
+        ///// </summary>
+        ///// <param name="r"></param>
+        ///// <param name="fieldPacket"></param>
+        ///// <param name="data"></param>
+        //void ReadCellWithTypeCast(MySqlStreamReader r, FieldPacket fieldPacket, ref MyStructData data)
+        //{
+        //    throw new NotSupportedException(); 
+        //}
+        public virtual bool IsBinaryProtocol
         {
-            string numberString;
-            MySqlDataType type = (MySqlDataType)fieldPacket.columnType;
-            switch (type)
-            {
-                case MySqlDataType.TIMESTAMP:
-                case MySqlDataType.DATE:
-                case MySqlDataType.DATETIME:
-                case MySqlDataType.NEWDATE:
-                    {
-                        StringBuilder tmpStringBuilder = r.TempStringBuilder;
-                        QueryParsingConfig qparsingConfig = _tableHeader.ParsingConfig;
-                        tmpStringBuilder.Length = 0;//clear 
-                        data.myString = r.ReadLengthCodedString();
-                        data.type = type;
-                        if (data.myString == null)
-                        {
-                            data.type = MySqlDataType.NULL;
-                            return;
-                        }
-                        if (qparsingConfig.DateStrings)
-                        {
-                            return;
-                        }
-
-                        //-------------------------------------------------------------
-                        //    var originalString = dateString;
-                        //    if (field.type === Types.DATE) {
-                        //      dateString += ' 00:00:00';
-                        //    }
-                        tmpStringBuilder.Append(data.myString);
-                        //string originalString = dateString;
-                        if (fieldPacket.columnType == (int)MySqlDataType.DATE)
-                        {
-                            tmpStringBuilder.Append(" 00:00:00");
-                        }
-                        //    if (timeZone !== 'local') {
-                        //      dateString += ' ' + timeZone;
-                        //    }
-
-                        if (!qparsingConfig.UseLocalTimeZone)
-                        {
-                            tmpStringBuilder.Append(' ' + qparsingConfig.TimeZone);
-                        }
-                        //var dt;
-                        //    dt = new Date(dateString);
-                        //    if (isNaN(dt.getTime())) {
-                        //      return originalString;
-                        //    }
-
-                        data.myDateTime = DateTime.Parse(tmpStringBuilder.ToString(),
-                            System.Globalization.CultureInfo.InvariantCulture);
-                        data.type = type;
-                        tmpStringBuilder.Length = 0;//clear 
-                    }
-                    return;
-                case MySqlDataType.TINY:
-                case MySqlDataType.SHORT:
-                case MySqlDataType.LONG:
-                case MySqlDataType.INT24:
-                case MySqlDataType.YEAR:
-
-                    //TODO: review here,                    
-                    data.myString = numberString = r.ReadLengthCodedString();
-                    if (numberString == null ||
-                        (fieldPacket.zeroFill && numberString[0] == '0') ||
-                        numberString.Length == 0)
-                    {
-                        data.type = MySqlDataType.NULL;
-                    }
-                    else
-                    {
-                        data.myInt32 = Convert.ToInt32(numberString);
-                        data.type = type;
-                    }
-                    return;
-                case MySqlDataType.FLOAT:
-                case MySqlDataType.DOUBLE:
-                    data.myString = numberString = r.ReadLengthCodedString();
-                    if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
-                    {
-                        data.type = MySqlDataType.NULL;
-                    }
-                    else
-                    {
-                        data.myDouble = Convert.ToDouble(numberString);
-                        data.type = type;
-                    }
-                    return;
-                //    return (numberString === null || (field.zeroFill && numberString[0] == "0"))
-                //      ? numberString : Number(numberString);
-                case MySqlDataType.NEWDECIMAL:
-                case MySqlDataType.LONGLONG:
-                    //    numberString = parser.parseLengthCodedString();
-                    //    return (numberString === null || (field.zeroFill && numberString[0] == "0"))
-                    //      ? numberString
-                    //      : ((supportBigNumbers && (bigNumberStrings || (Number(numberString) > IEEE_754_BINARY_64_PRECISION)))
-                    //        ? numberString
-                    //        : Number(numberString));
-
-                    QueryParsingConfig config = _tableHeader.ParsingConfig;
-                    data.myString = numberString = r.ReadLengthCodedString();
-                    if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
-                    {
-                        data.type = MySqlDataType.NULL;
-                    }
-                    else if (config.SupportBigNumbers && (config.BigNumberStrings || (Convert.ToInt64(numberString) > IEEE_754_BINARY_64_PRECISION)))
-                    {
-                        //store as string ?
-                        //TODO: review here  again
-                        data.myString = numberString;
-                        data.type = type;
-                        throw new NotSupportedException();
-                    }
-                    else if (type == MySqlDataType.LONGLONG)
-                    {
-                        data.myInt64 = Convert.ToInt64(numberString);
-                        data.type = type;
-                    }
-                    else//decimal
-                    {
-                        data.myDecimal = Convert.ToDecimal(numberString);
-                        data.type = type;
-                    }
-                    return;
-                case MySqlDataType.BIT:
-
-                    data.myBuffer = r.ReadLengthCodedBuffer();
-                    data.type = type;
-                    return;
-                //    return parser.parseLengthCodedBuffer();
-                case MySqlDataType.STRING:
-                case MySqlDataType.VAR_STRING:
-                case MySqlDataType.TINY_BLOB:
-                case MySqlDataType.MEDIUM_BLOB:
-                case MySqlDataType.LONG_BLOB:
-                case MySqlDataType.BLOB:
-                    if (fieldPacket.charsetNr == (int)CharSets.BINARY)
-                    {
-                        data.myBuffer = r.ReadLengthCodedBuffer();
-                        data.type = (data.myBuffer != null) ? type : MySqlDataType.NULL;
-                    }
-                    else
-                    {
-                        data.myString = r.ReadLengthCodedString();
-                        data.type = (data.myString != null) ? type : MySqlDataType.NULL;
-                    }
-                    return;
-                //    return (field.charsetNr === Charsets.BINARY)
-                //      ? parser.parseLengthCodedBuffer()
-                //      : parser.parseLengthCodedString();
-                case MySqlDataType.GEOMETRY:
-                    //TODO: unfinished
-                    data.type = MySqlDataType.GEOMETRY;
-                    return;
-                default:
-                    data.myString = r.ReadLengthCodedString();
-                    data.type = type;
-                    return;
-            }
+            get { return false; }
         }
-
         public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
         }
 
-        public override string ToString()
-        {
-            //this for debug ***
-            int count = _myDataList.Length;
-            switch (count)
-            {
-                case 0: return "";
-                case 1:
-                    return _myDataList[0].ToString();
-                default:
-                    var stBuilder = new StringBuilder();
-                    //1st
-                    stBuilder.Append(_myDataList[0].ToString());
-                    //then
-                    for (int i = 1; i < count; ++i)
-                    {
-                        //then..
-                        stBuilder.Append(',');
-                        stBuilder.Append(_myDataList[i].ToString());
-                    }
-                    return stBuilder.ToString();
-            }
-        }
+        //public override string ToString()
+        //{
+        //    //this for debug ***
+        //    int count = _myDataList.Length;
+        //    switch (count)
+        //    {
+        //        case 0: return "";
+        //        case 1:
+        //            return _myDataList[0].ToString();
+        //        default:
+        //            var stBuilder = new StringBuilder();
+        //            //1st
+        //            stBuilder.Append(_myDataList[0].ToString());
+        //            //then
+        //            for (int i = 1; i < count; ++i)
+        //            {
+        //                //then..
+        //                stBuilder.Append(',');
+        //                stBuilder.Append(_myDataList[i].ToString());
+        //            }
+        //            return stBuilder.ToString();
+        //    }
+        //}
 
         internal MyStructData[] Cells
         {
-            get { return _myDataList; }
+            get { return null; }
         }
     }
 
 
     class PreparedDataRowPacket : DataRowPacket
     {
+
         public PreparedDataRowPacket(PacketHeader header, TableHeader tableHeader)
             : base(header, tableHeader)
         {
         }
-        public override void ParsePacketContent(MySqlStreamReader r)
+        public override bool IsBinaryProtocol
         {
-            var fieldInfos = _tableHeader.GetFields();
-            int columnCount = _tableHeader.ColumnCount;
-
-            r.ReadFiller(1);//skip start packet byte [00]
-            r.ReadFiller((columnCount + 7 + 2) / 8);//skip null-bitmap, length:(column-count+7+2)/8
-            for (int i = 0; i < columnCount; i++)
+            get
             {
-                ParseValues(r, fieldInfos[i], ref _myDataList[i]);
-#if DEBUG
-                //-------------------------------------------------
-                //this code affect on performance when debug
-                //byte[] mybuffer = _myDataList[i].myBuffer;
-                //dbugBufferView view = new dbugBufferView(mybuffer, 0, mybuffer.Length);
-                //view.viewIndex = view.CheckNoDulpicateBytes();
-                //-------------------------------------------------
-#endif
+                return true;
             }
-        }
-
-        static void ParseValues(MySqlStreamReader r, FieldPacket fieldInfo, ref MyStructData myData)
-        {
-            MySqlDataType fieldType = (MySqlDataType)fieldInfo.columnType;
-            switch (fieldType)
-            {
-                case MySqlDataType.TIMESTAMP://
-                case MySqlDataType.DATE://
-                case MySqlDataType.DATETIME://
-                case MySqlDataType.NEWDATE://
-                    r.ReadLengthCodedDateTime(out myData.myDateTime);
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.TINY://length = 1;
-                    myData.myInt32 = r.U1();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.SHORT://length = 2;
-                case MySqlDataType.YEAR://length = 2;
-                    myData.myInt32 = (int)r.U2();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.INT24:
-                case MySqlDataType.LONG://length = 4;
-                    myData.myInt32 = (int)r.U4();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.FLOAT:
-                    myData.myDouble = r.ReadFloat();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.DOUBLE:
-                    myData.myDouble = r.ReadDouble();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.NEWDECIMAL:
-                    myData.myDecimal = r.ReadDecimal();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.LONGLONG:
-                    myData.myInt64 = r.ReadInt64();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.STRING:
-                case MySqlDataType.VARCHAR:
-                case MySqlDataType.VAR_STRING:
-                    myData.myString = r.ReadLengthCodedString();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.TINY_BLOB:
-                case MySqlDataType.MEDIUM_BLOB:
-                case MySqlDataType.LONG_BLOB:
-                case MySqlDataType.BLOB:
-                case MySqlDataType.BIT:
-                    myData.myBuffer = r.ReadLengthCodedBuffer();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.GEOMETRY:
-
-                default:
-                    myData.myBuffer = r.ReadLengthCodedBuffer();
-                    myData.type = MySqlDataType.NULL;
-                    break;
-            }
-        }
+        } 
     }
 
 
