@@ -75,8 +75,8 @@ namespace MySqlTest
                 //reader.Close();
                 object o0 = reader.GetValue(0);
                 object o1 = reader.GetValue(1);
-                object o2 = reader.GetValue(2);
-                object o3 = reader.GetValue(3);
+                object o2 = reader.GetValue("col3");
+                object o3 = reader.GetValue("col4");
 
             }
             reader.Close();
