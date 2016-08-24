@@ -28,6 +28,11 @@ namespace SharpConnect.MySql
         }
     }
 
+    public interface IStringConverter
+    {
+        string Conv(string input);
+        string Conv(byte[] input);
+    }
 
     public abstract class MySqlDataReader
     {
@@ -41,6 +46,7 @@ namespace SharpConnect.MySql
         BufferReader bufferReader = new BufferReader();
         StringBuilder tmpStringBuilder = new StringBuilder();
         Encoding _enc = Encoding.UTF8; //default
+        IStringConverter _strConverter = null;
         bool _isBinaryProtocol;//isPrepare (binary) or text protocol
 
         internal virtual void InternalClose(Action nextAction = null) { }
@@ -120,7 +126,17 @@ namespace SharpConnect.MySql
                 _enc = (value != null) ? value : Encoding.UTF8;
             }
         }
-
+        public IStringConverter StringConverter
+        {
+            get
+            {
+                return _strConverter;
+            }
+            set
+            {
+                _strConverter = value;
+            }
+        }
         /// <summary>
         /// get field name of specific column index
         /// </summary>
@@ -227,7 +243,7 @@ namespace SharpConnect.MySql
                 case MySqlDataType.STRING:
                 case MySqlDataType.VARCHAR:
                 case MySqlDataType.VAR_STRING:
-                    myData.myString = r.ReadLengthCodedString(this._enc);
+                    myData.myString = r.ReadLengthCodedString(this._enc, this.StringConverter);
                     myData.type = fieldType;
                     return myData;
                 case MySqlDataType.TINY_BLOB:
@@ -264,7 +280,7 @@ namespace SharpConnect.MySql
 
                         QueryParsingConfig qparsingConfig = currentSubTable.ParsingConfig;
                         tmpStringBuilder.Length = 0;//clear 
-                        data.myString = r.ReadLengthCodedString(this._enc);
+                        data.myString = r.ReadLengthCodedString(this._enc, this.StringConverter);
                         data.type = type;
                         if (data.myString == null)
                         {
@@ -314,7 +330,7 @@ namespace SharpConnect.MySql
                 case MySqlDataType.YEAR:
 
                     //TODO: review here,                    
-                    data.myString = numberString = r.ReadLengthCodedString(this._enc);
+                    data.myString = numberString = r.ReadLengthCodedString(this._enc, this.StringConverter);
                     if (numberString == null ||
                         (f.IsZeroFill && numberString[0] == '0') ||
                         numberString.Length == 0)
@@ -329,7 +345,7 @@ namespace SharpConnect.MySql
                     return data;
                 case MySqlDataType.FLOAT:
                 case MySqlDataType.DOUBLE:
-                    data.myString = numberString = r.ReadLengthCodedString(this._enc);
+                    data.myString = numberString = r.ReadLengthCodedString(this._enc, this.StringConverter);
                     if (numberString == null || (f.IsZeroFill && numberString[0] == '0'))
                     {
                         data.type = MySqlDataType.NULL;
@@ -352,7 +368,7 @@ namespace SharpConnect.MySql
                     //        : Number(numberString));
 
                     QueryParsingConfig config = currentSubTable.ParsingConfig;
-                    data.myString = numberString = r.ReadLengthCodedString(this._enc);
+                    data.myString = numberString = r.ReadLengthCodedString(this._enc, this.StringConverter);
                     if (numberString == null || (f.IsZeroFill && numberString[0] == '0'))
                     {
                         data.type = MySqlDataType.NULL;
@@ -396,7 +412,7 @@ namespace SharpConnect.MySql
                     }
                     else
                     {
-                        data.myString = r.ReadLengthCodedString(this._enc);
+                        data.myString = r.ReadLengthCodedString(this._enc, this.StringConverter);
                         data.type = (data.myString != null) ? type : MySqlDataType.NULL;
                     }
                     return data;
@@ -408,7 +424,7 @@ namespace SharpConnect.MySql
                     data.type = MySqlDataType.GEOMETRY;
                     return data;
                 default:
-                    data.myString = r.ReadLengthCodedString(this._enc);
+                    data.myString = r.ReadLengthCodedString(this._enc, this.StringConverter);
                     data.type = type;
                     return data;
             }
@@ -743,6 +759,7 @@ namespace SharpConnect.MySql
                 //on each subtable
                 var tableReader = st.CreateDataReader();
                 tableReader.StringEncoding = this.StringEncoding;
+                tableReader.StringConverter = this.StringConverter;
 
                 int j = st.RowCount;
                 for (int i = 0; i < j; ++i)

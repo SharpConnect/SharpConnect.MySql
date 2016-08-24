@@ -124,6 +124,11 @@ namespace SharpConnect.MySql
             get;
             set;
         }
+        public IStringConverter StringConverter
+        {
+            get;
+            set;
+        }
         /// <summary>
         /// sync/async prepare
         /// </summary>
@@ -147,6 +152,7 @@ namespace SharpConnect.MySql
             }
             var reader = new MySqlQueryDataReader(_query);
             reader.StringEncoding = this.StringEncoding;
+            reader.StringConverter = this.StringConverter;
             _query.Execute(true, null);
             reader.WaitUntilFirstDataArrive();
             //
@@ -166,6 +172,8 @@ namespace SharpConnect.MySql
             }
             var reader = new MySqlQueryDataReader(_query);
             reader.StringEncoding = this.StringEncoding;
+            reader.StringConverter = this.StringConverter;
+
             //in non bloking mode, set this
             reader.SetFirstDataArriveDelegate(dataReader =>
             {
@@ -191,6 +199,7 @@ namespace SharpConnect.MySql
             }
             var reader = new MySqlQueryDataReader(_query);
             reader.StringEncoding = this.StringEncoding;
+            reader.StringConverter = this.StringConverter;
             //in non bloking mode, set this
             reader.SetFirstDataArriveDelegate(dataReader =>
             {
@@ -202,6 +211,7 @@ namespace SharpConnect.MySql
                     //just read single value 
                     var subtReader = subt.CreateDataReader();
                     subtReader.StringEncoding = this.StringEncoding;
+                    subtReader.StringConverter = this.StringConverter;
 
                     onEachSubTable(subtReader);
 

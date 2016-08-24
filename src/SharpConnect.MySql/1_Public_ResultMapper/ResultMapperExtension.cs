@@ -654,8 +654,5 @@ namespace SharpConnect.MySql.Mapper
 
     //------------------------------------------------
 
-    public interface IStringConverter
-    {
-        string Conv(string input);
-    }
+   
 }
