@@ -222,7 +222,7 @@ namespace SharpConnect.MySql.Internal
         public override void ParsePacketContent(MySqlStreamReader r)
         {
 
-            _QUERY_CMD = r.U1();//1
+            _QUERY_CMD = r.ReadByte();//1
             _sql = r.ReadPacketTerminatedString();
         }
 
@@ -796,7 +796,7 @@ namespace SharpConnect.MySql.Internal
         public override void ParsePacketContent(MySqlStreamReader r)
         {
             //we already have header ***
-            protocolVersion = r.U1();//1
+            protocolVersion = r.ReadByte();//1
             serverVertion = r.ReadNullTerminatedString();
             threadId = r.U4();//4
             scrambleBuff1 = r.ReadBuffer(8);
@@ -873,7 +873,7 @@ namespace SharpConnect.MySql.Internal
         public override void ParsePacketContent(MySqlStreamReader r)
         {
 
-            _fieldCount = r.U1();
+            _fieldCount = r.ReadByte();
             affectedRows = r.ReadLengthCodedNumber();
             insertId = r.ReadLengthCodedNumber();
             if (_protocol41)

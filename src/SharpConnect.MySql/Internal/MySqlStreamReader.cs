@@ -39,7 +39,7 @@ namespace SharpConnect.MySql.Internal
         long _packetLength;
         Encoding _encoding = Encoding.UTF8;
         List<byte> _bList = new List<byte>();
-        StringBuilder tempStringBuilder = new StringBuilder();
+
 #if DEBUG
         static int dbugTotalId;
         public readonly int dbugId = dbugTotalId++;
@@ -68,10 +68,6 @@ namespace SharpConnect.MySql.Internal
             Dispose();
         }
 
-        public StringBuilder TempStringBuilder
-        {
-            get { return tempStringBuilder; }
-        }
         /// <summary>
         /// current stream's paring position
         /// </summary>
@@ -161,23 +157,6 @@ namespace SharpConnect.MySql.Internal
             return _encoding.GetString(bytes);
         }
 
-        public byte[] ReadNullTerminatedBuffer()
-        {
-
-#if DEBUG
-            dbugBreakOnMonitorData();
-#endif
-            _bList.Clear();
-            var temp = _reader.ReadByte();
-            _bList.Add(temp);
-            while (temp != 0x00)
-            {
-                temp = _reader.ReadByte();
-                _bList.Add(temp);
-            }
-            return _bList.ToArray();
-        }
-
         public byte ReadByte()
         {
 #if DEBUG
@@ -202,95 +181,6 @@ namespace SharpConnect.MySql.Internal
             dbugBreakOnMonitorData();
 #endif
             _reader.BaseStream.Position += byteOffset;
-        }
-        public bool ReadLengthCodedDateTime(out DateTime result)
-        {
-#if DEBUG
-            dbugBreakOnMonitorData();
-#endif
-            byte dateLength = ReadByte(); //***     
-            int year = 0;
-            int month = 0;
-            int day = 0;
-            int hour = 0;
-            int minute = 0;
-            int second = 0;
-            int micro_second = 0;
-            //0, 4,7,11
-            switch (dateLength)
-            {
-                default:
-                case 0:
-                    result = DateTime.MinValue;
-                    return false;
-                case 4:
-                    year = (int)U2();
-                    month = U1();
-                    day = U1();
-                    result = new DateTime(year, month, day);
-                    return true;
-                case 7:
-                    year = (int)U2();
-                    month = U1();
-                    day = U1();
-                    hour = U1();
-                    minute = U1();
-                    second = U1();
-                    result = new DateTime(year, month, day, hour, minute, second);
-                    return true;
-                case 11:
-                    year = (int)U2();
-                    month = U1();
-                    day = U1();
-                    hour = U1();
-                    minute = U1();
-                    second = U1();
-                    micro_second = (int)ReadUnsigedNumber(4);
-                    result = new DateTime(year, month, day, hour, minute, second, micro_second / 1000);
-                    return true;
-            }
-            //if (dateLength == 0)
-            //{
-            //    result = DateTime.MinValue;
-            //    return false;
-            //} 
-            //if (dateLength >= 4)
-            //{
-            //    year = (int)ParseUnsigned2();
-            //    month = ParseUnsigned1();
-            //    day = ParseUnsigned1();
-            //    dateTime = new DateTime(year, month, day);
-            //}
-            //if (dateLength >= 7)
-            //{
-            //    hour = ParseUnsigned1();
-            //    minute = ParseUnsigned1();
-            //    second = ParseUnsigned1();
-            //    dateTime = new DateTime(year, month, day, hour, minute, second);
-            //} 
-            //if (dateLength == 11)
-            //{
-            //    micro_second = (int)ParseUnsignedNumber(4);
-            //    int milli_second = micro_second / 1000;
-            //    dateTime = new DateTime(year, month, day, hour, minute, second, milli_second);
-            //}
-            //else
-            //{
-            //    if (dateLength == 7)
-            //    {
-            //        dateTime = new DateTime(year, month, day, hour, minute, second);
-            //    }
-            //    else if (dateLength == 4)
-            //    {
-            //        dateTime = new DateTime(year, month, day);
-            //    }
-            //    else
-            //    {
-            //        dateTime = new DateTime(0, 0, 0, 0, 0, 0, 0, 0);
-            //    }
-            //}
-
-            //return dateTime;
         }
 
         public PacketHeader ReadPacketHeader()
@@ -459,17 +349,6 @@ namespace SharpConnect.MySql.Internal
             //return value;
         }
 
-        /// <summary>
-        /// read unsigned 1 byte
-        /// </summary>
-        /// <returns></returns>
-        public byte U1()
-        {
-#if DEBUG
-            dbugBreakOnMonitorData();
-#endif
-            return _reader.ReadByte();
-        }
 
         /// <summary>
         /// read unsigned 2 bytes
@@ -515,37 +394,6 @@ namespace SharpConnect.MySql.Internal
             return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
         }
 
-        public float ReadFloat()
-        {
-#if DEBUG
-            dbugBreakOnMonitorData();
-#endif
-            return _reader.ReadSingle();
-        }
-
-        public double ReadDouble()
-        {
-#if DEBUG
-            dbugBreakOnMonitorData();
-#endif
-            return _reader.ReadDouble();
-        }
-
-        public decimal ReadDecimal()
-        {
-#if DEBUG
-            dbugBreakOnMonitorData();
-#endif
-            return _reader.ReadDecimal();
-        }
-
-        public long ReadInt64()
-        {
-#if DEBUG
-            dbugBreakOnMonitorData();
-#endif
-            return _reader.ReadInt64();
-        }
 
         public uint ReadUnsigedNumber(int n)
         {
