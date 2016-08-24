@@ -60,7 +60,9 @@ namespace SharpConnect.MySql
         StringBuilder tmpStringBuilder = new StringBuilder();
         IStringConverter _strConverter = s_utf8StrConv; //default
         bool _isBinaryProtocol;//isPrepare (binary) or text protocol
+
         QueryParsingConfig _queryParsingConf = s_defaultConf;
+        Dictionary<string, int> fieldMaps = null;
 
 
         public virtual bool Read()
@@ -146,15 +148,16 @@ namespace SharpConnect.MySql
         internal void SetCurrentSubTable(MySqlSubTable currentSubTable)
         {
             this.currentSubTable = currentSubTable;
+            this.fieldMaps = null;
+
             if (!currentSubTable.IsEmpty)
             {
                 isEmptyTable = false;
                 this.rows = currentSubTable.GetMySqlTableResult().rows;
                 _isBinaryProtocol = currentSubTable.IsBinaryProtocol;
                 subTableRowCount = rows.Count;
-                //expand buffer for each row 
+                //buffer for each row 
                 cells = new MyStructData[currentSubTable.FieldCount];
-
             }
             else
             {
@@ -448,74 +451,124 @@ namespace SharpConnect.MySql
 
         public sbyte GetInt8(int colIndex)
         {
-            //TODO: check match type and check index here
-
+            //TODO: check match type and check index here 
             return (sbyte)cells[colIndex].myInt32;
+        }
+        public sbyte GetInt8(string colName)
+        {
+            return GetInt8(GetOrdinal(colName));
         }
         public byte GetUInt8(int colIndex)
         {
             //TODO: check match type and check index here
             return (byte)cells[colIndex].myInt32;
         }
+        public byte GetUInt8(string colName)
+        {
+
+            return GetUInt8(GetOrdinal(colName));
+        }
+
+
         public short GetInt16(int colIndex)
         {   //TODO: check match type and check index here
             return (short)cells[colIndex].myInt32;
+        }
+        public short GetInt16(string colName)
+        {
+            return GetInt16(GetOrdinal(colName));
         }
         public ushort GetUInt16(int colIndex)
         {
             //TODO: check match type and check index here
             return (ushort)cells[colIndex].myInt32;
         }
-
+        public ushort GetUInt16(string colName)
+        {
+            return GetUInt16(GetOrdinal(colName));
+        }
         public int GetInt32(int colIndex)
         {
             //TODO: check match type and check index here
             return cells[colIndex].myInt32;
+        }
+        public int GetInt32(string colName)
+        {
+            return GetInt32(GetOrdinal(colName));
         }
         public uint GetUInt32(int colIndex)
         {
             //TODO: check match type and check index here
             return cells[colIndex].myUInt32;
         }
+        public uint GetUInt32(string colName)
+        {
+            return GetUInt32(GetOrdinal(colName));
+        }
         public long GetLong(int colIndex)
         {
             //TODO: check match type and check index here
             return cells[colIndex].myInt64;
+        }
+        public long GetLong(string colName)
+        {
+            return GetLong(GetOrdinal(colName));
         }
         public ulong GetULong(int colIndex)
         {
             //TODO: check match type and check index here
             return cells[colIndex].myUInt64;
         }
+        public ulong GetULong(string colName)
+        {
+            return GetULong(GetOrdinal(colName));
+        }
         public decimal GetDecimal(int colIndex)
         {
             //TODO: check match type and index here
             return cells[colIndex].myDecimal;
+        }
+        public decimal GetDecimal(string colName)
+        {
+            return GetDecimal(GetOrdinal(colName));
         }
         public string GetString(int colIndex)
         {
             //TODO: check match type and index here
             return cells[colIndex].myString;
         }
-        public string GetString(int colIndex, System.Text.Encoding encoding)
+        public string GetString(string colName)
         {
-            //TODO: check match type and index here
-            return cells[colIndex].myString;
+
+            return GetString(GetOrdinal(colName));
         }
         public byte[] GetBuffer(int colIndex)
         {
             //TODO: check match type and index here
             return cells[colIndex].myBuffer;
         }
+        public byte[] GetBuffer(string colName)
+        {
+            return GetBuffer(GetOrdinal(colName));
+        }
         public bool IsDBNull(int colIndex)
         {
             return cells[colIndex].type == MySqlDataType.NULL;
+        }
+        public bool IsDBNull(string colName)
+        {
+            return IsDBNull(GetOrdinal(colName));
         }
         public DateTime GetDateTime(int colIndex)
         {
             //TODO: check match type and check index here
             return cells[colIndex].myDateTime;
         }
+        public DateTime GetDateTime(string colName)
+        {
+            return GetDateTime(GetOrdinal(colName));
+        }
+
         public object GetValue(int colIndex)
         {
             MyStructData data = cells[colIndex];
@@ -591,6 +644,38 @@ namespace SharpConnect.MySql
             }
         }
 
+        public object GetValue(string colName)
+        {
+            return GetDateTime(GetOrdinal(colName));
+        }
+
+        //---------------------------------------------
+        public int GetOrdinal(string colName)
+        {
+            if (fieldMaps == null)
+            {
+                EvaluateFieldMap();
+            }
+            int foundIndex;
+            if (!fieldMaps.TryGetValue(colName, out foundIndex))
+            {
+                throw new Exception("not found the colName " + colName);
+            }
+            return foundIndex;
+        }
+        void EvaluateFieldMap()
+        {
+
+            fieldMaps = new Dictionary<string, int>();
+            if (isEmptyTable) { return; }
+            //-------------------------------------
+            int j = this.currentSubTable.FieldCount;
+            for (int i = 0; i < j; ++i)
+            {
+                fieldMaps.Add(currentSubTable.GetFieldName(i), i);
+            }
+
+        }
         //--------------------------------
         static Utf8StringConverter s_utf8StrConv = new Utf8StringConverter();
         static QueryParsingConfig s_defaultConf;
@@ -605,6 +690,7 @@ namespace SharpConnect.MySql
             //    SupportBigNumbers = userConfig.supportBigNumbers
             //};
         }
+
     }
 
     class Utf8StringConverter : IStringConverter

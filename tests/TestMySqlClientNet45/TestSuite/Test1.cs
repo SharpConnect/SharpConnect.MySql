@@ -335,8 +335,8 @@ namespace MySqlTest
                 while (reader.Read())
                 {
                     string f0 = reader.GetString(0);
-                    string f1 = reader.GetString(1);
-                    DateTime dtm = reader.GetDateTime(2); 
+                    string f1 = reader.GetString("myname");
+                    DateTime dtm = reader.GetDateTime(2);
                 }
                 reader.Close();
             }
