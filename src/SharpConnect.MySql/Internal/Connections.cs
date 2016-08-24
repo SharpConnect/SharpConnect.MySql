@@ -584,7 +584,7 @@ namespace SharpConnect.MySql.Internal
             //  ? ConnectionConfig.getSSLProfile(options.ssl)
             //  : (options.ssl || false);
             multipleStatements = false;//this.multipleStatements = options.multipleStatements || false; 
-            typeCast = true;
+          
             //this.typeCast = (options.typeCast === undefined)
             //  ? true
             //  : options.typeCast;

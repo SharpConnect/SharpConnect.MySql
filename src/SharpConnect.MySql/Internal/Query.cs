@@ -25,19 +25,8 @@ using System;
 using System.Collections.Generic;
 namespace SharpConnect.MySql.Internal
 {
-    class QueryParsingConfig
-    {
-        public bool UseLocalTimeZone;
-        /// <summary>
-        /// use string as datetime, not convert to datetime value
-        /// </summary>
-        public bool DateStrings;
-        public string TimeZone;
-        public bool SupportBigNumbers;
-        public bool BigNumberStrings;
-        public bool typeCast;
-    }
 
+   
 
 
     enum QueryExecState
@@ -103,7 +92,7 @@ namespace SharpConnect.MySql.Internal
             this._conn = conn;
             this._cmdParams = cmdParams;
             //--------------------------------------------------------------
-            typeCast = conn.config.typeCast;
+
             nestTables = false;
             _sqlParserMx = conn.MySqlParserMx;
             _writer = conn.PacketWriter;
@@ -678,17 +667,6 @@ namespace SharpConnect.MySql.Internal
             return found;
         }
 
-        public bool TypeCast { get; private set; }
-        public bool NestTables { get; set; }
-        public QueryParsingConfig ParsingConfig
-        {
-            get { return _parsingConfig; }
-            set
-            {
-                _parsingConfig = value;
-                this.TypeCast = _parsingConfig.typeCast;
-            }
-        }
-
+       
     }
 }

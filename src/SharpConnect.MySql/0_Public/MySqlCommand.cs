@@ -119,11 +119,7 @@ namespace SharpConnect.MySql
             get { return this._sqlStringTemplate.UserRawSql; }
         }
         public MySqlConnection Connection { get; set; }
-        public System.Text.Encoding StringEncoding
-        {
-            get;
-            set;
-        }
+       
         public IStringConverter StringConverter
         {
             get;
@@ -151,7 +147,7 @@ namespace SharpConnect.MySql
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
             }
             var reader = new MySqlQueryDataReader(_query);
-            reader.StringEncoding = this.StringEncoding;
+
             reader.StringConverter = this.StringConverter;
             _query.Execute(true, null);
             reader.WaitUntilFirstDataArrive();
@@ -170,10 +166,8 @@ namespace SharpConnect.MySql
             {
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
             }
-            var reader = new MySqlQueryDataReader(_query);
-            reader.StringEncoding = this.StringEncoding;
-            reader.StringConverter = this.StringConverter;
-
+            var reader = new MySqlQueryDataReader(_query); 
+            reader.StringConverter = this.StringConverter; 
             //in non bloking mode, set this
             reader.SetFirstDataArriveDelegate(dataReader =>
             {
@@ -197,8 +191,7 @@ namespace SharpConnect.MySql
             {
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
             }
-            var reader = new MySqlQueryDataReader(_query);
-            reader.StringEncoding = this.StringEncoding;
+            var reader = new MySqlQueryDataReader(_query); 
             reader.StringConverter = this.StringConverter;
             //in non bloking mode, set this
             reader.SetFirstDataArriveDelegate(dataReader =>
@@ -209,10 +202,8 @@ namespace SharpConnect.MySql
                 {
                     //table is ready for read***
                     //just read single value 
-                    var subtReader = subt.CreateDataReader();
-                    subtReader.StringEncoding = this.StringEncoding;
-                    subtReader.StringConverter = this.StringConverter;
-
+                    var subtReader = subt.CreateDataReader(); 
+                    subtReader.StringConverter = this.StringConverter; 
                     onEachSubTable(subtReader);
 
                     if (subt.IsLastTable)

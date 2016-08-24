@@ -34,6 +34,19 @@ namespace SharpConnect.MySql
         string Conv(byte[] input);
     }
 
+    public class QueryParsingConfig
+    {
+        public bool UseLocalTimeZone;
+        /// <summary>
+        /// use string as datetime, not convert to datetime value
+        /// </summary>
+        public bool DateStrings;
+        public string TimeZone;
+        public bool SupportBigNumbers;
+        public bool BigNumberStrings;
+    }
+
+
     public abstract class MySqlDataReader
     {
 
@@ -45,39 +58,11 @@ namespace SharpConnect.MySql
         MyStructData[] cells;
         BufferReader bufferReader = new BufferReader();
         StringBuilder tmpStringBuilder = new StringBuilder();
-        Encoding _enc = Encoding.UTF8; //default
-        IStringConverter _strConverter = null;
+        IStringConverter _strConverter = s_utf8StrConv; //default
         bool _isBinaryProtocol;//isPrepare (binary) or text protocol
+        QueryParsingConfig _queryParsingConf = s_defaultConf;
 
-        internal virtual void InternalClose(Action nextAction = null) { }
-        internal bool IsEmptyTable
-        {
-            get { return isEmptyTable; }
-        }
-        public void SetCurrentSubTable(MySqlSubTable currentSubTable)
-        {
-            this.currentSubTable = currentSubTable;
 
-            if (!currentSubTable.IsEmpty)
-            {
-                this.rows = currentSubTable.GetMySqlTableResult().rows;
-                _isBinaryProtocol = currentSubTable.IsBinaryProtocol;
-                isEmptyTable = false;
-                subTableRowCount = rows.Count;
-                //expand buffer for each row 
-                cells = new MyStructData[currentSubTable.FieldCount];
-
-            }
-            else
-            {
-                _isBinaryProtocol = false;
-                rows = null;
-                isEmptyTable = true;
-                subTableRowCount = 0;
-
-            }
-            currentRowIndex = 0;
-        }
         public virtual bool Read()
         {
             if (currentRowIndex < subTableRowCount)
@@ -106,26 +91,16 @@ namespace SharpConnect.MySql
 
         public bool IsLastTable
         {
-            get { return CurrentSubTable.IsLastTable; }
+            get { return currentSubTable.IsLastTable; }
         }
         public int FieldCount
         {
             get
             {
-                return CurrentSubTable.FieldCount;
+                return currentSubTable.FieldCount;
             }
         }
-        public Encoding StringEncoding
-        {
-            get
-            {
-                return _enc;
-            }
-            set
-            {
-                _enc = (value != null) ? value : Encoding.UTF8;
-            }
-        }
+
         public IStringConverter StringConverter
         {
             get
@@ -134,9 +109,18 @@ namespace SharpConnect.MySql
             }
             set
             {
-                _strConverter = value;
+                if (value == null)
+                {
+                    //use default
+                    _strConverter = s_utf8StrConv;
+                }
+                else
+                {
+                    _strConverter = value;
+                }
             }
         }
+
         /// <summary>
         /// get field name of specific column index
         /// </summary>
@@ -144,9 +128,8 @@ namespace SharpConnect.MySql
         /// <returns></returns>
         public string GetName(int colIndex)
         {
-            return CurrentSubTable.GetFieldDefinition(colIndex).Name;
+            return currentSubTable.GetFieldDefinition(colIndex).Name;
         }
-        //-------------------------
         public bool HasRows
         {
             get
@@ -154,8 +137,38 @@ namespace SharpConnect.MySql
                 return !isEmptyTable && subTableRowCount > 0;
             }
         }
+        //---------------------------------------------
+        internal virtual void InternalClose(Action nextAction = null) { }
+        internal bool IsEmptyTable
+        {
+            get { return isEmptyTable; }
+        }
+        internal void SetCurrentSubTable(MySqlSubTable currentSubTable)
+        {
+            this.currentSubTable = currentSubTable;
+            if (!currentSubTable.IsEmpty)
+            {
+                isEmptyTable = false;
+                this.rows = currentSubTable.GetMySqlTableResult().rows;
+                _isBinaryProtocol = currentSubTable.IsBinaryProtocol;
+                subTableRowCount = rows.Count;
+                //expand buffer for each row 
+                cells = new MyStructData[currentSubTable.FieldCount];
+
+            }
+            else
+            {
+                isEmptyTable = true;
+                _isBinaryProtocol = false;
+                rows = null;
+                subTableRowCount = 0;
+
+            }
+            currentRowIndex = 0;
+        }
         internal void SetCurrentRow(int currentIndex)
         {
+            //this for internal use
             DataRowPacket currentRow = rows[currentIndex];
             //expand this row to buffer ***
             bufferReader.SetSource(currentRow._rowDataBuffer);
@@ -243,7 +256,7 @@ namespace SharpConnect.MySql
                 case MySqlDataType.STRING:
                 case MySqlDataType.VARCHAR:
                 case MySqlDataType.VAR_STRING:
-                    myData.myString = r.ReadLengthCodedString(this._enc, this.StringConverter);
+                    myData.myString = r.ReadLengthCodedString(this.StringConverter);
                     myData.type = fieldType;
                     return myData;
                 case MySqlDataType.TINY_BLOB:
@@ -278,9 +291,9 @@ namespace SharpConnect.MySql
                 case MySqlDataType.NEWDATE:
                     {
 
-                        QueryParsingConfig qparsingConfig = currentSubTable.ParsingConfig;
+                        QueryParsingConfig qparsingConfig = _queryParsingConf;
                         tmpStringBuilder.Length = 0;//clear 
-                        data.myString = r.ReadLengthCodedString(this._enc, this.StringConverter);
+                        data.myString = r.ReadLengthCodedString(this.StringConverter);
                         data.type = type;
                         if (data.myString == null)
                         {
@@ -330,7 +343,7 @@ namespace SharpConnect.MySql
                 case MySqlDataType.YEAR:
 
                     //TODO: review here,                    
-                    data.myString = numberString = r.ReadLengthCodedString(this._enc, this.StringConverter);
+                    data.myString = numberString = r.ReadLengthCodedString(this.StringConverter);
                     if (numberString == null ||
                         (f.IsZeroFill && numberString[0] == '0') ||
                         numberString.Length == 0)
@@ -345,7 +358,7 @@ namespace SharpConnect.MySql
                     return data;
                 case MySqlDataType.FLOAT:
                 case MySqlDataType.DOUBLE:
-                    data.myString = numberString = r.ReadLengthCodedString(this._enc, this.StringConverter);
+                    data.myString = numberString = r.ReadLengthCodedString(this.StringConverter);
                     if (numberString == null || (f.IsZeroFill && numberString[0] == '0'))
                     {
                         data.type = MySqlDataType.NULL;
@@ -367,13 +380,14 @@ namespace SharpConnect.MySql
                     //        ? numberString
                     //        : Number(numberString));
 
-                    QueryParsingConfig config = currentSubTable.ParsingConfig;
-                    data.myString = numberString = r.ReadLengthCodedString(this._enc, this.StringConverter);
+                    QueryParsingConfig config = _queryParsingConf;
+                    data.myString = numberString = r.ReadLengthCodedString(this.StringConverter);
                     if (numberString == null || (f.IsZeroFill && numberString[0] == '0'))
                     {
                         data.type = MySqlDataType.NULL;
                     }
-                    else if (config.SupportBigNumbers && (config.BigNumberStrings || (Convert.ToInt64(numberString) > Packet.IEEE_754_BINARY_64_PRECISION)))
+                    else if (config.SupportBigNumbers &&
+                        (config.BigNumberStrings || (Convert.ToInt64(numberString) > Packet.IEEE_754_BINARY_64_PRECISION)))
                     {
                         //store as string ?
                         //TODO: review here  again
@@ -412,7 +426,7 @@ namespace SharpConnect.MySql
                     }
                     else
                     {
-                        data.myString = r.ReadLengthCodedString(this._enc, this.StringConverter);
+                        data.myString = r.ReadLengthCodedString(this.StringConverter);
                         data.type = (data.myString != null) ? type : MySqlDataType.NULL;
                     }
                     return data;
@@ -424,11 +438,14 @@ namespace SharpConnect.MySql
                     data.type = MySqlDataType.GEOMETRY;
                     return data;
                 default:
-                    data.myString = r.ReadLengthCodedString(this._enc, this.StringConverter);
+                    data.myString = r.ReadLengthCodedString(this.StringConverter);
                     data.type = type;
                     return data;
             }
         }
+
+        //---------------------------------------------
+
         public sbyte GetInt8(int colIndex)
         {
             //TODO: check match type and check index here
@@ -574,6 +591,33 @@ namespace SharpConnect.MySql
             }
         }
 
+        //--------------------------------
+        static Utf8StringConverter s_utf8StrConv = new Utf8StringConverter();
+        static QueryParsingConfig s_defaultConf;
+        static MySqlDataReader()
+        {
+            s_defaultConf = new QueryParsingConfig();
+            //{
+            //    TimeZone = userConfig.timezone,
+            //    UseLocalTimeZone = userConfig.timezone.Equals("local"),
+            //    BigNumberStrings = userConfig.bigNumberStrings,
+            //    DateStrings = userConfig.dateStrings,
+            //    SupportBigNumbers = userConfig.supportBigNumbers
+            //};
+        }
+    }
+
+    class Utf8StringConverter : IStringConverter
+    {
+        public string Conv(byte[] input)
+        {
+            return Encoding.UTF8.GetString(input);
+        }
+
+        public string Conv(string input)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     class MySqlQueryDataReader : MySqlDataReader
@@ -614,8 +658,6 @@ namespace SharpConnect.MySql
                 }
             });
         }
-
-
         public override void SetCurrentRowIndex(int index)
         {
             //set support in this mode
@@ -676,7 +718,8 @@ namespace SharpConnect.MySql
         internal void ReadSubTable(Action<MySqlSubTable> onEachSubTable)
         {
             TRY_AGAIN:
-            if (CurrentSubTable.IsEmpty)
+
+            if (this.IsEmptyTable)
             {
                 //no current table  
                 bool hasSomeSubTables = false;
@@ -758,7 +801,7 @@ namespace SharpConnect.MySql
             {
                 //on each subtable
                 var tableReader = st.CreateDataReader();
-                tableReader.StringEncoding = this.StringEncoding;
+
                 tableReader.StringConverter = this.StringConverter;
 
                 int j = st.RowCount;
@@ -958,13 +1001,7 @@ namespace SharpConnect.MySql
 
             }
         }
-        internal QueryParsingConfig ParsingConfig
-        {
-            get
-            {
-                return this.tableResult.tableHeader.ParsingConfig;
-            }
-        }
+
         public int RowCount
         {
             get
