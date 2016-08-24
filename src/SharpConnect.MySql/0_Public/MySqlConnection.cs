@@ -240,19 +240,19 @@ namespace SharpConnect.MySql
         }
         public static void UpdateMaxAllowPacket(this MySqlConnection conn)
         {
-            var _query = new Query(conn.Conn, "SELECT @@global.max_allowed_packet", null);
-            _query.SetResultListener(result =>
+            var cmd = new MySqlCommand("SELECT @@global.max_allowed_packet", conn);
+            var reader = cmd.InternalExecuteReader();
+            while (reader.Read())
             {
-                long value = result.rows[0].Cells[0].myInt64;
-                if (value > int.MaxValue)
+                ulong value = reader.GetULong(0);
+                if (value >= int.MaxValue)
                 {
-                    throw new NotSupportedException("not support max allowed packet > int.MaxValue");
+                    throw new NotSupportedException("this version not support max allowed packet > int.MaxValue");
                 }
                 conn.SetMaxAllowedPacket((int)value); //cast down
-            });
-            //wait
-            _query.Execute(true);
-            _query.Close();
+                break;
+            }
+            reader.InternalClose();
         }
     }
 

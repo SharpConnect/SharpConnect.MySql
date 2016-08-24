@@ -83,6 +83,7 @@ namespace SharpConnect.MySql
         Query _query;
         bool _isPreparedStmt;
         SqlStringTemplate _sqlStringTemplate;
+
         public MySqlCommand(string sql)
                 : this(new SqlStringTemplate(sql), new CommandParams(), null)
         {
@@ -107,6 +108,7 @@ namespace SharpConnect.MySql
             Connection = conn;
             Parameters = cmds;
         }
+
         public CommandParams Parameters
         {
             get;
@@ -117,6 +119,11 @@ namespace SharpConnect.MySql
             get { return this._sqlStringTemplate.UserRawSql; }
         }
         public MySqlConnection Connection { get; set; }
+        public System.Text.Encoding StringEncoding
+        {
+            get;
+            set;
+        }
         /// <summary>
         /// sync/async prepare
         /// </summary>
@@ -139,6 +146,7 @@ namespace SharpConnect.MySql
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
             }
             var reader = new MySqlQueryDataReader(_query);
+            reader.StringEncoding = this.StringEncoding;
             _query.Execute(true, null);
             reader.WaitUntilFirstDataArrive();
             //
@@ -157,6 +165,7 @@ namespace SharpConnect.MySql
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
             }
             var reader = new MySqlQueryDataReader(_query);
+            reader.StringEncoding = this.StringEncoding;
             //in non bloking mode, set this
             reader.SetFirstDataArriveDelegate(dataReader =>
             {
@@ -180,7 +189,8 @@ namespace SharpConnect.MySql
             {
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
             }
-            MySqlQueryDataReader reader = new MySqlQueryDataReader(_query);
+            var reader = new MySqlQueryDataReader(_query);
+            reader.StringEncoding = this.StringEncoding;
             //in non bloking mode, set this
             reader.SetFirstDataArriveDelegate(dataReader =>
             {
@@ -190,10 +200,10 @@ namespace SharpConnect.MySql
                 {
                     //table is ready for read***
                     //just read single value 
-                    var subTReader = subt.CreateDataReader();
-                   
+                    var subtReader = subt.CreateDataReader();
+                    subtReader.StringEncoding = this.StringEncoding;
 
-                    onEachSubTable(subTReader);
+                    onEachSubTable(subtReader);
 
                     if (subt.IsLastTable)
                     {

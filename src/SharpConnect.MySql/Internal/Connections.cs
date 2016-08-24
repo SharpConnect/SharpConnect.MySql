@@ -62,7 +62,7 @@ namespace SharpConnect.MySql.Internal
         Action whenSendCompleted;
         //---------------------------------
 
-        MySqlStreamWrtier _writer;
+        MySqlStreamWriter _writer;
         MySqlParserMx _mysqlParserMx;//know how to parse mysql data
         //---------------------------------
         //after open connection
@@ -80,11 +80,11 @@ namespace SharpConnect.MySql.Internal
             {
                 case CharSets.UTF8_GENERAL_CI:
                     //_parser = new PacketParser(Encoding.UTF8);
-                    _writer = new MySqlStreamWrtier(Encoding.UTF8);
+                    _writer = new MySqlStreamWriter(Encoding.UTF8);
                     break;
                 case CharSets.ASCII:
                     //_parser = new PacketParser(Encoding.ASCII);
-                    _writer = new MySqlStreamWrtier(Encoding.ASCII);
+                    _writer = new MySqlStreamWriter(Encoding.ASCII);
                     break;
                 default:
                     throw new NotImplementedException();
@@ -406,7 +406,7 @@ namespace SharpConnect.MySql.Internal
                 this.BindingQuery = null;
             }
         }
-        internal MySqlStreamWrtier PacketWriter
+        internal MySqlStreamWriter PacketWriter
         {
             get { return _writer; }
         }

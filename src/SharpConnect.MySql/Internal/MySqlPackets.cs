@@ -62,7 +62,7 @@ namespace SharpConnect.MySql.Internal
         }
 
 
-        public abstract void WritePacket(MySqlStreamWrtier writer);
+        public abstract void WritePacket(MySqlStreamWriter writer);
         // The maximum precision JS Numbers can hold precisely
         // Don't panic: Good enough to represent byte values up to 8192 TB
         public const long IEEE_754_BINARY_64_PRECISION = (long)1 << 53;
@@ -177,7 +177,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             writer.ReserveHeader();//allocate header
             if (protocol41)
@@ -222,16 +222,16 @@ namespace SharpConnect.MySql.Internal
         public override void ParsePacketContent(MySqlStreamReader r)
         {
 
-            _QUERY_CMD = r.U1();//1
+            _QUERY_CMD = r.ReadByte();//1
             _sql = r.ReadPacketTerminatedString();
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             this._header = Write(writer, this._sql);
         }
 
-        public static PacketHeader Write(MySqlStreamWrtier writer, string sql)
+        public static PacketHeader Write(MySqlStreamWriter writer, string sql)
         {
             //for those who don't want to alloc an new packet
             //just write it into a stream
@@ -255,11 +255,11 @@ namespace SharpConnect.MySql.Internal
             //ParsePacketHeader(parser);
             //this.command = parser.ParseByte();
         }
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             this._header = Write(writer);
         }
-        public static PacketHeader Write(MySqlStreamWrtier writer)
+        public static PacketHeader Write(MySqlStreamWriter writer)
         {
             //for those who don't want to alloc an new packet
             //just write it into a stream
@@ -286,11 +286,11 @@ namespace SharpConnect.MySql.Internal
             throw new NotImplementedException();
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             this._header = Write(writer, this._sql);
         }
-        public static PacketHeader Write(MySqlStreamWrtier writer, string sql)
+        public static PacketHeader Write(MySqlStreamWriter writer, string sql)
         {
             //for those who don't want to alloc an new packet
             //just write it into a stream
@@ -320,12 +320,12 @@ namespace SharpConnect.MySql.Internal
             throw new NotImplementedException();
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             Write(writer, this._statementId, _prepareValues);
         }
 
-        static void WriteValueByType(MySqlStreamWrtier writer, ref MyStructData dataTemp)
+        static void WriteValueByType(MySqlStreamWriter writer, ref MyStructData dataTemp)
         {
             switch (dataTemp.type)
             {
@@ -367,7 +367,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public static PacketHeader Write(MySqlStreamWrtier writer, uint stmtId, MyStructData[] _prepareValues)
+        public static PacketHeader Write(MySqlStreamWriter writer, uint stmtId, MyStructData[] _prepareValues)
         {
             //for those who don't want to alloc an new packet
             //just write it into a stream
@@ -448,11 +448,11 @@ namespace SharpConnect.MySql.Internal
         {
             throw new NotImplementedException();
         }
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             _header = Write(writer, _statementId);
         }
-        public static PacketHeader Write(MySqlStreamWrtier writer, uint stmtId)
+        public static PacketHeader Write(MySqlStreamWriter writer, uint stmtId)
         {
             //for those who don't want to alloc an new packet
             //just write it into a stream
@@ -477,11 +477,11 @@ namespace SharpConnect.MySql.Internal
         {
             throw new NotImplementedException();
         }
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             _header = Write(writer, this._statementId);
         }
-        public static PacketHeader Write(MySqlStreamWrtier writer, uint stmtId)
+        public static PacketHeader Write(MySqlStreamWriter writer, uint stmtId)
         {
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_RESET);
@@ -512,7 +512,7 @@ namespace SharpConnect.MySql.Internal
             throw new NotImplementedException();
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             writer.ReserveHeader();
             writer.WriteUnsigned4(_statement_id);
@@ -520,7 +520,7 @@ namespace SharpConnect.MySql.Internal
             WriteValueByType(writer, _data);
         }
 
-        void WriteValueByType(MySqlStreamWrtier writer, MyStructData dataTemp)
+        void WriteValueByType(MySqlStreamWriter writer, MyStructData dataTemp)
         {
             switch (dataTemp.type)
             {
@@ -574,7 +574,7 @@ namespace SharpConnect.MySql.Internal
                 serverStatus = r.U2();//2
             }
         }
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
             //writer.ReserveHeader();//allocate packet header
@@ -614,7 +614,7 @@ namespace SharpConnect.MySql.Internal
 #endif
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
         }
@@ -761,7 +761,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
         }
@@ -796,7 +796,7 @@ namespace SharpConnect.MySql.Internal
         public override void ParsePacketContent(MySqlStreamReader r)
         {
             //we already have header ***
-            protocolVersion = r.U1();//1
+            protocolVersion = r.ReadByte();//1
             serverVertion = r.ReadNullTerminatedString();
             threadId = r.U4();//4
             scrambleBuff1 = r.ReadBuffer(8);
@@ -831,7 +831,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
             //writer.writeUnsignedNumber(1, this.protocolVersion);
@@ -873,7 +873,7 @@ namespace SharpConnect.MySql.Internal
         public override void ParsePacketContent(MySqlStreamReader r)
         {
 
-            _fieldCount = r.U1();
+            _fieldCount = r.ReadByte();
             affectedRows = r.ReadLengthCodedNumber();
             insertId = r.ReadLengthCodedNumber();
             if (_protocol41)
@@ -894,7 +894,7 @@ namespace SharpConnect.MySql.Internal
             //}
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
         }
@@ -923,7 +923,7 @@ namespace SharpConnect.MySql.Internal
             waring_count = r.ReadUnsigedNumber(2);
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
         }
@@ -954,7 +954,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
         }
@@ -964,412 +964,53 @@ namespace SharpConnect.MySql.Internal
 
     class DataRowPacket : Packet
     {
-        protected MyStructData[] _myDataList;//cell
-        protected TableHeader _tableHeader;
-        public DataRowPacket(PacketHeader header, TableHeader tableHeader)
+
+        internal byte[] _rowDataBuffer;
+        public DataRowPacket(PacketHeader header, byte[] rowDataBuffer)
             : base(header)
         {
-            _tableHeader = tableHeader;
-            _myDataList = new MyStructData[tableHeader.ColumnCount];
+            this._rowDataBuffer = rowDataBuffer;
         }
-
+      
         public override void ParsePacketContent(MySqlStreamReader r)
         {
-            //function parse(parser, fieldPackets, typeCast, nestTables, connection) {
-            //  var self = this;
-            //  var next = function () {
-            //    return self._typeCast(fieldPacket, parser, connection.config.timezone, connection.config.supportBigNumbers, connection.config.bigNumberStrings, connection.config.dateStrings);
-            //  }; 
-            //  for (var i = 0; i < fieldPackets.length; i++) {
-            //    var fieldPacket = fieldPackets[i];
-            //    var value; 
-            //---------------------------------------------
-            //danger!
-            //please note that  ***
-            //data in each slot is not completely cleared
-
-            //because we don't want to copy entire MyStructData back and forth
-            //we just replace some part of it ***
-            //---------------------------------------------
-
-            List<FieldPacket> fieldInfos = _tableHeader.GetFields();
-            int j = _tableHeader.ColumnCount;
-            //---------------------------------------------
-            if (_tableHeader.TypeCast)
-            {
-                if (_tableHeader.NestTables)
-                {
-                    throw new NotSupportedException("nest table");
-                }
-                //------------
-                for (int i = 0; i < j; i++)
-                {
-                    ReadCellWithTypeCast(r, fieldInfos[i], ref _myDataList[i]);
-                }
-            }
-            else
-            {
-                for (int i = 0; i < j; i++)
-                {
-                    FieldPacket fieldInfo = fieldInfos[i]; 
-                    if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
-                    {
-                        _myDataList[i].myBuffer = r.ReadLengthCodedBuffer();
-                        _myDataList[i].type = (MySqlDataType)fieldInfo.columnType;
-                        //value = new MyStructData();
-                        //value.myBuffer = parser.ParseLengthCodedBuffer();
-                        //value.type = (Types)fieldInfos[i].type;
-                    }
-                    else
-                    {
-                        _myDataList[i].myString = r.ReadLengthCodedString();
-                        _myDataList[i].type = (MySqlDataType)fieldInfo.columnType;
-                        //value = new MyStructData();
-                        //value.myString = parser.ParseLengthCodedString();
-                        //value.type = (Types)fieldInfos[i].type;
-                    }
-                    //    if (typeof typeCast == "function") {
-                    //      value = typeCast.apply(connection, [ new Field({ packet: fieldPacket, parser: parser }), next ]);
-                    //    } else {
-                    //      value = (typeCast)
-                    //        ? this._typeCast(fieldPacket, parser, connection.config.timezone, connection.config.supportBigNumbers, connection.config.bigNumberStrings, connection.config.dateStrings)
-                    //        : ( (fieldPacket.charsetNr === Charsets.BINARY)
-                    //          ? parser.parseLengthCodedBuffer()
-                    //          : parser.parseLengthCodedString() );
-                    //    }
-
-
-                    //TODO: review here
-                    //nestTables=? 
-
-
-                    //if (nestTables)
-                    //{
-                    //    //      this[fieldPacket.table] = this[fieldPacket.table] || {};
-                    //    //      this[fieldPacket.table][fieldPacket.name] = value;
-                    //}
-                    //else
-                    //{
-                    //    //      this[fieldPacket.name] = value;
-                    //    myDataList[i] = value;
-                    //}
-
-
-                    //    if (typeof nestTables == "string" && nestTables.length) {
-                    //      this[fieldPacket.table + nestTables + fieldPacket.name] = value;
-                    //    } else if (nestTables) {
-                    //      this[fieldPacket.table] = this[fieldPacket.table] || {};
-                    //      this[fieldPacket.table][fieldPacket.name] = value;
-                    //    } else {
-                    //      this[fieldPacket.name] = value;
-                    //    }
-                    //  }
-                    //}
-                }
-            }
-
+            //not use this func ***
+            throw new NotSupportedException("not use this method, please use ParseRowData()");
         }
 
-        /// <summary>
-        /// read a data cell with type cast
-        /// </summary>
-        /// <param name="r"></param>
-        /// <param name="fieldPacket"></param>
-        /// <param name="data"></param>
-        void ReadCellWithTypeCast(MySqlStreamReader r, FieldPacket fieldPacket, ref MyStructData data)
-        {
-            string numberString;
-            MySqlDataType type = (MySqlDataType)fieldPacket.columnType;
-            switch (type)
-            {
-                case MySqlDataType.TIMESTAMP:
-                case MySqlDataType.DATE:
-                case MySqlDataType.DATETIME:
-                case MySqlDataType.NEWDATE:
-                    {
-                        StringBuilder tmpStringBuilder = r.TempStringBuilder;
-                        QueryParsingConfig qparsingConfig = _tableHeader.ParsingConfig;
-                        tmpStringBuilder.Length = 0;//clear 
-                        data.myString = r.ReadLengthCodedString();
-                        if (qparsingConfig.DateStrings)
-                        {
-                            //return new FieldData<string>(type, dateString);
-                            //data.myString = dateString;
-                            data.type = type;
-                            return;
-                        }
 
-                        if (data.myString == null)
-                        {
-                            data.type = MySqlDataType.NULL;
-                            return;
-                        }
-
-                        //    var originalString = dateString;
-                        //    if (field.type === Types.DATE) {
-                        //      dateString += ' 00:00:00';
-                        //    }
-                        tmpStringBuilder.Append(data.myString);
-                        //string originalString = dateString;
-                        if (fieldPacket.columnType == (int)MySqlDataType.DATE)
-                        {
-                            tmpStringBuilder.Append(" 00:00:00");
-                        }
-                        //    if (timeZone !== 'local') {
-                        //      dateString += ' ' + timeZone;
-                        //    }
-
-                        if (!qparsingConfig.UseLocalTimeZone)
-                        {
-                            tmpStringBuilder.Append(' ' + qparsingConfig.TimeZone);
-                        }
-                        //var dt;
-                        //    dt = new Date(dateString);
-                        //    if (isNaN(dt.getTime())) {
-                        //      return originalString;
-                        //    }
-
-                        data.myDateTime = DateTime.Parse(tmpStringBuilder.ToString(),
-                            System.Globalization.CultureInfo.InvariantCulture);
-                        data.type = type;
-                        tmpStringBuilder.Length = 0;
-
-                    }
-                    return;
-                case MySqlDataType.TINY:
-                case MySqlDataType.SHORT:
-                case MySqlDataType.LONG:
-                case MySqlDataType.INT24:
-                case MySqlDataType.YEAR:
-
-                    //TODO: review here,                    
-                    data.myString = numberString = r.ReadLengthCodedString();
-                    if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0') || numberString.Length == 0)
-                    {
-                        data.type = MySqlDataType.NULL;
-                    }
-                    else
-                    {
-                        data.myInt32 = Convert.ToInt32(numberString);
-                        data.type = type;
-                    }
-                    return;
-                case MySqlDataType.FLOAT:
-                case MySqlDataType.DOUBLE:
-                    data.myString = numberString = r.ReadLengthCodedString();
-                    if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
-                    {
-                        data.myString = numberString;
-                        data.type = MySqlDataType.NULL;
-                    }
-                    else
-                    {
-                        data.myDouble = Convert.ToDouble(numberString);
-                        data.type = type;
-                    }
-                    return;
-                //    return (numberString === null || (field.zeroFill && numberString[0] == "0"))
-                //      ? numberString : Number(numberString);
-                case MySqlDataType.NEWDECIMAL:
-                case MySqlDataType.LONGLONG:
-                    //    numberString = parser.parseLengthCodedString();
-                    //    return (numberString === null || (field.zeroFill && numberString[0] == "0"))
-                    //      ? numberString
-                    //      : ((supportBigNumbers && (bigNumberStrings || (Number(numberString) > IEEE_754_BINARY_64_PRECISION)))
-                    //        ? numberString
-                    //        : Number(numberString));
-
-                    QueryParsingConfig config = _tableHeader.ParsingConfig;
-                    data.myString = numberString = r.ReadLengthCodedString();
-                    if (numberString == null || (fieldPacket.zeroFill && numberString[0] == '0'))
-                    {
-                        data.myString = numberString;
-                        data.type = MySqlDataType.NULL;
-                    }
-                    else if (config.SupportBigNumbers && (config.BigNumberStrings || (Convert.ToInt64(numberString) > IEEE_754_BINARY_64_PRECISION)))
-                    {
-                        //store as string ?
-                        //TODO: review here  again
-                        data.myString = numberString;
-                        data.type = type;
-                        throw new NotSupportedException();
-                    }
-                    else if (type == MySqlDataType.LONGLONG)
-                    {
-                        data.myInt64 = Convert.ToInt64(numberString);
-                        data.type = type;
-                    }
-                    else//decimal
-                    {
-                        data.myDecimal = Convert.ToDecimal(numberString);
-                        data.type = type;
-                    }
-                    return;
-                case MySqlDataType.BIT:
-
-                    data.myBuffer = r.ReadLengthCodedBuffer();
-                    data.type = type;
-                    return;
-                //    return parser.parseLengthCodedBuffer();
-                case MySqlDataType.STRING:
-                case MySqlDataType.VAR_STRING:
-                case MySqlDataType.TINY_BLOB:
-                case MySqlDataType.MEDIUM_BLOB:
-                case MySqlDataType.LONG_BLOB:
-                case MySqlDataType.BLOB:
-                    if (fieldPacket.charsetNr == (int)CharSets.BINARY)
-                    {
-                        data.myBuffer = r.ReadLengthCodedBuffer(); //CodedBuffer
-                        data.type = type;
-                    }
-                    else
-                    {
-                        data.myString = r.ReadLengthCodedString();//codeString
-                        data.type = type;
-                    }
-                    return;
-                //    return (field.charsetNr === Charsets.BINARY)
-                //      ? parser.parseLengthCodedBuffer()
-                //      : parser.parseLengthCodedString();
-                case MySqlDataType.GEOMETRY:
-                    //TODO: unfinished
-                    data.type = MySqlDataType.GEOMETRY;
-                    return;
-                default:
-                    data.myString = r.ReadLengthCodedString();
-                    data.type = type;
-                    return;
-            }
-        }
-
-        public override void WritePacket(MySqlStreamWrtier writer)
+        public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
         }
 
-        public override string ToString()
-        {
-            //this for debug ***
-            int count = _myDataList.Length;
-            switch (count)
-            {
-                case 0: return "";
-                case 1:
-                    return _myDataList[0].ToString();
-                default:
-                    var stBuilder = new StringBuilder();
-                    //1st
-                    stBuilder.Append(_myDataList[0].ToString());
-                    //then
-                    for (int i = 1; i < count; ++i)
-                    {
-                        //then..
-                        stBuilder.Append(',');
-                        stBuilder.Append(_myDataList[i].ToString());
-                    }
-                    return stBuilder.ToString();
-            }
-        }
+        //public override string ToString()
+        //{
+        //    //this for debug ***
+        //    int count = _myDataList.Length;
+        //    switch (count)
+        //    {
+        //        case 0: return "";
+        //        case 1:
+        //            return _myDataList[0].ToString();
+        //        default:
+        //            var stBuilder = new StringBuilder();
+        //            //1st
+        //            stBuilder.Append(_myDataList[0].ToString());
+        //            //then
+        //            for (int i = 1; i < count; ++i)
+        //            {
+        //                //then..
+        //                stBuilder.Append(',');
+        //                stBuilder.Append(_myDataList[i].ToString());
+        //            }
+        //            return stBuilder.ToString();
+        //    }
+        //}
 
-        internal MyStructData[] Cells
-        {
-            get { return _myDataList; }
-        }
     }
 
 
-    class PreparedDataRowPacket : DataRowPacket
-    {
-        public PreparedDataRowPacket(PacketHeader header, TableHeader tableHeader)
-            : base(header, tableHeader)
-        {
-        }
-        public override void ParsePacketContent(MySqlStreamReader r)
-        {
-            var fieldInfos = _tableHeader.GetFields();
-            int columnCount = _tableHeader.ColumnCount;
-
-            r.ReadFiller(1);//skip start packet byte [00]
-            r.ReadFiller((columnCount + 7 + 2) / 8);//skip null-bitmap, length:(column-count+7+2)/8
-            for (int i = 0; i < columnCount; i++)
-            {
-                ParseValues(r, fieldInfos[i], ref _myDataList[i]);
-#if DEBUG
-                //-------------------------------------------------
-                //this code affect on performance when debug
-                //byte[] mybuffer = _myDataList[i].myBuffer;
-                //dbugBufferView view = new dbugBufferView(mybuffer, 0, mybuffer.Length);
-                //view.viewIndex = view.CheckNoDulpicateBytes();
-                //-------------------------------------------------
-#endif
-            }
-        }
-
-        static void ParseValues(MySqlStreamReader r, FieldPacket fieldInfo, ref MyStructData myData)
-        {
-            MySqlDataType fieldType = (MySqlDataType)fieldInfo.columnType;
-            switch (fieldType)
-            {
-                case MySqlDataType.TIMESTAMP://
-                case MySqlDataType.DATE://
-                case MySqlDataType.DATETIME://
-                case MySqlDataType.NEWDATE://
-                    r.ReadLengthCodedDateTime(out myData.myDateTime);
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.TINY://length = 1;
-                    myData.myInt32 = r.U1();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.SHORT://length = 2;
-                case MySqlDataType.YEAR://length = 2;
-                    myData.myInt32 = (int)r.U2();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.INT24:
-                case MySqlDataType.LONG://length = 4;
-                    myData.myInt32 = (int)r.U4();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.FLOAT:
-                    myData.myDouble = r.ReadFloat();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.DOUBLE:
-                    myData.myDouble = r.ReadDouble();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.NEWDECIMAL:
-                    myData.myDecimal = r.ReadDecimal();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.LONGLONG:
-                    myData.myInt64 = r.ReadInt64();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.STRING:
-                case MySqlDataType.VARCHAR:
-                case MySqlDataType.VAR_STRING:
-                    myData.myString = r.ReadLengthCodedString();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.TINY_BLOB:
-                case MySqlDataType.MEDIUM_BLOB:
-                case MySqlDataType.LONG_BLOB:
-                case MySqlDataType.BLOB:
-                case MySqlDataType.BIT:
-                    myData.myBuffer = r.ReadLengthCodedBuffer();
-                    myData.type = fieldType;
-                    break;
-                case MySqlDataType.GEOMETRY:
-
-                default:
-                    myData.myBuffer = r.ReadLengthCodedBuffer();
-                    myData.type = MySqlDataType.NULL;
-                    break;
-            }
-        }
-    }
 
 
 

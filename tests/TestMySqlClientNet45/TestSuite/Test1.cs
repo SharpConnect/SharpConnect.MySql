@@ -87,7 +87,7 @@ namespace MySqlTest
             Report.WriteLine("avg:" + avg);
             conn.Close();
         }
-   
+
         [Test]
         public static void T_Select_ExecuteScalar()
         {
@@ -296,7 +296,56 @@ namespace MySqlTest
             conn.Close();
             Report.WriteLine("ok");
         }
+        [Test]
+        public static void T_NullData()
+        {
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+            {
+                string sql = "drop table if exists test001";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
 
+            {
+                string sql = "create table test001(col_id  int(10) unsigned not null auto_increment, myname varchar(20),mydtm datetime, col1 char(2)," +
+                "col2 varchar(10), primary key(col_id) )";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
+
+            {
+                string sql = "insert into test001(myname) values(?myname)";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.Prepare();
+                cmd.Parameters.AddWithValue("?myname", "\"a"); //empty string
+
+                //cmd.Parameters.AddWithValue("?col1", "OK1"); //width =2 ,so  in MySQL 5.6 strict mode, err-> data is too long for column
+                //cmd.Parameters.AddWithValue("?col2", "1000");
+                cmd.ExecuteNonQuery();
+                //ppctx.Close(); 
+            }
+
+            {
+                string sql = "select col2,myname,mydtm from test001";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.Prepare();
+                var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    string f0 = reader.GetString(0);
+                    string f1 = reader.GetString(1);
+                    DateTime dtm = reader.GetDateTime(2); 
+                }
+                reader.Close();
+            }
+
+
+
+            conn.Close();
+            Report.WriteLine("ok");
+        }
 
         [Test]
         public static void T_NumRange()

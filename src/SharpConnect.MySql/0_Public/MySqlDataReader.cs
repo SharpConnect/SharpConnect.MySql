@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using SharpConnect.MySql.Internal;
+using System.Text;
 
 namespace SharpConnect.MySql
 {
@@ -27,18 +28,76 @@ namespace SharpConnect.MySql
         }
     }
 
+
     public abstract class MySqlDataReader
     {
-        DataRowPacket currentRow;
 
-        public abstract bool Read();
+        MySqlSubTable currentSubTable;
+        List<DataRowPacket> rows;
+        int currentRowIndex;
+        int subTableRowCount;
+        bool isEmptyTable = true; //default
+        MyStructData[] cells;
+        BufferReader bufferReader = new BufferReader();
+        StringBuilder tmpStringBuilder = new StringBuilder();
+        Encoding _enc = Encoding.UTF8; //default
+        bool _isBinaryProtocol;//isPrepare (binary) or text protocol
+
         internal virtual void InternalClose(Action nextAction = null) { }
-
-        public abstract void SetCurrentRowIndex(int index);
-        public abstract MySqlSubTable CurrentSubTable
+        internal bool IsEmptyTable
         {
-            get;
+            get { return isEmptyTable; }
         }
+        public void SetCurrentSubTable(MySqlSubTable currentSubTable)
+        {
+            this.currentSubTable = currentSubTable;
+
+            if (!currentSubTable.IsEmpty)
+            {
+                this.rows = currentSubTable.GetMySqlTableResult().rows;
+                _isBinaryProtocol = currentSubTable.IsBinaryProtocol;
+                isEmptyTable = false;
+                subTableRowCount = rows.Count;
+                //expand buffer for each row 
+                cells = new MyStructData[currentSubTable.FieldCount];
+
+            }
+            else
+            {
+                _isBinaryProtocol = false;
+                rows = null;
+                isEmptyTable = true;
+                subTableRowCount = 0;
+
+            }
+            currentRowIndex = 0;
+        }
+        public virtual bool Read()
+        {
+            if (currentRowIndex < subTableRowCount)
+            {
+                SetCurrentRow(currentRowIndex);
+                currentRowIndex++;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        public virtual void SetCurrentRowIndex(int index)
+        {
+            this.currentRowIndex = index;
+            if (index < rows.Count)
+            {
+                SetCurrentRow(index);
+            }
+        }
+        public MySqlSubTable CurrentSubTable
+        {
+            get { return currentSubTable; }
+        }
+
         public bool IsLastTable
         {
             get { return CurrentSubTable.IsLastTable; }
@@ -50,6 +109,18 @@ namespace SharpConnect.MySql
                 return CurrentSubTable.FieldCount;
             }
         }
+        public Encoding StringEncoding
+        {
+            get
+            {
+                return _enc;
+            }
+            set
+            {
+                _enc = (value != null) ? value : Encoding.UTF8;
+            }
+        }
+
         /// <summary>
         /// get field name of specific column index
         /// </summary>
@@ -64,83 +135,357 @@ namespace SharpConnect.MySql
         {
             get
             {
-                return !CurrentSubTable.IsEmpty && CurrentSubTable.RowCount > 0;
+                return !isEmptyTable && subTableRowCount > 0;
             }
         }
-        internal void SetCurrentRow(DataRowPacket currentRow)
+        internal void SetCurrentRow(int currentIndex)
         {
-            this.currentRow = currentRow;
+            DataRowPacket currentRow = rows[currentIndex];
+            //expand this row to buffer ***
+            bufferReader.SetSource(currentRow._rowDataBuffer);
+
+            if (_isBinaryProtocol)
+            {
+                //read each cell , binary protocol ***
+                //1. skip start packet byte [00]
+                bufferReader.Position = 1;
+                //2. read null-bitmap, length:(column-count+7+2)/8
+                //A Binary Protocol Resultset Row is made up of the NULL bitmap containing as many bits as we have columns in the resultset +2 and the values for columns that are not NULL in the Binary Protocol Value format.
+                //see: https://dev.mysql.com/doc/internals/en/binary-protocol-resultset-row.html#packet-ProtocolBinary::ResultsetRow
+
+                int columnCount = currentSubTable.FieldCount;
+                int nullBmpLen = (columnCount + 7 + 2) / 8;
+                byte[] nullBitmap = bufferReader.ReadBytes(nullBmpLen);
+                for (int i = 0; i < columnCount; ++i)
+                {
+                    //check if this cell is null (1) or not (0)
+                    int logicalBitPos = i + 2;
+                    byte nullBmpByte = nullBitmap[logicalBitPos / 8];
+                    int shift = logicalBitPos % 8;
+                    if (((nullBmpByte >> shift) & 1) == 0)
+                    {
+                        //not null
+                        cells[i] = ReadCurrentRowBinaryProtocol(currentSubTable.GetFieldDefinition(i));
+                    }
+                }
+
+            }
+            else
+            {
+                //read each cell , read as text protocol
+                int columnCount = currentSubTable.FieldCount;
+                for (int i = 0; i < columnCount; ++i)
+                {
+                    cells[i] = ReadCurrentRowTextProtocol(currentSubTable.GetFieldDefinition(i));
+                }
+            }
+        }
+        MyStructData ReadCurrentRowBinaryProtocol(MySqlFieldDefinition f)
+        {
+            MySqlDataType fieldType = (MySqlDataType)f.FieldType;
+            MyStructData myData = new MyStructData();
+            BufferReader r = this.bufferReader;
+            switch (fieldType)
+            {
+                case MySqlDataType.TIMESTAMP://
+                case MySqlDataType.DATE://
+                case MySqlDataType.DATETIME://
+                case MySqlDataType.NEWDATE://
+                    r.ReadLengthCodedDateTime(out myData.myDateTime);
+                    myData.type = fieldType;
+                    return myData;
+                case MySqlDataType.TINY://length = 1;
+                    myData.myInt32 = r.U1();
+                    myData.type = fieldType;
+                    return myData;
+                case MySqlDataType.SHORT://length = 2;
+                case MySqlDataType.YEAR://length = 2;
+                    myData.myInt32 = (int)r.U2();
+                    myData.type = fieldType;
+                    return myData;
+                case MySqlDataType.INT24:
+                case MySqlDataType.LONG://length = 4;
+                    myData.myInt32 = (int)r.U4();
+                    myData.type = fieldType;
+                    return myData;
+                case MySqlDataType.FLOAT:
+                    myData.myDouble = r.ReadFloat();
+                    myData.type = fieldType;
+                    return myData;
+                case MySqlDataType.DOUBLE:
+                    myData.myDouble = r.ReadDouble();
+                    myData.type = fieldType;
+                    return myData;
+                case MySqlDataType.NEWDECIMAL:
+                    myData.myDecimal = r.ReadDecimal();
+                    myData.type = fieldType;
+                    return myData;
+                case MySqlDataType.LONGLONG:
+                    myData.myInt64 = r.ReadInt64();
+                    myData.type = fieldType;
+                    return myData;
+                case MySqlDataType.STRING:
+                case MySqlDataType.VARCHAR:
+                case MySqlDataType.VAR_STRING:
+                    myData.myString = r.ReadLengthCodedString(this._enc);
+                    myData.type = fieldType;
+                    return myData;
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                case MySqlDataType.BIT:
+                    myData.myBuffer = r.ReadLengthCodedBuffer();
+                    myData.type = fieldType;
+                    return myData;
+                case MySqlDataType.GEOMETRY:
+                    throw new NotSupportedException();
+                default:
+                    myData.myBuffer = r.ReadLengthCodedBuffer();
+                    myData.type = MySqlDataType.NULL;
+                    return myData;
+            }
+        }
+        MyStructData ReadCurrentRowTextProtocol(MySqlFieldDefinition f)
+        {
+
+            BufferReader r = this.bufferReader;
+            MyStructData data = new MyStructData();
+            MySqlDataType type = (MySqlDataType)f.FieldType;
+            string numberString = null;
+            switch (type)
+            {
+
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
+                    {
+
+                        QueryParsingConfig qparsingConfig = currentSubTable.ParsingConfig;
+                        tmpStringBuilder.Length = 0;//clear 
+                        data.myString = r.ReadLengthCodedString(this._enc);
+                        data.type = type;
+                        if (data.myString == null)
+                        {
+                            data.type = MySqlDataType.NULL;
+                            return data;
+                        }
+                        if (qparsingConfig.DateStrings)
+                        {
+                            return data;
+                        }
+
+                        //-------------------------------------------------------------
+                        //    var originalString = dateString;
+                        //    if (field.type === Types.DATE) {
+                        //      dateString += ' 00:00:00';
+                        //    }
+                        tmpStringBuilder.Append(data.myString);
+                        //string originalString = dateString;
+                        if (type == MySqlDataType.DATE)
+                        {
+                            tmpStringBuilder.Append(" 00:00:00");
+                        }
+                        //    if (timeZone !== 'local') {
+                        //      dateString += ' ' + timeZone;
+                        //    }
+
+                        if (!qparsingConfig.UseLocalTimeZone)
+                        {
+                            tmpStringBuilder.Append(' ' + qparsingConfig.TimeZone);
+                        }
+                        //var dt;
+                        //    dt = new Date(dateString);
+                        //    if (isNaN(dt.getTime())) {
+                        //      return originalString;
+                        //    }
+
+                        data.myDateTime = DateTime.Parse(tmpStringBuilder.ToString(),
+                            System.Globalization.CultureInfo.InvariantCulture);
+                        data.type = type;
+                        tmpStringBuilder.Length = 0;//clear 
+                    }
+                    return data;
+                case MySqlDataType.TINY:
+                case MySqlDataType.SHORT:
+                case MySqlDataType.LONG:
+                case MySqlDataType.INT24:
+                case MySqlDataType.YEAR:
+
+                    //TODO: review here,                    
+                    data.myString = numberString = r.ReadLengthCodedString(this._enc);
+                    if (numberString == null ||
+                        (f.IsZeroFill && numberString[0] == '0') ||
+                        numberString.Length == 0)
+                    {
+                        data.type = MySqlDataType.NULL;
+                    }
+                    else
+                    {
+                        data.myInt32 = Convert.ToInt32(numberString);
+                        data.type = type;
+                    }
+                    return data;
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
+                    data.myString = numberString = r.ReadLengthCodedString(this._enc);
+                    if (numberString == null || (f.IsZeroFill && numberString[0] == '0'))
+                    {
+                        data.type = MySqlDataType.NULL;
+                    }
+                    else
+                    {
+                        data.myDouble = Convert.ToDouble(numberString);
+                        data.type = type;
+                    }
+                    return data;
+                //    return (numberString === null || (field.zeroFill && numberString[0] == "0"))
+                //      ? numberString : Number(numberString);
+                case MySqlDataType.NEWDECIMAL:
+                case MySqlDataType.LONGLONG:
+                    //    numberString = parser.parseLengthCodedString();
+                    //    return (numberString === null || (field.zeroFill && numberString[0] == "0"))
+                    //      ? numberString
+                    //      : ((supportBigNumbers && (bigNumberStrings || (Number(numberString) > IEEE_754_BINARY_64_PRECISION)))
+                    //        ? numberString
+                    //        : Number(numberString));
+
+                    QueryParsingConfig config = currentSubTable.ParsingConfig;
+                    data.myString = numberString = r.ReadLengthCodedString(this._enc);
+                    if (numberString == null || (f.IsZeroFill && numberString[0] == '0'))
+                    {
+                        data.type = MySqlDataType.NULL;
+                    }
+                    else if (config.SupportBigNumbers && (config.BigNumberStrings || (Convert.ToInt64(numberString) > Packet.IEEE_754_BINARY_64_PRECISION)))
+                    {
+                        //store as string ?
+                        //TODO: review here  again
+                        data.myString = numberString;
+                        data.type = type;
+                        throw new NotSupportedException();
+                    }
+                    else if (type == MySqlDataType.LONGLONG)
+                    {
+                        data.myInt64 = Convert.ToInt64(numberString);
+                        data.type = type;
+                    }
+                    else//decimal
+                    {
+                        data.myDecimal = Convert.ToDecimal(numberString);
+                        data.type = type;
+                    }
+                    return data;
+                case MySqlDataType.BIT:
+
+                    data.myBuffer = r.ReadLengthCodedBuffer();
+                    data.type = type;
+                    return data;
+                //    return parser.parseLengthCodedBuffer();
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
+
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                    if (f.MarkedAsBinary)
+                    {
+                        data.myBuffer = r.ReadLengthCodedBuffer();
+                        data.type = (data.myBuffer != null) ? type : MySqlDataType.NULL;
+                    }
+                    else
+                    {
+                        data.myString = r.ReadLengthCodedString(this._enc);
+                        data.type = (data.myString != null) ? type : MySqlDataType.NULL;
+                    }
+                    return data;
+                //    return (field.charsetNr === Charsets.BINARY)
+                //      ? parser.parseLengthCodedBuffer()
+                //      : parser.parseLengthCodedString();
+                case MySqlDataType.GEOMETRY:
+                    //TODO: unfinished
+                    data.type = MySqlDataType.GEOMETRY;
+                    return data;
+                default:
+                    data.myString = r.ReadLengthCodedString(this._enc);
+                    data.type = type;
+                    return data;
+            }
         }
         public sbyte GetInt8(int colIndex)
         {
-
             //TODO: check match type and check index here
-            return (sbyte)currentRow.Cells[colIndex].myInt32;
+
+            return (sbyte)cells[colIndex].myInt32;
         }
         public byte GetUInt8(int colIndex)
         {
             //TODO: check match type and check index here
-            return (byte)currentRow.Cells[colIndex].myInt32;
+            return (byte)cells[colIndex].myInt32;
         }
         public short GetInt16(int colIndex)
         {   //TODO: check match type and check index here
-            return (short)currentRow.Cells[colIndex].myInt32;
+            return (short)cells[colIndex].myInt32;
         }
         public ushort GetUInt16(int colIndex)
         {
             //TODO: check match type and check index here
-            return (ushort)currentRow.Cells[colIndex].myInt32;
+            return (ushort)cells[colIndex].myInt32;
         }
 
         public int GetInt32(int colIndex)
         {
             //TODO: check match type and check index here
-            return currentRow.Cells[colIndex].myInt32;
+            return cells[colIndex].myInt32;
         }
         public uint GetUInt32(int colIndex)
         {
             //TODO: check match type and check index here
-            return currentRow.Cells[colIndex].myUInt32;
+            return cells[colIndex].myUInt32;
         }
         public long GetLong(int colIndex)
         {
             //TODO: check match type and check index here
-            return currentRow.Cells[colIndex].myInt64;
+            return cells[colIndex].myInt64;
         }
         public ulong GetULong(int colIndex)
         {
             //TODO: check match type and check index here
-            return currentRow.Cells[colIndex].myUInt64;
+            return cells[colIndex].myUInt64;
         }
         public decimal GetDecimal(int colIndex)
         {
             //TODO: check match type and index here
-            return currentRow.Cells[colIndex].myDecimal;
+            return cells[colIndex].myDecimal;
         }
         public string GetString(int colIndex)
         {
             //TODO: check match type and index here
-            return currentRow.Cells[colIndex].myString;
+            return cells[colIndex].myString;
         }
         public string GetString(int colIndex, System.Text.Encoding encoding)
         {
             //TODO: check match type and index here
-            return currentRow.Cells[colIndex].myString;
+            return cells[colIndex].myString;
         }
         public byte[] GetBuffer(int colIndex)
         {
             //TODO: check match type and index here
-            return currentRow.Cells[colIndex].myBuffer;
+            return cells[colIndex].myBuffer;
         }
-
+        public bool IsDBNull(int colIndex)
+        {
+            return cells[colIndex].type == MySqlDataType.NULL;
+        }
         public DateTime GetDateTime(int colIndex)
         {
             //TODO: check match type and check index here
-            return currentRow.Cells[colIndex].myDateTime;
+            return cells[colIndex].myDateTime;
         }
         public object GetValue(int colIndex)
         {
-            MyStructData data = currentRow.Cells[colIndex];
+            MyStructData data = cells[colIndex];
             switch (data.type)
             {
                 case MySqlDataType.BLOB:
@@ -219,11 +564,12 @@ namespace SharpConnect.MySql
     {
         Query _query;
         Queue<MySqlTableResult> subTables = new Queue<MySqlTableResult>();
-        MySqlSubTable currentSubTable;
+
+        bool emptySubTable = true;
         //-------------------------
 
-        int currentTableRowCount = 0;
-        int currentRowIndex = 0;
+        //int currentTableRowCount = 0;
+        //int currentRowIndex = 0;
         //-------------------------
         bool firstResultArrived;
         bool tableResultIsNotComplete;
@@ -253,10 +599,7 @@ namespace SharpConnect.MySql
             });
         }
 
-        public override MySqlSubTable CurrentSubTable
-        {
-            get { return currentSubTable; }
-        }
+
         public override void SetCurrentRowIndex(int index)
         {
             //set support in this mode
@@ -268,7 +611,7 @@ namespace SharpConnect.MySql
         internal void WaitUntilFirstDataArrive()
         {
             TRY_AGAIN:
-            if (currentSubTable.IsEmpty)
+            if (emptySubTable)
             {
                 //no current table 
                 bool hasSomeSubTables = false;
@@ -276,9 +619,8 @@ namespace SharpConnect.MySql
                 {
                     if (subTables.Count > 0)
                     {
-                        currentSubTable = new MySqlSubTable(subTables.Dequeue());
-
-                        currentTableRowCount = currentSubTable.RowCount;
+                        MySqlSubTable subt = new MySqlSubTable(subTables.Dequeue());
+                        SetCurrentSubTable(subt);
                         hasSomeSubTables = true;
                     }
                 }
@@ -327,7 +669,7 @@ namespace SharpConnect.MySql
                     if (subTables.Count > 0)
                     {
                         //1. get subtable
-                        currentSubTable = new MySqlSubTable(subTables.Dequeue());
+                        SetCurrentSubTable(new MySqlSubTable(subTables.Dequeue()));
                         hasSomeSubTables = true;
                     }
                 }
@@ -383,7 +725,7 @@ namespace SharpConnect.MySql
                     //so start clear here
                     onEachSubTable(CurrentSubTable);
                     //after invoke
-                    currentSubTable = MySqlSubTable.Empty;
+                    SetCurrentSubTable(MySqlSubTable.Empty);
                     goto TRY_AGAIN;
                 }
             }
@@ -400,6 +742,8 @@ namespace SharpConnect.MySql
             {
                 //on each subtable
                 var tableReader = st.CreateDataReader();
+                tableReader.StringEncoding = this.StringEncoding;
+
                 int j = st.RowCount;
                 for (int i = 0; i < j; ++i)
                 {
@@ -421,7 +765,7 @@ namespace SharpConnect.MySql
         public override bool Read()
         {
             TRY_AGAIN:
-            if (currentSubTable.IsEmpty)
+            if (IsEmptyTable)
             {
                 //no current table 
                 bool hasSomeSubTables = false;
@@ -429,19 +773,15 @@ namespace SharpConnect.MySql
                 {
                     if (subTables.Count > 0)
                     {
-                        currentSubTable = new MySqlSubTable(subTables.Dequeue());
+                        MySqlSubTable subT = new MySqlSubTable(subTables.Dequeue());
+                        SetCurrentSubTable(subT);
                         hasSomeSubTables = true;
                     }
                 }
 
-                if (hasSomeSubTables)
+                if (!hasSomeSubTables)
                 {
 
-                    currentRowIndex = 0;
-                    currentTableRowCount = currentSubTable.RowCount;
-                }
-                else
-                {
                     if (tableResultIsNotComplete)
                     {
                         //we are in isPartial table mode (not complete)
@@ -470,17 +810,36 @@ namespace SharpConnect.MySql
                 }
             }
             //------------------------------------------------------------------
-            if (currentRowIndex < currentTableRowCount)
+            if (base.Read())
             {
-                SetCurrentRow(currentSubTable.GetRow(currentRowIndex));
-                currentRowIndex++;
                 return true;
             }
             else
             {
-                currentSubTable = MySqlSubTable.Empty;
+                SetCurrentSubTable(MySqlSubTable.Empty);
                 goto TRY_AGAIN;
             }
+            //if (!base.Read())
+            //{
+            //    SetCurrentSubTable(MySqlSubTable.Empty);
+            //    goto TRY_AGAIN;
+            //}
+            //else
+            //{
+            //    return true;
+            //}
+            //if (currentRowIndex < currentTableRowCount)
+            //{
+            //    SetCurrentRow(currentSubTable.GetRow(currentRowIndex));
+            //    currentRowIndex++;
+            //    return true;
+            //}
+            //else
+            //{
+
+            //    SetCurrentSubTable(MySqlSubTable.Empty);
+            //    goto TRY_AGAIN;
+            //}
 
         }
         internal override void InternalClose(Action nextAction = null)
@@ -542,48 +901,10 @@ namespace SharpConnect.MySql
     class MySubTableDataReader : MySqlDataReader
     {
         //for read on each subtable
-        MySqlSubTable subT;
-        List<DataRowPacket> rows;
-        int currentRowIndex;
-        int currentRowCount;
         internal MySubTableDataReader(MySqlSubTable tableResult)
         {
-            this.subT = tableResult;
-            this.rows = tableResult.GetMySqlTableResult().rows;
-            currentRowCount = rows.Count;
-            currentRowIndex = 0;
-            SetCurrentRow(null);
-            SetCurrentRowIndex(0);
+            SetCurrentSubTable(tableResult);
         }
-        public override MySqlSubTable CurrentSubTable
-        {
-            get
-            {
-                return subT;
-            }
-        }
-        public override bool Read()
-        {
-            if (currentRowIndex < rows.Count)
-            {
-                SetCurrentRow(rows[currentRowIndex]);
-                currentRowIndex++;
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        public override void SetCurrentRowIndex(int index)
-        {
-            this.currentRowIndex = index;
-            if (index < rows.Count)
-            {
-                SetCurrentRow(rows[index]);
-            }
-        }
-
     }
 
 
@@ -594,8 +915,14 @@ namespace SharpConnect.MySql
         readonly MySqlTableResult tableResult;
         internal MySqlSubTable(MySqlTableResult tableResult)
         {
-
             this.tableResult = tableResult;
+        }
+        internal bool IsBinaryProtocol
+        {
+            get
+            {
+                return this.tableResult.tableHeader.IsBinaryProtocol;
+            }
         }
         public SubTableHeader Header
         {
@@ -608,9 +935,17 @@ namespace SharpConnect.MySql
                 }
                 else
                 {
+
                     return new SubTableHeader(this.tableResult.tableHeader);
                 }
 
+            }
+        }
+        internal QueryParsingConfig ParsingConfig
+        {
+            get
+            {
+                return this.tableResult.tableHeader.ParsingConfig;
             }
         }
         public int RowCount
@@ -656,6 +991,7 @@ namespace SharpConnect.MySql
         {
             return new MySqlFieldDefinition(tableResult.tableHeader.GetField(index));
         }
+
         public string GetFieldName(int index)
         {
             return tableResult.tableHeader.GetField(index).name;
@@ -767,6 +1103,21 @@ namespace SharpConnect.MySql
                 return fieldPacket.FieldIndex;
             }
         }
+        internal bool MarkedAsBinary
+        {
+            get
+            {
+                return fieldPacket.charsetNr == (int)CharSets.BINARY;
+            }
+        }
+        internal bool IsZeroFill
+        {
+            get
+            {
+                return fieldPacket.zeroFill;
+            }
+        }
+
     }
 
 }
