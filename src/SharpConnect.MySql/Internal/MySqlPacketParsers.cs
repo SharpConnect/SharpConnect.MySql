@@ -61,7 +61,6 @@ namespace SharpConnect.MySql.Internal
 
         }
 
-        QueryParsingConfig _parsingConfig;
         ResultPacketState _parsingState;
         PacketHeader _currentHeader;
 
@@ -74,9 +73,9 @@ namespace SharpConnect.MySql.Internal
         bool _generateResultMode = true;
         bool _forPrepareResult;
 
-        public ResultPacketParser(QueryParsingConfig parsingConfig, bool isProtocol41, bool isPrepare = false)
+        public ResultPacketParser(bool isProtocol41, bool isPrepare = false)
         {
-            this._parsingConfig = parsingConfig;
+
             this._isProtocol41 = isProtocol41;
             this._forPrepareResult = isPrepare; //binary protocol
         }
@@ -196,7 +195,7 @@ namespace SharpConnect.MySql.Internal
             var resultSetHeaderPacket = new ResultSetHeaderPacket(_currentHeader);
             resultSetHeaderPacket.ParsePacketContent(reader);
             _tableHeader = new TableHeader(this.ForPrepareResult);
-            _tableHeader.ParsingConfig = this._parsingConfig;
+
             _parsingState = ResultPacketState.Field_Header;
             _rows = new List<DataRowPacket>();
             return false;
@@ -803,7 +802,7 @@ namespace SharpConnect.MySql.Internal
     class MySqlParserMx
     {
         ConnectionConfig userConfig;
-        QueryParsingConfig parsingConfig;
+
 
         MySqlPacketParser currentPacketParser; //current parser 
         bool _isCompleted;
@@ -822,15 +821,7 @@ namespace SharpConnect.MySql.Internal
         {
             this.userConfig = userConfig;
             connParser = new MySqlConnectionPacketParser();
-            parsingConfig = new QueryParsingConfig()
-            {
-                TimeZone = userConfig.timezone,
-                UseLocalTimeZone = userConfig.timezone.Equals("local"),
-                BigNumberStrings = userConfig.bigNumberStrings,
-                DateStrings = userConfig.dateStrings,
-                SupportBigNumbers = userConfig.supportBigNumbers,
-                typeCast = userConfig.typeCast
-            };
+
             //tableHeader.TypeCast = this.config.typeCast;
         }
         public void SetProtocol41(bool value)
@@ -838,10 +829,10 @@ namespace SharpConnect.MySql.Internal
             this._isProtocol41 = value;
             if (resultPacketParser == null)
             {
-                resultPacketParser = new ResultPacketParser(parsingConfig, value);
+                resultPacketParser = new ResultPacketParser(value);
             }
         }
-
+     
         public void UseConnectionParser()
         {
             //switch from current parser to another
@@ -854,9 +845,8 @@ namespace SharpConnect.MySql.Internal
             //switch from current parser to another
             ParseResult = null;
             //--------------------------------
-            //resultPacketParser.ForPrepareResult = forPreparedResult;
-            //currentPacketParser = resultPacketParser;
-            currentPacketParser = new ResultPacketParser(parsingConfig, _isProtocol41, forPreparedResult);
+
+            currentPacketParser = new ResultPacketParser(_isProtocol41, forPreparedResult);
             _mysqlStreamReader.Reset();
         }
         public void UsePrepareResponseParser()

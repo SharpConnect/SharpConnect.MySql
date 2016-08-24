@@ -971,48 +971,17 @@ namespace SharpConnect.MySql.Internal
         {
             this._rowDataBuffer = rowDataBuffer;
         }
-      
         public override void ParsePacketContent(MySqlStreamReader r)
         {
-            //not use this func ***
-            throw new NotSupportedException("not use this method, please use ParseRowData()");
+            //we 've set _rowDataBuffer from ctor
+            throw new NotSupportedException();
         }
-
-
         public override void WritePacket(MySqlStreamWriter writer)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
-
-        //public override string ToString()
-        //{
-        //    //this for debug ***
-        //    int count = _myDataList.Length;
-        //    switch (count)
-        //    {
-        //        case 0: return "";
-        //        case 1:
-        //            return _myDataList[0].ToString();
-        //        default:
-        //            var stBuilder = new StringBuilder();
-        //            //1st
-        //            stBuilder.Append(_myDataList[0].ToString());
-        //            //then
-        //            for (int i = 1; i < count; ++i)
-        //            {
-        //                //then..
-        //                stBuilder.Append(',');
-        //                stBuilder.Append(_myDataList[i].ToString());
-        //            }
-        //            return stBuilder.ToString();
-        //    }
-        //}
-
     }
-
-
-
-
+     
 
 #if DEBUG
     struct dbugBufferView
