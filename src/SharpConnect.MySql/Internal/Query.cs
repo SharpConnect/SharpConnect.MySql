@@ -210,7 +210,7 @@ namespace SharpConnect.MySql.Internal
                 }
                 _conn.Wait();
             }
-        } 
+        }
 
         /// <summary>
         ///  +/- blocking
@@ -633,11 +633,13 @@ namespace SharpConnect.MySql.Internal
         QueryParsingConfig _parsingConfig;
         List<FieldPacket> _fields;
         Dictionary<string, int> _fieldNamePosMap;
-        public TableHeader()
+
+        public TableHeader(bool isBinaryProtocol)
         {
             _fields = new List<FieldPacket>();
+            IsBinaryProtocol = isBinaryProtocol;
         }
-
+        public bool IsBinaryProtocol { get; private set; }
         public void AddField(FieldPacket field)
         {
             _fields.Add(field);

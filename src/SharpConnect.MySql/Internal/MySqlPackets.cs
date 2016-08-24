@@ -964,146 +964,21 @@ namespace SharpConnect.MySql.Internal
 
     class DataRowPacket : Packet
     {
-         
-        internal byte[] _rowDataBuffer;
-        public DataRowPacket(PacketHeader header, TableHeader tableHeader)
-            : base(header)
-        {          
-        }
-        public void ParseRowData(MySqlStreamReader r, TableHeader tableHeader, uint totalRowBufferLen)
-        {
-            //in  this version row buffer len must < int.MaxLength
-            if (totalRowBufferLen > int.MaxValue)
-            {
-                throw new NotSupportedException("not support this length");
-            }
-            //------------------------------------
-            _rowDataBuffer = r.ReadBuffer((int)totalRowBufferLen);
-            //int j = tableHeader.ColumnCount;
-            //_myDataList = new MyStructData[j];
-            //List<FieldPacket> fieldInfos = tableHeader.GetFields();
-            //for (int i = 0; i < j; ++i)
-            //{
-            //    _myDataList[i].type = (r.ReadLengthCodedBuffer(out _myDataList[i].myBuffer)) ?
-            //                 MySqlDataType.NULL :
-            //                 (MySqlDataType)fieldInfos[i].columnType;
-            //}
 
+        internal byte[] _rowDataBuffer;
+        public DataRowPacket(PacketHeader header, byte[] rowDataBuffer)
+            : base(header)
+        {
+            this._rowDataBuffer = rowDataBuffer;
         }
+      
         public override void ParsePacketContent(MySqlStreamReader r)
         {
             //not use this func ***
             throw new NotSupportedException("not use this method, please use ParseRowData()");
-
-            //function parse(parser, fieldPackets, typeCast, nestTables, connection) {
-            //  var self = this;
-            //  var next = function () {
-            //    return self._typeCast(fieldPacket, parser, connection.config.timezone, connection.config.supportBigNumbers, connection.config.bigNumberStrings, connection.config.dateStrings);
-            //  }; 
-            //  for (var i = 0; i < fieldPackets.length; i++) {
-            //    var fieldPacket = fieldPackets[i];
-            //    var value; 
-            //---------------------------------------------
-            //danger!
-            //please note that  ***
-            //data in each slot is not completely cleared
-
-            //because we don't want to copy entire MyStructData back and forth
-            //we just replace some part of it ***
-            //---------------------------------------------
-
-            //List<FieldPacket> fieldInfos = _tableHeader.GetFields();
-            //int j = _tableHeader.ColumnCount;
-            ////---------------------------------------------
-            //if (_tableHeader.TypeCast)
-            //{
-            //    if (_tableHeader.NestTables)
-            //    {
-            //        throw new NotSupportedException("nest table");
-            //    }
-            //    //------------
-            //    for (int i = 0; i < j; i++)
-            //    {
-            //        ReadCellWithTypeCast(r, fieldInfos[i], ref _myDataList[i]);
-            //    }
-            //}
-            //else
-            //{
-            //    for (int i = 0; i < j; i++)
-            //    {
-            //        FieldPacket fieldInfo = fieldInfos[i];
-            //        if (fieldInfos[i].charsetNr == (int)CharSets.BINARY)
-            //        {
-            //            _myDataList[i].myBuffer = r.ReadLengthCodedBuffer();
-            //            _myDataList[i].type = (MySqlDataType)fieldInfo.columnType;
-            //            //value = new MyStructData();
-            //            //value.myBuffer = parser.ParseLengthCodedBuffer();
-            //            //value.type = (Types)fieldInfos[i].type;
-            //        }
-            //        else
-            //        {
-            //            _myDataList[i].myString = r.ReadLengthCodedString();
-            //            _myDataList[i].type = (MySqlDataType)fieldInfo.columnType;
-            //            //value = new MyStructData();
-            //            //value.myString = parser.ParseLengthCodedString();
-            //            //value.type = (Types)fieldInfos[i].type;
-            //        }
-            //        //    if (typeof typeCast == "function") {
-            //        //      value = typeCast.apply(connection, [ new Field({ packet: fieldPacket, parser: parser }), next ]);
-            //        //    } else {
-            //        //      value = (typeCast)
-            //        //        ? this._typeCast(fieldPacket, parser, connection.config.timezone, connection.config.supportBigNumbers, connection.config.bigNumberStrings, connection.config.dateStrings)
-            //        //        : ( (fieldPacket.charsetNr === Charsets.BINARY)
-            //        //          ? parser.parseLengthCodedBuffer()
-            //        //          : parser.parseLengthCodedString() );
-            //        //    }
-
-
-            //        //TODO: review here
-            //        //nestTables=? 
-
-
-            //        //if (nestTables)
-            //        //{
-            //        //    //      this[fieldPacket.table] = this[fieldPacket.table] || {};
-            //        //    //      this[fieldPacket.table][fieldPacket.name] = value;
-            //        //}
-            //        //else
-            //        //{
-            //        //    //      this[fieldPacket.name] = value;
-            //        //    myDataList[i] = value;
-            //        //}
-
-
-            //        //    if (typeof nestTables == "string" && nestTables.length) {
-            //        //      this[fieldPacket.table + nestTables + fieldPacket.name] = value;
-            //        //    } else if (nestTables) {
-            //        //      this[fieldPacket.table] = this[fieldPacket.table] || {};
-            //        //      this[fieldPacket.table][fieldPacket.name] = value;
-            //        //    } else {
-            //        //      this[fieldPacket.name] = value;
-            //        //    }
-            //        //  }
-            //        //}
-            //    }
-            //}
-
         }
 
-        ///// <summary>
-        ///// read a data cell with type cast
-        ///// </summary>
-        ///// <param name="r"></param>
-        ///// <param name="fieldPacket"></param>
-        ///// <param name="data"></param>
-        //void ReadCellWithTypeCast(MySqlStreamReader r, FieldPacket fieldPacket, ref MyStructData data)
-        //{
-        //    throw new NotSupportedException(); 
-        //}
-        public virtual bool IsBinaryProtocol
-        {
-            get { return false; }
-        }
+
         public override void WritePacket(MySqlStreamWriter writer)
         {
             throw new NotImplementedException();
@@ -1133,28 +1008,9 @@ namespace SharpConnect.MySql.Internal
         //    }
         //}
 
-        internal MyStructData[] Cells
-        {
-            get { return null; }
-        }
     }
 
 
-    class PreparedDataRowPacket : DataRowPacket
-    {
-
-        public PreparedDataRowPacket(PacketHeader header, TableHeader tableHeader)
-            : base(header, tableHeader)
-        {
-        }
-        public override bool IsBinaryProtocol
-        {
-            get
-            {
-                return true;
-            }
-        } 
-    }
 
 
 

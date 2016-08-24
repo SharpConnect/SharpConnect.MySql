@@ -336,8 +336,7 @@ namespace MySqlTest
                 {
                     string f0 = reader.GetString(0);
                     string f1 = reader.GetString(1);
-                    DateTime dtm = reader.GetDateTime(2);
-
+                    DateTime dtm = reader.GetDateTime(2); 
                 }
                 reader.Close();
             }

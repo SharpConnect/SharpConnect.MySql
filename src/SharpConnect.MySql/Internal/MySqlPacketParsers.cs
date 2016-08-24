@@ -72,11 +72,13 @@ namespace SharpConnect.MySql.Internal
 
         bool _supportPartialRelease = true;
         bool _generateResultMode = true;
+        bool _forPrepareResult;
+
         public ResultPacketParser(QueryParsingConfig parsingConfig, bool isProtocol41, bool isPrepare = false)
         {
             this._parsingConfig = parsingConfig;
             this._isProtocol41 = isProtocol41;
-            this.ForPrepareResult = isPrepare;
+            this._forPrepareResult = isPrepare; //binary protocol
         }
         public override void Reset()
         {
@@ -84,9 +86,10 @@ namespace SharpConnect.MySql.Internal
         }
         public bool ForPrepareResult
         {
-            //changable
-            get;
-            set;
+            get
+            {
+                return _forPrepareResult;
+            }
         }
 
         public bool JustFlushMode
@@ -192,7 +195,7 @@ namespace SharpConnect.MySql.Internal
             //can parse
             var resultSetHeaderPacket = new ResultSetHeaderPacket(_currentHeader);
             resultSetHeaderPacket.ParsePacketContent(reader);
-            _tableHeader = new TableHeader();
+            _tableHeader = new TableHeader(this.ForPrepareResult);
             _tableHeader.ParsingConfig = this._parsingConfig;
             _parsingState = ResultPacketState.Field_Header;
             _rows = new List<DataRowPacket>();
@@ -226,16 +229,9 @@ namespace SharpConnect.MySql.Internal
         bool Parse_Field_Content(MySqlStreamReader reader)
         {
 
-#if DEBUG
-            //long readPos = reader.ReadPosition;
-            if (reader.CurrentInputLength == 74)
-            {
 
-            }
-#endif
             if (!reader.Ensure(_currentHeader.ContentLength)) //check if length is enough to parse 
             {
-
 #if DEBUG
                 reader.dbugMonitorData1 = true;
 #endif
@@ -294,7 +290,9 @@ namespace SharpConnect.MySql.Internal
             }
             return false;
         }
-
+        /// <summary>
+        /// TODO: review large buffer
+        /// </summary>
         byte[] largeDataBuffer = null;
         bool isLargeData = false;
 
@@ -337,12 +335,15 @@ namespace SharpConnect.MySql.Internal
                 //in this mode we parse packet content 
                 //and add it to the output rows 
                 //----------------------------------
-                DataRowPacket dataRow = ForPrepareResult ?
-                        new PreparedDataRowPacket(_currentHeader, _tableHeader) :
-                        new DataRowPacket(_currentHeader, _tableHeader);
-                //----------------------------------
-                dataRow.ParseRowData(reader, _tableHeader, _currentHeader.ContentLength);
-                _rows.Add(dataRow);
+                //in  this version row buffer len must < int.MaxLength
+                if (_currentHeader.ContentLength > int.MaxValue)
+                {
+                    throw new NotSupportedException("not support this length");
+                }
+                //------------------------------------ 
+                _rows.Add(new DataRowPacket(_currentHeader,
+                    reader.ReadBuffer((int)_currentHeader.ContentLength)));
+
             }
             else
             {
@@ -602,7 +603,7 @@ namespace SharpConnect.MySql.Internal
             okPrepare.ParsePacketContent(reader);
             _okPrepare = okPrepare;
             //----------------------------------------------------
-            _tableHeader = new TableHeader();
+            _tableHeader = new TableHeader(true);
             //----------------------------------------------------
             //*** 3 possible way after read prepare ok header***
             if (okPrepare.num_params == 0)
