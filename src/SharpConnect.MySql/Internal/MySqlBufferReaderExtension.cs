@@ -136,7 +136,7 @@ namespace SharpConnect.MySql.Internal
 
             //return value;
         }
-        public static string ReadLengthCodedString(this BufferReader reader)
+        public static string ReadLengthCodedString(this BufferReader reader, System.Text.Encoding enc)
         {
 
             //var length = this.parseLengthCodedNumber();
@@ -145,7 +145,7 @@ namespace SharpConnect.MySql.Internal
             //if (length === null) {
             //  return null;
             //}
-            return isNull ? null : ReadString(reader, length);
+            return isNull ? null : ReadString(reader, length, enc);
             //return this.parseString(length);
         }
 
@@ -167,11 +167,11 @@ namespace SharpConnect.MySql.Internal
             }
             return null;
         }
-        public static string ReadString(this BufferReader reader, uint length)
+        public static string ReadString(this BufferReader reader, uint length, System.Text.Encoding enc)
         {
             //TODO: review here
             //please use encoding in buffer reader ***
-            return _encoding.GetString(reader.ReadBytes((int)length));
+            return enc.GetString(reader.ReadBytes((int)length));
         }
 
         public static bool ReadLengthCodedDateTime(this BufferReader reader, out DateTime result)
@@ -325,7 +325,7 @@ namespace SharpConnect.MySql.Internal
             //return value;
             //return value;
         }
-        static System.Text.Encoding _encoding = System.Text.Encoding.UTF8;
+      
     }
 
 }

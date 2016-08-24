@@ -40,7 +40,8 @@ namespace SharpConnect.MySql
         MyStructData[] cells;
         BufferReader bufferReader = new BufferReader();
         StringBuilder tmpStringBuilder = new StringBuilder();
-
+        Encoding _enc = Encoding.UTF8; //default
+        bool _isBinaryProtocol;//isPrepare (binary) or text protocol
 
         internal virtual void InternalClose(Action nextAction = null) { }
         internal bool IsEmptyTable
@@ -50,16 +51,20 @@ namespace SharpConnect.MySql
         public void SetCurrentSubTable(MySqlSubTable currentSubTable)
         {
             this.currentSubTable = currentSubTable;
+
             if (!currentSubTable.IsEmpty)
             {
                 this.rows = currentSubTable.GetMySqlTableResult().rows;
+                _isBinaryProtocol = currentSubTable.IsBinaryProtocol;
                 isEmptyTable = false;
                 subTableRowCount = rows.Count;
                 //expand buffer for each row 
                 cells = new MyStructData[currentSubTable.FieldCount];
+
             }
             else
             {
+                _isBinaryProtocol = false;
                 rows = null;
                 isEmptyTable = true;
                 subTableRowCount = 0;
@@ -104,10 +109,16 @@ namespace SharpConnect.MySql
                 return CurrentSubTable.FieldCount;
             }
         }
-        public System.Text.Encoding StringEncoding
+        public Encoding StringEncoding
         {
-            get;
-            set;
+            get
+            {
+                return _enc;
+            }
+            set
+            {
+                _enc = (value != null) ? value : Encoding.UTF8;
+            }
         }
 
         /// <summary>
@@ -133,7 +144,7 @@ namespace SharpConnect.MySql
             //expand this row to buffer ***
             bufferReader.SetSource(currentRow._rowDataBuffer);
 
-            if (currentRow.IsBinaryProtocol)
+            if (_isBinaryProtocol)
             {
                 //read each cell , binary protocol ***
                 //1. skip start packet byte [00]
@@ -169,9 +180,6 @@ namespace SharpConnect.MySql
                 }
             }
         }
-
-
-
         MyStructData ReadCurrentRowBinaryProtocol(MySqlFieldDefinition f)
         {
             MySqlDataType fieldType = (MySqlDataType)f.FieldType;
@@ -219,7 +227,7 @@ namespace SharpConnect.MySql
                 case MySqlDataType.STRING:
                 case MySqlDataType.VARCHAR:
                 case MySqlDataType.VAR_STRING:
-                    myData.myString = r.ReadLengthCodedString();
+                    myData.myString = r.ReadLengthCodedString(this._enc);
                     myData.type = fieldType;
                     return myData;
                 case MySqlDataType.TINY_BLOB:
@@ -256,7 +264,7 @@ namespace SharpConnect.MySql
 
                         QueryParsingConfig qparsingConfig = currentSubTable.ParsingConfig;
                         tmpStringBuilder.Length = 0;//clear 
-                        data.myString = r.ReadLengthCodedString();
+                        data.myString = r.ReadLengthCodedString(this._enc);
                         data.type = type;
                         if (data.myString == null)
                         {
@@ -306,7 +314,7 @@ namespace SharpConnect.MySql
                 case MySqlDataType.YEAR:
 
                     //TODO: review here,                    
-                    data.myString = numberString = r.ReadLengthCodedString();
+                    data.myString = numberString = r.ReadLengthCodedString(this._enc);
                     if (numberString == null ||
                         (f.IsZeroFill && numberString[0] == '0') ||
                         numberString.Length == 0)
@@ -321,7 +329,7 @@ namespace SharpConnect.MySql
                     return data;
                 case MySqlDataType.FLOAT:
                 case MySqlDataType.DOUBLE:
-                    data.myString = numberString = r.ReadLengthCodedString();
+                    data.myString = numberString = r.ReadLengthCodedString(this._enc);
                     if (numberString == null || (f.IsZeroFill && numberString[0] == '0'))
                     {
                         data.type = MySqlDataType.NULL;
@@ -344,7 +352,7 @@ namespace SharpConnect.MySql
                     //        : Number(numberString));
 
                     QueryParsingConfig config = currentSubTable.ParsingConfig;
-                    data.myString = numberString = r.ReadLengthCodedString();
+                    data.myString = numberString = r.ReadLengthCodedString(this._enc);
                     if (numberString == null || (f.IsZeroFill && numberString[0] == '0'))
                     {
                         data.type = MySqlDataType.NULL;
@@ -388,7 +396,7 @@ namespace SharpConnect.MySql
                     }
                     else
                     {
-                        data.myString = r.ReadLengthCodedString();
+                        data.myString = r.ReadLengthCodedString(this._enc);
                         data.type = (data.myString != null) ? type : MySqlDataType.NULL;
                     }
                     return data;
@@ -400,7 +408,7 @@ namespace SharpConnect.MySql
                     data.type = MySqlDataType.GEOMETRY;
                     return data;
                 default:
-                    data.myString = r.ReadLengthCodedString();
+                    data.myString = r.ReadLengthCodedString(this._enc);
                     data.type = type;
                     return data;
             }
@@ -907,8 +915,14 @@ namespace SharpConnect.MySql
         readonly MySqlTableResult tableResult;
         internal MySqlSubTable(MySqlTableResult tableResult)
         {
-
             this.tableResult = tableResult;
+        }
+        internal bool IsBinaryProtocol
+        {
+            get
+            {
+                return this.tableResult.tableHeader.IsBinaryProtocol;
+            }
         }
         public SubTableHeader Header
         {
