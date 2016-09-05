@@ -26,7 +26,7 @@ using System.Collections.Generic;
 namespace SharpConnect.MySql.Internal
 {
 
-   
+
 
 
     enum QueryExecState
@@ -281,6 +281,7 @@ namespace SharpConnect.MySql.Internal
         {
             _sqlParserMx.UseResultParser();
             _writer.Reset();
+            //query command may large
             ComQueryPacket.Write(
                 _writer,
                 _sqlStrTemplate.BindValues(_cmdParams, false));
@@ -591,13 +592,24 @@ namespace SharpConnect.MySql.Internal
                     //------------------------------- 
                     //check
                     //FieldPacket fieldInfo = key.fieldInfo;
-                    //switch ((Types)fieldInfo.type)
+                    //switch ((MySqlDataType)fieldInfo.columnType)
                     //{
-                    //    case Types.VARCHAR:
-                    //    case Types.VAR_STRING:
+                    //    case MySqlDataType.VARCHAR:
+                    //    case MySqlDataType.VAR_STRING:
                     //        {
                     //            //check length
-                    //            if (_preparedValues[i].myString.Length > fieldInfo.length)
+                    //            if (_preparedValues[i].myString.Length > fieldInfo.maxLengthOfField)
+                    //            {
+                    //                //TODO: notify user how to handle this data
+                    //                //before error
+                    //            }
+                    //        }
+                    //        break;
+                    //    case MySqlDataType.BLOB:
+                    //    case MySqlDataType.LONG_BLOB:
+                    //    case MySqlDataType.MEDIUM_BLOB:
+                    //        {
+                    //            if (_preparedValues[i].myString.Length > fieldInfo.maxLengthOfField)
                     //            {
                     //                //TODO: notify user how to handle this data
                     //                //before error
@@ -605,8 +617,6 @@ namespace SharpConnect.MySql.Internal
                     //        }
                     //        break;
                     //}
-
-
 
                 }
             }
@@ -667,6 +677,6 @@ namespace SharpConnect.MySql.Internal
             return found;
         }
 
-       
+
     }
 }
