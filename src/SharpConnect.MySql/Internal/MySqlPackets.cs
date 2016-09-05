@@ -558,7 +558,15 @@ namespace SharpConnect.MySql.Internal
                     }
                     else if (availableContentSpace == remaining)
                     {
+                        //TODO: review here
                         throw new NotSupportedException();
+                        //we can write only header ***
+                        for (int i = 0; i < remaining; ++i)
+                        {
+                            writer.WriteByte(singleValueHolder.headerLenBuffer[singleValueHolder.encodedLengthBufferWriteIndex]);
+                            singleValueHolder.encodedLengthBufferWriteIndex++;
+                        }
+                        availableContentSpace -= remaining;
                     }
                     else
                     {
@@ -584,8 +592,13 @@ namespace SharpConnect.MySql.Internal
 
                 }
                 else if (availableContentSpace == remainBodyLen)
-                {      //this needs last packet with 0 byte content size ***
+                { 
+                    //TODO: review here
                     throw new NotSupportedException();
+                    //this needs last packet with 0 byte content size ***
+                    writer.WriteBuffer(singleValueHolder.generalContent, singleValueHolder.contentStart, remainBodyLen);
+                    singleValueHolder.contentStart += remainBodyLen;
+                    return false;
                 }
                 else
                 {
@@ -610,8 +623,14 @@ namespace SharpConnect.MySql.Internal
                     return true;
                 }
                 else if (availableContentSpace == remainBodyLen)
-                {      //this needs last packet with 0 byte content size ***
+                {   
+                    
+                    //TODO: review here
                     throw new NotSupportedException();
+                    //this needs last packet with 0 byte content size ***
+                    writer.WriteBuffer(singleValueHolder.generalContent, singleValueHolder.contentStart, remainBodyLen);
+                    singleValueHolder.contentStart += remainBodyLen;
+                    return false;
                 }
                 else
                 {
