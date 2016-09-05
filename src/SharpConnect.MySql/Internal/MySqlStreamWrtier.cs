@@ -31,7 +31,8 @@ namespace SharpConnect.MySql.Internal
         MyBinaryWriter _writer;
         byte _packetNumber;
         long _startPacketPosition;
-        int _maxAllowedLength = Packet.MAX_PACKET_LENGTH;
+
+        int _serverMaxDataLength = Packet.MAX_PACKET_LENGTH;
         Encoding _encoding;
         byte[] _headerBuffer = new byte[4];//reusable header buffer
         const int BIT_16 = (int)1 << 16;//(int)Math.Pow(2, 16);
@@ -57,19 +58,16 @@ namespace SharpConnect.MySql.Internal
         {
             get { return _writer.Length; }
         }
-
         public void SetMaxAllowedPacket(int max)
         {
-            _maxAllowedLength = max;
+            _serverMaxDataLength = max;
         }
-
         public void Reset()
         {
             _packetNumber = 0;
             _startPacketPosition = 0;
             _writer.Reset();
         }
-
         public void Dispose()
         {
             _writer.Close();
@@ -98,58 +96,18 @@ namespace SharpConnect.MySql.Internal
 #endif
             //TODO: review MAX_PACKET_LENGTH here ****
             //it should be 
-            int packetCount = (int)((totalPacketLength - 4) / _maxAllowedLength) + 1;//-4 bytes of reserve header
-            //int packetCount = (int)((curPacketLength - 4) / Packet.MAX_PACKET_LENGTH) + 1;//-4 bytes of reserve header
-            if (packetCount == 1)
+            //int packetCount = (int)((totalPacketLength - 4) / _maxAllowedLength) + 1;//-4 bytes of reserve header
+            if (totalPacketLength > _serverMaxDataLength)
             {
-                if (header.ContentLength > _maxAllowedLength)
-                {
-                    throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
-                }
-                WriteEncodedUnsignedNumber0_3(_headerBuffer, header.ContentLength);
-                _headerBuffer[3] = header.PacketNumber;
-                _writer.RewindWriteAndJumpBack(_headerBuffer, (int)_startPacketPosition);
+                throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
             }
-            else //>1 
+            if (header.ContentLength > Packet.MAX_PACKET_LENGTH)
             {
-                _packetNumber = header.PacketNumber;//set start current packet number
-                long allDataLength = (totalPacketLength - 4) + (packetCount * 4);
-                if (allDataLength > _maxAllowedLength)
-                {
-                    throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
-                }
-                byte[] allBuffer = new byte[allDataLength];
-                byte[] dataBuffer = new byte[allDataLength - 4];//remove header
-                _writer.Read(dataBuffer, 4, (int)allDataLength - 4);//skip reserve header bytes
-                int offset = 0;
-                for (int packet = 0; packet < packetCount; packet++)
-                {
-                    offset = (packet * _maxAllowedLength);
-                    //    var isLast = (packet + 1 === packets);
-                    //    var packetLength = (isLast)
-                    //      ? buffer.length % MAX_PACKET_LENGTH
-                    //      : MAX_PACKET_LENGTH;
-                    int packetLength = (packet + 1 == packetCount)
-                        ? (int)((totalPacketLength - 4) % _maxAllowedLength)
-                        : _maxAllowedLength;
-                    //    var packetNumber = parser.incrementPacketNumber();
-
-                    //    this.writeUnsignedNumber(3, packetLength);
-                    //    this.writeUnsignedNumber(1, packetNumber);
-
-                    //    var start = packet * MAX_PACKET_LENGTH;
-                    //    var end   = start + packetLength;
-
-                    //    this.writeBuffer(buffer.slice(start, end));
-                    int start = packet * (_maxAllowedLength + 4);
-                    //byte[] encodeData = new byte[4];
-                    WriteEncodedUnsignedNumber0_3(_headerBuffer, (uint)packetLength);
-                    _headerBuffer[3] = IncrementPacketNumber();
-                    Buffer.BlockCopy(_headerBuffer, 0, allBuffer, start, 4);
-                    Buffer.BlockCopy(dataBuffer, offset, allBuffer, start + 4, packetLength);
-                }
-                _writer.RewindWriteAndJumpBack(allBuffer, (int)_startPacketPosition);
+                throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
             }
+            WriteEncodedUnsignedNumber0_3(_headerBuffer, header.ContentLength);
+            _headerBuffer[3] = header.PacketNumber;
+            _writer.RewindWriteAndJumpBack(_headerBuffer, (int)_startPacketPosition);
         }
 
         public uint OnlyPacketContentLength
@@ -220,16 +178,80 @@ namespace SharpConnect.MySql.Internal
                     _writer.Write((byte)((value >> 16) & 0xff));
                     _writer.Write((byte)((value >> 24) & 0xff));
                     break;
-                case 5:
+                default:
                     throw new NotSupportedException();
-                    ////?  not possible?
-                    //byte[] tempBuff = new byte[length];
-                    //for (var i = 0; i < length; i++)
-                    //{
-                    //    tempBuff[i] = (byte)((value >> (i * 8)) & 0xff);
-                    //}
-                    //writer.Write(tempBuff);
-                    //break;
+            }
+        }
+
+        public static void Write(float value, byte[] outputBuffer)
+        {
+            //from microsoft's reference source
+            //with MIT license
+            unsafe
+            {
+                uint TmpValue = *(uint*)&value;
+                outputBuffer[0] = (byte)TmpValue;
+                outputBuffer[1] = (byte)(TmpValue >> 8);
+                outputBuffer[2] = (byte)(TmpValue >> 16);
+                outputBuffer[3] = (byte)(TmpValue >> 24);
+            }
+        }
+        public static void Write(double value, byte[] outputBuffer)
+        {
+            //from microsoft's reference source
+            //with MIT license
+            unsafe
+            {
+                ulong TmpValue = *(ulong*)&value;
+                outputBuffer[0] = (byte)TmpValue;
+                outputBuffer[1] = (byte)(TmpValue >> 8);
+                outputBuffer[2] = (byte)(TmpValue >> 16);
+                outputBuffer[3] = (byte)(TmpValue >> 24);
+                outputBuffer[4] = (byte)(TmpValue >> 32);
+                outputBuffer[5] = (byte)(TmpValue >> 40);
+                outputBuffer[6] = (byte)(TmpValue >> 48);
+                outputBuffer[7] = (byte)(TmpValue >> 56);
+            }
+        }
+        public static void Write(ulong value, byte[] outputBuffer)
+        {
+            //from microsoft's reference source
+            //with MIT license
+            outputBuffer[0] = (byte)value;
+            outputBuffer[1] = (byte)(value >> 8);
+            outputBuffer[2] = (byte)(value >> 16);
+            outputBuffer[3] = (byte)(value >> 24);
+            outputBuffer[4] = (byte)(value >> 32);
+            outputBuffer[5] = (byte)(value >> 40);
+            outputBuffer[6] = (byte)(value >> 48);
+            outputBuffer[7] = (byte)(value >> 56);
+        }
+
+        public static int WriteUnsignedNumber(int length, uint value, byte[] outputBuffer)
+        {
+            switch (length)
+            {
+                case 0: return 0;
+                case 1:
+                    outputBuffer[0] = ((byte)(value & 0xff));
+                    return 1;
+                case 2:
+                    outputBuffer[0] = ((byte)(value & 0xff));
+                    outputBuffer[1] = ((byte)((value >> 8) & 0xff));
+                    return 2;
+                case 3:
+                    outputBuffer[0] = ((byte)(value & 0xff));
+                    outputBuffer[1] = ((byte)((value >> 8) & 0xff));
+                    outputBuffer[2] = ((byte)((value >> 16) & 0xff));
+                    return 3;
+                case 4:
+                    outputBuffer[0] = ((byte)(value & 0xff));
+                    outputBuffer[1] = ((byte)((value >> 8) & 0xff));
+                    outputBuffer[2] = ((byte)((value >> 16) & 0xff));
+                    outputBuffer[3] = ((byte)((value >> 24) & 0xff));
+                    return 4;
+                default:
+                    throw new NotSupportedException();
             }
         }
         /// <summary>
@@ -297,12 +319,91 @@ namespace SharpConnect.MySql.Internal
         {
             _writer.Write(value);
         }
-
+        public void WriteBuffer(byte[] value, int start, int len)
+        {
+            _writer.Write(value, start, len);
+        }
         public void WriteLengthCodedNull()
         {
             _writer.Write((byte)251);
         }
+        public int GenerateEncodeLengthNumber(long value, byte[] outputBuffer)
+        {
 
+            if (value < 251)//0xfb
+            {
+                outputBuffer[0] = (byte)value;
+                return 1;
+            }
+            if (value > Packet.IEEE_754_BINARY_64_PRECISION)
+            {
+                throw new Exception("writeLengthCodedNumber: JS precision range exceeded, your" +
+                  "number is > 53 bit: " + value);
+            }
+
+            if (value < 0xffff)
+            {
+                outputBuffer[0] = (byte)252; //encode  0xfc
+                outputBuffer[1] = (byte)(value & 0xff); //encode  0xfc
+                outputBuffer[2] = (byte)((value >> 8) & 0xff); //encode  0xfc
+                return 3;
+
+                //_writer.Write((byte)252); //encode  0xfc
+                ////// 16 Bit
+                ////this._buffer[this._offset++] = value & 0xff;
+                ////this._buffer[this._offset++] = (value >> 8) & 0xff;
+                //_writer.Write((byte)(value & 0xff));
+                //_writer.Write((byte)((value >> 8) & 0xff));
+            }
+            else if (value < 0xffffff)
+            {
+                outputBuffer[0] = (byte)253; //encode  0xfc
+                outputBuffer[1] = (byte)(value & 0xff); //encode  0xfc
+                outputBuffer[2] = (byte)((value >> 8) & 0xff); //encode  0xfc
+                outputBuffer[3] = (byte)((value >> 16) & 0xff); //encode  0xfcs
+                return 4;
+
+                //_writer.Write((byte)253); //encode 0xfd
+                //_writer.Write((byte)(value & 0xff));
+                //_writer.Write((byte)((value >> 8) & 0xff));
+                //_writer.Write((byte)((value >> 16) & 0xff));
+            }
+            else
+            {
+                outputBuffer[0] = ((byte)254); //encode 
+                outputBuffer[1] = ((byte)(value & 0xff));
+                outputBuffer[2] = ((byte)((value >> 8) & 0xff));
+                outputBuffer[3] = ((byte)((value >> 16) & 0xff));
+                outputBuffer[4] = ((byte)((value >> 24) & 0xff));
+                //// Hack: Get the most significant 32 bit (JS bitwise operators are 32 bit)
+                //value = value.toString(2);
+                //value = value.substr(0, value.length - 32);
+                //value = parseInt(value, 2); 
+                outputBuffer[5] = ((byte)((value >> 32) & 0xff));
+                outputBuffer[6] = ((byte)((value >> 40) & 0xff));
+                outputBuffer[7] = ((byte)((value >> 48) & 0xff));
+                //// Set last byte to 0, as we can only support 53 bits in JS (see above)
+                //this._buffer[this._offset++] = 0;
+                outputBuffer[8] = ((byte)0);
+                return 9;
+
+                //_writer.Write((byte)254); //encode 
+                //_writer.Write((byte)(value & 0xff));
+                //_writer.Write((byte)((value >> 8) & 0xff));
+                //_writer.Write((byte)((value >> 16) & 0xff));
+                //_writer.Write((byte)((value >> 24) & 0xff));
+                ////// Hack: Get the most significant 32 bit (JS bitwise operators are 32 bit)
+                ////value = value.toString(2);
+                ////value = value.substr(0, value.length - 32);
+                ////value = parseInt(value, 2); 
+                //_writer.Write((byte)((value >> 32) & 0xff));
+                //_writer.Write((byte)((value >> 40) & 0xff));
+                //_writer.Write((byte)((value >> 48) & 0xff));
+                ////// Set last byte to 0, as we can only support 53 bits in JS (see above)
+                ////this._buffer[this._offset++] = 0;
+                //_writer.Write((byte)0);
+            }
+        }
         public void WriteLengthCodedNumber(long value)
         {
             //http://dev.mysql.com/doc/internals/en/overview.html#length-encoded-integer
@@ -395,10 +496,21 @@ namespace SharpConnect.MySql.Internal
 
         public void WriteString(string value)
         {
-            byte[] buff = _encoding.GetBytes(value.ToCharArray());
+            byte[] buff = GetEncodeBytes(value.ToCharArray());
             _writer.Write(buff);
         }
-
+        public void WriteBinaryString(byte[] binaryEncodedString)
+        {
+            _writer.Write(binaryEncodedString);
+        }
+        public void WriteBinaryString(byte[] binaryEncodedString, int start, int len)
+        {
+            _writer.Write(binaryEncodedString, start, len);
+        }
+        public byte[] GetEncodeBytes(char[] buffer)
+        {
+            return _encoding.GetBytes(buffer);
+        }
         public byte[] ToArray()
         {
             _writer.Flush();
@@ -434,6 +546,11 @@ namespace SharpConnect.MySql.Internal
             _writer.Write(bytes);
             _offset += bytes.Length;
         }
+        public void Write(byte[] bytes, int srcIndex, int len)
+        {
+            _writer.Write(bytes, srcIndex, len);
+            _offset += len;
+        }
         public void WriteInt64(long value)
         {
             _writer.Write(value);
@@ -468,7 +585,7 @@ namespace SharpConnect.MySql.Internal
         public void RewindWriteAndJumpBack(byte[] buffer, int offset)
         {
             var pos = _writer.BaseStream.Position;
-            //rewidr
+            //rewide
             _writer.BaseStream.Position = offset;
             //write
             _writer.Write(buffer);

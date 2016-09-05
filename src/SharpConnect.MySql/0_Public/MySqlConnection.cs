@@ -79,6 +79,10 @@ namespace SharpConnect.MySql
             int portNumber = 3306;
             for (int i = 0; i < j; ++i)
             {
+                if (key_values[i] == "")
+                {
+                    continue;
+                }
                 string[] key_value = key_values[i].Split('=');
                 string key = key_value[0].Trim().ToLower();
                 string value = key_value[1].Trim();

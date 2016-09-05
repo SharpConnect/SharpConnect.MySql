@@ -47,7 +47,9 @@ namespace MySqlClient
         {
 
 #if DEBUG
-            TestSet1.T_NullData();
+            //TestSet1.T_NullData();
+         
+            TestSet_Blob.T_InsertBlobData();
             // TestSet2_SimpleMapper.T_InsertAndSelect();
             //DateTime d = new DateTime(0, 0, 0, 0, 0, 0);
 
