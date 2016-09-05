@@ -24,6 +24,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.IO;
 using SharpConnect.Internal;
 
 namespace SharpConnect.MySql.Internal
@@ -54,6 +55,8 @@ namespace SharpConnect.MySql.Internal
             Field_EOF,
             Row_Header,
             Row_Content,
+
+           
             Row_EOF,
             ShouldEnd,
             Error_Content,
@@ -119,6 +122,7 @@ namespace SharpConnect.MySql.Internal
                     return Parse_Row_Header(reader);
                 case ResultPacketState.Row_Content:
                     return Parse_Row_Content(reader);
+              
                 case ResultPacketState.Row_EOF:
                     return Parse_Row_EOF(reader);
                 //---------------------------------------
@@ -237,7 +241,7 @@ namespace SharpConnect.MySql.Internal
                 return _needMoreData = true;
             }
 
-            //uint contentLen = _currentHeader.ContentLength;
+
             var fieldPacket = new FieldPacket(_currentHeader, this._isProtocol41);
             fieldPacket.ParsePacketContent(reader);
             fieldPacket.FieldIndex = _tableHeader.ColumnCount; //set this before  add to field list
@@ -274,6 +278,16 @@ namespace SharpConnect.MySql.Internal
             }
 
             _currentHeader = reader.ReadPacketHeader();
+            if (_currentHeader.ContentLength == Packet.MAX_PACKET_LENGTH)
+            {
+                //need more than 1 packet for row content 
+                _parsingState = ResultPacketState.Row_Content;
+                return false;
+            }
+            else if (_currentHeader.ContentLength > Packet.MAX_PACKET_LENGTH)
+            {
+                throw new NotSupportedException("???");
+            }
             byte packetType = reader.PeekByte();
             switch (packetType)
             {
@@ -289,19 +303,19 @@ namespace SharpConnect.MySql.Internal
             }
             return false;
         }
-        /// <summary>
-        /// TODO: review large buffer
-        /// </summary>
-        byte[] largeDataBuffer = null;
-        bool isLargeData = false;
 
+        bool isLargeData = false;
         bool Parse_Row_Content(MySqlStreamReader reader)
         {
             if (!reader.Ensure(_currentHeader.ContentLength))
             {
                 return _needMoreData = true;
             }
-            if (_currentHeader.ContentLength >= Packet.MAX_PACKET_LENGTH)
+            if (_currentHeader.ContentLength > Packet.MAX_PACKET_LENGTH)
+            {
+                throw new NotSupportedException("???");
+            }
+            else if (_currentHeader.ContentLength >= Packet.MAX_PACKET_LENGTH)
             {
                 //can't complete in this round 
                 //so store data into temp extra large buffer 
@@ -309,24 +323,10 @@ namespace SharpConnect.MySql.Internal
                 StoreBuffer(reader, (int)_currentHeader.ContentLength);
                 isLargeData = true;
                 //we still in the row content state
-                //parsingState = ResultPacketState.Expect_RowHeader; //2016-07-13
-                return true;
+                _parsingState = ResultPacketState.Row_Header;
+                return false;
             }
-            else
-            {
-                if (isLargeData)
-                {
-                    throw new NotSupportedException();
-                    //StoreBuffer((int)header.ContentLength);
-                    //int remain = (int)(_mysqlStreamReader.CurrentInputLength - _mysqlStreamReader.ReadPosition);
-                    //StoreBuffer(remain);
-                    ////move large data into a parser
-                    //_mysqlStreamReader.LoadNewBuffer(largeDataBuffer, largeDataBuffer.Length);
-                    ////reset value***
-                    //largeDataBuffer = null;
-                    //isLargeData = false;
-                }
-            }
+            //--------------------------------       
 
             if (_generateResultMode)
             {
@@ -339,9 +339,28 @@ namespace SharpConnect.MySql.Internal
                 {
                     throw new NotSupportedException("not support this length");
                 }
-                //------------------------------------ 
-                _rows.Add(new DataRowPacket(_currentHeader,
+                //------------------------------------  
+                if (isLargeData)
+                {
+                    if (ms == null)
+                    {   //it should not be null here
+                        throw new NotSupportedException();//?   
+                    }
+                    ms.Write(reader.ReadBuffer((int)_currentHeader.ContentLength), 0,
+                        (int)_currentHeader.ContentLength);
+                    _rows.Add(new DataRowPacket(_currentHeader, ms.ToArray()));
+
+                    ms.Close();
+                    ms.Dispose();
+                    ms = null;
+
+                    isLargeData = false; //reset
+                }
+                else
+                {
+                    _rows.Add(new DataRowPacket(_currentHeader,
                     reader.ReadBuffer((int)_currentHeader.ContentLength)));
+                }
 
             }
             else
@@ -359,7 +378,6 @@ namespace SharpConnect.MySql.Internal
             _parsingState = ResultPacketState.Row_Header;
             return false;
         }
-
 
         bool Parse_Row_EOF(MySqlStreamReader reader)
         {
@@ -408,9 +426,18 @@ namespace SharpConnect.MySql.Internal
             }
         }
         //---------------------
+        MemoryStream ms;
         void StoreBuffer(MySqlStreamReader reader, int length)
         {
-            throw new NotSupportedException();
+            if (ms == null)
+            {
+                ms = new MemoryStream();
+                //buffer data to this 
+            }
+            ms.Write(reader.ReadBuffer(length), 0, length);
+
+            //reader.SkipForward(length);
+            // throw new NotSupportedException();
             ////TODO: review buffer mx here ****
             //byte[] dataTemp = _mysqlStreamReader.ReadBuffer((int)length);
             //int existingLargeDataBufferLen = (largeDataBuffer == null) ?
@@ -832,7 +859,7 @@ namespace SharpConnect.MySql.Internal
                 resultPacketParser = new ResultPacketParser(value);
             }
         }
-     
+
         public void UseConnectionParser()
         {
             //switch from current parser to another

@@ -32,10 +32,9 @@ namespace SharpConnect.MySql.Internal
         public readonly byte PacketNumber;
         public PacketHeader(uint contentLength, byte number)
         {
-            if (contentLength == 5 && number == 0)
-            {
-
-            }
+            //if (contentLength == 5 && number == 0)
+            //{ 
+            //}
             ContentLength = contentLength;
             PacketNumber = number;
         }
@@ -228,19 +227,70 @@ namespace SharpConnect.MySql.Internal
 
         public override void WritePacket(MySqlStreamWriter writer)
         {
-            this._header = Write(writer, this._sql);
+            Write(writer, this._sql);
         }
 
-        public static PacketHeader Write(MySqlStreamWriter writer, string sql)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <param name="sql"></param>
+        /// <returns></returns>
+        public static void Write(MySqlStreamWriter writer, string sql)
         {
             //for those who don't want to alloc an new packet
-            //just write it into a stream
-            writer.ReserveHeader();
-            writer.WriteByte((byte)Command.QUERY);
-            writer.WriteString(sql);
-            var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
-            writer.WriteHeader(header);
-            return header;
+            //just write it into a stream  
+            byte[] buffer = writer.GetEncodeBytes(sql.ToCharArray());
+            int totalLen = buffer.Length;
+            int packetCount = (totalLen / Packet.MAX_PACKET_LENGTH) + 1;
+
+            if (packetCount <= 1)
+            {
+                writer.ReserveHeader();
+                writer.WriteByte((byte)Command.QUERY);
+                //check if we can write data in 1 packet or not 
+                writer.WriteBinaryString(buffer);
+                var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
+                writer.WriteHeader(header);
+            }
+            else
+            {
+                //we need to split to multiple packet
+
+                int currentPacketContentSize = Packet.MAX_PACKET_LENGTH;
+                int pos = 0;
+
+                for (int i = 0; i < packetCount; ++i)
+                {
+                    //write each packet to stream
+                    writer.ReserveHeader();
+                    if (i == 0)
+                    {
+                        //first packet
+                        writer.WriteByte((byte)Command.QUERY);
+                        writer.WriteBinaryString(buffer, pos, currentPacketContentSize - 1);//remove 1 query cmd
+                        pos += (currentPacketContentSize - 1);
+
+                    }
+                    else if (i == packetCount - 1)
+                    {
+                        //last packet
+                        currentPacketContentSize = totalLen - pos;
+                        writer.WriteBinaryString(buffer, pos, currentPacketContentSize);
+                    }
+                    else
+                    {
+                        writer.WriteBinaryString(buffer, pos, currentPacketContentSize);
+                        pos += (currentPacketContentSize);
+                    }
+
+                    //check if we can write data in 1 packet or not                   
+                    var header = new PacketHeader((uint)currentPacketContentSize, writer.IncrementPacketNumber());
+                    writer.WriteHeader(header);
+                }
+
+            }
+
         }
     }
 
@@ -981,7 +1031,7 @@ namespace SharpConnect.MySql.Internal
             throw new NotSupportedException();
         }
     }
-     
+
 
 #if DEBUG
     struct dbugBufferView
