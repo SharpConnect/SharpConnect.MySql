@@ -149,23 +149,25 @@ namespace SharpConnect.MySql.Internal
             //return this.parseString(length);
         }
 
-        public static bool ReadLengthCodedBuffer(this BufferReader reader, out byte[] outputBuffer)
+        /// <summary>
+        /// return 
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <param name="outputBuffer"></param>
+        /// <returns></returns>
+        public static byte[] ReadLengthCodedBuffer(this BufferReader reader, out bool isNull)
         {
-
-            bool isNull;
             uint length = ReadLengthCodedNumber(reader, out isNull);
-            outputBuffer = isNull ? null : reader.ReadBytes((int)length);
-            return isNull;
+            byte[] output = reader.ReadBytes((int)length);
+            return isNull ? null : output;
+
         }
 
         public static byte[] ReadLengthCodedBuffer(this BufferReader reader)
         {
-            byte[] output = null;
-            if (ReadLengthCodedBuffer(reader, out output))
-            {
-                return output;
-            }
-            return null;
+            bool isNull;
+            byte[] output = ReadLengthCodedBuffer(reader, out isNull);
+            return isNull ? null : output;
         }
         public static string ReadString(this BufferReader reader,
             uint length,
