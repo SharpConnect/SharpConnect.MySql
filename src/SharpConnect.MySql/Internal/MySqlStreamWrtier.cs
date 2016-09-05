@@ -31,7 +31,8 @@ namespace SharpConnect.MySql.Internal
         MyBinaryWriter _writer;
         byte _packetNumber;
         long _startPacketPosition;
-        int _maxAllowedLength = Packet.MAX_PACKET_LENGTH;
+
+        int _serverMaxDataLength = Packet.MAX_PACKET_LENGTH;
         Encoding _encoding;
         byte[] _headerBuffer = new byte[4];//reusable header buffer
         const int BIT_16 = (int)1 << 16;//(int)Math.Pow(2, 16);
@@ -57,19 +58,16 @@ namespace SharpConnect.MySql.Internal
         {
             get { return _writer.Length; }
         }
-
         public void SetMaxAllowedPacket(int max)
         {
-            _maxAllowedLength = max;
+            _serverMaxDataLength = max;
         }
-
         public void Reset()
         {
             _packetNumber = 0;
             _startPacketPosition = 0;
             _writer.Reset();
         }
-
         public void Dispose()
         {
             _writer.Close();
@@ -98,60 +96,20 @@ namespace SharpConnect.MySql.Internal
 #endif
             //TODO: review MAX_PACKET_LENGTH here ****
             //it should be 
-            int packetCount = (int)((totalPacketLength - 4) / _maxAllowedLength) + 1;//-4 bytes of reserve header
-            //int packetCount = (int)((curPacketLength - 4) / Packet.MAX_PACKET_LENGTH) + 1;//-4 bytes of reserve header
-            if (packetCount == 1)
+            //int packetCount = (int)((totalPacketLength - 4) / _maxAllowedLength) + 1;//-4 bytes of reserve header
+            if (totalPacketLength > _serverMaxDataLength)
             {
-                if (header.ContentLength > _maxAllowedLength)
-                {
-                    throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
-                }
-                WriteEncodedUnsignedNumber0_3(_headerBuffer, header.ContentLength);
-                _headerBuffer[3] = header.PacketNumber;
-                _writer.RewindWriteAndJumpBack(_headerBuffer, (int)_startPacketPosition);
-            }
-            else //>1 
+                throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
+            } 
+            if (header.ContentLength > Packet.MAX_PACKET_LENGTH)
             {
-                _packetNumber = header.PacketNumber;//set start current packet number
-                long allDataLength = (totalPacketLength - 4) + (packetCount * 4);
-                if (allDataLength > _maxAllowedLength)
-                {
-                    throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
-                }
-                byte[] allBuffer = new byte[allDataLength];
-                byte[] dataBuffer = new byte[allDataLength - 4];//remove header
-                _writer.Read(dataBuffer, 4, (int)allDataLength - 4);//skip reserve header bytes
-                int offset = 0;
-                for (int packet = 0; packet < packetCount; packet++)
-                {
-                    offset = (packet * _maxAllowedLength);
-                    //    var isLast = (packet + 1 === packets);
-                    //    var packetLength = (isLast)
-                    //      ? buffer.length % MAX_PACKET_LENGTH
-                    //      : MAX_PACKET_LENGTH;
-                    int packetLength = (packet + 1 == packetCount)
-                        ? (int)((totalPacketLength - 4) % _maxAllowedLength)
-                        : _maxAllowedLength;
-                    //    var packetNumber = parser.incrementPacketNumber();
-
-                    //    this.writeUnsignedNumber(3, packetLength);
-                    //    this.writeUnsignedNumber(1, packetNumber);
-
-                    //    var start = packet * MAX_PACKET_LENGTH;
-                    //    var end   = start + packetLength;
-
-                    //    this.writeBuffer(buffer.slice(start, end));
-                    int start = packet * (_maxAllowedLength + 4);
-                    //byte[] encodeData = new byte[4];
-                    WriteEncodedUnsignedNumber0_3(_headerBuffer, (uint)packetLength);
-                    _headerBuffer[3] = IncrementPacketNumber();
-                    Buffer.BlockCopy(_headerBuffer, 0, allBuffer, start, 4);
-                    Buffer.BlockCopy(dataBuffer, offset, allBuffer, start + 4, packetLength);
-                }
-                _writer.RewindWriteAndJumpBack(allBuffer, (int)_startPacketPosition);
+                throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
             }
+            WriteEncodedUnsignedNumber0_3(_headerBuffer, header.ContentLength);
+            _headerBuffer[3] = header.PacketNumber;
+            _writer.RewindWriteAndJumpBack(_headerBuffer, (int)_startPacketPosition);
+
         }
-
         public uint OnlyPacketContentLength
         {
             get
@@ -395,10 +353,21 @@ namespace SharpConnect.MySql.Internal
 
         public void WriteString(string value)
         {
-            byte[] buff = _encoding.GetBytes(value.ToCharArray());
+            byte[] buff = GetEncodeBytes(value.ToCharArray());
             _writer.Write(buff);
         }
-
+        public void WriteBinaryString(byte[] binaryEncodedString)
+        {
+            _writer.Write(binaryEncodedString);
+        }
+        public void WriteBinaryString(byte[] binaryEncodedString, int start, int len)
+        {
+            _writer.Write(binaryEncodedString, start, len);
+        }
+        public byte[] GetEncodeBytes(char[] buffer)
+        {
+            return _encoding.GetBytes(buffer);
+        }
         public byte[] ToArray()
         {
             _writer.Flush();
@@ -434,6 +403,11 @@ namespace SharpConnect.MySql.Internal
             _writer.Write(bytes);
             _offset += bytes.Length;
         }
+        public void Write(byte[] bytes, int srcIndex, int len)
+        {
+            _writer.Write(bytes, srcIndex, len);
+            _offset += len;
+        }
         public void WriteInt64(long value)
         {
             _writer.Write(value);
@@ -468,7 +442,7 @@ namespace SharpConnect.MySql.Internal
         public void RewindWriteAndJumpBack(byte[] buffer, int offset)
         {
             var pos = _writer.BaseStream.Position;
-            //rewidr
+            //rewide
             _writer.BaseStream.Position = offset;
             //write
             _writer.Write(buffer);
