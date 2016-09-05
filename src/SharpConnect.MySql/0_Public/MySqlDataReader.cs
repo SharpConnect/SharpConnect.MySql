@@ -965,27 +965,7 @@ namespace SharpConnect.MySql
                 SetCurrentSubTable(MySqlSubTable.Empty);
                 goto TRY_AGAIN;
             }
-            //if (!base.Read())
-            //{
-            //    SetCurrentSubTable(MySqlSubTable.Empty);
-            //    goto TRY_AGAIN;
-            //}
-            //else
-            //{
-            //    return true;
-            //}
-            //if (currentRowIndex < currentTableRowCount)
-            //{
-            //    SetCurrentRow(currentSubTable.GetRow(currentRowIndex));
-            //    currentRowIndex++;
-            //    return true;
-            //}
-            //else
-            //{
-
-            //    SetCurrentSubTable(MySqlSubTable.Empty);
-            //    goto TRY_AGAIN;
-            //}
+            
 
         }
         internal override void InternalClose(Action nextAction = null)

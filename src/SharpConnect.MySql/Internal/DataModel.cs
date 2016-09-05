@@ -400,14 +400,6 @@ namespace SharpConnect.MySql.Internal
         UNKNOWN = 0xff    //UNKNOWN            : 0xff   // bad!
     }
 
-    //[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
-    //struct MyCellData
-    //{
-    //    [System.Runtime.InteropServices.FieldOffset(0)]
-    //    public MySqlDataType type; //1  byte
-    //    [System.Runtime.InteropServices.FieldOffset(4)]
-    //    public byte[] myBuffer;
-    //}
 
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
     struct MyStructData

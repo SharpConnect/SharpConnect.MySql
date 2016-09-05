@@ -41,13 +41,13 @@ namespace MySqlTest
                 string sql = "insert into test001(mydata) values(?mydata)";
                 var cmd = new MySqlCommand(sql, conn);
                 cmd.Prepare();
-
                 //testdata_crc32 = SharpConnect.CRC32Calculator.CalculateCrc32(data);
                 cmd.Parameters.AddWithValue("?mydata", data);
-                for(int i = 0; i < 5; i++)
-                {
-                    cmd.ExecuteNonQuery();
-                }
+                cmd.ExecuteNonQuery();
+                //for (int i = 0; i < 5; i++)
+                //{
+                //    cmd.ExecuteNonQuery();
+                //}
                 lastInsertId = cmd.LastInsertedId;
             }
 
@@ -128,7 +128,7 @@ namespace MySqlTest
             while (reader.Read())
             {
                 data = reader.GetString(0);
-                Console.WriteLine("data["+(++count)+"] : " + data);
+                Console.WriteLine("data[" + (++count) + "] : " + data);
             }
             reader.Close();
             return true;
@@ -160,7 +160,7 @@ namespace MySqlTest
 
         static byte[] CreateTestData()
         {
-            int datasize = 1024 * 1000 * 45;
+            int datasize = 1024 * 1000 * 18;
             byte[] data = new byte[datasize];
             int count = 0;
             for (int i = datasize - 1; i >= 0; --i)

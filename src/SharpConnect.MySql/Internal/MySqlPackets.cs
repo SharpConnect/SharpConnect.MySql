@@ -32,10 +32,9 @@ namespace SharpConnect.MySql.Internal
         public readonly byte PacketNumber;
         public PacketHeader(uint contentLength, byte number)
         {
-            if (contentLength == 5 && number == 0)
-            {
-
-            }
+            //if (contentLength == 5 && number == 0)
+            //{ 
+            //}
             ContentLength = contentLength;
             PacketNumber = number;
         }
@@ -154,6 +153,7 @@ namespace SharpConnect.MySql.Internal
                 ServerCapabilityFlags.CLIENT_MULTI_RESULTS |
                 ServerCapabilityFlags.CLIENT_PS_MULTI_RESULTS;
         }
+
         public override void ParsePacketContent(MySqlStreamReader r)
         {
 
@@ -228,19 +228,70 @@ namespace SharpConnect.MySql.Internal
 
         public override void WritePacket(MySqlStreamWriter writer)
         {
-            this._header = Write(writer, this._sql);
+            Write(writer, this._sql);
         }
 
-        public static PacketHeader Write(MySqlStreamWriter writer, string sql)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <param name="sql"></param>
+        /// <returns></returns>
+        public static void Write(MySqlStreamWriter writer, string sql)
         {
             //for those who don't want to alloc an new packet
-            //just write it into a stream
-            writer.ReserveHeader();
-            writer.WriteByte((byte)Command.QUERY);
-            writer.WriteString(sql);
-            var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
-            writer.WriteHeader(header);
-            return header;
+            //just write it into a stream  
+            byte[] buffer = writer.GetEncodeBytes(sql.ToCharArray());
+            int totalLen = buffer.Length;
+            int packetCount = (totalLen / Packet.MAX_PACKET_LENGTH) + 1;
+
+            if (packetCount <= 1)
+            {
+                writer.ReserveHeader();
+                writer.WriteByte((byte)Command.QUERY);
+                //check if we can write data in 1 packet or not 
+                writer.WriteBinaryString(buffer);
+                var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
+                writer.WriteHeader(header);
+            }
+            else
+            {
+                //we need to split to multiple packet
+
+                int currentPacketContentSize = Packet.MAX_PACKET_LENGTH;
+                int pos = 0;
+
+                for (int i = 0; i < packetCount; ++i)
+                {
+                    //write each packet to stream
+                    writer.ReserveHeader();
+                    if (i == 0)
+                    {
+                        //first packet
+                        writer.WriteByte((byte)Command.QUERY);
+                        writer.WriteBinaryString(buffer, pos, currentPacketContentSize - 1);//remove 1 query cmd
+                        pos += (currentPacketContentSize - 1);
+
+                    }
+                    else if (i == packetCount - 1)
+                    {
+                        //last packet
+                        currentPacketContentSize = totalLen - pos;
+                        writer.WriteBinaryString(buffer, pos, currentPacketContentSize);
+                    }
+                    else
+                    {
+                        writer.WriteBinaryString(buffer, pos, currentPacketContentSize);
+                        pos += (currentPacketContentSize);
+                    }
+
+                    //check if we can write data in 1 packet or not                   
+                    var header = new PacketHeader((uint)currentPacketContentSize, writer.IncrementPacketNumber());
+                    writer.WriteHeader(header);
+                }
+
+            }
+
         }
     }
 
@@ -305,7 +356,6 @@ namespace SharpConnect.MySql.Internal
 
     class ComExecPrepareStmtPacket : Packet
     {
-        //byte EXCUTE_CMD = (byte)Command.STMT_EXECUTE;
 
         readonly uint _statementId;
         readonly MyStructData[] _prepareValues;
@@ -324,50 +374,275 @@ namespace SharpConnect.MySql.Internal
         {
             Write(writer, this._statementId, _prepareValues);
         }
-
-        static void WriteValueByType(MySqlStreamWriter writer, ref MyStructData dataTemp)
+        //----------------------------
+        struct TempSingleValueHolder
         {
-            switch (dataTemp.type)
+            public byte[] headerLenBuffer;
+            public int encodedLengthBufferWriteIndex;
+            public int encodedLengthLen;
+            //------------------------------
+            public int contentStart;
+            public int contentLen;
+            public byte[] bufferContent;
+            public byte[] generalContent;
+            //-------------------------------
+
+            public int round;
+            public bool isBufferOrString;
+            public int TotalLength
             {
-                case MySqlDataType.VARCHAR:
-                case MySqlDataType.VAR_STRING:
-                case MySqlDataType.STRING:
-                    writer.WriteLengthCodedString(dataTemp.myString);
-                    break;
-                case MySqlDataType.TINY:
-                    writer.WriteUnsignedNumber(1, dataTemp.myUInt32);
-                    break;
-                case MySqlDataType.SHORT:
-                    var a = dataTemp.myInt32;
-                    writer.WriteUnsignedNumber(2, dataTemp.myUInt32);
-                    break;
-                case MySqlDataType.LONG:
-                    //writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
-                    writer.WriteUnsignedNumber(4, dataTemp.myUInt32);
-                    break;
-                case MySqlDataType.LONGLONG:
-                    writer.WriteInt64(dataTemp.myInt64);
-                    break;
-                case MySqlDataType.FLOAT:
-                    writer.WriteFloat((float)dataTemp.myDouble);
-                    break;
-                case MySqlDataType.DOUBLE:
-                    writer.WriteDouble(dataTemp.myDouble);
-                    break;
-                case MySqlDataType.BIT:
-                case MySqlDataType.BLOB:
-                case MySqlDataType.MEDIUM_BLOB:
-                case MySqlDataType.LONG_BLOB:
-                    writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
-                    break;
-                default:
-                    //TODO: review here
-                    throw new NotSupportedException();
-                    //writer.WriteLengthCodedNull();
+                get { return encodedLengthLen + contentLen; }
+            }
+            public void Reset()
+            {
+                this.encodedLengthBufferWriteIndex = 0;
+                this.encodedLengthLen = 0;
+                this.contentLen = 0;
+                this.contentStart = 0;
+                this.isBufferOrString = false;
+                this.round = 0;
             }
         }
+        //----------------------------
+        static bool WriteValueByType(MySqlStreamWriter writer,
+            ref MyStructData dataTemp,
+            ref TempSingleValueHolder singleValueHolder)
+        {
+            int availableContentSpace = Packet.MAX_PACKET_LENGTH - (int)writer.OnlyPacketContentLength;
+            if (singleValueHolder.round == 0)
+            {
+                //---------------------------
+                //this is first round *** 
+                //---------------------------
+                switch (dataTemp.type)
+                {
+                    case MySqlDataType.NULL:
+                        //we not write null data
+                        return true;
+                    case MySqlDataType.BIT:
+                    case MySqlDataType.BLOB:
+                    case MySqlDataType.MEDIUM_BLOB:
+                    case MySqlDataType.LONG_BLOB:
 
-        public static PacketHeader Write(MySqlStreamWriter writer, uint stmtId, MyStructData[] _prepareValues)
+                        //writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
+                        //this is first round
+                        singleValueHolder.isBufferOrString = true;
+                        singleValueHolder.bufferContent = dataTemp.myBuffer;
+                        singleValueHolder.contentLen = singleValueHolder.bufferContent.Length;
+                        //generate output
+                        singleValueHolder.encodedLengthLen = writer.GenerateEncodeLengthNumber(singleValueHolder.contentLen, singleValueHolder.headerLenBuffer);
+                        if (availableContentSpace > singleValueHolder.TotalLength)
+                        {
+                            //write in first round
+                            writer.WriteLengthCodedBuffer(singleValueHolder.bufferContent);
+                            return true;
+                        }
+                        //go below
+
+                        break;
+                    case MySqlDataType.VARCHAR:
+                    case MySqlDataType.VAR_STRING:
+                    case MySqlDataType.STRING:
+                        {
+                            //this is first round
+                            singleValueHolder.isBufferOrString = true;
+                            singleValueHolder.bufferContent = Encoding.UTF8.GetBytes(dataTemp.myString);
+                            singleValueHolder.contentLen = singleValueHolder.bufferContent.Length;
+                            //generate output
+                            singleValueHolder.encodedLengthLen = writer.GenerateEncodeLengthNumber(singleValueHolder.contentLen, singleValueHolder.headerLenBuffer);
+                            if (availableContentSpace > singleValueHolder.TotalLength)
+                            {
+                                //write in first round
+                                writer.WriteLengthCodedBuffer(singleValueHolder.bufferContent);
+                                return true;
+                            }
+                            //go below 
+                        }
+                        break;
+                    case MySqlDataType.TINY:
+                        //if we can write in 1st round 
+                        if (availableContentSpace > 1)
+                        {
+                            writer.WriteUnsignedNumber(1, dataTemp.myUInt32);
+                            return true;
+                        }
+                        else
+                        {
+                            //go below 
+                            MySqlStreamWriter.WriteUnsignedNumber(1, dataTemp.myUInt32, singleValueHolder.generalContent);
+                        }
+                        break;
+                    case MySqlDataType.SHORT:
+                        if (availableContentSpace > 2)
+                        {
+                            writer.WriteUnsignedNumber(2, dataTemp.myUInt32);
+                            return true;
+                        }
+                        else
+                        {
+                            MySqlStreamWriter.WriteUnsignedNumber(2, dataTemp.myUInt32, singleValueHolder.generalContent);
+                        }
+                        break;
+                    case MySqlDataType.LONG:
+                        if (availableContentSpace > 4)
+                        {
+                            writer.WriteUnsignedNumber(4, dataTemp.myUInt32);
+                            return true;
+                        }
+                        else
+                        {
+                            MySqlStreamWriter.WriteUnsignedNumber(4, dataTemp.myUInt32, singleValueHolder.generalContent);
+                            //go below 
+                        }
+                        break;
+                    case MySqlDataType.LONGLONG:
+                        if (availableContentSpace > 8)
+                        {
+                            writer.WriteInt64(dataTemp.myInt64);
+                            return true;
+                        }
+                        else
+                        {
+                            //go below 
+                            MySqlStreamWriter.Write(dataTemp.myInt64, singleValueHolder.generalContent);
+                        }
+
+                        break;
+                    case MySqlDataType.FLOAT:
+                        if (availableContentSpace > 4)
+                        {
+                            writer.WriteFloat((float)dataTemp.myDouble);
+                            return true;
+                        }
+                        else
+                        {
+                            //go below 
+                            MySqlStreamWriter.Write((float)dataTemp.myDouble, singleValueHolder.generalContent);
+                        }
+                        break;
+                    case MySqlDataType.DOUBLE:
+                        if (availableContentSpace > 8)
+                        {
+                            writer.WriteDouble(dataTemp.myDouble);
+                            return true;
+                        }
+                        else
+                        {
+                            //go below 
+                            MySqlStreamWriter.Write(dataTemp.myDouble, singleValueHolder.generalContent);
+                        }
+                        break;
+                    default:
+                        //TODO: review here
+                        throw new NotSupportedException();
+                        //writer.WriteLengthCodedNull();
+                }
+            }
+            //----------------------------------------------------------------------------------------------------------
+            if (singleValueHolder.isBufferOrString)
+            {
+                //write encoded len & data
+                //check if we write complete header or not   
+                if (singleValueHolder.encodedLengthBufferWriteIndex < singleValueHolder.encodedLengthLen)
+                {
+                    //can we write complete encoded length header here?
+                    int remaining = singleValueHolder.encodedLengthLen - singleValueHolder.encodedLengthBufferWriteIndex;
+                    if (availableContentSpace > remaining)
+                    {
+                        for (int i = 0; i < remaining; ++i)
+                        {
+                            writer.WriteByte(singleValueHolder.headerLenBuffer[singleValueHolder.encodedLengthBufferWriteIndex]);
+                            singleValueHolder.encodedLengthBufferWriteIndex++;
+                        }
+                        availableContentSpace -= remaining;
+                    }
+                    else if (availableContentSpace == remaining)
+                    {
+                        //TODO: review here
+                        throw new NotSupportedException();
+                        //we can write only header ***
+                        for (int i = 0; i < remaining; ++i)
+                        {
+                            writer.WriteByte(singleValueHolder.headerLenBuffer[singleValueHolder.encodedLengthBufferWriteIndex]);
+                            singleValueHolder.encodedLengthBufferWriteIndex++;
+                        }
+                        availableContentSpace -= remaining;
+                    }
+                    else
+                    {
+                        //can't complete encoded length here in this step
+                        for (int i = 0; i < availableContentSpace; ++i)
+                        {
+                            writer.WriteByte(singleValueHolder.headerLenBuffer[singleValueHolder.encodedLengthBufferWriteIndex]);
+                            singleValueHolder.encodedLengthBufferWriteIndex++;
+                        }
+                        return false;
+                    }
+                }
+                //---------------
+                //write the body
+                int remainBodyLen = singleValueHolder.contentLen - singleValueHolder.contentStart;
+                if (availableContentSpace > remainBodyLen)
+                {
+                    //write buffer 
+                    //we use bufferContent ****
+                    writer.WriteBuffer(singleValueHolder.bufferContent, singleValueHolder.contentStart, remainBodyLen);
+                    singleValueHolder.contentStart += remainBodyLen;
+                    return true;
+
+                }
+                else if (availableContentSpace == remainBodyLen)
+                { 
+                    //TODO: review here
+                    throw new NotSupportedException();
+                    //this needs last packet with 0 byte content size ***
+                    writer.WriteBuffer(singleValueHolder.generalContent, singleValueHolder.contentStart, remainBodyLen);
+                    singleValueHolder.contentStart += remainBodyLen;
+                    return false;
+                }
+                else
+                {
+                    //write buffer 
+                    //we use bufferContent ****
+                    writer.WriteBuffer(singleValueHolder.bufferContent, singleValueHolder.contentStart, availableContentSpace);
+                    singleValueHolder.contentStart += availableContentSpace;
+                    return false;
+                }
+            }
+            else
+            {
+                //---------------
+                //write the body
+                int remainBodyLen = singleValueHolder.contentLen - singleValueHolder.contentStart;
+                if (availableContentSpace > remainBodyLen)
+                {
+                    //write buffer 
+                    //we use generalContent ****
+                    writer.WriteBuffer(singleValueHolder.generalContent, singleValueHolder.contentStart, remainBodyLen);
+                    singleValueHolder.contentStart += remainBodyLen;
+                    return true;
+                }
+                else if (availableContentSpace == remainBodyLen)
+                {   
+                    
+                    //TODO: review here
+                    throw new NotSupportedException();
+                    //this needs last packet with 0 byte content size ***
+                    writer.WriteBuffer(singleValueHolder.generalContent, singleValueHolder.contentStart, remainBodyLen);
+                    singleValueHolder.contentStart += remainBodyLen;
+                    return false;
+                }
+                else
+                {
+                    //write buffer 
+                    //we use generalContent ****
+                    writer.WriteBuffer(singleValueHolder.generalContent, singleValueHolder.contentStart, availableContentSpace);
+                    singleValueHolder.contentStart += availableContentSpace;
+                    return false;
+                }
+            }
+        }
+        public static void Write(MySqlStreamWriter writer, uint stmtId, MyStructData[] _prepareValues)
         {
             //for those who don't want to alloc an new packet
             //just write it into a stream
@@ -375,9 +650,9 @@ namespace SharpConnect.MySql.Internal
             writer.WriteByte((byte)Command.STMT_EXECUTE);
             writer.WriteUnsignedNumber(4, stmtId);
             writer.WriteByte((byte)CursorFlags.CURSOR_TYPE_NO_CURSOR);
-            writer.WriteUnsignedNumber(4, 1);//iteration-count, always 1
-            //write NULL-bitmap, length: (num-params+7)/8
 
+            writer.WriteUnsignedNumber(4, 1);//iteration-count, always 1
+                                             //write NULL-bitmap, length: (num-params+7)/8 
             MyStructData[] fillValues = _prepareValues;
             int paramNum = _prepareValues.Length;
             if (paramNum > 0)
@@ -391,9 +666,11 @@ namespace SharpConnect.MySql.Internal
                     {
                         bitmap += bitValue;
                     }
-                    bitValue *= 2;
+                    bitValue <<= 1; //shift to left 1 bit
                     if (bitValue == 256)
                     {
+                        //end of 8 bits
+                        //just store data
                         writer.WriteUnsigned1(bitmap);
                         bitmap = 0;
                         bitValue = 1;
@@ -404,36 +681,42 @@ namespace SharpConnect.MySql.Internal
                     writer.WriteUnsigned1(bitmap);
                 }
             }
-            writer.WriteByte(1);//new-params-bound - flag
+            //new-params-bound - flag
+            writer.WriteByte(1);
             //-------------------------------------------------------
             //data types
             for (int i = 0; i < paramNum; i++)
             {
                 writer.WriteUnsignedNumber(2, (byte)_prepareValues[i].type);
             }
-
-            //write value of each parameter
-            //example:
-            //for(int i = 0; i < param.Length; i++)
-            //{
-            //    switch (param[i].type)
-            //    {
-            //        case Types.BLOB:writer.WriteLengthCodedBuffer(param[i].myBuffer);
-            //    }
-            //}
-
             //--------------------------------------
             //actual data
+            //--------------------------------------
+            //stream of data may large than 1 packet
+            var tempSingleValueHolder = new TempSingleValueHolder();
+            tempSingleValueHolder.headerLenBuffer = new byte[9];
+            tempSingleValueHolder.generalContent = new byte[16];
             for (int i = 0; i < paramNum; i++)
             {
-                WriteValueByType(writer, ref _prepareValues[i]);
+                bool isComplete = WriteValueByType(writer, ref _prepareValues[i], ref tempSingleValueHolder);
+                var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
+                writer.WriteHeader(header);
+                //--------------------------------------------------------------------------------------------------
+                while (!isComplete)
+                {
+                    //write until complete
+                    tempSingleValueHolder.round++;
+                    writer.ReserveHeader();
+                    isComplete = WriteValueByType(writer, ref _prepareValues[i], ref tempSingleValueHolder);
+                    header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
+                    writer.WriteHeader(header);
+                }
+                //reset
+                tempSingleValueHolder.Reset();
             }
-            var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
-            writer.WriteHeader(header);
-            return header;
+            //--------------------------------------
+
         }
-
-
     }
 
     class ComStmtClosePacket : Packet
@@ -981,7 +1264,7 @@ namespace SharpConnect.MySql.Internal
             throw new NotSupportedException();
         }
     }
-     
+
 
 #if DEBUG
     struct dbugBufferView
