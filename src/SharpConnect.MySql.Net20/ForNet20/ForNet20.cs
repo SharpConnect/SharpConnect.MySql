@@ -26,6 +26,6 @@ namespace System
 }
 namespace System.Runtime.CompilerServices
 {
-    public class ExtensionAttribute : Attribute { }
+    public partial class ExtensionAttribute : Attribute { }
 }
 #endif

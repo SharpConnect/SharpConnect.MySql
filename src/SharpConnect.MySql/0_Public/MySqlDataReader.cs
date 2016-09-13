@@ -307,7 +307,12 @@ namespace SharpConnect.MySql
                         {
                             return data;
                         }
-
+                        if (data.myString == "0000-00-00")
+                        {
+                            data.myDateTime = DateTime.MinValue;//?                             
+                            data.type = type;
+                            return data;
+                        }
                         //-------------------------------------------------------------
                         //    var originalString = dateString;
                         //    if (field.type === Types.DATE) {
@@ -965,7 +970,7 @@ namespace SharpConnect.MySql
                 SetCurrentSubTable(MySqlSubTable.Empty);
                 goto TRY_AGAIN;
             }
-            
+
 
         }
         internal override void InternalClose(Action nextAction = null)
