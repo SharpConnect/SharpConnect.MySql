@@ -424,6 +424,7 @@ namespace SharpConnect.MySql.Internal
                     case MySqlDataType.MEDIUM_BLOB:
                     case MySqlDataType.LONG_BLOB:
 
+
                         //writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
                         //this is first round
                         singleValueHolder.isBufferOrString = true;
@@ -440,6 +441,7 @@ namespace SharpConnect.MySql.Internal
                         //go below
 
                         break;
+                    
                     case MySqlDataType.VARCHAR:
                     case MySqlDataType.VAR_STRING:
                     case MySqlDataType.STRING:
@@ -535,7 +537,7 @@ namespace SharpConnect.MySql.Internal
                     default:
                         //TODO: review here
                         throw new NotSupportedException();
-                        //writer.WriteLengthCodedNull();
+                    //writer.WriteLengthCodedNull();
                 }
             }
             //----------------------------------------------------------------------------------------------------------
@@ -592,7 +594,7 @@ namespace SharpConnect.MySql.Internal
 
                 }
                 else if (availableContentSpace == remainBodyLen)
-                { 
+                {
                     //TODO: review here
                     throw new NotSupportedException();
                     //this needs last packet with 0 byte content size ***
@@ -623,8 +625,8 @@ namespace SharpConnect.MySql.Internal
                     return true;
                 }
                 else if (availableContentSpace == remainBodyLen)
-                {   
-                    
+                {
+
                     //TODO: review here
                     throw new NotSupportedException();
                     //this needs last packet with 0 byte content size ***
@@ -652,7 +654,7 @@ namespace SharpConnect.MySql.Internal
             writer.WriteByte((byte)CursorFlags.CURSOR_TYPE_NO_CURSOR);
 
             writer.WriteUnsignedNumber(4, 1);//iteration-count, always 1
-                                             //write NULL-bitmap, length: (num-params+7)/8 
+            //write NULL-bitmap, length: (num-params+7)/8 
             MyStructData[] fillValues = _prepareValues;
             int paramNum = _prepareValues.Length;
             if (paramNum > 0)

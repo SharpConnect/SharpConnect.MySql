@@ -17,6 +17,8 @@ namespace SharpConnect.MySql
             var data = new MyStructData();
             if (value != null)
             {
+                //replace some value
+                value = value.Replace("\'", "\\\'");
                 data.myString = value;
                 data.type = MySqlDataType.VAR_STRING;
             }
