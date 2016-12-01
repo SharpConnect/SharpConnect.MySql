@@ -13,11 +13,14 @@ namespace SharpConnect.MySql.Mapper
         string fieldname;
         int fieldIndex;
         MySqlDataConversionTechnique convTechnique;
+        internal FieldInfo resolvedFieldInfo;
+
         internal MySqlFieldMap(int originalFieldIndex, string fieldname, MySqlDataConversionTechnique convTechnique)
         {
             this.fieldIndex = originalFieldIndex;
             this.convTechnique = convTechnique;
             this.fieldname = fieldname;
+            this.resolvedFieldInfo = null;
         }
         public int OriginalFieldIndex
         {
@@ -38,6 +41,7 @@ namespace SharpConnect.MySql.Mapper
 
     public abstract class RecordMapBase
     {
+
         protected MethodInfo metInfo;
         protected List<MySqlFieldMap> mapFields = new List<MySqlFieldMap>();
         protected MySqlDataReader reader;
@@ -74,6 +78,47 @@ namespace SharpConnect.MySql.Mapper
             }
             return this.mapFields;
         }
+        protected void EvaluateTargetStructure(Type t)
+        {
+            //evaluate target objet definition
+            //check current table defintioin first ***
+            MySqlSubTable subTable = reader.CurrentSubTable;
+            //get all public instance fields from current type 
+            FieldInfo[] allFields = t.GetFields(BindingFlags.Public | BindingFlags.Instance);
+            //
+            //we iterate all request fields
+            int j = allFields.Length;
+            mapFields.Clear();
+            for (int i = 0; i < j; ++i)
+            {
+                FieldInfo field = allFields[i];
+                MySqlFieldDefinition fieldDef = subTable.GetFieldDefinition(field.Name);
+                //----------------------------------
+                //check field type conversion 
+                //1. some basic can do direct conversion
+                //2. use can provide custom protocol for field conversion
+                //3. some need user decision
+                //----------------------------------
+                //in this version we support only primitive type  ***
+                MySqlDataConversionTechnique foundConv;
+                if (!MySqlTypeConversionInfo.TryGetImplicitConversion((MySqlDataType)fieldDef.FieldType,
+                    field.FieldType, out foundConv))
+                {
+                    //not found
+                    //TODO: 
+                    //so make notification by let use make a dicision
+                    throw new NotSupportedException();
+                }
+                //-----------------
+                MySqlFieldMap fieldMap =
+                    fieldDef.IsEmpty ?
+                     new MySqlFieldMap(-1, fieldDef.Name, foundConv) :
+                     new MySqlFieldMap(fieldDef.FieldIndex, fieldDef.Name, foundConv);
+                fieldMap.resolvedFieldInfo = field;
+                mapFields.Add(fieldMap);
+            }
+        }
+
         protected void EvaluateTableDefinition(MethodInfo met)
         {
             //check current table defintioin first ***
@@ -151,9 +196,21 @@ namespace SharpConnect.MySql.Mapper
         }
     }
 
+
+    public class RecordMap<R> : RecordMapBase<R>
+    {
+        public RecordMap() { }
+        protected override void OnMap(R r)
+        {
+            //do nothing
+        }
+    }
     public abstract class RecordMapBase<R> : RecordMapBase
     {
-
+        protected RecordMapBase()
+            : base(null)
+        {
+        }
         public RecordMapBase(Delegate del)
             : base(del.GetMethodInfo())
         {
@@ -196,6 +253,29 @@ namespace SharpConnect.MySql.Mapper
                 checkTableDefinition = true;
             }
             OnMap(r);
+            return r;
+        }
+
+        public R AutoFill(R r)
+        {
+            //--------------------------------------------------------------
+            //TODO: we can optimize how to map data with dynamic method ***
+            //-------------------------------------------------------------- 
+            //auto fill value
+            if (!checkTableDefinition)
+            {
+                //get actual type of R
+                EvaluateTargetStructure(r.GetType());
+                checkTableDefinition = true;
+            }
+            //after evaluate then we do auto map ***
+            int j = mapFields.Count;
+            for (int i = 0; i < j; ++i)
+            {
+                MySqlFieldMap mapField = mapFields[i];
+                object value = RawGetValueOrDefaultFromMapIndex(i);
+                mapField.resolvedFieldInfo.SetValue(r, value);
+            }
             return r;
         }
         //--------------------------------------------------------------
@@ -586,6 +666,10 @@ namespace SharpConnect.MySql.Mapper
 
     public static class Mapper
     {
+        public static RecordMap<R> Map<R>()
+        {
+            return new RecordMap<R>();
+        }
         public static RecordMap<R, T> Map<R, T>(MapAction<R, T> ac)
         {
             return new RecordMap<R, T>(ac);
@@ -654,5 +738,5 @@ namespace SharpConnect.MySql.Mapper
 
     //------------------------------------------------
 
-   
+
 }
