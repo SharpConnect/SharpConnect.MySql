@@ -29,9 +29,10 @@ namespace SharpConnect.MySql
                 return result;
             }
 
-            public static void ExecuteNonQuery(this MySqlCommand cmd)
+            public static int ExecuteNonQuery(this MySqlCommand cmd)
             {
                 cmd.InternalExecuteNonQuery();
+                return (int)cmd.AffectedRows;
             }
         }
     }
@@ -85,20 +86,20 @@ namespace SharpConnect.MySql
         SqlStringTemplate _sqlStringTemplate;
 
         public MySqlCommand(string sql)
-                : this(new SqlStringTemplate(sql), new CommandParams(), null)
+            : this(new SqlStringTemplate(sql), new CommandParams(), null)
         {
         }
         public MySqlCommand(string sql, MySqlConnection conn)
-                : this(new SqlStringTemplate(sql), new CommandParams(), conn)
+            : this(new SqlStringTemplate(sql), new CommandParams(), conn)
         {
         }
         public MySqlCommand(string sql, CommandParams cmds, MySqlConnection conn)
-                : this(new SqlStringTemplate(sql), cmds, conn)
+            : this(new SqlStringTemplate(sql), cmds, conn)
         {
 
         }
         public MySqlCommand(SqlStringTemplate sql, MySqlConnection conn)
-                : this(sql, new CommandParams(), conn)
+            : this(sql, new CommandParams(), conn)
         {
         }
 
@@ -119,7 +120,7 @@ namespace SharpConnect.MySql
             get { return this._sqlStringTemplate.UserRawSql; }
         }
         public MySqlConnection Connection { get; set; }
-       
+
         public IStringConverter StringConverter
         {
             get;
@@ -166,8 +167,8 @@ namespace SharpConnect.MySql
             {
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
             }
-            var reader = new MySqlQueryDataReader(_query); 
-            reader.StringConverter = this.StringConverter; 
+            var reader = new MySqlQueryDataReader(_query);
+            reader.StringConverter = this.StringConverter;
             //in non bloking mode, set this
             reader.SetFirstDataArriveDelegate(dataReader =>
             {
@@ -191,7 +192,7 @@ namespace SharpConnect.MySql
             {
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
             }
-            var reader = new MySqlQueryDataReader(_query); 
+            var reader = new MySqlQueryDataReader(_query);
             reader.StringConverter = this.StringConverter;
             //in non bloking mode, set this
             reader.SetFirstDataArriveDelegate(dataReader =>
@@ -202,8 +203,8 @@ namespace SharpConnect.MySql
                 {
                     //table is ready for read***
                     //just read single value 
-                    var subtReader = subt.CreateDataReader(); 
-                    subtReader.StringConverter = this.StringConverter; 
+                    var subtReader = subt.CreateDataReader();
+                    subtReader.StringConverter = this.StringConverter;
                     onEachSubTable(subtReader);
 
                     if (subt.IsLastTable)

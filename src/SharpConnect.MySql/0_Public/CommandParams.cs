@@ -168,6 +168,9 @@ namespace SharpConnect.MySql
                 default:
                 case ProperDataType.Unknown:
                     throw new Exception("unknown data type?");
+                case ProperDataType.Buffer:
+                    AddWithValue(key, (byte[])value);
+                    break;
                 case ProperDataType.Bool:
                     AddWithValue(key, (bool)value);
                     break;
