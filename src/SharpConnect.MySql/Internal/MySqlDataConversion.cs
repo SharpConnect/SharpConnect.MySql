@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 
 namespace SharpConnect.MySql.Internal
-{ 
+{
     static class MySqlTypeConversionInfo
     {
         //built in type conversion 
@@ -70,6 +70,14 @@ namespace SharpConnect.MySql.Internal
                 var plan = new MySqlTypeConversionPlan(MySqlDataType.VAR_STRING);
                 //target 
                 plan.AddConvTarget(typeof(string), MySqlDataConversionTechnique.StringToString);
+                Register(plan);
+            }
+            {
+                var plan = new MySqlTypeConversionPlan(MySqlDataType.DECIMAL);
+                //target 
+                plan.AddConvTarget(typeof(float), MySqlDataConversionTechnique.DecimalToFloat);
+                plan.AddConvTarget(typeof(double), MySqlDataConversionTechnique.DecimalToDouble);
+                plan.AddConvTarget(typeof(decimal), MySqlDataConversionTechnique.DecimalToDecimal);
                 Register(plan);
             }
             //----------------------------------------------------------- 
@@ -251,7 +259,10 @@ namespace SharpConnect.MySql.Internal
         BlobToString,
         GenDateTime,
         GenString,
-        Custom
+        Custom,
+        DecimalToFloat,
+        DecimalToDouble,
+        DecimalToDecimal,
     }
 
     class MySqlTypeConversionPlan

@@ -176,6 +176,8 @@ namespace SharpConnect.MySql.Mapper
                 case MySqlDataConversionTechnique.GenString:
                     //gen to string
                     return value.ToString();
+                case MySqlDataConversionTechnique.GenDateTime:
+                    return DateTime.Parse(value.ToString());
                 case MySqlDataConversionTechnique.BlobToString:
                     //
                     return value.ToString();
@@ -189,6 +191,18 @@ namespace SharpConnect.MySql.Mapper
                     else
                     {
                         return value.ToString();
+                    }
+                case MySqlDataConversionTechnique.DecimalToDecimal:
+                    {
+                        return (decimal)value;
+                    }
+                case MySqlDataConversionTechnique.DecimalToDouble:
+                    {
+                        return Convert.ToDouble((decimal)value);
+                    }
+                case MySqlDataConversionTechnique.DecimalToFloat:
+                    {
+                        return (float)Convert.ToDouble(value);
                     }
                 default:
                     throw new NotSupportedException();
