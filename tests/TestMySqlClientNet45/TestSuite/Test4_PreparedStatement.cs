@@ -18,7 +18,7 @@ namespace MySqlTest
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
-                
+
             }
 
             {
@@ -40,7 +40,7 @@ namespace MySqlTest
                     pars.AddWithValue("?col3", "0123456789");
                     pars.AddWithValue("?col4", "0001-01-01");
                     cmd.ExecuteNonQuery();
-                   
+
                 }
             }
             {
@@ -52,6 +52,56 @@ namespace MySqlTest
                 while (reader.Read())
                 {
 
+                }
+                reader.Close();
+            }
+            conn.Close();
+            Report.WriteLine("ok");
+        }
+
+
+
+        [Test]
+        public static void T_PrepareStatement_UnsignedFlags()
+        {
+            //test the unsigned flags of mysql prepare stmt protocol
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+            {
+                string sql = "drop table if exists test001";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+
+            }
+
+            {
+                string sql = "create table test001(col_id  int(10) unsigned not null auto_increment, col1 tinyint," +
+                "col2 tinyint unsigned, primary key(col_id) )";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
+
+            {
+                string sql = "insert into test001(col1,col2) values(?col1,?col2)";
+                var cmd = new MySqlCommand(sql, conn);
+                cmd.Prepare();
+                for (int i = 0; i < 2; ++i)
+                {
+                    var pars = cmd.Parameters;
+                    pars.AddWithValue("?col1", 255);
+                    pars.AddWithValue("?col2", 255);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            {
+                string sql = "select col1,col2 from test001";
+                var cmd = new MySqlCommand(sql, conn);
+                var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    var v1 = reader.GetInt8(0);
+                    var v2 = reader.GetUInt8(1);
                 }
                 reader.Close();
             }

@@ -308,7 +308,7 @@ namespace SharpConnect.MySql.Internal
         // some more info here: http://dev.mysql.com/doc/refman/5.5/en/c-api-prepared-statement-type-codes.html
         DECIMAL = 0x00, //exports.DECIMAL     = 0x00; // aka DECIMAL (http://dev.mysql.com/doc/refman/5.0/en/precision-math-decimal-changes.html)
         /// <summary>
-        /// 1 byte
+        /// 1 byte (signed value) (-128 to 127), if unsigned => 0-255
         /// </summary>
         TINY,           //exports.TINY        = 0x01; // aka TINYINT, 1 byte
         /// <summary>
