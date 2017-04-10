@@ -17,6 +17,10 @@ namespace SharpConnect.MySql
             {
                 conn.InternalClose();
             }
+            public static void Dispose(this MySqlConnection conn)
+            {
+                //?
+            }
         }
     }
     namespace AsyncPatt
@@ -122,6 +126,13 @@ namespace SharpConnect.MySql
         }
     }
 
+    public enum ConnectionState
+    {
+        Unknown,
+        Open,
+        Closing,
+        Closed,
+    }
     public class MySqlConnection
     {
         MySqlConnectionString _connStr;
@@ -144,7 +155,21 @@ namespace SharpConnect.MySql
             set;
         }
         public bool FromConnectionPool { get; private set; }
-
+        public ConnectionState State
+        {
+            get
+            {
+                switch (_conn.State)
+                {
+                    case Internal.ConnectionState.Connected:
+                        return ConnectionState.Open;
+                    case Internal.ConnectionState.Disconnected:
+                        return ConnectionState.Closed;
+                    default:
+                        throw new NotSupportedException();                     
+                }
+            }
+        }
         internal void InternalOpen(Action onComplete = null)
         {
             this.FromConnectionPool = false;//reset
@@ -168,8 +193,7 @@ namespace SharpConnect.MySql
                             _connStr.Host,
                             _connStr.Username,
                             _connStr.Password,
-                            _connStr.Database)
-                        { port = _connStr.PortNumber });
+                            _connStr.Database) { port = _connStr.PortNumber });
                     _conn.Connect(onComplete);
                 }
             }
@@ -181,8 +205,7 @@ namespace SharpConnect.MySql
                         _connStr.Host,
                         _connStr.Username,
                         _connStr.Password,
-                        _connStr.Database)
-                    { port = _connStr.PortNumber });
+                        _connStr.Database) { port = _connStr.PortNumber });
                 _conn.Connect(onComplete);
             }
         }

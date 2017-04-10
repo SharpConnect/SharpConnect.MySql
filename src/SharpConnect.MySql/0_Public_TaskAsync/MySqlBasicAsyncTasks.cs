@@ -171,9 +171,21 @@ namespace SharpConnect.MySql.AsyncPatt
                     throw new NotSupportedException();
             }
         }
-
     }
 
+
+
+    /// <summary>
+    /// task step result
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class TR<T>
+    {
+        public T result;
+        public TR()
+        {
+        } 
+    }
     public class TaskChain
     {
         /// <summary>

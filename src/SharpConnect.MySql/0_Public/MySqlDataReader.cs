@@ -307,7 +307,12 @@ namespace SharpConnect.MySql
                         {
                             return data;
                         }
-
+                        if (data.myString == "0000-00-00")
+                        {
+                            data.myDateTime = DateTime.MinValue;//?                             
+                            data.type = type;
+                            return data;
+                        }
                         //-------------------------------------------------------------
                         //    var originalString = dateString;
                         //    if (field.type === Types.DATE) {
@@ -562,7 +567,20 @@ namespace SharpConnect.MySql
         public DateTime GetDateTime(int colIndex)
         {
             //TODO: check match type and check index here
-            return cells[colIndex].myDateTime;
+            //date time commin
+            switch (cells[colIndex].type)
+            {
+                case MySqlDataType.STRING:
+                    return DateTime.Parse((string)cells[colIndex].myString);
+                case MySqlDataType.BLOB:
+                    return DateTime.MinValue;
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                    return cells[colIndex].myDateTime;
+                default:
+                    throw new NotSupportedException();
+            }
+
         }
         public DateTime GetDateTime(string colName)
         {
@@ -621,7 +639,7 @@ namespace SharpConnect.MySql
                 //break;
                 case MySqlDataType.FLOAT:
                     return data.myDouble;//TODO: review here
-                                         //stbuilder.Append(((float)data.myDouble).ToString());
+                //stbuilder.Append(((float)data.myDouble).ToString());
 
                 case MySqlDataType.TINY:
                 case MySqlDataType.SHORT:
@@ -754,7 +772,7 @@ namespace SharpConnect.MySql
         /// </summary>
         internal void WaitUntilFirstDataArrive()
         {
-            TRY_AGAIN:
+        TRY_AGAIN:
             if (emptySubTable)
             {
                 //no current table 
@@ -803,7 +821,7 @@ namespace SharpConnect.MySql
         /// <param name="onEachSubTable"></param>
         internal void ReadSubTable(Action<MySqlSubTable> onEachSubTable)
         {
-            TRY_AGAIN:
+        TRY_AGAIN:
 
             if (this.IsEmptyTable)
             {
@@ -910,7 +928,7 @@ namespace SharpConnect.MySql
         /// <returns></returns>
         public override bool Read()
         {
-            TRY_AGAIN:
+        TRY_AGAIN:
             if (IsEmptyTable)
             {
                 //no current table 
@@ -965,7 +983,7 @@ namespace SharpConnect.MySql
                 SetCurrentSubTable(MySqlSubTable.Empty);
                 goto TRY_AGAIN;
             }
-            
+
 
         }
         internal override void InternalClose(Action nextAction = null)

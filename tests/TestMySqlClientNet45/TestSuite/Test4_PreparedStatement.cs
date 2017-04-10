@@ -18,6 +18,7 @@ namespace MySqlTest
                 string sql = "drop table if exists test001";
                 var cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
+                
             }
 
             {
@@ -39,6 +40,7 @@ namespace MySqlTest
                     pars.AddWithValue("?col3", "0123456789");
                     pars.AddWithValue("?col4", "0001-01-01");
                     cmd.ExecuteNonQuery();
+                   
                 }
             }
             {
