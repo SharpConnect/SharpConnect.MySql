@@ -408,6 +408,9 @@ namespace SharpConnect.MySql.Internal
             ref MyStructData dataTemp,
             ref TempSingleValueHolder singleValueHolder)
         {
+            //TODO: review here 
+            
+
             int availableContentSpace = Packet.MAX_PACKET_LENGTH - (int)writer.OnlyPacketContentLength;
             if (singleValueHolder.round == 0)
             {
@@ -423,7 +426,7 @@ namespace SharpConnect.MySql.Internal
                     case MySqlDataType.BLOB:
                     case MySqlDataType.MEDIUM_BLOB:
                     case MySqlDataType.LONG_BLOB:
-                         
+
                         //this is first round
                         singleValueHolder.isBufferOrString = true;
                         singleValueHolder.bufferContent = dataTemp.myBuffer;
