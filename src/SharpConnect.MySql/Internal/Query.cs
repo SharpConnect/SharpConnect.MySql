@@ -39,7 +39,7 @@ namespace SharpConnect.MySql.Internal
     }
     enum QueryUseMode
     {
-        ExecNoneQuery,//default
+        ExecNonQuery,//default
         ExecReader,
         Prepare,
     }
@@ -103,7 +103,7 @@ namespace SharpConnect.MySql.Internal
         {
             if (this._execState == QueryExecState.Closed) { return true; }
 
-            if (_queryUsedMode == QueryUseMode.ExecNoneQuery)
+            if (_queryUsedMode == QueryUseMode.ExecNonQuery)
             {
                 this.Close();
                 this._conn.BindingQuery = null;
@@ -168,7 +168,7 @@ namespace SharpConnect.MySql.Internal
         public void Execute(bool execReader, Action nextAction = null)
         {
             _execState = QueryExecState.Exec;
-            _queryUsedMode = execReader ? QueryUseMode.ExecReader : QueryUseMode.ExecNoneQuery;
+            _queryUsedMode = execReader ? QueryUseMode.ExecReader : QueryUseMode.ExecNonQuery;
             //-------------------
             //blocking method***
             //wait until execute finish 
