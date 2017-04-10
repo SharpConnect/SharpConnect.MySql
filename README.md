@@ -8,8 +8,7 @@ features
    - Prepared Sql Statment
    - Store Procedure with multiple result set
    - SocketAsyncEventArgs technique on socket layer
-   - async / await on C#5
-   - nuget => https://www.nuget.org/packages/SharpConnect.MySql
+   - async / await on C#5 
 
 ---
  ported and modified from 
@@ -23,11 +22,11 @@ features
 LICENSE: **MIT**
 
   
- Copyright (c) 2012 Felix Geisendörfer (felix@debuggable.com) and contributors
+ Copyright(c), 2012, Felix Geisendörfer (felix@debuggable.com) and contributors
   
- Copyright(c) 2013 Andrey Sidorov(sidorares @yandex.ru) and contributors
+ Copyright(c), 2013, Andrey Sidorov(sidorares @yandex.ru) and contributors
  
- Copyright (c) 2015-2016 brezza92, EngineKit  and contributors 
+ Copyright(c), 2015-2017, brezza92, EngineKit  and contributors 
 
   
  Permission is hereby granted, free of charge, to any person obtaining a copy
