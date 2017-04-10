@@ -408,6 +408,9 @@ namespace SharpConnect.MySql.Internal
             ref MyStructData dataTemp,
             ref TempSingleValueHolder singleValueHolder)
         {
+            //TODO: review here 
+            
+
             int availableContentSpace = Packet.MAX_PACKET_LENGTH - (int)writer.OnlyPacketContentLength;
             if (singleValueHolder.round == 0)
             {
@@ -424,8 +427,6 @@ namespace SharpConnect.MySql.Internal
                     case MySqlDataType.MEDIUM_BLOB:
                     case MySqlDataType.LONG_BLOB:
 
-
-                        //writer.WriteLengthCodedBuffer(dataTemp.myBuffer);
                         //this is first round
                         singleValueHolder.isBufferOrString = true;
                         singleValueHolder.bufferContent = dataTemp.myBuffer;
@@ -825,6 +826,24 @@ namespace SharpConnect.MySql.Internal
     {
         //TODO: review here 
         //byte command = (byte)Command.STMT_SEND_LONG_DATA;
+        //------------------------------------------------------------------------------------------------------
+
+        //https://dev.mysql.com/doc/internals/en/com-stmt-send-long-data.html
+        //COM_STMT_SEND_LONG_DATA sends the data for a column.Repeating to send it, appends the data to the parameter.
+        //--------------------
+        //No response is sent back to the client.
+        //COM_STMT_SEND_LONG_DATA:
+        //COM_STMT_SEND_LONG_DATA
+        //  direction: client -> server
+        //  response: none
+        //  payload:
+        //    1              [18] COM_STMT_SEND_LONG_DATA
+        //    4              statement-id
+        //    2              param-id
+        //    n              data
+        //COM_STMT_SEND_LONG_DATA has to be sent before COM_STMT_EXECUTE.
+        //---------------------------------------------------------------------------------------------------------
+
         uint _statement_id;
         int _param_id;
         MyStructData _data;
