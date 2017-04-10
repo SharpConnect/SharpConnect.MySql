@@ -441,7 +441,7 @@ namespace SharpConnect.MySql.Internal
                         //go below
 
                         break;
-                    
+
                     case MySqlDataType.VARCHAR:
                     case MySqlDataType.VAR_STRING:
                     case MySqlDataType.STRING:
@@ -537,7 +537,7 @@ namespace SharpConnect.MySql.Internal
                     default:
                         //TODO: review here
                         throw new NotSupportedException();
-                    //writer.WriteLengthCodedNull();
+                        //writer.WriteLengthCodedNull();
                 }
             }
             //----------------------------------------------------------------------------------------------------------
@@ -646,14 +646,27 @@ namespace SharpConnect.MySql.Internal
         }
         public static void Write(MySqlStreamWriter writer, uint stmtId, MyStructData[] _prepareValues)
         {
+            //https://dev.mysql.com/doc/internals/en/com-stmt-execute.html#packet-COM_STMT_EXECUTE
+            //COM_STMT_EXECUTE asks the server to execute a prepared statement as identified by stmt-id. 
+            //It sends the values for the placeholders of the prepared statement(if it contained any) in Binary Protocol Value form. 
+            //---------------
+            //The type of each parameter is made up of two bytes:
+            //---------------
+            //1. the type as in Protocol::ColumnType
+            //2. a flag byte which has the highest bit set if the type is unsigned[80]
+            //--------------- 
+
             //for those who don't want to alloc an new packet
             //just write it into a stream
+            bool completeCurrentHeader = false;
+
             writer.ReserveHeader();
             writer.WriteByte((byte)Command.STMT_EXECUTE);
             writer.WriteUnsignedNumber(4, stmtId);
             writer.WriteByte((byte)CursorFlags.CURSOR_TYPE_NO_CURSOR);
 
-            writer.WriteUnsignedNumber(4, 1);//iteration-count, always 1
+            writer.WriteUnsignedNumber(4, 1);//iteration_count, always 1
+            //
             //write NULL-bitmap, length: (num-params+7)/8 
             MyStructData[] fillValues = _prepareValues;
             int paramNum = _prepareValues.Length;
@@ -690,34 +703,65 @@ namespace SharpConnect.MySql.Internal
             for (int i = 0; i < paramNum; i++)
             {
                 writer.WriteUnsignedNumber(2, (byte)_prepareValues[i].type);
+                //TODO: review unsigned value here
+                //if this type is unsigned number
+                //we must note with flags ****
             }
+
             //--------------------------------------
             //actual data
             //--------------------------------------
-            //stream of data may large than 1 packet
+            //stream of data may large than 1 packet ***
             var tempSingleValueHolder = new TempSingleValueHolder();
             tempSingleValueHolder.headerLenBuffer = new byte[9];
             tempSingleValueHolder.generalContent = new byte[16];
+
             for (int i = 0; i < paramNum; i++)
             {
+                //write each value
                 bool isComplete = WriteValueByType(writer, ref _prepareValues[i], ref tempSingleValueHolder);
-                var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
-                writer.WriteHeader(header);
-                //--------------------------------------------------------------------------------------------------
-                while (!isComplete)
+                if (!isComplete)
                 {
-                    //write until complete
-                    tempSingleValueHolder.round++;
-                    writer.ReserveHeader();
-                    isComplete = WriteValueByType(writer, ref _prepareValues[i], ref tempSingleValueHolder);
-                    header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
+                    //some value may long more than 1 packet
+                    //in that case -> isComplete = false.
+                    //and we must move to a new packet number
+                    var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
                     writer.WriteHeader(header);
+                    completeCurrentHeader = true;
+                    //-------------
+                    //write until complete
+                    for (;;)
+                    {
+
+                        //write until complete
+                        tempSingleValueHolder.round++;
+                        writer.ReserveHeader();
+                        completeCurrentHeader = false;
+                        isComplete = WriteValueByType(writer, ref _prepareValues[i], ref tempSingleValueHolder);
+                        if (!isComplete)
+                        {
+                            header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
+                            writer.WriteHeader(header);
+                            completeCurrentHeader = true;
+                        }
+                        else
+                        {
+                            //complete
+                            break;
+                        }
+                    }
+                    //-------------
                 }
                 //reset
                 tempSingleValueHolder.Reset();
             }
             //--------------------------------------
-
+            if (!completeCurrentHeader)
+            {
+                var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
+                writer.WriteHeader(header);
+                completeCurrentHeader = true;
+            }
         }
     }
 

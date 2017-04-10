@@ -13,4 +13,8 @@
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SharpConnect.MySql\SharpConnect.MySql.csproj" />
+  </ItemGroup>
+
 </Project>

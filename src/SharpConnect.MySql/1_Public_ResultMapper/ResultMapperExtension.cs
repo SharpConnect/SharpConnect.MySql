@@ -78,14 +78,25 @@ namespace SharpConnect.MySql.Mapper
             }
             return this.mapFields;
         }
+        static FieldInfo[] GetPublicInstanceFields(Type t)
+        {
+
+#if NET20
+            return t.GetFields(BindingFlags.Public | BindingFlags.Instance);
+#else
+            var typeInfo= t.GetTypeInfo();
+            return typeInfo.GetFields(BindingFlags.Public | BindingFlags.Instance);             
+#endif
+        }
         protected void EvaluateTargetStructure(Type t)
         {
             //evaluate target objet definition
             //check current table defintioin first ***
             MySqlSubTable subTable = reader.CurrentSubTable;
             //get all public instance fields from current type 
-            FieldInfo[] allFields = t.GetFields(BindingFlags.Public | BindingFlags.Instance);
-            //
+            FieldInfo[] allFields = GetPublicInstanceFields(t);
+
+
             //we iterate all request fields
             int j = allFields.Length;
             mapFields.Clear();
