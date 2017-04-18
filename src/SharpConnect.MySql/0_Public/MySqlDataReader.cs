@@ -256,18 +256,24 @@ namespace SharpConnect.MySql
                     myData.myInt64 = r.ReadInt64();
                     myData.type = fieldType;
                     return myData;
-                case MySqlDataType.STRING:
                 case MySqlDataType.VARCHAR:
-                case MySqlDataType.VAR_STRING:
                     myData.myString = r.ReadLengthCodedString(this.StringConverter);
                     myData.type = fieldType;
                     return myData;
+                case MySqlDataType.BIT:
+                    myData.myBuffer = r.ReadLengthCodedBuffer();
+                    myData.type = fieldType;
+                    return myData;
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
                 case MySqlDataType.TINY_BLOB:
                 case MySqlDataType.MEDIUM_BLOB:
                 case MySqlDataType.LONG_BLOB:
                 case MySqlDataType.BLOB:
-                case MySqlDataType.BIT:
-                    myData.myBuffer = r.ReadLengthCodedBuffer();
+                    if (f.MarkedAsBinary)
+                        myData.myBuffer = r.ReadLengthCodedBuffer();
+                    else
+                        myData.myString = r.ReadLengthCodedString(this.StringConverter);
                     myData.type = fieldType;
                     return myData;
                 case MySqlDataType.GEOMETRY:
