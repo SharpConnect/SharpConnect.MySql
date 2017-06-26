@@ -1,5 +1,4 @@
-﻿//MIT, 2016, brezza92, EngineKit and contributors 
-
+﻿//MIT, 2016, brezza92, EngineKit and contributors  
 
 using System.Threading.Tasks;
 using SharpConnect.MySql.AsyncPatt;

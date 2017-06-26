@@ -84,8 +84,16 @@ namespace SharpConnect.MySql.Mapper
 #if NET20
             return t.GetFields(BindingFlags.Public | BindingFlags.Instance);
 #else
-            var typeInfo= t.GetTypeInfo();
-            return typeInfo.GetFields(BindingFlags.Public | BindingFlags.Instance);             
+            //var typeInfo = t.GetTypeInfo();
+            //return typeInfo.GetFields(BindingFlags.Public | BindingFlags.Instance);            
+             
+            List<FieldInfo> fields= new List<FieldInfo>();
+            foreach(var field in t.GetRuntimeFields()){
+                if(field.IsPublic && !field.IsStatic){
+                    fields.Add(field);
+                }
+            }
+            return fields.ToArray();
 #endif
         }
         protected void EvaluateTargetStructure(Type t)

@@ -95,12 +95,16 @@ namespace SharpConnect.MySql.Internal
         {
             if (_reader != null)
             {
+#if NET20
                 _reader.Close();
+#endif
                 _reader = null;
             }
             if (_stream != null)
             {
+#if NET20
                 _stream.Close();
+#endif
                 _stream.Dispose();
                 _stream = null;
             }

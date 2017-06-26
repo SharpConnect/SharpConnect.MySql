@@ -56,7 +56,7 @@ namespace SharpConnect.MySql.Internal
             Row_Header,
             Row_Content,
 
-           
+
             Row_EOF,
             ShouldEnd,
             Error_Content,
@@ -122,7 +122,7 @@ namespace SharpConnect.MySql.Internal
                     return Parse_Row_Header(reader);
                 case ResultPacketState.Row_Content:
                     return Parse_Row_Content(reader);
-              
+
                 case ResultPacketState.Row_EOF:
                     return Parse_Row_EOF(reader);
                 //---------------------------------------
@@ -350,7 +350,9 @@ namespace SharpConnect.MySql.Internal
                         (int)_currentHeader.ContentLength);
                     _rows.Add(new DataRowPacket(_currentHeader, ms.ToArray()));
 
+#if NET20
                     ms.Close();
+#endif
                     ms.Dispose();
                     ms = null;
 
