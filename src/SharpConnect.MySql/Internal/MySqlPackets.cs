@@ -418,15 +418,7 @@ namespace SharpConnect.MySql.Internal
             }
             return arr;
         }
-
-        /*
-          Time declarations shared between the server and client API:
-          you should not add anything to this header unless it's used
-          (and hence should be visible) in mysql.h.
-          If you're looking for a place to add new time-related declaration,
-          it's most likely my_time.h. See also "C API Handling of Date
-          and Time Values" chapter in documentation.
-        */ 
+        
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
         struct EncodedDateTime
         {
