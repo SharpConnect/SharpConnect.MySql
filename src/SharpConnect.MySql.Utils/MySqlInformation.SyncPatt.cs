@@ -38,7 +38,7 @@ namespace SharpConnect.MySql.SyncPatt
         /// </summary>
         /// <param name="db"></param>
         /// <param name="conn"></param>
-        public static void ReloadTableList(this MySqlDatabaseInfo db, MySqlConnection conn)
+        public static void ReloadTableList(this MySqlDatabaseInfo db, MySqlConnection conn, bool readTableDetail = false)
         {
 
             Use(db, conn);
@@ -54,6 +54,13 @@ namespace SharpConnect.MySql.SyncPatt
             reader.Close();
             //-------------
             db.Tables = tableInfoList;
+            if (readTableDetail)
+            {
+                foreach (var tbl in tableInfoList)
+                {
+                    tbl.ReloadColumnList(conn);
+                }
+            }
         }
 
         /// <summary>

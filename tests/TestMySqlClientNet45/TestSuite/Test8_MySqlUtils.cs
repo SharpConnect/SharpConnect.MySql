@@ -87,6 +87,12 @@ namespace MySqlTest
 
             MySqlDbServerInfo serverInfo = new MySqlDbServerInfo("test");
             serverInfo.ReloadDatabaseList(conn);
+            foreach (MySqlDatabaseInfo db in serverInfo.Databases)
+            {
+                db.ReloadTableList(conn, true);
+            }
+            //--------------------
+
             conn.Close();
         }
     }
