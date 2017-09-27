@@ -18,6 +18,12 @@ namespace SharpConnect.MySql.Information
         /// </summary>
         public string Name { get; private set; }
         public List<MySqlDatabaseInfo> Databases { get; internal set; }
+#if DEBUG
+        public override string ToString()
+        {
+            return "server:" + Name;
+        }
+#endif
     }
 
     public class MySqlDatabaseInfo
@@ -29,6 +35,12 @@ namespace SharpConnect.MySql.Information
         public string Name { get; private set; }
         public List<MySqlTableInfo> Tables { get; internal set; }
         public MySqlDbServerInfo OwnerDbServer { get; internal set; }
+#if DEBUG
+        public override string ToString()
+        {
+            return "db:" + Name;
+        }
+#endif
     }
 
 
@@ -41,6 +53,12 @@ namespace SharpConnect.MySql.Information
         public string Name { get; private set; }
         public List<MySqlColumnInfo> Columns { get; internal set; }
         public MySqlDatabaseInfo OwnerDatabase { get; internal set; }
+#if DEBUG
+        public override string ToString()
+        {
+            return "table:" + Name;
+        }
+#endif
     }
 
     public class MySqlColumnInfo
@@ -54,6 +72,12 @@ namespace SharpConnect.MySql.Information
         public string Key { get; set; }
         public string DefaultValue { get; set; }
         public string ExtraInfo { get; set; }
+#if DEBUG
+        public override string ToString()
+        {
+            return "col:" + Name;
+        }
+#endif
     }
 
 

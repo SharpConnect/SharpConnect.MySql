@@ -84,8 +84,9 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
-            
 
+            MySqlDbServerInfo serverInfo = new MySqlDbServerInfo("test");
+            serverInfo.ReloadDatabaseList(conn);
             conn.Close();
         }
     }
