@@ -47,6 +47,10 @@
       <Project>{94d01ede-0499-422f-8081-90d94ad163fa}</Project>
       <Name>SharpConnect.MySql</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\src\SharpConnect.MySql.Utils\SharpConnect.MySql.Utils.csproj">
+      <Project>{513be02f-13b1-40b8-ab63-103fb0958953}</Project>
+      <Name>SharpConnect.MySql.Utils</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\tests\TestMySqlClientNet45\FormTestSuite.cs">

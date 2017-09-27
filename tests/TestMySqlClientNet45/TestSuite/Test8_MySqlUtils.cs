@@ -4,12 +4,14 @@ using System;
 using System.Collections.Generic;
 using SharpConnect.MySql;
 using SharpConnect.MySql.SyncPatt;
+using SharpConnect.MySql.Information;
+
 namespace MySqlTest
 {
     public class Test_MySqlUtils : MySqlTestSet
     {
         [Test]
-        public static void T_CreateDatabaseInfo()
+        public static void T_CreateDatabaseInfo_Manual()
         {
             //show all database
             var connStr = GetMySqlConnString();
@@ -74,6 +76,16 @@ namespace MySqlTest
                     descReader.Close();
                 }
             }
+            conn.Close();
+        }
+        [Test]
+        public static void T_CreateDatabaseInfo_Utils()
+        {
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+            
+
             conn.Close();
         }
     }
