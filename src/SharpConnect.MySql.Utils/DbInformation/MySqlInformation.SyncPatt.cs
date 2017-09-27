@@ -97,7 +97,7 @@ namespace SharpConnect.MySql.SyncPatt
                 //
                 MySqlColumnInfo colInfo = new MySqlColumnInfo();
                 colInfo.Name = descReader.GetString(field_col);
-                colInfo.FieldTypeName = descReader.GetString(field_col);
+                colInfo.FieldTypeName = descReader.GetString(type_col);
                 colInfo.Nullable = descReader.GetString(null_col) == "YES";
                 colInfo.Key = descReader.GetString(key_col);
                 colInfo.DefaultValue = descReader.GetString(default_col);
