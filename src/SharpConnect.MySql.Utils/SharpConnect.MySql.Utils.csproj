@@ -36,9 +36,9 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MySqlInformation.cs" />
-    <Compile Include="MySqlDbInformationProvider.cs" />
-    <Compile Include="MySqlInformation.SyncPatt.cs" />
+    <Compile Include="DbInformation\MySqlInformation.cs" />
+    <Compile Include="DbInformation\MySqlDbInformationProvider.cs" />
+    <Compile Include="DbInformation\MySqlInformation.SyncPatt.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
