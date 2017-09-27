@@ -28,6 +28,11 @@ namespace SharpConnect.MySql.SyncPatt
             dbServer.Databases = databaseList;
         }
 
+        /// <summary>
+        /// set input db as current db, 'use' command
+        /// </summary>
+        /// <param name="db"></param>
+        /// <param name="conn"></param>
         public static void Use(this MySqlDatabaseInfo db, MySqlConnection conn)
         {
             var cmd = new MySqlCommand("use " + db.Name, conn);
@@ -102,7 +107,25 @@ namespace SharpConnect.MySql.SyncPatt
             }
             descReader.Close();
             table.Columns = colInfoList;
+        }
 
+        /// <summary>
+        /// call show create table command 
+        /// </summary>
+        /// <param name="table"></param>
+        /// <param name="conn"></param>
+        /// <returns></returns>
+        public static string GetShowCreateTableSql(this MySqlTableInfo table, MySqlConnection conn)
+        {
+            var cmd = new MySqlCommand("show create table " + table.Name, conn);
+            var reader = cmd.ExecuteReader();
+            string createTableSql = null;
+            while (reader.Read())
+            {
+                createTableSql = reader.GetString(1);
+            }
+            reader.Close();
+            return createTableSql;
         }
     }
 

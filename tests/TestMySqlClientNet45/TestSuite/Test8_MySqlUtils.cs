@@ -90,8 +90,16 @@ namespace MySqlTest
             foreach (MySqlDatabaseInfo db in serverInfo.Databases)
             {
                 db.ReloadTableList(conn, true);
+                foreach (var tbl in db.Tables)
+                {
+                    //we can find more detail from 'show create table ...' sql
+                    string createTableSql = tbl.GetShowCreateTableSql(conn);
+
+                }
             }
             //--------------------
+
+
 
             conn.Close();
         }
