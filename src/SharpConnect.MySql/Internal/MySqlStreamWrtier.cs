@@ -605,12 +605,16 @@ namespace SharpConnect.MySql.Internal
         {
             if (_writer != null)
             {
+#if NET20
                 _writer.Close();
+#endif
                 _writer = null;
             }
             if (_ms != null)
             {
+#if NET20
                 _ms.Close();
+#endif
                 _ms.Dispose();
                 _ms = null;
             }

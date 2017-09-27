@@ -539,6 +539,19 @@ namespace SharpConnect.MySql
             //TODO: check match type and index here
             return cells[colIndex].myDecimal;
         }
+
+        public double GetDouble(int colIndex)
+        {
+            //TODO: check match type and index here
+            return cells[colIndex].myDouble;
+        }
+        public double GetDouble(string colName)
+        {
+            //TODO: check match type and index here
+            return GetDouble(GetOrdinal(colName));
+        }
+
+      
         public decimal GetDecimal(string colName)
         {
             return GetDecimal(GetOrdinal(colName));
@@ -778,7 +791,7 @@ namespace SharpConnect.MySql
         /// </summary>
         internal void WaitUntilFirstDataArrive()
         {
-        TRY_AGAIN:
+            TRY_AGAIN:
             if (emptySubTable)
             {
                 //no current table 
@@ -827,7 +840,7 @@ namespace SharpConnect.MySql
         /// <param name="onEachSubTable"></param>
         internal void ReadSubTable(Action<MySqlSubTable> onEachSubTable)
         {
-        TRY_AGAIN:
+            TRY_AGAIN:
 
             if (this.IsEmptyTable)
             {
@@ -934,7 +947,7 @@ namespace SharpConnect.MySql
         /// <returns></returns>
         public override bool Read()
         {
-        TRY_AGAIN:
+            TRY_AGAIN:
             if (IsEmptyTable)
             {
                 //no current table 

@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard1.6</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\SharpConnect.MySql\0_Public\CommandParams.cs" Link="0_Public\CommandParams.cs" />
+    <Compile Include="..\SharpConnect.MySql\0_Public\debugTest1.cs" Link="0_Public\debugTest1.cs" />
+    <Compile Include="..\SharpConnect.MySql\0_Public\MySqlCommand.cs" Link="0_Public\MySqlCommand.cs" />
+    <Compile Include="..\SharpConnect.MySql\0_Public\MySqlConnection.cs" Link="0_Public\MySqlConnection.cs" />
+    <Compile Include="..\SharpConnect.MySql\0_Public\MySqlDataReader.cs" Link="0_Public\MySqlDataReader.cs" />
+    <Compile Include="..\SharpConnect.MySql\0_Public\SqlStringTemplate.cs" Link="ForNet20\SqlStringTemplate.cs" />
+    <Compile Include="..\SharpConnect.MySql\0_Public_TaskAsync\MySqlBasicAsyncTasks.cs" Link="0_Public\MySqlBasicAsyncTasks.cs" />
+    <Compile Include="..\SharpConnect.MySql\1_Public_ResultMapper\ResultMapperExtension.cs" Link="1_ResultMapperExtension\ResultMapperExtension.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\BufferReader.cs" Link="Internal\BufferReader.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\ConnectionPool.cs" Link="Internal\ConnectionPool.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\Connections.cs" Link="Internal\Connections.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\DataModel.cs" Link="Internal\DataModel.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\MySqlBufferReaderExtension.cs" Link="Internal\MySqlBufferReaderExtension.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\MySqlDataConversion.cs" Link="Internal\MySqlDataConversion.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\MySqlPacketParsers.cs" Link="Internal\MySqlPacketParsers.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\MySqlPackets.cs" Link="Internal\MySqlPackets.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\MySqlResults.cs" Link="Internal\MySqlResults.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\MySqlStreamReader.cs" Link="Internal\MySqlStreamReader.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\MySqlStreamWrtier.cs" Link="Internal\MySqlStreamWrtier.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\MySqlStringToHexUtils.cs" Link="Internal\MySqlStringToHexUtils.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\Query.cs" Link="Internal\Query.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\SendIO_RecvIO.cs" Link="Internal\SendIO_RecvIO.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\ServerCapabilityFlags.cs" Link="Internal\ServerCapabilityFlags.cs" />
+    <Compile Include="..\SharpConnect.MySql\Internal\WaitingTaskItem.cs" Link="Internal\WaitingTaskItem.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="0_Public\" />
+    <Folder Include="1_ResultMapperExtension\" />
+    <Folder Include="Internal\" />
+  </ItemGroup>
+
+</Project>

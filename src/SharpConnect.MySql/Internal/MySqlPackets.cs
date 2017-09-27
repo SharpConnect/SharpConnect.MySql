@@ -404,13 +404,34 @@ namespace SharpConnect.MySql.Internal
             }
         }
         //----------------------------
+        static byte[] GetBytes<T>(T str)
+            where T : struct
+        {
+            int size = System.Runtime.InteropServices.Marshal.SizeOf(str);
+            byte[] arr = new byte[size]; 
+            unsafe
+            {
+                fixed (byte* h = &arr[0])
+                {
+                    System.Runtime.InteropServices.Marshal.StructureToPtr(str, (IntPtr)h, true);
+                }
+            }
+            return arr;
+        }
+        
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        struct EncodedDateTime
+        {
+            public ushort year;
+            public byte month, day, hour, minute, second;
+            public int second_part;            
+        }
+         
         static bool WriteValueByType(MySqlStreamWriter writer,
             ref MyStructData dataTemp,
             ref TempSingleValueHolder singleValueHolder)
         {
-            //TODO: review here 
-            
-
+            //TODO: review here  
             int availableContentSpace = Packet.MAX_PACKET_LENGTH - (int)writer.OnlyPacketContentLength;
             if (singleValueHolder.round == 0)
             {
@@ -422,6 +443,37 @@ namespace SharpConnect.MySql.Internal
                     case MySqlDataType.NULL:
                         //we not write null data
                         return true;
+                    case MySqlDataType.DATE:
+                    case MySqlDataType.DATETIME:                    
+                        {
+                            EncodedDateTime mysqlDtm = new EncodedDateTime(); 
+
+                            DateTime dtm = dataTemp.myDateTime;
+                            mysqlDtm.year = (ushort)dtm.Year;
+                            mysqlDtm.month = (byte)dtm.Month;
+                            mysqlDtm.day = (byte)dtm.Day;
+                            //
+                            mysqlDtm.hour = (byte)dtm.Hour;
+                            mysqlDtm.minute = (byte)dtm.Minute;
+                            mysqlDtm.second = (byte)dtm.Second; 
+                            singleValueHolder.isBufferOrString = true; 
+
+                            byte[] dtmBuffer = GetBytes(mysqlDtm); 
+
+                            singleValueHolder.bufferContent = dtmBuffer;
+                            singleValueHolder.contentLen = dtmBuffer.Length;
+
+                            //generate output
+                            singleValueHolder.encodedLengthLen = writer.GenerateEncodeLengthNumber(singleValueHolder.contentLen, singleValueHolder.headerLenBuffer);
+
+                            if (availableContentSpace > singleValueHolder.TotalLength)
+                            {
+                                //write in first round
+                                writer.WriteLengthCodedBuffer(singleValueHolder.bufferContent);
+                                return true;
+                            } 
+                        } 
+                        break;
                     case MySqlDataType.BIT:
                     case MySqlDataType.BLOB:
                     case MySqlDataType.MEDIUM_BLOB:
@@ -439,10 +491,8 @@ namespace SharpConnect.MySql.Internal
                             writer.WriteLengthCodedBuffer(singleValueHolder.bufferContent);
                             return true;
                         }
-                        //go below
-
+                        //go below 
                         break;
-
                     case MySqlDataType.VARCHAR:
                     case MySqlDataType.VAR_STRING:
                     case MySqlDataType.STRING:
@@ -731,7 +781,7 @@ namespace SharpConnect.MySql.Internal
                     completeCurrentHeader = true;
                     //-------------
                     //write until complete
-                    for (;;)
+                    for (; ; )
                     {
 
                         //write until complete
