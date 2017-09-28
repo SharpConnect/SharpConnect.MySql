@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SharpConnect.MySql.NetCore\SharpConnect.MySql.NetCore.csproj" />
+    <ProjectReference Include="..\..\src\SharpConnect.MySql.NetStandard\SharpConnect.MySql.NetStandard.csproj" />
   </ItemGroup>
 
 </Project>
