@@ -2,8 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using SharpConnect.MySql;
-using SharpConnect.MySql.SyncPatt;
 
 namespace SharpConnect.MySql.Information
 {

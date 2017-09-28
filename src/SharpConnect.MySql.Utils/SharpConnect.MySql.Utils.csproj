@@ -36,9 +36,11 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DbInformation\CsMapperGenerator.cs" />
     <Compile Include="DbInformation\MySqlInformation.cs" />
     <Compile Include="DbInformation\MySqlInformation.SyncPatt.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SqlLang\SqlParser.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\SharpConnect.Data\src\SharpConnect.Data.Meltable\SharpConnect.Data.Meltable.csproj">

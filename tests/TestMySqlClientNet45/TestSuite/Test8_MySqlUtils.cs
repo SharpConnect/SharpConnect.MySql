@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using SharpConnect.MySql;
 using SharpConnect.MySql.SyncPatt;
 using SharpConnect.MySql.Information;
+using System.Text;
 
 namespace MySqlTest
 {
@@ -90,16 +91,41 @@ namespace MySqlTest
             foreach (MySqlDatabaseInfo db in serverInfo.Databases)
             {
                 db.ReloadTableList(conn, true);
-                foreach (var tbl in db.Tables)
+                foreach (MySqlTableInfo tbl in db.Tables)
                 {
                     //we can find more detail from 'show create table ...' sql
                     string createTableSql = tbl.GetShowCreateTableSql(conn);
-
                 }
             }
-            //--------------------
+            //-------------------- 
 
+            conn.Close();
+        }
+        [Test]
+        public static void T_CreateDatabaseInfo_SqlTableToCsMapperCodeGen()
+        {
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
 
+            var serverInfo = new MySqlDbServerInfo("test");
+            serverInfo.ReloadDatabaseList(conn);
+
+            var csCodeGen = new SharpConnect.MySql.CodeMapper.CsCodeMapperGenerator();
+            csCodeGen.StBuilder = new StringBuilder();
+
+            foreach (MySqlDatabaseInfo db in serverInfo.Databases)
+            {
+                db.ReloadTableList(conn, true);
+                foreach (MySqlTableInfo tbl in db.Tables)
+                {
+                    if (tbl.Name == "test_table")
+                    {
+                        csCodeGen.GenerateCsCodeForSqlTable(tbl);
+                    }
+                }
+            }
+            //-------------------- 
 
             conn.Close();
         }
