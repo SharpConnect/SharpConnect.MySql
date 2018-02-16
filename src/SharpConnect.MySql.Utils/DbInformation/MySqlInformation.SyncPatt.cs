@@ -17,11 +17,12 @@ namespace SharpConnect.MySql.SyncPatt
         {
             var cmd = new MySqlCommand("show databases", conn);
             var reader = cmd.ExecuteReader();
-            List<MySqlDatabaseInfo> databaseList = new List<MySqlDatabaseInfo>();
+            Dictionary<string, MySqlDatabaseInfo> databaseList = new Dictionary<string, MySqlDatabaseInfo>();
             while (reader.Read())
             {
                 //read database name
-                databaseList.Add(new MySqlDatabaseInfo(reader.GetString(0)) { OwnerDbServer = dbServer });
+                string dbInfoName = reader.GetString(0);
+                databaseList.Add(dbInfoName.ToUpper(), new MySqlDatabaseInfo(dbInfoName) { OwnerDbServer = dbServer });
             }
             reader.Close();
             //----------
@@ -38,6 +39,7 @@ namespace SharpConnect.MySql.SyncPatt
             var cmd = new MySqlCommand("use " + db.Name, conn);
             cmd.ExecuteNonQuery();
         }
+
         /// <summary>
         /// reload table in specific database
         /// </summary>
@@ -48,6 +50,7 @@ namespace SharpConnect.MySql.SyncPatt
 
             Use(db, conn);
             //-----------------------------------
+
             //To find out what tables the default database contains
             var cmd = new MySqlCommand("show tables", conn);
             List<MySqlTableInfo> tableInfoList = new List<MySqlTableInfo>();
@@ -61,9 +64,83 @@ namespace SharpConnect.MySql.SyncPatt
             db.Tables = tableInfoList;
             if (readTableDetail)
             {
-                foreach (var tbl in tableInfoList)
+                foreach (MySqlTableInfo tbl in tableInfoList)
                 {
                     tbl.ReloadColumnList(conn);
+                }
+            }
+        }
+        
+        public static void ReloadStoreProcList(this MySqlDatabaseInfo db, MySqlConnection conn, bool readDetail = false)
+        {
+
+            Use(db, conn);
+            //-----------------------------------
+            //To find out what tables the default database contains
+            var cmd = new MySqlCommand("show procedure status where db=?db", conn);
+            List<MySqlStoreProcInfo> storeProcList = new List<MySqlStoreProcInfo>();
+            cmd.Parameters.AddWithValue("?db", db.Name);
+            var reader = cmd.ExecuteReader();
+
+
+            int ord_name = reader.GetOrdinal("Name");
+            int ord_type = reader.GetOrdinal("Type");
+            int ord_definer = reader.GetOrdinal("Definer");
+            int ord_modifed = reader.GetOrdinal("Modified");
+            int ord_created = reader.GetOrdinal("Created");
+
+            while (reader.Read())
+            {
+                MySqlStoreProcInfo storeProc = new MySqlStoreProcInfo(reader.GetString("Name"));
+                storeProc.OwnerDatabase = db;
+                storeProcList.Add(storeProc);
+            }
+            reader.Close();
+            //-------------
+            db.StoreProcs = storeProcList;
+            //------------
+            if (readDetail)
+            {
+                foreach (MySqlStoreProcInfo proc in storeProcList)
+                {
+                    proc.Sql = proc.GetShowCreateStoreProcSql(conn);
+                }
+            }
+        }
+        public static void ReloadStoreFuncList(this MySqlDatabaseInfo db, MySqlConnection conn, bool readDetail = false)
+        {
+
+            Use(db, conn);
+            //-----------------------------------
+            //To find out what tables the default database contains
+            var cmd = new MySqlCommand("show function status where db=?db", conn);
+            List<MySqlStoreFuncInfo> storeFuncList = new List<MySqlStoreFuncInfo>();
+            cmd.Parameters.AddWithValue("?db", db.Name);
+            var reader = cmd.ExecuteReader(); 
+
+            int ord_name = reader.GetOrdinal("Name");
+            int ord_type = reader.GetOrdinal("Type");
+            int ord_definer = reader.GetOrdinal("Definer");
+            int ord_modifed = reader.GetOrdinal("Modified");
+            int ord_created = reader.GetOrdinal("Created");
+
+            while (reader.Read())
+            {
+                MySqlStoreFuncInfo storeProc = new MySqlStoreFuncInfo(reader.GetString("Name"));
+                storeProc.OwnerDatabase = db;
+                storeFuncList.Add(storeProc);
+            }
+            reader.Close();
+            //-------------
+            db.StoreFuncs = storeFuncList;
+
+            //------------
+
+            if (readDetail)
+            {
+                foreach (MySqlStoreFuncInfo func in storeFuncList)
+                {
+                    func.Sql = func.GetShowCreateStoreFunctionSql(conn);
                 }
             }
         }
@@ -119,10 +196,41 @@ namespace SharpConnect.MySql.SyncPatt
         {
             var cmd = new MySqlCommand("show create table " + table.Name, conn);
             var reader = cmd.ExecuteReader();
+            int ord_createTable = reader.GetOrdinal("Create Table");
+
             string createTableSql = null;
+            reader.StringConverter = null;
             while (reader.Read())
             {
-                createTableSql = reader.GetString(1);
+                createTableSql = reader.GetString(ord_createTable);
+            }
+            reader.Close();
+            return createTableSql;
+        }
+
+        public static string GetShowCreateStoreProcSql(this MySqlStoreProcInfo storeFunc, MySqlConnection conn)
+        {
+            var cmd = new MySqlCommand("show create procedure " + storeFunc.Name, conn);
+            var reader = cmd.ExecuteReader();
+            string createTableSql = null;
+            int ord_createProc = reader.GetOrdinal("Create Procedure");
+            while (reader.Read())
+            {
+                createTableSql = reader.GetString(ord_createProc);
+            }
+            reader.Close();
+            return createTableSql;
+        }
+        public static string GetShowCreateStoreFunctionSql(this MySqlStoreFuncInfo storeFunc, MySqlConnection conn)
+        {
+            var cmd = new MySqlCommand("show create function " + storeFunc.Name, conn);
+            var reader = cmd.ExecuteReader();
+            string createTableSql = null;
+
+            int ord_createFunc = reader.GetOrdinal("Create Function");
+            while (reader.Read())
+            {
+                createTableSql = reader.GetString(ord_createFunc);
             }
             reader.Close();
             return createTableSql;
