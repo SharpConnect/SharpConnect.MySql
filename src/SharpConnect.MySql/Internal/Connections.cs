@@ -510,7 +510,7 @@ namespace SharpConnect.MySql.Internal
 
     class ConnectionConfig
     {
-        public string host;
+        public readonly string host;
         public int port;
         public string localAddress;//unknowed type
         public string socketPath;//unknowed type
@@ -542,25 +542,7 @@ namespace SharpConnect.MySql.Internal
 
         public ConnectionConfig()
         {
-            SetDefault();
-        }
-
-        public ConnectionConfig(string username, string password)
-        {
-            SetDefault();
-            this.user = username;
-            this.password = password;
-        }
-        public ConnectionConfig(string host, string username, string password, string database)
-        {
-            SetDefault();
-            this.user = username;
-            this.password = password;
-            this.host = host;
-            this.database = database;
-        }
-        void SetDefault()
-        {
+            //set default
             //if (typeof options === 'string') {
             //  options = ConnectionConfig.parseUrl(options);
             //}
@@ -620,12 +602,25 @@ namespace SharpConnect.MySql.Internal
             //this.clientFlags = ConnectionConfig.mergeFlags(defaultFlags, options.flags)
         }
 
-        public void SetConfig(string host, int port, string username, string password, string database)
+        public ConnectionConfig(string username, string password)
+            : this()
         {
-            this.host = host;
-            this.port = port;
+
             this.user = username;
             this.password = password;
+        }
+        public ConnectionConfig(string host, string username, string password, string database)
+             : this()
+        {
+
+            if (host == "localhost")
+            {
+                host = "127.0.0.1";
+            }
+
+            this.user = username;
+            this.password = password;
+            this.host = host;
             this.database = database;
         }
     }
