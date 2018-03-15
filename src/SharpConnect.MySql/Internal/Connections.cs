@@ -312,8 +312,16 @@ namespace SharpConnect.MySql.Internal
                 }
                 HandshakePacket handshake_packet = handshakeResult.packet;
                 this.threadId = handshake_packet.threadId;
-                byte[] token = MakeToken(config.password,
-                   GetScrollbleBuffer(handshake_packet.scrambleBuff1, handshake_packet.scrambleBuff2));
+
+                // https://dev.mysql.com/doc/internals/en/sha256.html
+
+                byte[] token = string.IsNullOrEmpty(config.password) ?
+                          /*1*/  new byte[0] :   //Empty passwords are not hashed, but sent as empty string. 
+
+                          /* or 2*/  MakeToken(config.password, GetScrollbleBuffer(
+                                         handshake_packet.scrambleBuff1,
+                                         handshake_packet.scrambleBuff2));
+
                 _writer.IncrementPacketNumber();
                 //----------------------------
                 //send authen packet to the server
@@ -584,7 +592,7 @@ namespace SharpConnect.MySql.Internal
             //  ? ConnectionConfig.getSSLProfile(options.ssl)
             //  : (options.ssl || false);
             multipleStatements = false;//this.multipleStatements = options.multipleStatements || false; 
-          
+
             //this.typeCast = (options.typeCast === undefined)
             //  ? true
             //  : options.typeCast;
