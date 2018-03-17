@@ -158,10 +158,27 @@ namespace SharpConnect.MySql
             //data.type = Types.LONGLONG;
             _values[key] = data;
         }
+        public void AddWithNull(string key)
+        {
+            var data = new MyStructData();
+            data.myString = null;
+            data.type = MySqlDataType.NULL;
+            //data.myUInt64 = value;
+            //data.type = Types.LONGLONG;
+            _values[key] = data;
+        }
         //-------------------------------------------------------
         //user's bound data values 
         public void AddWithValue(string key, object value)
         {
+
+            //get type of value
+            if (value == null)
+            {
+                AddWithNull(key);
+                return;
+            }
+
             //get type of value
             switch (MySqlTypeConversionInfo.GetProperDataType(value))
             {
@@ -169,6 +186,9 @@ namespace SharpConnect.MySql
                 default:
                 case ProperDataType.Unknown:
                     throw new Exception("unknown data type?");
+                case ProperDataType.String:
+                    AddWithValue(key, (string)value);
+                    break;
                 case ProperDataType.Buffer:
                     AddWithValue(key, (byte[])value);
                     break;
