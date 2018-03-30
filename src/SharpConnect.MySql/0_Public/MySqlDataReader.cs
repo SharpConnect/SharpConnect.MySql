@@ -385,6 +385,7 @@ namespace SharpConnect.MySql
                     return data;
                 //    return (numberString === null || (field.zeroFill && numberString[0] == "0"))
                 //      ? numberString : Number(numberString);
+                case MySqlDataType.DECIMAL:
                 case MySqlDataType.NEWDECIMAL:
                 case MySqlDataType.LONGLONG:
                     //    numberString = parser.parseLengthCodedString();
@@ -450,7 +451,7 @@ namespace SharpConnect.MySql
                 case MySqlDataType.GEOMETRY:
                     //TODO: unfinished
                     data.type = MySqlDataType.GEOMETRY;
-                    return data;
+                    return data; 
                 default:
                     data.myString = r.ReadLengthCodedString(this.StringConverter);
                     data.type = type;
