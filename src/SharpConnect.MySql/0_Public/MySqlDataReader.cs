@@ -703,7 +703,8 @@ namespace SharpConnect.MySql
                 case MySqlDataType.DECIMAL:
                     //stbuilder.Append(data.myDecimal.ToString());
                     return data.myDecimal;
-
+                case MySqlDataType.NULL:
+                    return null;
                 default:
                     throw new NotSupportedException();
             }
