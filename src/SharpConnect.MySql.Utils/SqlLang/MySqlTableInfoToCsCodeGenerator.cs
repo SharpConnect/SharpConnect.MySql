@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace SharpConnect.MySql.Parser
+namespace SharpConnect.MySql.SqlLang
 {
     public class MySqlInfoToCsCodeGenerator
     {

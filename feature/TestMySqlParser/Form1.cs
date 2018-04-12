@@ -6,7 +6,7 @@ using System.Text;
 using System.Windows.Forms;
 using SharpConnect.MySql;
 using SharpConnect.MySql.SyncPatt;
-using SharpConnect.MySql.Parser;
+using SharpConnect.MySql.SqlLang;
 
 namespace TestMySqlParser
 {
