@@ -57,10 +57,9 @@ namespace TestMySqlParser
                 if (table.DatabaseName == null)
                 {
                     table.DatabaseName = db;
-                }
-
+                } 
                 //
-                tableInfoToCsCodeGen.GenerateSqlAndSave(table, db);
+                tableInfoToCsCodeGen.GenerateSqlAndSave(table, "code." + db + "." + table + ".cs");
             }
 
             mySqlConn.Close();
