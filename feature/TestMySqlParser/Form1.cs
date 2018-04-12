@@ -40,12 +40,7 @@ namespace TestMySqlParser
                 createSql = reader.GetString(1);
             }
 
-            //----------------------
-            //1. tokenization => tokenizer
-            //2. parse => parser
-            //3. semantic checking => semantic checker
-
-            //1.1 
+          
             if (createSql == "")
             {
                 return;

@@ -231,7 +231,12 @@ namespace SharpConnect.MySql.Parser
 
         public void ParseSql(string createSql)
         {
+            //----------------------
+            //1. tokenization => tokenizer
+            //2. parse => parser
+            //3. semantic checking => semantic checker
 
+            //1.1 
             string[] tokens = createSql.Split(new char[] { ' ', '\n', '\r', '=', ';' }, StringSplitOptions.RemoveEmptyEntries);
             TokenNameDict tkDict = new TokenNameDict();
 
@@ -361,20 +366,15 @@ namespace SharpConnect.MySql.Parser
                                 case MySqlTokenName.Table:
                                     {
                                         TablePart table = new TablePart();
-
                                         tokenstrm.ReadNext();
                                         tableResult = ParseCreateTable(tokenstrm, table);
-
                                         tableTreeList.Add(tableResult);
-
                                     }
                                     break;
                             }
                         }
                         break;
-                }
-
-
+                }  
                 tokenstrm.ReadNext();
             }
 
@@ -715,5 +715,5 @@ namespace SharpConnect.MySql.Parser
     }
 
 
-   
+
 }
