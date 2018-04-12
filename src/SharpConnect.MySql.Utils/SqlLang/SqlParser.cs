@@ -1,4 +1,5 @@
-﻿//MIT, 2015-2017, brezza92, EngineKit and contributors
+﻿//MIT, 2018, Phycolos
+//MIT, 2015-2017, brezza92, EngineKit and contributors
 
 using System;
 using System.Collections.Generic;
