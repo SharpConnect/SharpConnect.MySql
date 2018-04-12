@@ -1,11 +1,8 @@
-﻿using System;
+﻿//MIT, 2018, Phycolos
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
+
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using SharpConnect.MySql;
 using SharpConnect.MySql.SyncPatt;
@@ -70,14 +67,14 @@ namespace TestMySqlParser
 
             string h = "127.0.0.1";
             string u = "root";
-            string p = "123";
+            string p = "mysqldev";
             int port = 3306;
 
             MySqlConnectionString connStr = new MySqlConnectionString(h, u, p, db, port);
             MySqlConnection mySqlConn = new MySqlConnection(connStr);
             mySqlConn.Open();
 
-            string sql = "SHOW CREATE TABLE "+ tb;
+            string sql = "SHOW CREATE TABLE " + tb;
 
             var cmd = new MySqlCommand(sql, mySqlConn);
             var reader = cmd.ExecuteReader();
@@ -93,7 +90,7 @@ namespace TestMySqlParser
             //3. semantic checking => semantic checker
 
             //1.1 
-            if(createSql == "")
+            if (createSql == "")
             {
                 return;
             }
@@ -255,7 +252,7 @@ namespace TestMySqlParser
         {
             StringBuilder strb = new StringBuilder();
 
-            if(table.DatabaseName == null)
+            if (table.DatabaseName == null)
             {
                 table.DatabaseName = DBName;
             }
@@ -350,11 +347,11 @@ namespace TestMySqlParser
         {
             strb.Append("\t[DBTable(");
             if (table.DatabaseName != null) strb.Append("DatabaseName=" + '"' + table.DatabaseName + '"');
-            if (table.TableName != null) strb.Append(", TableName="+ '"' + table.TableName + '"');
+            if (table.TableName != null) strb.Append(", TableName=" + '"' + table.TableName + '"');
             if (table.Auto_increment != null) strb.Append(", Auto_increment=" + '"' + table.Auto_increment + '"');
             if (table.Charset != null) strb.Append(", Charset=" + '"' + table.Charset + '"');
             if (table.Engine != null) strb.Append(", Engine=" + '"' + table.Engine + '"');
-            if (table.HasDefault) strb.Append(", Default="+ table.HasDefault);
+            if (table.HasDefault) strb.Append(", Default=" + table.HasDefault);
             if (table.Using != null) strb.Append(", Using=" + '"' + table.Using + '"');
             strb.AppendLine(")]");
             strb.AppendLine("\tinterface " + table.TableName);
@@ -391,7 +388,7 @@ namespace TestMySqlParser
                     else if (field[i].Type == "blob") kind = "string";
 
 
-                    strb.AppendLine("\t\t"+kind + " " + field[i] + "{ get; set; }");
+                    strb.AppendLine("\t\t" + kind + " " + field[i] + "{ get; set; }");
                 }
             }
             strb.AppendLine("\t}");
@@ -401,7 +398,7 @@ namespace TestMySqlParser
         }
 
         void CreateInterfaceIndexKeys(ref StringBuilder strb, List<KeyPart> KeyList)
-        {  
+        {
             strb.AppendLine("\t[IndexOfTable(typeof(patient))]");
             strb.AppendLine("\tinterface IndexKeys");
             strb.AppendLine("\t{");
@@ -420,44 +417,25 @@ namespace TestMySqlParser
                 if (Keys[i].IndexColumns != null)
                 {
                     strb.Append(", Columns=" + '"');
-                    for(int k = 0; k < Keys[i].IndexColumns.Count; ++k)
+                    for (int k = 0; k < Keys[i].IndexColumns.Count; ++k)
                     {
-                        if(k>0)
+                        if (k > 0)
                         {
                             strb.Append(",");
                         }
                         strb.Append(Keys[i].IndexColumns[0]);
                     }
                 }
-                strb.AppendLine('"'+")]");
+                strb.AppendLine('"' + ")]");
 
                 strb.AppendLine("\t\tstring " + Keys[i].IndexName + " { get; set; }");
 
             }
 
-
-
-
-
             strb.AppendLine("\t}");
 
             string temp2 = strb.ToString();
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         void ParseIden(TokenStream tkstream, ref TablePart table)
         {
@@ -580,7 +558,7 @@ namespace TestMySqlParser
                                     tkstream.ReadNext();
                                     Token idenNext = tkstream.CurrentToken;
                                     string[] dfValue = idenNext.OriginalText.Split(new string[] { "'" }, StringSplitOptions.RemoveEmptyEntries);
-                                    if(dfValue.Length > 0)
+                                    if (dfValue.Length > 0)
                                     {
                                         field.FieldDefault = dfValue[0];
                                     }
@@ -808,7 +786,7 @@ namespace TestMySqlParser
 
         class FieldPart
         {
-            public string FieldName; 
+            public string FieldName;
             public string Length;
             public string Type;
 

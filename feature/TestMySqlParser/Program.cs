@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿//MIT, 2018, Phycolos
+using System;
 using System.Windows.Forms;
 
 namespace TestMySqlParser

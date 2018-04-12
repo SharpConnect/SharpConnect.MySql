@@ -1,4 +1,5 @@
-﻿/*** TEST ***/
+﻿//MIT, 2018, Phycolos
+/*** TEST ***/
 using System;
 
 namespace screen
