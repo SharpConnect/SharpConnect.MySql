@@ -67,7 +67,7 @@ namespace TestMySqlParser
 
             string h = "127.0.0.1";
             string u = "root";
-            string p = "mysqldev";
+            string p = "root";
             int port = 3306;
 
             MySqlConnectionString connStr = new MySqlConnectionString(h, u, p, db, port);
@@ -280,7 +280,7 @@ namespace TestMySqlParser
 
                 string temp = strb.ToString();
 
-                System.IO.File.WriteAllText(@"D:\projects\mysql_table_info\TestMySqlParser\MySimpleFile.cs", strb.ToString());
+                System.IO.File.WriteAllText(@"MySimpleFile.cs", strb.ToString());
 
             }
 
