@@ -47,7 +47,7 @@ namespace SharpConnect.MySql.Parser
 
     }
 
-    class TablePart
+    public class TablePart
     {
         public string TableName;
         public string DatabaseName;
@@ -69,7 +69,7 @@ namespace SharpConnect.MySql.Parser
         }
     }
 
-    class FieldPart
+    public class FieldPart
     {
         public string FieldName;
         public string Length;
@@ -97,7 +97,7 @@ namespace SharpConnect.MySql.Parser
         }
     }
 
-    class KeyPart
+    public class KeyPart
     {
         public string IndexName;
         public string IndexKind;
@@ -226,7 +226,7 @@ namespace SharpConnect.MySql.Parser
     }
 
 
-    class MySqlParser
+    public class MySqlParser
     {
 
         public void ParseSql(string createSql)
@@ -374,11 +374,9 @@ namespace SharpConnect.MySql.Parser
                             }
                         }
                         break;
-                }  
+                }
                 tokenstrm.ReadNext();
             }
-
-
         }
 
         List<TablePart> tableTreeList;
@@ -685,7 +683,7 @@ namespace SharpConnect.MySql.Parser
 
             while (tkstream.CurrentToken.TokenName != MySqlTokenName.ParenClose)
             {
-                string tem = tkstream.CurrentToken.ToString();
+                string item = tkstream.CurrentToken.ToString();
 
                 /*if (tkstream.CurrentToken.OriginalText == ",")
                 {
@@ -713,7 +711,4 @@ namespace SharpConnect.MySql.Parser
             return table;
         }
     }
-
-
-
 }

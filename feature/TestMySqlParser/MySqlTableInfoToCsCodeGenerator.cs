@@ -5,39 +5,36 @@ using System.Text;
 
 namespace SharpConnect.MySql.Parser
 {
-    class MySqlInfoToCsCodeGenerator
+    public class MySqlInfoToCsCodeGenerator
     {
-
-        public void ConvertSQL(TablePart table, string DBName)
+        public void GenerateSqlAndSave(TablePart table, string saveToFilename)
         {
-            StringBuilder strb = new StringBuilder();
-            if (table.DatabaseName == null)
-            {
-                table.DatabaseName = DBName;
-            }
-            if (table.TableName != null)
-            {
-                strb.AppendLine("//" + DateTime.Now.ToString("s"));
+            StringBuilder output = new StringBuilder();
+            GenerateSql(table, output);
+            System.IO.File.WriteAllText(saveToFilename, output.ToString());
+        }
+        public void GenerateSql(TablePart table, StringBuilder strb)
+        {
 
-                strb.AppendLine("using System;");
-                strb.AppendLine("");
-                strb.AppendLine("namespace " + table.DatabaseName);
-                strb.AppendLine("{");
+            strb.AppendLine("//" + DateTime.Now.ToString("s"));
 
-                CreateDBTableAttribute(ref strb);
+            strb.AppendLine("using System;");
+            strb.AppendLine("");
+            strb.AppendLine("namespace " + table.DatabaseName);
+            strb.AppendLine("{");
 
-                CreateDBFieldAttribute(ref strb);
+            CreateDBTableAttribute(ref strb);
 
-                CreateIndexAttribute(ref strb);
+            CreateDBFieldAttribute(ref strb);
 
-                CreateInterfaceTable(ref strb, table);
+            CreateIndexAttribute(ref strb);
 
-                CreateInterfaceIndexKeys(ref strb, table.KeyList);
+            CreateInterfaceTable(ref strb, table);
 
-                strb.Append("}");
-                string temp = strb.ToString();
-                System.IO.File.WriteAllText(@"MySimpleFile.cs", strb.ToString());
-            }
+            CreateInterfaceIndexKeys(ref strb, table.KeyList);
+
+            strb.Append("}");
+
 
         }
 

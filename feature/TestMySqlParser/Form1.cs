@@ -40,7 +40,7 @@ namespace TestMySqlParser
                 createSql = reader.GetString(1);
             }
 
-          
+
             if (createSql == "")
             {
                 return;
@@ -52,14 +52,18 @@ namespace TestMySqlParser
             MySqlInfoToCsCodeGenerator tableInfoToCsCodeGen = new MySqlInfoToCsCodeGenerator();
 
             List<TablePart> tables = parser.ResultTables;
-            foreach(TablePart t in tables)
+            foreach (TablePart table in tables)
             {
-                tableInfoToCsCodeGen.ConvertSQL(t, db);
-            } 
+                if (table.DatabaseName == null)
+                {
+                    table.DatabaseName = db;
+                }
+
+                //
+                tableInfoToCsCodeGen.GenerateSqlAndSave(table, db);
+            }
+
+            mySqlConn.Close();
         }
-
-
-
-
     }
 }
