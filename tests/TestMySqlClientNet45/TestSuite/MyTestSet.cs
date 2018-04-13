@@ -11,7 +11,7 @@ namespace MySqlTest
         {
             string h = "127.0.0.1";
             string u = "root";
-            string p = "mysqldev";
+            string p = "root";
             string d = "test";
             return new MySqlConnectionString(h, u, p, d);
         }

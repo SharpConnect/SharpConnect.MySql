@@ -58,7 +58,7 @@ namespace SharpConnect.MySql.Internal
         MySqlParserMx _sqlParserMx;
         QueryExecState _execState = QueryExecState.Rest;
         Action<MySqlTableResult> _tableResultListener;
-
+        Action<MySqlErrorResult> _errorListener;
         //------------
         //we create query for each command and not reuse it
         //------------
@@ -112,13 +112,16 @@ namespace SharpConnect.MySql.Internal
             return false;
         }
 
-        public ErrPacket LoadError { get; private set; }
+        public ErrPacket Error { get; private set; }
         public OkPacket OkPacket { get; private set; }
         public void SetResultListener(Action<MySqlTableResult> tableResultListener)
         {
             this._tableResultListener = tableResultListener;
         }
-
+        public void SetErrorListener(Action<MySqlErrorResult> errorListener)
+        {
+            this._errorListener = errorListener;
+        }
 
         /// <summary>
         /// +/- blocking
@@ -408,15 +411,23 @@ namespace SharpConnect.MySql.Internal
                             {
                                 MySqlOkResult ok = result as MySqlOkResult;
                                 OkPacket = ok.okpacket;
-
                                 RecvComplete();
                             }
                             break;
                         case MySqlResultKind.Error:
                             {
                                 MySqlErrorResult error = result as MySqlErrorResult;
-                                LoadError = error.errPacket;
+                                Error = error.errPacket; 
                                 RecvComplete();
+                                if (_errorListener != null)
+                                {
+                                    _errorListener(error);
+                                }
+                                else
+                                {
+                                    //ERROR
+                                    throw new NotSupportedException();
+                                }  
                             }
                             break;
                         case MySqlResultKind.PrepareResponse:

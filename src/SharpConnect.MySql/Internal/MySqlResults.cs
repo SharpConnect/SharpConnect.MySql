@@ -55,6 +55,12 @@ namespace SharpConnect.MySql.Internal
             this.IsError = true;
         }
         public override MySqlResultKind Kind { get { return MySqlResultKind.Error; } }
+#if DEBUG
+        public override string ToString()
+        {
+            return errPacket.message;
+        }
+#endif
     }
     class MySqlOkResult : MySqlResult
     {
@@ -91,7 +97,7 @@ namespace SharpConnect.MySql.Internal
         public MySqlTableResult(TableHeader tableHeader, List<DataRowPacket> rows)
         {
             this.tableHeader = tableHeader;
-            this.rows = rows; 
+            this.rows = rows;
         }
         /// <summary>
         /// this is not the last table of result, It has one or more follower table
