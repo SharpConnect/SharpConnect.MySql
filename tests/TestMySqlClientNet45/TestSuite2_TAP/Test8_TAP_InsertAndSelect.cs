@@ -57,8 +57,9 @@ namespace MySqlTest
                     await cmd.ExecuteReaderAsync(reader =>
                     {
                         count++;
-                        if (count > 0)
+                        if (count > 10)
                         {
+                            //test stop reader 
                             reader.Stop();
                         }
                     });
