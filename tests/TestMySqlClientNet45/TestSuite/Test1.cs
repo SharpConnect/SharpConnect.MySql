@@ -108,7 +108,7 @@ namespace MySqlTest
             {
                 try
                 {
-                    var cmd = new MySqlCommand("select sysdatex()", conn);
+                    var cmd = new MySqlCommand("select sysdate()", conn);
                     var reader = cmd.ExecuteReader();
                     if (reader.Read())
                     {
