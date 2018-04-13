@@ -214,6 +214,7 @@ namespace SharpConnect.MySql
         }
         MyStructData ReadCurrentRowBinaryProtocol(MySqlFieldDefinition f)
         {
+            string numberString = null;
             MySqlDataType fieldType = (MySqlDataType)f.FieldType;
             MyStructData myData = new MyStructData();
             BufferReader r = this.bufferReader;
@@ -247,11 +248,37 @@ namespace SharpConnect.MySql
                 case MySqlDataType.DOUBLE:
                     myData.myDouble = r.ReadDouble();
                     myData.type = fieldType;
-                    return myData;
+                    return myData; 
+                case MySqlDataType.DECIMAL:
                 case MySqlDataType.NEWDECIMAL:
-                    myData.myDecimal = r.ReadDecimal();
-                    myData.type = fieldType;
-                    return myData;
+                    {
+                        QueryParsingConfig config = _queryParsingConf; 
+                        myData.myString = numberString = r.ReadLengthCodedString(this.StringConverter);
+                        if (numberString == null || (f.IsZeroFill && numberString[0] == '0'))
+                        {
+                            myData.type = MySqlDataType.NULL;
+                        }
+                        else if (config.SupportBigNumbers &&
+                            (config.BigNumberStrings || (Convert.ToInt64(numberString) > Packet.IEEE_754_BINARY_64_PRECISION)))
+                        {
+                            //store as string ?
+                            //TODO: review here  again
+                            myData.myString = numberString;
+                            myData.type = fieldType;
+                            throw new NotSupportedException();
+                        }
+                        else if (fieldType == MySqlDataType.LONGLONG)
+                        {
+                            myData.myInt64 = Convert.ToInt64(numberString);
+                            myData.type = fieldType;
+                        }
+                        else//decimal
+                        {
+                            myData.myDecimal = Convert.ToDecimal(numberString);
+                            myData.type = fieldType;
+                        }
+                        return myData;
+                    } 
                 case MySqlDataType.LONGLONG:
                     myData.myInt64 = r.ReadInt64();
                     myData.type = fieldType;
@@ -385,6 +412,7 @@ namespace SharpConnect.MySql
                     return data;
                 //    return (numberString === null || (field.zeroFill && numberString[0] == "0"))
                 //      ? numberString : Number(numberString);
+                case MySqlDataType.DECIMAL:
                 case MySqlDataType.NEWDECIMAL:
                 case MySqlDataType.LONGLONG:
                     //    numberString = parser.parseLengthCodedString();
@@ -428,7 +456,20 @@ namespace SharpConnect.MySql
                 //    return parser.parseLengthCodedBuffer();
                 case MySqlDataType.STRING:
                 case MySqlDataType.VAR_STRING:
-
+                    {
+                        //expect data type
+                        if (f.MarkedAsBinary)
+                        {
+                            data.myString = r.ReadLengthCodedString(this.StringConverter);
+                            data.type = (data.myBuffer != null) ? type : MySqlDataType.NULL;
+                        }
+                        else
+                        {
+                            data.myString = r.ReadLengthCodedString(this.StringConverter);
+                            data.type = (data.myString != null) ? type : MySqlDataType.NULL;
+                        }
+                        return data;
+                    }
                 case MySqlDataType.TINY_BLOB:
                 case MySqlDataType.MEDIUM_BLOB:
                 case MySqlDataType.LONG_BLOB:
@@ -551,7 +592,7 @@ namespace SharpConnect.MySql
             return GetDouble(GetOrdinal(colName));
         }
 
-      
+
         public decimal GetDecimal(string colName)
         {
             return GetDecimal(GetOrdinal(colName));
@@ -675,7 +716,8 @@ namespace SharpConnect.MySql
                 case MySqlDataType.DECIMAL:
                     //stbuilder.Append(data.myDecimal.ToString());
                     return data.myDecimal;
-
+                case MySqlDataType.NULL:
+                    return null;
                 default:
                     throw new NotSupportedException();
             }

@@ -218,7 +218,8 @@ namespace SharpConnect.MySql.Internal
         public static ProperDataType GetProperDataType(object o)
         {
             ProperDataType foundProperType;
-            if (!dataTypeMaps.TryGetValue(o.GetType(), out foundProperType))
+            Type o_type;
+            if (!dataTypeMaps.TryGetValue(o_type = o.GetType(), out foundProperType))
             {
                 return ProperDataType.Unknown;
             }

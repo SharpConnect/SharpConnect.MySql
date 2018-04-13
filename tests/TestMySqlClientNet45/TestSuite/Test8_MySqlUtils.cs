@@ -88,19 +88,31 @@ namespace MySqlTest
 
             MySqlDbServerInfo serverInfo = new MySqlDbServerInfo("test");
             serverInfo.ReloadDatabaseList(conn);
-            foreach (MySqlDatabaseInfo db in serverInfo.Databases)
+            foreach (MySqlDatabaseInfo db in serverInfo.Databases.Values)
             {
                 db.ReloadTableList(conn, true);
+                db.ReloadStoreFuncList(conn, true);
+                db.ReloadStoreProcList(conn, true);
+
                 foreach (MySqlTableInfo tbl in db.Tables)
                 {
                     //we can find more detail from 'show create table ...' sql
                     string createTableSql = tbl.GetShowCreateTableSql(conn);
+                }
+                foreach (MySqlStoreProcInfo storeProc in db.StoreProcs)
+                {
+                    string createdBySql = storeProc.Sql;
+                }
+                foreach (MySqlStoreFuncInfo storeFunc in db.StoreFuncs)
+                {
+                    string createdBySql = storeFunc.Sql;
                 }
             }
             //-------------------- 
 
             conn.Close();
         }
+
         [Test]
         public static void T_CreateDatabaseInfo_SqlTableToCsMapperCodeGen()
         {
@@ -114,12 +126,13 @@ namespace MySqlTest
             var csCodeGen = new SharpConnect.MySql.CodeMapper.CsCodeMapperGenerator();
             csCodeGen.StBuilder = new StringBuilder();
 
-            foreach (MySqlDatabaseInfo db in serverInfo.Databases)
+            foreach (MySqlDatabaseInfo db in serverInfo.Databases.Values)
             {
                 db.ReloadTableList(conn, true);
                 foreach (MySqlTableInfo tbl in db.Tables)
                 {
-                    if (tbl.Name == "test_table")
+                    //just test
+                    if (tbl.Name == "test001")
                     {
                         csCodeGen.GenerateCsCodeForSqlTable(tbl);
                     }
