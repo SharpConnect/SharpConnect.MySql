@@ -107,9 +107,9 @@ namespace SharpConnect.MySql
                 var query = new Query(connection, sql, cmd2Values);
                 query.SetResultListener(tableResult =>
                 {
-                    if (query.LoadError != null)
+                    if (query.Error != null)
                     {
-                        Console.WriteLine("Error : " + query.LoadError.message);
+                        Console.WriteLine("Error : " + query.Error.message);
                     }
                     else if (query.OkPacket != null)
                     {

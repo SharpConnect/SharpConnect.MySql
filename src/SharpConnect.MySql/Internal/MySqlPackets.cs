@@ -1006,10 +1006,7 @@ namespace SharpConnect.MySql.Internal
                 _sqlState = r.ReadString(5);
             }
 
-            message = r.ReadPacketTerminatedString();
-#if DEBUG
-            throw new Exception(_sqlStateMarker + _sqlState + " " + message);
-#endif
+            message = r.ReadPacketTerminatedString(); 
         }
 
         public override void WritePacket(MySqlStreamWriter writer)

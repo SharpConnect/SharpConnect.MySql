@@ -248,11 +248,11 @@ namespace SharpConnect.MySql
                 case MySqlDataType.DOUBLE:
                     myData.myDouble = r.ReadDouble();
                     myData.type = fieldType;
-                    return myData; 
+                    return myData;
                 case MySqlDataType.DECIMAL:
                 case MySqlDataType.NEWDECIMAL:
                     {
-                        QueryParsingConfig config = _queryParsingConf; 
+                        QueryParsingConfig config = _queryParsingConf;
                         myData.myString = numberString = r.ReadLengthCodedString(this.StringConverter);
                         if (numberString == null || (f.IsZeroFill && numberString[0] == '0'))
                         {
@@ -278,7 +278,7 @@ namespace SharpConnect.MySql
                             myData.type = fieldType;
                         }
                         return myData;
-                    } 
+                    }
                 case MySqlDataType.LONGLONG:
                     myData.myInt64 = r.ReadInt64();
                     myData.type = fieldType;
@@ -785,6 +785,19 @@ namespace SharpConnect.MySql
         }
     }
 
+    class MySqlDataReaderException : Exception
+    {
+        public MySqlDataReaderException(MySqlErrorResult err)
+            : base(err.ToString())
+        {
+            this.Error = err;
+        }
+        public MySqlErrorResult Error { get; private set; }
+        public override string ToString()
+        {
+            return Error.ToString();
+        }
+    }
     class MySqlQueryDataReader : MySqlDataReader
     {
         Query _query;
@@ -799,11 +812,19 @@ namespace SharpConnect.MySql
         bool firstResultArrived;
         bool tableResultIsNotComplete;
         Action<MySqlQueryDataReader> onFirstDataArrived;
+        MySqlErrorResult _errorResult = null;
+
         internal MySqlQueryDataReader(Query query)
         {
 
             _query = query;
             //set result listener for query object  before actual query.Read()
+            query.SetErrorListener(err =>
+            {
+                firstResultArrived = true;
+                tableResultIsNotComplete = false;
+                _errorResult = err;
+            });
             query.SetResultListener(subtable =>
             {
                 //we need the subtable must arrive in correct order *** 
@@ -983,6 +1004,12 @@ namespace SharpConnect.MySql
                 }
             });
         }
+
+        Action<MySqlErrorResult> _onErrorListener;
+        public void SetOnErrorListener(Action<MySqlErrorResult> onErrorListener)
+        {
+            _onErrorListener = onErrorListener;
+        }
         /// <summary>
         /// sync read row
         /// </summary>
@@ -990,6 +1017,19 @@ namespace SharpConnect.MySql
         public override bool Read()
         {
             TRY_AGAIN:
+            //
+            if (_errorResult != null)
+            {
+                //throw error
+                if (_onErrorListener != null)
+                {
+                    _onErrorListener(_errorResult);
+                }
+                else
+                {
+                    throw new MySqlDataReaderException(_errorResult);
+                }
+            }
             if (IsEmptyTable)
             {
                 //no current table 

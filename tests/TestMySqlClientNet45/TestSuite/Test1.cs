@@ -66,6 +66,36 @@ namespace MySqlTest
 
 
         [Test]
+        public static void T_Select_WithError()
+        {
+            int n = 100;
+            long total;
+            long avg;
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+            //Test(n, TimeUnit.Ticks, out total, out avg, () =>
+            //{
+            try
+            {
+                var cmd = new MySqlCommand("select sysdatex()", conn);
+                var reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    var dtm = reader.GetDateTime(0);
+                }
+                reader.Close();
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            //});
+            //Report.WriteLine("avg:" + avg);
+            conn.Close();
+        }
+        [Test]
         public static void T_Select_sysdate()
         {
             int n = 100;
@@ -76,18 +106,25 @@ namespace MySqlTest
             conn.Open();
             Test(n, TimeUnit.Ticks, out total, out avg, () =>
             {
-                var cmd = new MySqlCommand("select sysdate()", conn);
-                var reader = cmd.ExecuteReader();
-                if (reader.Read())
+                try
                 {
-                    var dtm = reader.GetDateTime(0);
+                    var cmd = new MySqlCommand("select sysdatex()", conn);
+                    var reader = cmd.ExecuteReader();
+                    if (reader.Read())
+                    {
+                        var dtm = reader.GetDateTime(0);
+                    }
+                    reader.Close();
                 }
-                reader.Close();
+                catch (Exception ex)
+                {
+
+                }
+
             });
             Report.WriteLine("avg:" + avg);
             conn.Close();
         }
-
         [Test]
         public static void T_Select_ExecuteScalar()
         {
