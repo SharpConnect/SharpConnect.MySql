@@ -42,6 +42,12 @@ namespace SharpConnect.MySql.AsyncPatt
             return tcs.Task;
         }
 
+        /// <summary>
+        /// execute reader, loop for each row and close
+        /// </summary>
+        /// <param name="cmd"></param>
+        /// <param name="readerDel"></param>
+        /// <returns></returns>
         public static Task ExecuteReaderAsync(this MySqlCommand cmd, MySqlDataReaderReadDelegate readerDel)
         {
             var tcs = new TaskCompletionSource<int>();

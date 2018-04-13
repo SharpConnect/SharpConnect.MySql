@@ -39,11 +39,31 @@ namespace MySqlTest
                 //---------------------------------------------
                 for (int i = 0; i < 100; ++i)
                 {
-
                     string sql = "insert into test001(col1,col2,col3,col4) values(10,'AA','123456789','0001-01-01')";
                     var cmd = new MySqlCommand(sql, conn);
                     await cmd.ExecuteNonQueryAsync();
                 }
+                {
+
+                    //test prepared statement
+                    string sql = "insert into test001(col1,col2,col3,col4) values(?col1,?col2,?col3,?col4)";
+                    var cmd = new MySqlCommand(sql, conn);
+                    await cmd.PrepareAsync(); //prepare  
+                    CommandParams pars = cmd.Parameters;
+                    for (int i = 0; i < 100; ++i)
+                    {
+                        pars.AddWithValue("?col1", 1000 + i);
+                        pars.AddWithValue("?col2", "AA");
+                        pars.AddWithValue("?col3", "how are you" + i);
+                        pars.AddWithValue("?col4", DateTime.Now);
+
+                        await cmd.ExecuteNonQueryAsync();
+                        pars.Clear();
+                    }
+                }
+
+
+
                 //--------------------------------------------
                 //select back
                 {
@@ -57,11 +77,11 @@ namespace MySqlTest
                     await cmd.ExecuteReaderAsync(reader =>
                     {
                         count++;
-                        if (count > 10)
-                        {
-                            //test stop reader 
-                            reader.Stop();
-                        }
+                        //if (count > 10)
+                        //{
+                        //    //test stop reader 
+                        //    reader.Stop();
+                        //}
                     });
                 }
             });
