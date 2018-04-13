@@ -844,6 +844,15 @@ namespace SharpConnect.MySql
                 }
             });
         }
+        public bool HasError
+        {
+            get { return _errorResult != null; }
+        }
+        public MySqlErrorResult Error
+        {
+            get { return _errorResult; }
+        }
+
         public override void SetCurrentRowIndex(int index)
         {
             //set support in this mode
@@ -1005,11 +1014,7 @@ namespace SharpConnect.MySql
             });
         }
 
-        Action<MySqlErrorResult> _onErrorListener;
-        public void SetOnErrorListener(Action<MySqlErrorResult> onErrorListener)
-        {
-            _onErrorListener = onErrorListener;
-        }
+
         /// <summary>
         /// sync read row
         /// </summary>
@@ -1017,19 +1022,7 @@ namespace SharpConnect.MySql
         public override bool Read()
         {
             TRY_AGAIN:
-            //
-            if (_errorResult != null)
-            {
-                //throw error
-                if (_onErrorListener != null)
-                {
-                    _onErrorListener(_errorResult);
-                }
-                else
-                {
-                    throw new MySqlDataReaderException(_errorResult);
-                }
-            }
+
             if (IsEmptyTable)
             {
                 //no current table 
