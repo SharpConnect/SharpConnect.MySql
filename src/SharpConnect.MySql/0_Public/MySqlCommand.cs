@@ -16,6 +16,7 @@ namespace SharpConnect.MySql
             public static MySqlDataReader ExecuteReader(this MySqlCommand cmd)
             {
                 return cmd.InternalExecuteReader();
+
             }
             public static object ExecuteScalar(this MySqlCommand cmd)
             {
@@ -155,6 +156,13 @@ namespace SharpConnect.MySql
             //
             //after execute in sync mode (this method)
             //reader will wait unit first result arrive            
+            if (reader.HasError)
+            {
+                //throw exception
+                reader.InternalClose();
+                throw new MySqlDataReaderException(reader.Error);
+            }
+
             return reader;
         }
 
