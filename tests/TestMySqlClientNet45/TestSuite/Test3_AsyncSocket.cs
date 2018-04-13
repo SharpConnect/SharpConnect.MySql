@@ -21,7 +21,7 @@ namespace MySqlTest
             conn.Open(() =>
             {
                 conn.UpdateMaxAllowPacket();
-                conn.Close(() => { });
+                conn.Close();
             });
 
         }
@@ -80,23 +80,14 @@ namespace MySqlTest
             conn.Open(() =>
             {
                 var cmd = new MySqlCommand("select sysdate()", conn);
-                cmd.ExecuteReader(reader =>
+                cmd.ExecuteReader(r =>
                 {
                     //reader is ready  
-                    while (SharpConnect.MySql.SyncPatt.MySqlSyncPattExtension.Read(reader))
-                    {
-                        //this example we read each row asynchronously
-                        //read as 
-                        var dtm = reader.GetDateTime(0);
-                    }
-                    reader.Close(() =>
-                    {
-                        conn.Close(() => { });
-                    });
+                    var dtm = r.GetDateTime(0);
                 });
 
 
-            });
+            }, () => conn.Close());
 
         }
         [Test]
@@ -109,14 +100,12 @@ namespace MySqlTest
             var tc = new TaskChain();
             conn.AsyncOpen(tc);
             var cmd = new MySqlCommand("select sysdate()", conn);
-            cmd.AsyncExecuteSubTableReader(tc, reader =>
-            {
-                while (SharpConnect.MySql.SyncPatt.MySqlSyncPattExtension.Read(reader))
-                {
-                    //this example we read each row asynchronously
-                    //read as 
-                    var dtm = reader.GetDateTime(0);
-                }
+            cmd.AsyncExecuteReader(tc, reader =>
+            { 
+                //this example we read each row asynchronously
+                //read as 
+                var dtm = reader.GetDateTime(0);
+
             });
             conn.AsyncClose(tc);
             tc.WhenFinish(() =>
@@ -213,15 +202,15 @@ namespace MySqlTest
                 t.col2 = col2;
             });
 
+
             cmd.AsyncExecuteSubTableReader(tc, reader =>
             {
-                //mapper.DataReader = reader;
-                //while (reader.Read())
-                //{
-                //    var simpleInfo = mapper.Map(new SimpleInfo());
-                //} 
-
-                //tc.AutoCallNext = reader.CurrentSubTable.IsLastTable;
+                mapper.DataReader = reader;
+                while (SharpConnect.MySql.SyncPatt.MySqlSyncPattExtension.Read(reader))
+                {
+                    var simpleInfo = mapper.Map(new SimpleInfo());
+                }
+                tc.AutoCallNext = reader.CurrentSubTable.IsLastTable;
 
             });
         }

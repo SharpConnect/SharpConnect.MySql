@@ -29,11 +29,7 @@ namespace SharpConnect.MySql.AsyncPatt
             cmd.Prepare(() => tcs.SetResult(0));
             return tcs.Task;
         }
-        public static void Stop(this MySqlDataReader reader)
-        {
-            reader.StopReadingNextRow = true;
-        }
-
+     
 
         public static Task ExecuteNonQueryAsync(this MySqlCommand cmd)
         {
@@ -52,7 +48,7 @@ namespace SharpConnect.MySql.AsyncPatt
         {
 
             var tcs = new TaskCompletionSource<int>();
-            cmd.ExecuteReader(exec_reader =>
+            cmd.InternalExecuteReader(exec_reader =>
             {
                 //reader is ready
                 //then read

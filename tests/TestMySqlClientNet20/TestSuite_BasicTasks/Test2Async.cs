@@ -69,7 +69,7 @@ namespace MySqlTest
             {
                 string sql = "select sysdate()";
                 var cmd = new MySqlCommand(sql, conn);
-                cmd.AsyncExecuteScalar<DateTime>(tc, obj =>
+                cmd.AsyncExecuteScalar<DateTime>(tc, dtm =>
                 {
 
                 });

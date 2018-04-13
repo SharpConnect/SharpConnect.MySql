@@ -80,7 +80,7 @@ namespace MySqlTest
                         //if (count > 10)
                         //{
                         //    //test stop reader 
-                        //    reader.Stop();
+                        reader.Stop();
                         //}
                     });
                 }

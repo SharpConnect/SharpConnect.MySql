@@ -50,10 +50,25 @@ namespace SharpConnect.MySql
             {
                 cmd.InternalPrepare(nextAction);
             }
-            public static void ExecuteReader(this MySqlCommand cmd, Action<MySqlDataReader> readerReady)
+            public static void ExecuteReader(this MySqlCommand cmd, Action<MySqlDataReader> eachRow)
             {
-                cmd.InternalExecuteReader(readerReady);
+                cmd.InternalExecuteReader(reader =>
+                {
+                    //reader is ready  
+                    while (reader.InternalRead())
+                    {
+                        eachRow(reader);
+                        if (reader.StopReadingNextRow)
+                        {
+                            break;
+                        }
+                    }
+                    //---
+                    //close the reader
+                    reader.Close(() => { });
+                });
             }
+
             public static void ExecuteSubTableReader(this MySqlCommand cmd, Action<MySqlDataReader> readerReady)
             {
                 cmd.InternalExecuteSubTableReader(readerReady);
