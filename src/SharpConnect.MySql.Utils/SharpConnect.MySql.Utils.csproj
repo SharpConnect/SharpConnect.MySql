@@ -34,7 +34,6 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DbInformation\CsMapperGenerator.cs" />
     <Compile Include="DbInformation\MySqlInformation.cs" />
     <Compile Include="DbInformation\MySqlInformation.SyncPatt.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

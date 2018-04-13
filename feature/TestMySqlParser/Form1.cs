@@ -30,7 +30,7 @@ namespace TestMySqlParser
             int port = 3306;
             return new MySqlConnectionString(h, u, p, db, port);
         }
-        
+
         private void tlstrpRefreshDBs_Click(object sender, EventArgs e)
         {
             //generate list of databases
@@ -77,7 +77,8 @@ namespace TestMySqlParser
 
         private void tlstrpGenCsCode_Click(object sender, EventArgs e)
         {
-
+            if (treeView1.SelectedNode == null) return;
+            //
             MySqlTableInfo selectedTableInfo = treeView1.SelectedNode.Tag as MySqlTableInfo;
             if (selectedTableInfo == null) return;
             //---------------
@@ -87,10 +88,12 @@ namespace TestMySqlParser
             string db = selectedTableInfo.OwnerDatabase.Name;
             string tb = selectedTableInfo.Name;
 
-            string createSql = "";
+            
             MySqlConnection mySqlConn = new MySqlConnection(GetLocalConnString());
             mySqlConn.Open();
 
+
+            string createSql = "";
             string sql = "SHOW CREATE TABLE " + db + "." + tb;
             var cmd = new MySqlCommand(sql, mySqlConn);
             var reader = cmd.ExecuteReader();
@@ -124,6 +127,11 @@ namespace TestMySqlParser
             mySqlConn.Close();
             //
             this.textBox1.Text = result.ToString();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

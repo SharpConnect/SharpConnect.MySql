@@ -34,6 +34,7 @@
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.tlstrpRefreshDBs = new System.Windows.Forms.ToolStripButton();
             this.tlstrpGenCsCode = new System.Windows.Forms.ToolStripButton();
+            this.button1 = new System.Windows.Forms.Button();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -41,7 +42,7 @@
             // 
             this.treeView1.Location = new System.Drawing.Point(0, 28);
             this.treeView1.Name = "treeView1";
-            this.treeView1.Size = new System.Drawing.Size(333, 710);
+            this.treeView1.Size = new System.Drawing.Size(333, 566);
             this.treeView1.TabIndex = 5;
             // 
             // textBox1
@@ -50,7 +51,7 @@
             this.textBox1.Multiline = true;
             this.textBox1.Name = "textBox1";
             this.textBox1.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.textBox1.Size = new System.Drawing.Size(677, 710);
+            this.textBox1.Size = new System.Drawing.Size(677, 566);
             this.textBox1.TabIndex = 7;
             // 
             // toolStrip1
@@ -82,11 +83,22 @@
             this.tlstrpGenCsCode.Text = "GenCsCode";
             this.tlstrpGenCsCode.Click += new System.EventHandler(this.tlstrpGenCsCode_Click);
             // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(12, 615);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(124, 49);
+            this.button1.TabIndex = 9;
+            this.button1.Text = "button1";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1041, 810);
+            this.Controls.Add(this.button1);
             this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.treeView1);
@@ -106,6 +118,7 @@
         private System.Windows.Forms.ToolStrip toolStrip1;
         private System.Windows.Forms.ToolStripButton tlstrpRefreshDBs;
         private System.Windows.Forms.ToolStripButton tlstrpGenCsCode;
+        private System.Windows.Forms.Button button1;
     }
 }
 

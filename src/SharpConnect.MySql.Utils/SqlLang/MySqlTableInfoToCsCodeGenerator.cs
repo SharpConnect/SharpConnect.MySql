@@ -2,12 +2,50 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using SharpConnect.MySql.Information;
 
 namespace SharpConnect.MySql.SqlLang
 {
+
+
+
+    public class DBTableAttribute : Attribute
+    {
+        public string DatabaseName { get; set; }
+        public string TableName { get; set; }
+        public string Auto_increment { get; set; }
+        public string Charset { get; set; }
+        public string Engine { get; set; }
+        public bool Default { get; set; }
+        public string Using { get; set; }
+    }
+
+    public class DBFieldAttribute : Attribute
+    {
+        public string CharacterSet { get; set; }
+        public string FieldDefault { get; set; }
+        public string FieldName { get; set; }
+        public bool HasAuto { get; set; }
+        public bool HasUnsign { get; set; }
+        public string Type { get; set; }
+        public string Not { get; set; }
+        public int Length { get; set; }
+        public string Other { get; set; }
+    }
+
+    public class IndexOfTableAttribute : Attribute
+    {
+        public IndexOfTableAttribute(Type owner)
+        {
+
+        }
+    }
+
     public class MySqlInfoToCsCodeGenerator
     {
         TablePart _table;
+        bool _generateAttr;
+
         public void GenerateCsCodeAndSave(TablePart table, string saveToFilename)
         {
             _table = table;
@@ -17,6 +55,7 @@ namespace SharpConnect.MySql.SqlLang
             System.IO.File.WriteAllText(saveToFilename, output.ToString());
 
         }
+        
         public void GenerateCsCode(TablePart table, StringBuilder strb)
         {
             _table = table;
@@ -27,19 +66,20 @@ namespace SharpConnect.MySql.SqlLang
             strb.AppendLine("namespace " + table.DatabaseName);
             strb.AppendLine("{");
 
-            CreateDBTableAttribute(strb);
+            if (_generateAttr)
+            {
+                CreateDBTableAttribute(strb);
 
-            CreateDBFieldAttribute(strb);
+                CreateDBFieldAttribute(strb);
 
-            CreateIndexAttribute(strb);
+                CreateIndexAttribute(strb);
+            }
 
             CreateInterfaceTable(strb, table);
 
             CreateInterfaceIndexKeys(strb, table.KeyList);
 
             strb.Append("}");
-
-
         }
 
         void CreateDBTableAttribute(StringBuilder strb)
