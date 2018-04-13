@@ -88,19 +88,32 @@ namespace MySqlTest
 
             MySqlDbServerInfo serverInfo = new MySqlDbServerInfo("test");
             serverInfo.ReloadDatabaseList(conn);
-            foreach (MySqlDatabaseInfo db in serverInfo.Databases)
+            foreach (MySqlDatabaseInfo db in serverInfo.Databases.Values)
             {
                 db.ReloadTableList(conn, true);
+                db.ReloadStoreFuncList(conn, true);
+                db.ReloadStoreProcList(conn, true);
+
                 foreach (MySqlTableInfo tbl in db.Tables)
                 {
                     //we can find more detail from 'show create table ...' sql
                     string createTableSql = tbl.GetShowCreateTableSql(conn);
+
+                }
+                foreach (MySqlStoreProcInfo storeProc in db.StoreProcs)
+                {
+                    string createdBySql = storeProc.Sql;
+                }
+                foreach (MySqlStoreFuncInfo storeFunc in db.StoreFuncs)
+                {
+                    string createdBySql = storeFunc.Sql;
                 }
             }
             //-------------------- 
 
             conn.Close();
         }
+
         [Test]
         public static void T_CreateDatabaseInfo_SqlTableToCsMapperCodeGen()
         {
@@ -111,17 +124,38 @@ namespace MySqlTest
             var serverInfo = new MySqlDbServerInfo("test");
             serverInfo.ReloadDatabaseList(conn);
 
-            var csCodeGen = new SharpConnect.MySql.CodeMapper.CsCodeMapperGenerator();
-            csCodeGen.StBuilder = new StringBuilder();
+            var csCodeGen = new SharpConnect.MySql.SqlLang.MySqlInfoToCsCodeGenerator();
 
-            foreach (MySqlDatabaseInfo db in serverInfo.Databases)
+            StringBuilder outputStBulder = new StringBuilder();
+            foreach (MySqlDatabaseInfo db in serverInfo.Databases.Values)
             {
                 db.ReloadTableList(conn, true);
                 foreach (MySqlTableInfo tbl in db.Tables)
                 {
-                    if (tbl.Name == "test_table")
+                    //just test
+                    if (tbl.Name == "test001")
                     {
-                        csCodeGen.GenerateCsCodeForSqlTable(tbl);
+                        //
+                        string createSql = "";
+                        string sql = "SHOW CREATE TABLE " + db.Name + "." + tbl.Name;
+                        var cmd = new MySqlCommand(sql, conn);
+                        var reader = cmd.ExecuteReader();
+                        if (reader.Read())
+                        {
+                            createSql = reader.GetString(1);
+                        }
+                        reader.Close();
+                        //-----------------------
+                        if (createSql != "")
+                        {
+                            var parser = new SharpConnect.MySql.SqlLang.MySqlParser();
+                            parser.ParseSql(createSql);
+                            if (parser.ResultTables.Count > 1)
+                            {
+                                csCodeGen.GenerateCsCode(parser.ResultTables[0], outputStBulder);
+                            }
+                        }
+
                     }
                 }
             }

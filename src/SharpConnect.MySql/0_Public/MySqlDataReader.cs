@@ -456,7 +456,20 @@ namespace SharpConnect.MySql
                 //    return parser.parseLengthCodedBuffer();
                 case MySqlDataType.STRING:
                 case MySqlDataType.VAR_STRING:
-
+                    {
+                        //expect data type
+                        if (f.MarkedAsBinary)
+                        {
+                            data.myString = r.ReadLengthCodedString(this.StringConverter);
+                            data.type = (data.myBuffer != null) ? type : MySqlDataType.NULL;
+                        }
+                        else
+                        {
+                            data.myString = r.ReadLengthCodedString(this.StringConverter);
+                            data.type = (data.myString != null) ? type : MySqlDataType.NULL;
+                        }
+                        return data;
+                    }
                 case MySqlDataType.TINY_BLOB:
                 case MySqlDataType.MEDIUM_BLOB:
                 case MySqlDataType.LONG_BLOB:
