@@ -1,5 +1,5 @@
 ﻿//MIT, 2016, brezza92, EngineKit and contributors  
-
+using System;
 using System.Threading.Tasks;
 namespace SharpConnect.MySql.AsyncPatt
 {
@@ -9,7 +9,7 @@ namespace SharpConnect.MySql.AsyncPatt
 
     public static class MySqlTaskBasedExtensions
     {
-        public delegate void MySqlDataReaderReadDelegate(MySqlDataReader reader);
+
         public static Task OpenAsync(this MySqlConnection conn)
         {
             var tcs = new TaskCompletionSource<int>();
@@ -48,8 +48,9 @@ namespace SharpConnect.MySql.AsyncPatt
         /// <param name="cmd"></param>
         /// <param name="readerDel"></param>
         /// <returns></returns>
-        public static Task ExecuteReaderAsync(this MySqlCommand cmd, MySqlDataReaderReadDelegate readerDel)
+        public static Task ExecuteReaderAsync(this MySqlCommand cmd, Action<MySqlDataReader> readerDel)
         {
+
             var tcs = new TaskCompletionSource<int>();
             cmd.ExecuteReader(exec_reader =>
             {
