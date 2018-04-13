@@ -77,12 +77,12 @@ namespace SharpConnect.MySql.AsyncPatt
             });
             //not use autocall next task, let the cmd call it when ready ***
         }
-        public static ActionTask AsyncExecuteScalar(this MySqlCommand cmd, TaskChain ch, Action<object> resultReady)
+        public static ActionTask AsyncExecuteScalar<T>(this MySqlCommand cmd, TaskChain ch, Action<T> resultReady)
         {
             return ch.AddTask(() =>
             {
                 ch.AutoCallNext = false;
-                cmd.ExecuteScalar(result =>
+                cmd.ExecuteScalar<T>(result =>
                 {
                     ch.AutoCallNext = true;
                     resultReady(result);
@@ -184,7 +184,7 @@ namespace SharpConnect.MySql.AsyncPatt
         public T result;
         public TR()
         {
-        } 
+        }
     }
     public class TaskChain
     {

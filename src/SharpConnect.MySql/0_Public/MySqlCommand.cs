@@ -63,13 +63,13 @@ namespace SharpConnect.MySql
             /// </summary>
             /// <param name="nextAction"></param>
             /// <returns></returns>
-            public static void ExecuteScalar(this MySqlCommand cmd, Action<object> resultReady)
+            public static void ExecuteScalar<T>(this MySqlCommand cmd, Action<T> resultReady)
             {
                 cmd.InternalExecuteSubTableReader(reader =>
                 {
                     object result = reader.GetValue(0);
                     //call user result ready***
-                    resultReady(result);
+                    resultReady((T)result);
                     //
                 });
             }

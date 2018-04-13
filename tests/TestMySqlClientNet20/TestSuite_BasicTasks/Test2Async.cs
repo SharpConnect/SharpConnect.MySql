@@ -63,13 +63,13 @@ namespace MySqlTest
                     //when new task is add after tc is started
                     //then this new task is immmediately insert 
                     //after current task
-                   
+
                 });
             }
             {
                 string sql = "select sysdate()";
                 var cmd = new MySqlCommand(sql, conn);
-                cmd.AsyncExecuteScalar(tc, obj =>
+                cmd.AsyncExecuteScalar<DateTime>(tc, obj =>
                 {
 
                 });
