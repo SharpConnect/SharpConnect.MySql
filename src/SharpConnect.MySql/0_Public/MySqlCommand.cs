@@ -164,7 +164,7 @@ namespace SharpConnect.MySql
             {
                 //throw exception
                 reader.InternalClose();
-                throw new MySqlDataReaderException(reader.Error);
+                throw new MySqlExecException(reader.Error);
             }
 
             return reader;

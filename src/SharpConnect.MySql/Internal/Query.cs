@@ -417,7 +417,7 @@ namespace SharpConnect.MySql.Internal
                         case MySqlResultKind.Error:
                             {
                                 MySqlErrorResult error = result as MySqlErrorResult;
-                                Error = error.errPacket; 
+                                Error = error.errPacket;
                                 RecvComplete();
                                 if (_errorListener != null)
                                 {
@@ -426,8 +426,8 @@ namespace SharpConnect.MySql.Internal
                                 else
                                 {
                                     //ERROR
-                                    throw new NotSupportedException();
-                                }  
+                                    throw new MySqlExecException(error);
+                                }
                             }
                             break;
                         case MySqlResultKind.PrepareResponse:

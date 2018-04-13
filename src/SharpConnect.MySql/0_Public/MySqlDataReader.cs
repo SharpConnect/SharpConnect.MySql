@@ -796,9 +796,9 @@ namespace SharpConnect.MySql
         }
     }
 
-    class MySqlDataReaderException : Exception
+    class MySqlExecException : Exception
     {
-        public MySqlDataReaderException(MySqlErrorResult err)
+        public MySqlExecException(MySqlErrorResult err)
             : base(err.ToString())
         {
             this.Error = err;
