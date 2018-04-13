@@ -19,10 +19,7 @@ namespace SharpConnect.MySql.SqlLang
         {
             get { return _tokenList[CurrentIndex]; }
         }
-        /*public CompoundToken CurrentCompoundToken
-        {
-            get { return _tokenList[CurrentIndex]; }
-        }*/
+         
         public bool IsEnd
         {
             get

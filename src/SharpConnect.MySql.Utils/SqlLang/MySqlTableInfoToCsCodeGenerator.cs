@@ -7,38 +7,42 @@ namespace SharpConnect.MySql.SqlLang
 {
     public class MySqlInfoToCsCodeGenerator
     {
+        TablePart _table;
         public void GenerateSqlAndSave(TablePart table, string saveToFilename)
         {
+            _table = table;
+            //
             StringBuilder output = new StringBuilder();
             GenerateSql(table, output);
             System.IO.File.WriteAllText(saveToFilename, output.ToString());
+
         }
         public void GenerateSql(TablePart table, StringBuilder strb)
         {
-
+            _table = table;
+            //
             strb.AppendLine("//" + DateTime.Now.ToString("s"));
-
             strb.AppendLine("using System;");
             strb.AppendLine("");
             strb.AppendLine("namespace " + table.DatabaseName);
             strb.AppendLine("{");
 
-            CreateDBTableAttribute(ref strb);
+            CreateDBTableAttribute(strb);
 
-            CreateDBFieldAttribute(ref strb);
+            CreateDBFieldAttribute(strb);
 
-            CreateIndexAttribute(ref strb);
+            CreateIndexAttribute(strb);
 
-            CreateInterfaceTable(ref strb, table);
+            CreateInterfaceTable(strb, table);
 
-            CreateInterfaceIndexKeys(ref strb, table.KeyList);
+            CreateInterfaceIndexKeys(strb, table.KeyList);
 
             strb.Append("}");
 
 
         }
 
-        void CreateDBTableAttribute(ref StringBuilder strb)
+        void CreateDBTableAttribute(StringBuilder strb)
         {
             strb.AppendLine("\tclass DBTableAttribute : Attribute");
             strb.AppendLine("\t{");
@@ -55,7 +59,7 @@ namespace SharpConnect.MySql.SqlLang
             string temp = strb.ToString();
         }
 
-        void CreateDBFieldAttribute(ref StringBuilder strb)
+        void CreateDBFieldAttribute(StringBuilder strb)
         {
             strb.AppendLine("\tclass DBFieldAttribute : Attribute");
             strb.AppendLine("\t{");
@@ -74,7 +78,7 @@ namespace SharpConnect.MySql.SqlLang
             string temp = strb.ToString();
         }
 
-        void CreateIndexAttribute(ref StringBuilder strb)
+        void CreateIndexAttribute(StringBuilder strb)
         {
             strb.AppendLine("\tclass IndexOfTableAttribute : Attribute");
             strb.AppendLine("\t{");
@@ -95,7 +99,7 @@ namespace SharpConnect.MySql.SqlLang
             string temp = strb.ToString();
         }
 
-        void CreateInterfaceTable(ref StringBuilder strb, TablePart table)
+        void CreateInterfaceTable(StringBuilder strb, TablePart table)
         {
             strb.Append("\t[DBTable(");
             if (table.DatabaseName != null) strb.Append("DatabaseName=" + '"' + table.DatabaseName + '"');
@@ -103,7 +107,7 @@ namespace SharpConnect.MySql.SqlLang
             if (table.Auto_increment != null) strb.Append(", Auto_increment=" + '"' + table.Auto_increment + '"');
             if (table.Charset != null) strb.Append(", Charset=" + '"' + table.Charset + '"');
             if (table.Engine != null) strb.Append(", Engine=" + '"' + table.Engine + '"');
-            if (table.HasDefault) strb.Append(", Default=" + table.HasDefault);
+            if (table.HasDefault) strb.Append(", Default=true");
             if (table.Using != null) strb.Append(", Using=" + '"' + table.Using + '"');
             strb.AppendLine(")]");
             strb.AppendLine("\tinterface " + table.TableName);
@@ -113,34 +117,38 @@ namespace SharpConnect.MySql.SqlLang
 
             if (table.FieldList.Count != 0)
             {
-                FieldPart[] field = table.FieldList.ToArray();
-
-                for (int i = 0; i < field.Length; ++i)
+                FieldPart[] fields = table.FieldList.ToArray();
+                for (int i = 0; i < fields.Length; ++i)
                 {
-                    string kind = "";
+
+                    FieldPart field = fields[i];
 
                     strb.Append("\t\t[DBField(");
-                    if (field[i].FieldName != null) strb.Append("FieldName=" + '"' + field[i].FieldName + '"');
-                    if (field[i].CharacterSet != null) strb.Append(", CharacterSet=" + '"' + field[i].CharacterSet + '"');
-                    if (field[i].FieldDefault != null) strb.Append(", FieldDefault=" + '"' + field[i].FieldDefault + '"');
-                    if (field[i].HasAuto) strb.Append(", HasAuto=" + field[i].HasAuto);
-                    if (field[i].HasUnsign) strb.Append(", HasUnsign=" + field[i].HasUnsign);
-                    if (field[i].Type != null) strb.Append(", Type=" + '"' + field[i].Type + '"');
-                    if (field[i].Not != null) strb.Append(", Not=" + '"' + field[i].Not + '"');
-                    if (field[i].Length != null) strb.Append(", Length=" + field[i].Length);
-                    if (field[i].Other != null) strb.Append(", Other=" + '"' + field[i].Other + '"');
+                    if (field.FieldName != null) strb.Append("FieldName=" + '"' + field.FieldName + '"');
+                    if (field.CharacterSet != null) strb.Append(", CharacterSet=" + '"' + field.CharacterSet + '"');
+                    if (field.FieldDefault != null) strb.Append(", FieldDefault=" + '"' + field.FieldDefault + '"');
+                    if (field.HasAuto) strb.Append(", HasAuto=true");
+                    if (field.HasUnsign) strb.Append(", HasUnsign=true");
+                    if (field.Type != null) strb.Append(", Type=" + '"' + field.Type + '"');
+                    if (field.Not != null) strb.Append(", Not=" + '"' + field.Not + '"');
+                    if (field.Length != null) strb.Append(", Length=" + field.Length);
+                    if (field.Other != null) strb.Append(", Other=" + '"' + field.Other + '"');
                     strb.AppendLine(")]");
 
-                    if (field[i].Type == "varchar") kind = "string";
-                    else if (field[i].Type == "float") kind = field[i].Type;
-                    else if (field[i].Type == "text") kind = "string";
-                    else if (field[i].Type == "int") kind = field[i].Type;
-                    else if (field[i].Type == "datetime") kind = "string";
-                    else if (field[i].Type == "char") kind = field[i].Type;
-                    else if (field[i].Type == "blob") kind = "string";
+                    string kind = "";
+                    switch (field.Type)
+                    {
+                        case "varchar": kind = "string"; break;
+                        case "float": kind = "float"; break;
+                        case "text": kind = "string"; break;
+                        case "int": kind = "int"; break;
+                        case "datetime": kind = "string"; break;
+                        case "char": kind = "string"; break;
+                        case "blob": kind = "string"; break;
+                        case "bool": kind = "bool"; break;
+                    }
 
-
-                    strb.AppendLine("\t\t" + kind + " " + field[i] + "{ get; set; }");
+                    strb.AppendLine("\t\t" + kind + " " + fields[i] + "{ get; set; }");
                 }
             }
             strb.AppendLine("\t}");
@@ -148,40 +156,47 @@ namespace SharpConnect.MySql.SqlLang
 
             string temp2 = strb.ToString();
         }
-
-        void CreateInterfaceIndexKeys(ref StringBuilder strb, List<KeyPart> KeyList)
+        /// <summary>
+        /// create index keys of 'current' table
+        /// </summary>
+        /// <param name="strb"></param>
+        /// <param name="KeyList"></param>
+        void CreateInterfaceIndexKeys(StringBuilder strb, List<KeyPart> KeyList)
         {
-            strb.AppendLine("\t[IndexOfTable(typeof(patient))]");
-            strb.AppendLine("\tinterface IndexKeys");
+            //use nested namespace
+            strb.AppendLine("\tnamespace IndexKeys{");
+
+            strb.AppendLine("\t[IndexOfTable(typeof(" + _table.TableName + "))]");
+            strb.AppendLine("\tinterface " + _table.TableName);
             strb.AppendLine("\t{");
             string temp = strb.ToString();
-            KeyPart[] Keys = KeyList.ToArray();
-            for (int i = 0; i < Keys.Length; ++i)
+            KeyPart[] keys = KeyList.ToArray();
+            for (int i = 0; i < keys.Length; ++i)
             {
+                KeyPart key = keys[i];
+
                 strb.Append("\t\t[IndexKey(");
-                if (Keys[i].IndexName != null) strb.Append("Name=" + '"' + Keys[i].IndexName + '"');
-                if (Keys[i].IndexKind != null) strb.Append(", Kind=" + '"' + Keys[i].IndexKind + '"');
-                if (Keys[i].IndexColumns != null)
+                if (key.IndexName != null) strb.Append("Name=" + '"' + key.IndexName + '"');
+                if (key.IndexKind != null) strb.Append(", Kind=" + '"' + key.IndexKind + '"');
+                if (key.IndexColumns != null)
                 {
                     strb.Append(", Columns=" + '"');
-                    for (int k = 0; k < Keys[i].IndexColumns.Count; ++k)
+                    for (int k = 0; k < key.IndexColumns.Count; ++k)
                     {
                         if (k > 0)
                         {
                             strb.Append(",");
                         }
-                        strb.Append(Keys[i].IndexColumns[0]);
+                        strb.Append(key.IndexColumns[0]);
                     }
                 }
                 strb.AppendLine('"' + ")]");
-
-                strb.AppendLine("\t\tstring " + Keys[i].IndexName + " { get; set; }");
-
+                strb.AppendLine("\t\tstring " + key.IndexName + " { get; set; }");
             }
 
             strb.AppendLine("\t}");
-
-            string temp2 = strb.ToString();
+            //
+            strb.AppendLine("\t}");
         }
 
     }
