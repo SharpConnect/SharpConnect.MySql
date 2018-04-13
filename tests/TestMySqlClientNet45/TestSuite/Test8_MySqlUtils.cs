@@ -98,6 +98,7 @@ namespace MySqlTest
                 {
                     //we can find more detail from 'show create table ...' sql
                     string createTableSql = tbl.GetShowCreateTableSql(conn);
+                     
                 }
                 foreach (MySqlStoreProcInfo storeProc in db.StoreProcs)
                 {

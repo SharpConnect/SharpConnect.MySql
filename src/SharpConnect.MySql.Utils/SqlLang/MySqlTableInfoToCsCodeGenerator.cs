@@ -8,16 +8,16 @@ namespace SharpConnect.MySql.SqlLang
     public class MySqlInfoToCsCodeGenerator
     {
         TablePart _table;
-        public void GenerateSqlAndSave(TablePart table, string saveToFilename)
+        public void GenerateCsCodeAndSave(TablePart table, string saveToFilename)
         {
             _table = table;
             //
             StringBuilder output = new StringBuilder();
-            GenerateSql(table, output);
+            GenerateCsCode(table, output);
             System.IO.File.WriteAllText(saveToFilename, output.ToString());
 
         }
-        public void GenerateSql(TablePart table, StringBuilder strb)
+        public void GenerateCsCode(TablePart table, StringBuilder strb)
         {
             _table = table;
             //
