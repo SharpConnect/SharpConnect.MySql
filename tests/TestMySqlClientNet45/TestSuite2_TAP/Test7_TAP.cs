@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using SharpConnect.MySql;
+using SharpConnect.MySql.AsyncPatt;
+
 namespace MySqlTest
 {
     public class TestSet7_TAP : MySqlTestSet

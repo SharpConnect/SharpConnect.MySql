@@ -78,10 +78,10 @@ namespace MySqlTest
                 var cmd = new MySqlCommand("select sysdate()", conn);
                 cmd.ExecuteReader(reader =>
                 {
-                    if (reader.Read())
-                    {
-                        var dtm = reader.GetDateTime(0);
-                    }
+                    //if (reader.Read())
+                    //{
+                    //    var dtm = reader.GetDateTime(0);
+                    //}
                     reader.Close(() =>
                     {
                         conn.Close(() => { });
@@ -102,10 +102,10 @@ namespace MySqlTest
             var cmd = new MySqlCommand("select sysdate()", conn);
             cmd.AsyncExecuteSubTableReader(tc, reader =>
             {
-                if (reader.Read())
-                {
-                    var dtm = reader.GetDateTime(0);
-                }
+                //if (reader.Read())
+                //{
+                //    var dtm = reader.GetDateTime(0);
+                //}
             });
             conn.AsyncClose(tc);
             tc.WhenFinish(() =>
@@ -203,19 +203,14 @@ namespace MySqlTest
             });
 
             cmd.AsyncExecuteSubTableReader(tc, reader =>
-            {
+            { 
+                //mapper.DataReader = reader;
+                //while (reader.Read())
+                //{
+                //    var simpleInfo = mapper.Map(new SimpleInfo());
+                //} 
 
-                mapper.DataReader = reader;
-                while (reader.Read())
-                {
-                    var simpleInfo = mapper.Map(new SimpleInfo());
-                }
-
-                ////simple map query result to member of the target object  
-                ////we create simpleinfo and use mapper to map field 
-
-
-                tc.AutoCallNext = reader.CurrentSubTable.IsLastTable;
+                //tc.AutoCallNext = reader.CurrentSubTable.IsLastTable;
 
             });
         }

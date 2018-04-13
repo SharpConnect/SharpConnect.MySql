@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using SharpConnect.MySql;
+using SharpConnect.MySql.AsyncPatt;
+
 namespace MySqlTest
 {
     public class TestSet8_TAP : MySqlTestSet
@@ -35,7 +37,7 @@ namespace MySqlTest
                     await cmd.ExecuteNonQueryAsync();
                 }
                 //---------------------------------------------
-                for (int i = 0; i < 2000; ++i)
+                for (int i = 0; i < 100; ++i)
                 {
 
                     string sql = "insert into test001(col1,col2,col3,col4) values(10,'AA','123456789','0001-01-01')";
@@ -50,13 +52,16 @@ namespace MySqlTest
 #if DEBUG
                     conn.dbugPleaseBreak = true;
 #endif
-                    var reader = await cmd.ExecuteReaderAsync();
-                    while (reader.Read())
+
+                    int count = 0;
+                    await cmd.ExecuteReaderAsync(reader =>
                     {
-                        //test immediate close
-                        await reader.CloseAsync();
-                    }
-                    await reader.CloseAsync();
+                        count++;
+                        if (count > 0)
+                        {
+                            reader.Stop();
+                        }
+                    });
                 }
             });
             //--------------------------------------------

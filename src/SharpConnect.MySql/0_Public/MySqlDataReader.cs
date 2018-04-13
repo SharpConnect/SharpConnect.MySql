@@ -64,8 +64,11 @@ namespace SharpConnect.MySql
         QueryParsingConfig _queryParsingConf = s_defaultConf;
         Dictionary<string, int> fieldMaps = null;
 
-
-        public virtual bool Read()
+        /// <summary>
+        /// internal read may be blocked.
+        /// </summary>
+        /// <returns></returns>
+        protected internal virtual bool InternalRead()
         {
             if (currentRowIndex < subTableRowCount)
             {
@@ -78,6 +81,7 @@ namespace SharpConnect.MySql
                 return false;
             }
         }
+
         public virtual void SetCurrentRowIndex(int index)
         {
             this.currentRowIndex = index;
@@ -140,6 +144,13 @@ namespace SharpConnect.MySql
             }
         }
         //---------------------------------------------
+
+        internal bool StopReadingNextRow { get; set; } //for async read state
+
+
+
+
+
         internal virtual void InternalClose(Action nextAction = null) { }
         internal bool IsEmptyTable
         {
@@ -1019,8 +1030,9 @@ namespace SharpConnect.MySql
         /// sync read row
         /// </summary>
         /// <returns></returns>
-        public override bool Read()
+        protected internal override bool InternalRead()
         {
+
             TRY_AGAIN:
 
             if (IsEmptyTable)
@@ -1068,7 +1080,7 @@ namespace SharpConnect.MySql
                 }
             }
             //------------------------------------------------------------------
-            if (base.Read())
+            if (base.InternalRead())
             {
                 return true;
             }
