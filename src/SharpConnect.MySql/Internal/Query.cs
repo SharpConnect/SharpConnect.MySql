@@ -67,7 +67,7 @@ namespace SharpConnect.MySql.Internal
             : this(conn, new SqlStringTemplate(sql), cmdParams)
         {
         }
-        public Query(Connection conn, SqlStringTemplate sql, CommandParams cmdParams)
+        internal Query(Connection conn, SqlStringTemplate sql, CommandParams cmdParams)
         {
             //*** query use conn resource such as parser,writer
             //so 1 query 1 connection      

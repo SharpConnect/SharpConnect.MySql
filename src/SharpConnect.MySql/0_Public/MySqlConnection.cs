@@ -73,11 +73,9 @@ namespace SharpConnect.MySql
             {
                 return _signature;
             }
-        }
-
+        } 
         public static MySqlConnectionString Parse(string connString)
-        {
-            //MySqlConnectionString connString = new MySqlConnectionString();
+        {   
             string[] key_values = connString.Split(';');
             int j = key_values.Length;
             string server = null;
