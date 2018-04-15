@@ -24,6 +24,8 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
+
 using SharpConnect.Internal;
 namespace SharpConnect.MySql.Internal
 {
@@ -244,18 +246,11 @@ namespace SharpConnect.MySql.Internal
         }
         //----------------------------------------------------------------
 
-        interface IEmptyCall
-        {
-            void JustEmptyMethod();
-        }
-        class EmptyCallImpl : IEmptyCall
-        {
-            public void JustEmptyMethod() { }
-        }
 
-        DateTime _startWait;
+        //DateTime _startWait;
         bool _globalWaiting = false;
-        IEmptyCall _justEmptyCall = new EmptyCallImpl();
+        //TODO: review here
+
         public void InitWait()
         {
             if (_globalWaiting)
@@ -264,21 +259,42 @@ namespace SharpConnect.MySql.Internal
             }
             _globalWaiting = true;
         }
-        public void Wait()
+
+
+        object _connLocker = new object();
+        internal void Wait()
         {
-            //blocking***
-            //wait *** tight loop
-            //TODO: implement wait logic,timeout logic,cancel logic here*** 
-            //------------------------------
-            _startWait = DateTime.Now;
-            while (_globalWaiting)
-            {   //tight loop,*** wait, or use thread sleep 
-                _justEmptyCall.JustEmptyMethod();
-            }
+            //--------------------------------
+            lock (_connLocker)
+                while (_globalWaiting)
+                    Monitor.Wait(_connLocker);
+            //--------------------------------
+
+            ////blocking***
+            ////wait *** tight loop
+            ////TODO: implement wait logic,timeout logic,cancel logic here*** 
+            ////------------------------------
+            ////_startWait = DateTime.Now;
+            //while (_globalWaiting)
+            //{
+            //    System.Threading.Thread.Sleep(0); //tight loop,***
+            //};// System.Threading.Thread.Sleep(0); //tight loop,***
+
+            ////while (_globalWaiting)
+            ////{   //tight loop,*** wait, or use thread sleep 
+            ////    _justEmptyCall.JustEmptyMethod();
+            ////}
         }
-        public void UnWait()
+        internal void UnWait()
         {
-            _globalWaiting = false;
+            lock (_connLocker)                 // Let's now wake up the thread by
+            {                              // setting _go=true and pulsing.
+                _globalWaiting = false;
+                Monitor.Pulse(_connLocker);
+            }
+
+
+            //_globalWaiting = false;
         }
 
         /// <summary>
