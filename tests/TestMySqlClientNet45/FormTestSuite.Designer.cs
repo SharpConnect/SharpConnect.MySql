@@ -38,7 +38,7 @@
             this.listboxTestCases.FormattingEnabled = true;
             this.listboxTestCases.Location = new System.Drawing.Point(12, 30);
             this.listboxTestCases.Name = "listboxTestCases";
-            this.listboxTestCases.Size = new System.Drawing.Size(270, 394);
+            this.listboxTestCases.Size = new System.Drawing.Size(353, 394);
             this.listboxTestCases.TabIndex = 2;
             // 
             // button1
@@ -53,7 +53,7 @@
             // 
             // textBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(303, 30);
+            this.textBox1.Location = new System.Drawing.Point(371, 30);
             this.textBox1.Multiline = true;
             this.textBox1.Name = "textBox1";
             this.textBox1.ScrollBars = System.Windows.Forms.ScrollBars.Both;
@@ -64,7 +64,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(636, 503);
+            this.ClientSize = new System.Drawing.Size(685, 503);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.listboxTestCases);

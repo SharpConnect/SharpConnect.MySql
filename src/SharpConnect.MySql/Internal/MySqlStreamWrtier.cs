@@ -92,7 +92,7 @@ namespace SharpConnect.MySql.Internal
 
             long totalPacketLength = OnlyPacketContentLength + 4;
 #if DEBUG
-            SharpConnect.Internal.dbugConsole.WriteLine("Current Packet Length = " + totalPacketLength);
+            //SharpConnect.Internal.dbugConsole.WriteLine("Current Packet Length = " + totalPacketLength);
 #endif
             //TODO: review MAX_PACKET_LENGTH here ****
             //it should be 

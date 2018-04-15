@@ -37,6 +37,7 @@ namespace SharpConnect.MySql
             public static int ExecuteNonQuery(this MySqlCommand cmd)
             {
                 cmd.InternalExecuteNonQuery();
+
                 return (int)cmd.AffectedRows;
             }
         }
@@ -155,6 +156,10 @@ namespace SharpConnect.MySql
             //prepare sql command;
             _isPreparedStmt = true;
             _query = new Query(Connection.Conn, _sqlStringTemplate, Parameters);
+            _query.SetErrorListener(err =>
+            {
+                HasError = true;
+            });
             _query.Prepare(nextAction);
         }
         /// <summary>
@@ -168,7 +173,6 @@ namespace SharpConnect.MySql
                 _query = new Query(this.Connection.Conn, _sqlStringTemplate, Parameters);
             }
             var reader = new MySqlQueryDataReader(_query);
-
             reader.StringConverter = this.StringConverter;
             _query.Execute(true, null);
             reader.WaitUntilFirstDataArrive();
@@ -230,7 +234,7 @@ namespace SharpConnect.MySql
                 {
                     //table is ready for read***
                     //just read single value 
-                    var subtReader = subt.CreateDataReader();
+                    MySqlDataReader subtReader = subt.CreateDataReader();
                     subtReader.StringConverter = this.StringConverter;
                     onEachSubTable(subtReader);
 
@@ -258,23 +262,29 @@ namespace SharpConnect.MySql
             if (!_isPreparedStmt)
             {
                 _query = new Query(Connection.Conn, _sqlStringTemplate, Parameters);
+                _query.SetErrorListener(err =>
+                {
+                    HasError = true;
+                });
             }
             _query.Execute(false, nextAction);
         }
 
+
+        public bool HasError { get; private set; }
         public uint LastInsertedId
         {
             get
             {
-                //after execute non query
+                //after execute non query                 
                 return _query.OkPacket.insertId;
             }
         }
         public uint AffectedRows
         {
             get
-            {//after execute non query
-                return _query.OkPacket.affectedRows;
+            {   //after execute non query
+                return (_query.OkPacket != null) ? _query.OkPacket.affectedRows : 0;
             }
         }
     }

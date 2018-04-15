@@ -844,24 +844,18 @@ namespace SharpConnect.MySql.Internal
         //built in sub-parsers
         MySqlConnectionPacketParser connParser;
         PrepareResponsePacketParser prepareResponseParser;
-        ResultPacketParser resultPacketParser;
+     
         //-------------------------
         public MySqlParserMx(ConnectionConfig userConfig)
         {
             this.userConfig = userConfig;
-            connParser = new MySqlConnectionPacketParser();
-
+            connParser = new MySqlConnectionPacketParser(); 
             //tableHeader.TypeCast = this.config.typeCast;
         }
         public void SetProtocol41(bool value)
         {
             this._isProtocol41 = value;
-            if (resultPacketParser == null)
-            {
-                resultPacketParser = new ResultPacketParser(value);
-            }
         }
-
         public void UseConnectionParser()
         {
             //switch from current parser to another
@@ -869,11 +863,12 @@ namespace SharpConnect.MySql.Internal
             currentPacketParser = connParser;
             _mysqlStreamReader.Reset();
         }
+
+
         public void UseResultParser(bool forPreparedResult = false)
         {
             //switch from current parser to another
             ParseResult = null;
-            //--------------------------------
 
             currentPacketParser = new ResultPacketParser(_isProtocol41, forPreparedResult);
             _mysqlStreamReader.Reset();
