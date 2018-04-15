@@ -100,7 +100,7 @@ namespace SharpConnect.MySql
         }
     }
 
-    public class MySqlCommand
+    public class MySqlCommand : IDisposable
     {
         Query _query;
         bool _isPreparedStmt;
@@ -285,6 +285,14 @@ namespace SharpConnect.MySql
             get
             {   //after execute non query
                 return (_query.OkPacket != null) ? _query.OkPacket.affectedRows : 0;
+            }
+        }
+        public void Dispose()
+        {
+            if (_query != null)
+            {
+                _query.Close();
+                _query = null;
             }
         }
     }
