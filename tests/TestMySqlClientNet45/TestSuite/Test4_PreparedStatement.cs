@@ -83,7 +83,7 @@ namespace MySqlTest
                 string sql = "insert into test001(col1,col2,col3,col4) values(?col1,?col2,?col3,?col4)";
                 var cmd = new MySqlCommand(sql, conn);
                 cmd.Prepare();
-                for (int i = 0; i < 100; ++i)
+                for (int i = 0; i < 10; ++i)
                 {
                     var pars = cmd.Parameters;
                     pars.AddWithValue("?col1", 10);
@@ -96,10 +96,8 @@ namespace MySqlTest
             {
 
                 string sql = "select col1,col2 from test001 where col1>?col1_v";
-                using (var cmd = new MySqlCommand(sql, conn))
-                {
-                    cmd.Prepare();
-                }
+                var cmd = new MySqlCommand(sql, conn); 
+                cmd.Prepare(); 
             }
             {
                 string sql = "select col1,col2 from test001 where col1>?col1_v";

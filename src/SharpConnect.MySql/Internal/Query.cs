@@ -103,7 +103,7 @@ namespace SharpConnect.MySql.Internal
         {
             if (this._execState == QueryExecState.Closed) { return true; }
 
-            if (_queryUsedMode == QueryUseMode.ExecNonQuery)
+            if (_queryUsedMode == QueryUseMode.ExecNonQuery || _queryUsedMode == QueryUseMode.Prepare)
             {
                 this.Close();
                 this._conn.BindingQuery = null;
@@ -241,7 +241,7 @@ namespace SharpConnect.MySql.Internal
                 {
                     _conn.InitWait();
                     ClosePrepareStmt_A(_conn.UnWait);
-                    _conn.Wait(); 
+                    _conn.Wait();
                 }
                 _execState = QueryExecState.Closed;
             }
