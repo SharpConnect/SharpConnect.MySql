@@ -67,7 +67,7 @@ namespace SharpConnect.MySql.Internal
             : this(conn, new SqlStringTemplate(sql), cmdParams)
         {
         }
-        public Query(Connection conn, SqlStringTemplate sql, CommandParams cmdParams)
+        internal Query(Connection conn, SqlStringTemplate sql, CommandParams cmdParams)
         {
             //*** query use conn resource such as parser,writer
             //so 1 query 1 connection      
@@ -103,7 +103,7 @@ namespace SharpConnect.MySql.Internal
         {
             if (this._execState == QueryExecState.Closed) { return true; }
 
-            if (_queryUsedMode == QueryUseMode.ExecNonQuery)
+            if (_queryUsedMode == QueryUseMode.ExecNonQuery || _queryUsedMode == QueryUseMode.Prepare)
             {
                 this.Close();
                 this._conn.BindingQuery = null;
@@ -232,7 +232,9 @@ namespace SharpConnect.MySql.Internal
                 _sqlParserMx.UseFlushMode(true);
                 //wait where   
                 //TODO: review here *** tight loop
-                while (!_recvComplete) ;
+                while (!_recvComplete)
+                {
+                };
                 _sqlParserMx.UseFlushMode(false); //switch back// 
                 //blocking 
                 if (_prepareContext != null)
@@ -240,7 +242,6 @@ namespace SharpConnect.MySql.Internal
                     _conn.InitWait();
                     ClosePrepareStmt_A(_conn.UnWait);
                     _conn.Wait();
-
                 }
                 _execState = QueryExecState.Closed;
             }
@@ -417,7 +418,7 @@ namespace SharpConnect.MySql.Internal
                         case MySqlResultKind.Error:
                             {
                                 MySqlErrorResult error = result as MySqlErrorResult;
-                                Error = error.errPacket; 
+                                Error = error.errPacket;
                                 RecvComplete();
                                 if (_errorListener != null)
                                 {
@@ -426,8 +427,8 @@ namespace SharpConnect.MySql.Internal
                                 else
                                 {
                                     //ERROR
-                                    throw new NotSupportedException();
-                                }  
+                                    throw new MySqlExecException(error);
+                                }
                             }
                             break;
                         case MySqlResultKind.PrepareResponse:

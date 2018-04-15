@@ -142,6 +142,7 @@ namespace MySqlTest
 
                 //access to sub table
                 var currentSubTable = MySqlSubTable.Empty;
+                
                 cmd.ExecuteSubTableReader(reader =>
                 {
                     if (reader.CurrentSubTable.Header != currentSubTable.Header)

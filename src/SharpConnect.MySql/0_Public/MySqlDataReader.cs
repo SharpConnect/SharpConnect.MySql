@@ -64,8 +64,11 @@ namespace SharpConnect.MySql
         QueryParsingConfig _queryParsingConf = s_defaultConf;
         Dictionary<string, int> fieldMaps = null;
 
-
-        public virtual bool Read()
+        /// <summary>
+        /// internal read may be blocked.
+        /// </summary>
+        /// <returns></returns>
+        protected internal virtual bool InternalRead()
         {
             if (currentRowIndex < subTableRowCount)
             {
@@ -78,6 +81,7 @@ namespace SharpConnect.MySql
                 return false;
             }
         }
+
         public virtual void SetCurrentRowIndex(int index)
         {
             this.currentRowIndex = index;
@@ -140,6 +144,13 @@ namespace SharpConnect.MySql
             }
         }
         //---------------------------------------------
+
+        internal bool StopReadingNextRow { get; set; } //for async read state
+
+
+
+
+
         internal virtual void InternalClose(Action nextAction = null) { }
         internal bool IsEmptyTable
         {
@@ -785,9 +796,9 @@ namespace SharpConnect.MySql
         }
     }
 
-    class MySqlDataReaderException : Exception
+    class MySqlExecException : Exception
     {
-        public MySqlDataReaderException(MySqlErrorResult err)
+        public MySqlExecException(MySqlErrorResult err)
             : base(err.ToString())
         {
             this.Error = err;
@@ -831,8 +842,9 @@ namespace SharpConnect.MySql
                 lock (subTables)
                 {
                     subTables.Enqueue(subtable);
-                    tableResultIsNotComplete = subtable.HasFollower; //***
                 }
+
+                tableResultIsNotComplete = subtable.HasFollower; //***
                 if (!firstResultArrived)
                 {
                     firstResultArrived = true;
@@ -889,7 +901,10 @@ namespace SharpConnect.MySql
                         //TODO: review here *** tight loop
                         //*** tigh loop
                         //wait on this
-                        while (tableResultIsNotComplete) ;
+                        while (tableResultIsNotComplete)
+                        {
+
+                        }
                         goto TRY_AGAIN;
                     }
                 }
@@ -995,7 +1010,7 @@ namespace SharpConnect.MySql
             ReadSubTable(st =>
             {
                 //on each subtable
-                var tableReader = st.CreateDataReader();
+                MySqlDataReader tableReader = st.CreateDataReader();
 
                 tableReader.StringConverter = this.StringConverter;
 
@@ -1019,12 +1034,18 @@ namespace SharpConnect.MySql
         /// sync read row
         /// </summary>
         /// <returns></returns>
-        public override bool Read()
+        protected internal override bool InternalRead()
         {
+
             TRY_AGAIN:
 
             if (IsEmptyTable)
             {
+                if (firstResultArrived)
+                {
+                    return false;
+                }
+
                 //no current table 
                 bool hasSomeSubTables = false;
                 lock (subTables)
@@ -1048,7 +1069,9 @@ namespace SharpConnect.MySql
                         //wait ***
                         //------------------
                         //TODO: review here *** tight loop
-                        while (tableResultIsNotComplete) ; //*** tight loop
+                        while (tableResultIsNotComplete)
+                        {
+                        } //*** tight loop
                         //------------------
                         goto TRY_AGAIN;
                     }
@@ -1057,7 +1080,9 @@ namespace SharpConnect.MySql
                         //another tight loop
                         //wait for first result arrive
                         //TODO: review here *** tight loop
-                        while (!firstResultArrived) ;//*** tight loop
+                        while (!firstResultArrived)
+                        {
+                        }//*** tight loop
                         goto TRY_AGAIN;
                     }
                     else
@@ -1068,7 +1093,7 @@ namespace SharpConnect.MySql
                 }
             }
             //------------------------------------------------------------------
-            if (base.Read())
+            if (base.InternalRead())
             {
                 return true;
             }
@@ -1077,8 +1102,6 @@ namespace SharpConnect.MySql
                 SetCurrentSubTable(MySqlSubTable.Empty);
                 goto TRY_AGAIN;
             }
-
-
         }
         internal override void InternalClose(Action nextAction = null)
         {

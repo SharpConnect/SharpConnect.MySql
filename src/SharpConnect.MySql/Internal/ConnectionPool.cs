@@ -35,7 +35,9 @@ namespace SharpConnect.MySql.Internal
 
         class ConnectionPoolAgent
         {
-            static Dictionary<string, Queue<Connection>> s_connQueue = new Dictionary<string, Queue<Connection>>();
+            static Dictionary<int, Queue<Connection>> s_connQueue = new Dictionary<int, Queue<Connection>>();
+            static object s_connLock = new object();
+
             public ConnectionPoolAgent()
             {
             }
@@ -45,55 +47,64 @@ namespace SharpConnect.MySql.Internal
             }
             public void ClearAllConnections()
             {
-                foreach (var q in s_connQueue.Values)
+                lock (s_connLock)
                 {
-                    for (int i = s_connQueue.Count - 1; i >= 0; --i)
+                    foreach (var q in s_connQueue.Values)
                     {
-                        try
+                        for (int i = s_connQueue.Count - 1; i >= 0; --i)
                         {
-                            var conn = q.Dequeue();
-                            conn.Disconnect();
-                        }
-                        catch (Exception ex)
-                        {
+                            try
+                            {
+                                var conn = q.Dequeue();
+                                conn.Disconnect();
+                            }
+                            catch (Exception ex)
+                            {
+                            }
                         }
                     }
+                    s_connQueue.Clear();
                 }
-
-                s_connQueue.Clear();
             }
             public Connection GetConnection(MySqlConnectionString connstr)
             {
-                Queue<Connection> found;
-                //not found
-                if (!s_connQueue.TryGetValue(connstr.ConnSignature, out found))
+                lock (s_connLock)
                 {
-                    return null;
+                    Queue<Connection> found;
+                    //not found
+                    if (!s_connQueue.TryGetValue(connstr.ConnSignature, out found))
+                    {
+                        return null;
+                    }
+
+                    if (found.Count > 0)
+                    {
+                        var conn = found.Dequeue();
+                        //TODO: check if conn is valid
+                        conn.IsStoredInConnPool = false;
+                        return conn.State == ConnectionState.Connected ? conn : null;
+                    }
+                    else
+                    {
+                        return null;
+                    }
                 }
 
-                if (found.Count > 0)
-                {
-                    var conn = found.Dequeue();
-                    //TODO: check if conn is valid
-                    conn.IsStoredInConnPool = false;
-                    return conn.State == ConnectionState.Connected ? conn : null;
-                }
-                else
-                {
-                    return null;
-                }
             }
             public void ReleaseConnection(MySqlConnectionString connstr, Connection conn)
             {
-                Queue<Connection> found;
-                //not found
-                if (!s_connQueue.TryGetValue(connstr.ConnSignature, out found))
+                lock (s_connLock)
                 {
-                    found = new Queue<Connection>();
-                    s_connQueue.Add(connstr.ConnSignature, found);
+                    Queue<Connection> found;
+                    //not found
+                    if (!s_connQueue.TryGetValue(connstr.ConnSignature, out found))
+                    {
+                        found = new Queue<Connection>();
+                        s_connQueue.Add(connstr.ConnSignature, found);
+                    }
+                    conn.IsStoredInConnPool = true;
+                    found.Enqueue(conn);
                 }
-                conn.IsStoredInConnPool = true;
-                found.Enqueue(conn);
             }
         }
     }
