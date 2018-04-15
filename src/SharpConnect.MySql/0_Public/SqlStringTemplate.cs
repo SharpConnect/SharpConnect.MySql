@@ -233,6 +233,24 @@ namespace SharpConnect.MySql
             }
         }
 
+        static void AppendOnlyTime(System.Text.StringBuilder stbuilder, DateTime dtm)
+        {
+            string dtm_str = dtm.ToString("s");
+            //yyyy-mm-ddThh:mm:ss
+#if DEBUG
+            //string time_only = dtm_str.Substring(10 + 1);
+#endif
+            stbuilder.Append(dtm_str.Substring(10 + 1));
+        }
+        static void AppendOnlyDate(System.Text.StringBuilder stbuilder, DateTime dtm)
+        {
+            string dtm_str = dtm.ToString("s");
+            //yyyy-mm-ddThh:mm:ss
+#if DEBUG
+            //string date_only = dtm_str.Substring(0, 10);
+#endif
+            stbuilder.Append(dtm_str.Substring(0, 10));
+        }
         static void FormatAndAppendData(StringBuilder stbuilder, ref MyStructData data)
         {
             //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -249,19 +267,22 @@ namespace SharpConnect.MySql
                 case MySqlDataType.DATE:
                 case MySqlDataType.NEWDATE:
                     stbuilder.Append('\'');
-                    stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd"));
+                    AppendOnlyDate(stbuilder, data.myDateTime);
                     stbuilder.Append('\'');
                     break;
                 case MySqlDataType.DATETIME:
                     stbuilder.Append('\'');
-                    stbuilder.Append(data.myDateTime.ToString("yyyy-MM-dd hh:mm:ss"));
+                    //#if DEBUG
+                    //string preview_v = data.myDateTime.ToString("s");
+                    //#endif
+                    stbuilder.Append(data.myDateTime.ToString("s"));
                     stbuilder.Append('\'');
                     break;
                 case MySqlDataType.TIMESTAMP:
                 case MySqlDataType.TIME:
                     //TODO: review here
                     stbuilder.Append('\'');
-                    stbuilder.Append(data.myDateTime.ToString("hh:mm:ss"));
+                    AppendOnlyTime(stbuilder, data.myDateTime);
                     stbuilder.Append('\'');
                     break;
                 case MySqlDataType.STRING:

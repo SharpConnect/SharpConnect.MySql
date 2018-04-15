@@ -15,7 +15,7 @@ namespace SharpConnect.MySql.Information
         /// name of this server
         /// </summary>
         public string Name { get; private set; }
-        public List<MySqlDatabaseInfo> Databases { get; internal set; }
+        public Dictionary<string, MySqlDatabaseInfo> Databases { get; internal set; }
 #if DEBUG
         public override string ToString()
         {
@@ -32,7 +32,10 @@ namespace SharpConnect.MySql.Information
         }
         public string Name { get; private set; }
         public List<MySqlTableInfo> Tables { get; internal set; }
+        public List<MySqlStoreProcInfo> StoreProcs { get; internal set; }
+        public List<MySqlStoreFuncInfo> StoreFuncs { get; internal set; }
         public MySqlDbServerInfo OwnerDbServer { get; internal set; }
+        public string Sql { get; set; }
 #if DEBUG
         public override string ToString()
         {
@@ -51,6 +54,7 @@ namespace SharpConnect.MySql.Information
         public string Name { get; private set; }
         public List<MySqlColumnInfo> Columns { get; internal set; }
         public MySqlDatabaseInfo OwnerDatabase { get; internal set; }
+        public string Sql { get; set; }
 #if DEBUG
         public override string ToString()
         {
@@ -78,6 +82,25 @@ namespace SharpConnect.MySql.Information
 #endif
     }
 
-
+    public class MySqlStoreProcInfo
+    {
+        public MySqlStoreProcInfo(string name)
+        {
+            this.Name = name;
+        }
+        public MySqlDatabaseInfo OwnerDatabase { get; set; }
+        public string Name { get; private set; }
+        public string Sql { get; set; }
+    }
+    public class MySqlStoreFuncInfo
+    {
+        public MySqlStoreFuncInfo(string name)
+        {
+            this.Name = name;
+        }
+        public MySqlDatabaseInfo OwnerDatabase { get; set; }
+        public string Name { get; private set; }
+        public string Sql { get; set; }
+    }
 
 }

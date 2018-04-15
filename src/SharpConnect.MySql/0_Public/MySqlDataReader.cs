@@ -64,8 +64,11 @@ namespace SharpConnect.MySql
         QueryParsingConfig _queryParsingConf = s_defaultConf;
         Dictionary<string, int> fieldMaps = null;
 
-
-        public virtual bool Read()
+        /// <summary>
+        /// internal read may be blocked.
+        /// </summary>
+        /// <returns></returns>
+        protected internal virtual bool InternalRead()
         {
             if (currentRowIndex < subTableRowCount)
             {
@@ -78,6 +81,7 @@ namespace SharpConnect.MySql
                 return false;
             }
         }
+
         public virtual void SetCurrentRowIndex(int index)
         {
             this.currentRowIndex = index;
@@ -140,6 +144,13 @@ namespace SharpConnect.MySql
             }
         }
         //---------------------------------------------
+
+        internal bool StopReadingNextRow { get; set; } //for async read state
+
+
+
+
+
         internal virtual void InternalClose(Action nextAction = null) { }
         internal bool IsEmptyTable
         {
@@ -214,6 +225,7 @@ namespace SharpConnect.MySql
         }
         MyStructData ReadCurrentRowBinaryProtocol(MySqlFieldDefinition f)
         {
+            string numberString = null;
             MySqlDataType fieldType = (MySqlDataType)f.FieldType;
             MyStructData myData = new MyStructData();
             BufferReader r = this.bufferReader;
@@ -248,10 +260,36 @@ namespace SharpConnect.MySql
                     myData.myDouble = r.ReadDouble();
                     myData.type = fieldType;
                     return myData;
+                case MySqlDataType.DECIMAL:
                 case MySqlDataType.NEWDECIMAL:
-                    myData.myDecimal = r.ReadDecimal();
-                    myData.type = fieldType;
-                    return myData;
+                    {
+                        QueryParsingConfig config = _queryParsingConf;
+                        myData.myString = numberString = r.ReadLengthCodedString(this.StringConverter);
+                        if (numberString == null || (f.IsZeroFill && numberString[0] == '0'))
+                        {
+                            myData.type = MySqlDataType.NULL;
+                        }
+                        else if (config.SupportBigNumbers &&
+                            (config.BigNumberStrings || (Convert.ToInt64(numberString) > Packet.IEEE_754_BINARY_64_PRECISION)))
+                        {
+                            //store as string ?
+                            //TODO: review here  again
+                            myData.myString = numberString;
+                            myData.type = fieldType;
+                            throw new NotSupportedException();
+                        }
+                        else if (fieldType == MySqlDataType.LONGLONG)
+                        {
+                            myData.myInt64 = Convert.ToInt64(numberString);
+                            myData.type = fieldType;
+                        }
+                        else//decimal
+                        {
+                            myData.myDecimal = Convert.ToDecimal(numberString);
+                            myData.type = fieldType;
+                        }
+                        return myData;
+                    }
                 case MySqlDataType.LONGLONG:
                     myData.myInt64 = r.ReadInt64();
                     myData.type = fieldType;
@@ -385,6 +423,7 @@ namespace SharpConnect.MySql
                     return data;
                 //    return (numberString === null || (field.zeroFill && numberString[0] == "0"))
                 //      ? numberString : Number(numberString);
+                case MySqlDataType.DECIMAL:
                 case MySqlDataType.NEWDECIMAL:
                 case MySqlDataType.LONGLONG:
                     //    numberString = parser.parseLengthCodedString();
@@ -428,7 +467,20 @@ namespace SharpConnect.MySql
                 //    return parser.parseLengthCodedBuffer();
                 case MySqlDataType.STRING:
                 case MySqlDataType.VAR_STRING:
-
+                    {
+                        //expect data type
+                        if (f.MarkedAsBinary)
+                        {
+                            data.myString = r.ReadLengthCodedString(this.StringConverter);
+                            data.type = (data.myBuffer != null) ? type : MySqlDataType.NULL;
+                        }
+                        else
+                        {
+                            data.myString = r.ReadLengthCodedString(this.StringConverter);
+                            data.type = (data.myString != null) ? type : MySqlDataType.NULL;
+                        }
+                        return data;
+                    }
                 case MySqlDataType.TINY_BLOB:
                 case MySqlDataType.MEDIUM_BLOB:
                 case MySqlDataType.LONG_BLOB:
@@ -551,7 +603,7 @@ namespace SharpConnect.MySql
             return GetDouble(GetOrdinal(colName));
         }
 
-      
+
         public decimal GetDecimal(string colName)
         {
             return GetDecimal(GetOrdinal(colName));
@@ -675,7 +727,8 @@ namespace SharpConnect.MySql
                 case MySqlDataType.DECIMAL:
                     //stbuilder.Append(data.myDecimal.ToString());
                     return data.myDecimal;
-
+                case MySqlDataType.NULL:
+                    return null;
                 default:
                     throw new NotSupportedException();
             }
@@ -743,6 +796,19 @@ namespace SharpConnect.MySql
         }
     }
 
+    class MySqlExecException : Exception
+    {
+        public MySqlExecException(MySqlErrorResult err)
+            : base(err.ToString())
+        {
+            this.Error = err;
+        }
+        public MySqlErrorResult Error { get; private set; }
+        public override string ToString()
+        {
+            return Error.ToString();
+        }
+    }
     class MySqlQueryDataReader : MySqlDataReader
     {
         Query _query;
@@ -757,19 +823,28 @@ namespace SharpConnect.MySql
         bool firstResultArrived;
         bool tableResultIsNotComplete;
         Action<MySqlQueryDataReader> onFirstDataArrived;
+        MySqlErrorResult _errorResult = null;
+
         internal MySqlQueryDataReader(Query query)
         {
 
             _query = query;
             //set result listener for query object  before actual query.Read()
+            query.SetErrorListener(err =>
+            {
+                firstResultArrived = true;
+                tableResultIsNotComplete = false;
+                _errorResult = err;
+            });
             query.SetResultListener(subtable =>
             {
                 //we need the subtable must arrive in correct order *** 
                 lock (subTables)
                 {
                     subTables.Enqueue(subtable);
-                    tableResultIsNotComplete = subtable.HasFollower; //***
                 }
+
+                tableResultIsNotComplete = subtable.HasFollower; //***
                 if (!firstResultArrived)
                 {
                     firstResultArrived = true;
@@ -781,6 +856,15 @@ namespace SharpConnect.MySql
                 }
             });
         }
+        public bool HasError
+        {
+            get { return _errorResult != null; }
+        }
+        public MySqlErrorResult Error
+        {
+            get { return _errorResult; }
+        }
+
         public override void SetCurrentRowIndex(int index)
         {
             //set support in this mode
@@ -817,7 +901,10 @@ namespace SharpConnect.MySql
                         //TODO: review here *** tight loop
                         //*** tigh loop
                         //wait on this
-                        while (tableResultIsNotComplete) ;
+                        while (tableResultIsNotComplete)
+                        {
+
+                        }
                         goto TRY_AGAIN;
                     }
                 }
@@ -923,7 +1010,7 @@ namespace SharpConnect.MySql
             ReadSubTable(st =>
             {
                 //on each subtable
-                var tableReader = st.CreateDataReader();
+                MySqlDataReader tableReader = st.CreateDataReader();
 
                 tableReader.StringConverter = this.StringConverter;
 
@@ -941,15 +1028,24 @@ namespace SharpConnect.MySql
                 }
             });
         }
+
+
         /// <summary>
         /// sync read row
         /// </summary>
         /// <returns></returns>
-        public override bool Read()
+        protected internal override bool InternalRead()
         {
+
             TRY_AGAIN:
+
             if (IsEmptyTable)
             {
+                if (firstResultArrived)
+                {
+                    return false;
+                }
+
                 //no current table 
                 bool hasSomeSubTables = false;
                 lock (subTables)
@@ -973,7 +1069,9 @@ namespace SharpConnect.MySql
                         //wait ***
                         //------------------
                         //TODO: review here *** tight loop
-                        while (tableResultIsNotComplete) ; //*** tight loop
+                        while (tableResultIsNotComplete)
+                        {
+                        } //*** tight loop
                         //------------------
                         goto TRY_AGAIN;
                     }
@@ -982,7 +1080,9 @@ namespace SharpConnect.MySql
                         //another tight loop
                         //wait for first result arrive
                         //TODO: review here *** tight loop
-                        while (!firstResultArrived) ;//*** tight loop
+                        while (!firstResultArrived)
+                        {
+                        }//*** tight loop
                         goto TRY_AGAIN;
                     }
                     else
@@ -993,7 +1093,7 @@ namespace SharpConnect.MySql
                 }
             }
             //------------------------------------------------------------------
-            if (base.Read())
+            if (base.InternalRead())
             {
                 return true;
             }
@@ -1002,8 +1102,6 @@ namespace SharpConnect.MySql
                 SetCurrentSubTable(MySqlSubTable.Empty);
                 goto TRY_AGAIN;
             }
-
-
         }
         internal override void InternalClose(Action nextAction = null)
         {

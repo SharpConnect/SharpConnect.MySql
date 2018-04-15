@@ -5,6 +5,10 @@ using System.Collections.Generic;
 using SharpConnect.MySql;
 using SharpConnect.MySql.AsyncPatt;
 using SharpConnect.MySql.Mapper;
+
+//These examples are for .NET2.0 , it use 'TaskChain'.
+//(since .net2.0 dose not have System.Threading.Task)
+
 namespace MySqlTest
 {
     public class TestSet3_AsyncSocket : MySqlTestSet
@@ -17,7 +21,7 @@ namespace MySqlTest
             conn.Open(() =>
             {
                 conn.UpdateMaxAllowPacket();
-                conn.Close(() => { });
+                conn.Close();
             });
 
         }
@@ -46,7 +50,7 @@ namespace MySqlTest
                 //1. drop tabled
                 var cmd = new MySqlCommand("drop table if exists user_info2", conn);
                 cmd.AsyncExecuteNonQuery(tc);
-            } 
+            }
             {
                 var cmd = new MySqlCommand("drop table if exists user_info2", conn);
                 cmd.AsyncExecuteNonQuery(tc);
@@ -76,18 +80,14 @@ namespace MySqlTest
             conn.Open(() =>
             {
                 var cmd = new MySqlCommand("select sysdate()", conn);
-                cmd.ExecuteReader(reader =>
+                cmd.ExecuteReader(r =>
                 {
-                    if (reader.Read())
-                    {
-                        var dtm = reader.GetDateTime(0);
-                    }
-                    reader.Close(() =>
-                    {
-                        conn.Close(() => { });
-                    });
+                    //reader is ready  
+                    var dtm = r.GetDateTime(0);
                 });
-            });
+
+
+            }, () => conn.Close());
 
         }
         [Test]
@@ -100,12 +100,12 @@ namespace MySqlTest
             var tc = new TaskChain();
             conn.AsyncOpen(tc);
             var cmd = new MySqlCommand("select sysdate()", conn);
-            cmd.AsyncExecuteSubTableReader(tc, reader =>
-            {
-                if (reader.Read())
-                {
-                    var dtm = reader.GetDateTime(0);
-                }
+            cmd.AsyncExecuteReader(tc, reader =>
+            { 
+                //this example we read each row asynchronously
+                //read as 
+                var dtm = reader.GetDateTime(0);
+
             });
             conn.AsyncClose(tc);
             tc.WhenFinish(() =>
@@ -202,19 +202,14 @@ namespace MySqlTest
                 t.col2 = col2;
             });
 
+
             cmd.AsyncExecuteSubTableReader(tc, reader =>
             {
-
                 mapper.DataReader = reader;
-                while (reader.Read())
+                while (SharpConnect.MySql.SyncPatt.MySqlSyncPattExtension.Read(reader))
                 {
                     var simpleInfo = mapper.Map(new SimpleInfo());
                 }
-
-                ////simple map query result to member of the target object  
-                ////we create simpleinfo and use mapper to map field 
-
-
                 tc.AutoCallNext = reader.CurrentSubTable.IsLastTable;
 
             });

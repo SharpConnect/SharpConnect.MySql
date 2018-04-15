@@ -8,14 +8,9 @@ namespace SharpConnect.MySql
     {
         public static partial class MySqlSyncPattExtension
         {
-
             public static void Open(this MySqlConnection conn)
             {
                 conn.InternalOpen();
-            }
-            public static void Close(this MySqlConnection conn)
-            {
-                conn.InternalClose();
             }
             public static void Dispose(this MySqlConnection conn)
             {
@@ -28,14 +23,23 @@ namespace SharpConnect.MySql
         public static partial class MySqlAsyncPattExtension
         {
 
-            public static void Open(this MySqlConnection conn, Action onComplete)
+            public static void Open(this MySqlConnection conn, Action onComplete, Action next = null)
             {
                 conn.InternalOpen(onComplete);
+                if (next != null)
+                {
+                    next();
+                }
             }
             public static void Close(this MySqlConnection conn, Action onComplete)
             {
                 conn.InternalClose(onComplete);
             }
+            public static void Stop(this MySqlDataReader reader)
+            {
+                reader.StopReadingNextRow = true;
+            }
+
         }
     }
 
@@ -44,7 +48,7 @@ namespace SharpConnect.MySql
 
     public class MySqlConnectionString
     {
-        string _signature;
+        int _signature;
         public MySqlConnectionString(string h, string u, string p, string d)
             : this(h, u, p, d, 3306)
         {
@@ -55,25 +59,24 @@ namespace SharpConnect.MySql
             Username = u;
             Password = p;
             Database = d;
-            PortNumber = 3306;//default mysql port
-            _signature = string.Concat(h, u, d, PortNumber);
+            PortNumber = portNumber;//default mysql port
+
+            _signature = string.Concat(h, u, d, PortNumber).GetHashCode();
         }
         public string Host { get; private set; }
         public string Username { get; private set; }
         public string Password { get; private set; }
         public string Database { get; private set; }
         public int PortNumber { get; private set; }
-        internal string ConnSignature
+        internal int ConnSignature
         {
             get
             {
                 return _signature;
             }
         }
-
         public static MySqlConnectionString Parse(string connString)
         {
-            //MySqlConnectionString connString = new MySqlConnectionString();
             string[] key_values = connString.Split(';');
             int j = key_values.Length;
             string server = null;
@@ -166,7 +169,7 @@ namespace SharpConnect.MySql
                     case Internal.ConnectionState.Disconnected:
                         return ConnectionState.Closed;
                     default:
-                        throw new NotSupportedException();                     
+                        throw new NotSupportedException();
                 }
             }
         }
@@ -193,7 +196,8 @@ namespace SharpConnect.MySql
                             _connStr.Host,
                             _connStr.Username,
                             _connStr.Password,
-                            _connStr.Database) { port = _connStr.PortNumber });
+                            _connStr.Database)
+                        { port = _connStr.PortNumber });
                     _conn.Connect(onComplete);
                 }
             }
@@ -205,9 +209,14 @@ namespace SharpConnect.MySql
                         _connStr.Host,
                         _connStr.Username,
                         _connStr.Password,
-                        _connStr.Database) { port = _connStr.PortNumber });
+                        _connStr.Database)
+                    { port = _connStr.PortNumber });
                 _conn.Connect(onComplete);
             }
+        }
+        public void Close()
+        {
+            this.InternalClose();
         }
         internal void InternalClose(Action onComplete = null)
         {
@@ -269,7 +278,7 @@ namespace SharpConnect.MySql
         {
             var cmd = new MySqlCommand("SELECT @@global.max_allowed_packet", conn);
             var reader = cmd.InternalExecuteReader();
-            while (reader.Read())
+            while (MySql.SyncPatt.MySqlSyncPattExtension.Read(reader))
             {
                 ulong value = reader.GetULong(0);
                 if (value >= int.MaxValue)

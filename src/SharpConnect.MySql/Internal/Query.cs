@@ -58,7 +58,7 @@ namespace SharpConnect.MySql.Internal
         MySqlParserMx _sqlParserMx;
         QueryExecState _execState = QueryExecState.Rest;
         Action<MySqlTableResult> _tableResultListener;
-
+        Action<MySqlErrorResult> _errorListener;
         //------------
         //we create query for each command and not reuse it
         //------------
@@ -67,7 +67,7 @@ namespace SharpConnect.MySql.Internal
             : this(conn, new SqlStringTemplate(sql), cmdParams)
         {
         }
-        public Query(Connection conn, SqlStringTemplate sql, CommandParams cmdParams)
+        internal Query(Connection conn, SqlStringTemplate sql, CommandParams cmdParams)
         {
             //*** query use conn resource such as parser,writer
             //so 1 query 1 connection      
@@ -103,7 +103,7 @@ namespace SharpConnect.MySql.Internal
         {
             if (this._execState == QueryExecState.Closed) { return true; }
 
-            if (_queryUsedMode == QueryUseMode.ExecNonQuery)
+            if (_queryUsedMode == QueryUseMode.ExecNonQuery || _queryUsedMode == QueryUseMode.Prepare)
             {
                 this.Close();
                 this._conn.BindingQuery = null;
@@ -112,13 +112,16 @@ namespace SharpConnect.MySql.Internal
             return false;
         }
 
-        public ErrPacket LoadError { get; private set; }
+        public ErrPacket Error { get; private set; }
         public OkPacket OkPacket { get; private set; }
         public void SetResultListener(Action<MySqlTableResult> tableResultListener)
         {
             this._tableResultListener = tableResultListener;
         }
-
+        public void SetErrorListener(Action<MySqlErrorResult> errorListener)
+        {
+            this._errorListener = errorListener;
+        }
 
         /// <summary>
         /// +/- blocking
@@ -229,7 +232,9 @@ namespace SharpConnect.MySql.Internal
                 _sqlParserMx.UseFlushMode(true);
                 //wait where   
                 //TODO: review here *** tight loop
-                while (!_recvComplete) ;
+                while (!_recvComplete)
+                {
+                };
                 _sqlParserMx.UseFlushMode(false); //switch back// 
                 //blocking 
                 if (_prepareContext != null)
@@ -237,7 +242,6 @@ namespace SharpConnect.MySql.Internal
                     _conn.InitWait();
                     ClosePrepareStmt_A(_conn.UnWait);
                     _conn.Wait();
-
                 }
                 _execState = QueryExecState.Closed;
             }
@@ -408,15 +412,23 @@ namespace SharpConnect.MySql.Internal
                             {
                                 MySqlOkResult ok = result as MySqlOkResult;
                                 OkPacket = ok.okpacket;
-
                                 RecvComplete();
                             }
                             break;
                         case MySqlResultKind.Error:
                             {
                                 MySqlErrorResult error = result as MySqlErrorResult;
-                                LoadError = error.errPacket;
+                                Error = error.errPacket;
                                 RecvComplete();
+                                if (_errorListener != null)
+                                {
+                                    _errorListener(error);
+                                }
+                                else
+                                {
+                                    //ERROR
+                                    throw new MySqlExecException(error);
+                                }
                             }
                             break;
                         case MySqlResultKind.PrepareResponse:

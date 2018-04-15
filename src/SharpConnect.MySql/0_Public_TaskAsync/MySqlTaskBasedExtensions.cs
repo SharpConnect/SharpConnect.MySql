@@ -1,11 +1,15 @@
 ﻿//MIT, 2016, brezza92, EngineKit and contributors  
-
+using System;
 using System.Threading.Tasks;
-using SharpConnect.MySql.AsyncPatt;
-namespace SharpConnect.MySql
+namespace SharpConnect.MySql.AsyncPatt
 {
+
+
+
+
     public static class MySqlTaskBasedExtensions
     {
+
         public static Task OpenAsync(this MySqlConnection conn)
         {
             var tcs = new TaskCompletionSource<int>();
@@ -25,24 +29,52 @@ namespace SharpConnect.MySql
             cmd.Prepare(() => tcs.SetResult(0));
             return tcs.Task;
         }
+     
+
         public static Task ExecuteNonQueryAsync(this MySqlCommand cmd)
         {
             var tcs = new TaskCompletionSource<int>();
             cmd.ExecuteNonQuery(() => tcs.SetResult(0));
             return tcs.Task;
         }
-        public static Task<MySqlDataReader> ExecuteReaderAsync(this MySqlCommand cmd)
+
+        /// <summary>
+        /// execute reader, loop for each row and close
+        /// </summary>
+        /// <param name="cmd"></param>
+        /// <param name="readerDel"></param>
+        /// <returns></returns>
+        public static Task ExecuteReaderAsync(this MySqlCommand cmd, Action<MySqlDataReader> readerDel)
         {
-            var tcs = new TaskCompletionSource<MySqlDataReader>();
-            cmd.ExecuteReader(exec_reader => tcs.SetResult(exec_reader));
-            return tcs.Task;
-        }
-        //-----------------------------------------------------------------------------
-        public static Task CloseAsync(this MySqlDataReader reader)
-        {
+
             var tcs = new TaskCompletionSource<int>();
-            reader.Close(() => tcs.SetResult(0));
+            cmd.InternalExecuteReader(exec_reader =>
+            {
+                //reader is ready
+                //then read
+                //reader.InternalRead() may be blocked, 
+                //so we use thread pool to notify 
+                System.Threading.ThreadPool.QueueUserWorkItem(state =>
+                {
+                    while (exec_reader.InternalRead())
+                    {
+                        //
+                        readerDel(exec_reader);
+                        if (exec_reader.StopReadingNextRow)
+                        {
+                            //close the reader and break
+                            break;
+                        }
+                    }
+                    //
+                    exec_reader.InternalClose();
+                    tcs.SetResult(0);
+                    //
+                });
+
+            });
             return tcs.Task;
         }
+
     }
 }
