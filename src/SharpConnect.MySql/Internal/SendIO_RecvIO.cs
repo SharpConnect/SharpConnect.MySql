@@ -1,5 +1,5 @@
 ﻿//2010, CPOL, Stan Kirk
-//MIT, 2015-2016, EngineKit and contributors
+//MIT, 2015-2018, EngineKit and contributors
 
 using System;
 using System.Collections.Generic;
