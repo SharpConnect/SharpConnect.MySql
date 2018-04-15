@@ -264,6 +264,7 @@ namespace SharpConnect.MySql.Internal
         object _connLocker = new object();
         internal void Wait()
         {
+            //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
             //--------------------------------
             lock (_connLocker)
                 while (_globalWaiting)
@@ -271,22 +272,20 @@ namespace SharpConnect.MySql.Internal
             //--------------------------------
 
             ////blocking***
-            ////wait *** tight loop
+            ////wait *** 
             ////TODO: implement wait logic,timeout logic,cancel logic here*** 
             ////------------------------------
             ////_startWait = DateTime.Now;
             //while (_globalWaiting)
             //{
             //    System.Threading.Thread.Sleep(0); //tight loop,***
-            //};// System.Threading.Thread.Sleep(0); //tight loop,***
+            //}; 
 
-            ////while (_globalWaiting)
-            ////{   //tight loop,*** wait, or use thread sleep 
-            ////    _justEmptyCall.JustEmptyMethod();
-            ////}
+
         }
         internal void UnWait()
-        {
+        {  
+            //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
             lock (_connLocker)                 // Let's now wake up the thread by
             {                              // setting _go=true and pulsing.
                 _globalWaiting = false;
