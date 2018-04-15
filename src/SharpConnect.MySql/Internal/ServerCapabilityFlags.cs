@@ -1,8 +1,5 @@
 ﻿//MIT, 2015-2018, brezza92, EngineKit and contributors 
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using SharpConnect.Internal;
+
 namespace SharpConnect.MySql.Internal
 {
     //-------------------------

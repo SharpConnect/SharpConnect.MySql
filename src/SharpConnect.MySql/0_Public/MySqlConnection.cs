@@ -59,9 +59,7 @@ namespace SharpConnect.MySql
             Username = u;
             Password = p;
             Database = d;
-            PortNumber = portNumber;//default mysql port
-
-            _signature = string.Concat(h, u, d, PortNumber).GetHashCode();
+            PortNumber = portNumber;//default mysql port  
         }
         public string Host { get; private set; }
         public string Username { get; private set; }
@@ -71,8 +69,8 @@ namespace SharpConnect.MySql
         internal int ConnSignature
         {
             get
-            {
-                return _signature;
+            { 
+                return (_signature != 0)? _signature: _signature = string.Concat(Host, Username, Database, PortNumber).GetHashCode();                
             }
         }
         public static MySqlConnectionString Parse(string connString)
