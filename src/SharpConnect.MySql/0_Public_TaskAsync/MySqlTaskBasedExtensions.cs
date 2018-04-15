@@ -1,4 +1,4 @@
-﻿//MIT, 2016, brezza92, EngineKit and contributors  
+﻿//MIT, 2016-2018, brezza92, EngineKit and contributors 
 using System;
 using System.Threading.Tasks;
 namespace SharpConnect.MySql.AsyncPatt
