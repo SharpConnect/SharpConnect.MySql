@@ -234,7 +234,7 @@ namespace SharpConnect.MySql
                 {
                     //table is ready for read***
                     //just read single value 
-                    var subtReader = subt.CreateDataReader();
+                    MySqlDataReader subtReader = subt.CreateDataReader();
                     subtReader.StringConverter = this.StringConverter;
                     onEachSubTable(subtReader);
 

@@ -232,15 +232,16 @@ namespace SharpConnect.MySql.Internal
                 _sqlParserMx.UseFlushMode(true);
                 //wait where   
                 //TODO: review here *** tight loop
-                while (!_recvComplete) ;
+                while (!_recvComplete)
+                {
+                };
                 _sqlParserMx.UseFlushMode(false); //switch back// 
                 //blocking 
                 if (_prepareContext != null)
                 {
                     _conn.InitWait();
                     ClosePrepareStmt_A(_conn.UnWait);
-                    _conn.Wait();
-
+                    _conn.Wait(); 
                 }
                 _execState = QueryExecState.Closed;
             }
