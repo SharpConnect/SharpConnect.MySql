@@ -247,9 +247,9 @@ namespace SharpConnect.MySql.Internal
         //----------------------------------------------------------------
 
 
-        //DateTime _startWait;
-        bool _globalWaiting = false;
         //TODO: review here
+        bool _globalWaiting = false;
+        object _connLocker = new object();
 
         public void InitWait()
         {
@@ -260,8 +260,6 @@ namespace SharpConnect.MySql.Internal
             _globalWaiting = true;
         }
 
-
-        object _connLocker = new object();
         internal void Wait()
         {
             //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
@@ -279,20 +277,16 @@ namespace SharpConnect.MySql.Internal
             //while (_globalWaiting)
             //{
             //    System.Threading.Thread.Sleep(0); //tight loop,***
-            //}; 
-
-
+            //};  
         }
         internal void UnWait()
-        {  
+        {
             //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
             lock (_connLocker)                 // Let's now wake up the thread by
             {                              // setting _go=true and pulsing.
                 _globalWaiting = false;
                 Monitor.Pulse(_connLocker);
             }
-
-
             //_globalWaiting = false;
         }
 
