@@ -26,7 +26,7 @@ LICENSE: **MIT**
   
  Copyright(c), 2013, Andrey Sidorov(sidorares @yandex.ru) and contributors
  
- Copyright(c), 2015-2017, brezza92, EngineKit  and contributors 
+ Copyright(c), 2015-2018, brezza92, EngineKit  and contributors 
 
   
  Permission is hereby granted, free of charge, to any person obtaining a copy
