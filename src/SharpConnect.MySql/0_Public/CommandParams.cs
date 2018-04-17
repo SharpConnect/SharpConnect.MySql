@@ -9,8 +9,13 @@ namespace SharpConnect.MySql
     {
         Dictionary<string, MyStructData> _values = new Dictionary<string, MyStructData>(); //user bound values
         Dictionary<string, string> _sqlParts;//null at first, special  extension
-        public CommandParams()
+        internal CommandParams()
         {
+        }
+        internal IStringConverter StringConv
+        {
+            get;
+            set;
         }
         public void AddWithValue(string key, string value)
         {
@@ -18,8 +23,16 @@ namespace SharpConnect.MySql
             if (value != null)
             {
                 //replace some value 
-                data.myString = value.Replace("\'", "\\\'");
-                data.type = MySqlDataType.VAR_STRING;
+                if (StringConv != null)
+                {
+                    AddWithValue(key, StringConv.WriteConv(value));
+                    return;
+                }
+                else
+                {
+                    data.myString = value.Replace("\'", "\\\'");
+                    data.type = MySqlDataType.VAR_STRING;
+                }
             }
             else
             {
@@ -28,6 +41,56 @@ namespace SharpConnect.MySql
             }
             _values[key] = data;
         }
+        public void AddWithValue(string key, string value, IStringConverter strConv)
+        {
+            var data = new MyStructData();
+            if (value != null)
+            {
+                //replace some value 
+                if (strConv != null)
+                {
+                    AddWithValue(key, strConv.WriteConv(value));
+                    return;
+                }
+                else
+                {
+                    data.myString = value.Replace("\'", "\\\'");
+                    data.type = MySqlDataType.VAR_STRING;
+                }
+            }
+            else
+            {
+                data.myString = null;
+                data.type = MySqlDataType.NULL;
+            }
+            _values[key] = data;
+        }
+        public void AddWithValue(string key, string value, System.Text.Encoding enc)
+        {
+            var data = new MyStructData();
+            if (value != null)
+            {
+                //replace some value 
+                if (enc != null)
+                {
+                    AddWithValue(key, enc.GetBytes(value));
+                    return;
+                }
+                else
+                {
+                    data.myString = value.Replace("\'", "\\\'");
+                    data.type = MySqlDataType.VAR_STRING;
+                }
+            }
+            else
+            {
+                data.myString = null;
+                data.type = MySqlDataType.NULL;
+            }
+            _values[key] = data;
+        }
+
+
         public void AddWithValue(string key, byte value)
         {
             //TODO: review here
@@ -282,8 +345,6 @@ namespace SharpConnect.MySql
             }
         }
         //-------------------------------------------------------
-
-
         public string[] GetAttachedValueKeys()
         {
             var keys = new string[_values.Count];

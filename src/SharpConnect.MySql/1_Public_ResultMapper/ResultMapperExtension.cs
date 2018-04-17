@@ -205,7 +205,7 @@ namespace SharpConnect.MySql.Mapper
                     if (stringConverter != null)
                     {
                         //use string converter to convert again
-                        return stringConverter.Conv((string)value);
+                        return stringConverter.ReadConv((string)value);
                     }
                     else
                     {

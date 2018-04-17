@@ -142,11 +142,19 @@ namespace SharpConnect.MySql
         }
         public MySqlConnection Connection { get; set; }
 
+
+        IStringConverter _stringConv;
         public IStringConverter StringConverter
         {
-            get;
-            set;
+            get { return _stringConv; }
+            set
+            {
+                _stringConv = value;
+                Parameters.StringConv = value;
+            }
         }
+
+
         /// <summary>
         /// sync/async prepare
         /// </summary>

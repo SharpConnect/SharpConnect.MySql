@@ -77,20 +77,7 @@ namespace SharpConnect.MySql.Internal
             recvBufferSize = userConfig.recvBufferSize;
             sendBufferSize = userConfig.sendBufferSize;
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            //
-            switch ((CharSets)config.charsetNumber)
-            {
-                case CharSets.UTF8_GENERAL_CI:
-                    //_parser = new PacketParser(Encoding.UTF8);
-                    _writer = new MySqlStreamWriter(Encoding.UTF8);
-                    break;
-                case CharSets.ASCII:
-                    //_parser = new PacketParser(Encoding.ASCII);
-                    _writer = new MySqlStreamWriter(Encoding.ASCII);
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
+            _writer = new MySqlStreamWriter(config.GetEncoding()); 
 
             //------------------
             //we share recvSendArgs between recvIO and sendIO
@@ -601,7 +588,9 @@ namespace SharpConnect.MySql.Internal
             //}
 
             maxPacketSize = 0;//this.maxPacketSize = 0;
-            charsetNumber = (int)CharSets.UTF8_GENERAL_CI;
+            charsetNumber = (int)CharSets.ASCII;
+
+
             //this.charsetNumber = (options.charset)
             //  ? ConnectionConfig.getCharsetNumber(options.charset)
             //  : options.charsetNumber||Charsets.UTF8_GENERAL_CI;
@@ -611,14 +600,8 @@ namespace SharpConnect.MySql.Internal
             //this.clientFlags = ConnectionConfig.mergeFlags(defaultFlags, options.flags)
         }
 
-        public ConnectionConfig(string username, string password)
-            : this()
-        {
 
-            this.user = username;
-            this.password = password;
-        }
-        public ConnectionConfig(string host, string username, string password, string database)
+        public ConnectionConfig(string host, string username, string password, string database = "")
              : this()
         {
 
@@ -626,11 +609,25 @@ namespace SharpConnect.MySql.Internal
             {
                 host = "127.0.0.1";
             }
-
             this.user = username;
             this.password = password;
             this.host = host;
             this.database = database;
         }
+
+
+        public System.Text.Encoding GetEncoding()
+        {
+            //
+            switch ((CharSets)charsetNumber)
+            {
+                default: throw new NotImplementedException();
+                case CharSets.UTF8_GENERAL_CI: return Encoding.UTF8;
+                case CharSets.ASCII: return Encoding.ASCII;
+
+            }
+
+        }
+
     }
 }

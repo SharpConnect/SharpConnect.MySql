@@ -81,7 +81,7 @@ namespace SharpConnect.MySql
             string uid = null;
             string pwd = null;
             string database = null;
-            int portNumber = 3306;
+            int portNumber = 3306; //default port
             for (int i = 0; i < j; ++i)
             {
                 if (key_values[i] == "")

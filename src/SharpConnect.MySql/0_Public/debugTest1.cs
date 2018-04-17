@@ -72,7 +72,7 @@ namespace SharpConnect.MySql
             //cmd2Values.AddValue("s2", "bar");
             //cmd2Values.AddValue("buffer1", buffer);
 
-            ConnectionConfig config = new ConnectionConfig("root", "root");
+            ConnectionConfig config = new ConnectionConfig("localhost","root", "root");
             config.database = "test";
             //MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             //sqlConn.UseConnectionPool = true;
@@ -184,7 +184,7 @@ namespace SharpConnect.MySql
 
         public static void Test1_Select()
         {
-            ConnectionConfig config = new ConnectionConfig("root", "root");
+            ConnectionConfig config = new ConnectionConfig("localhost", "root", "root");
             config.database = "test";
             MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             sqlConn.UseConnectionPool = true;
@@ -218,7 +218,7 @@ namespace SharpConnect.MySql
             //filename = "Colorful.jpg";//885,264 bytes
             //filename = "TestJpg.jpg";//2,066 bytes
             byte[] buffer = File.ReadAllBytes("D:\\[]Photo\\" + filename);
-            ConnectionConfig config = new ConnectionConfig("root", "root");
+            ConnectionConfig config = new ConnectionConfig("localhost", "root", "root");
             config.database = "test";
             MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             sqlConn.UseConnectionPool = true;
@@ -233,7 +233,7 @@ namespace SharpConnect.MySql
 
         public static void Test1_Update()
         {
-            ConnectionConfig config = new ConnectionConfig("root", "root");
+            ConnectionConfig config = new ConnectionConfig("localhost", "root", "root");
             config.database = "test";
             MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             sqlConn.UseConnectionPool = true;
@@ -250,7 +250,7 @@ namespace SharpConnect.MySql
 
         public static void Test1_Delete()
         {
-            ConnectionConfig config = new ConnectionConfig("root", "root");
+            ConnectionConfig config = new ConnectionConfig("localhost", "root", "root");
             config.database = "test";
             MySqlConnection sqlConn = new MySqlConnection(config.host, config.user, config.password, config.database);
             sqlConn.UseConnectionPool = true;

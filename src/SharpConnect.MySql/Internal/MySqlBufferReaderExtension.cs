@@ -174,7 +174,7 @@ namespace SharpConnect.MySql.Internal
             IStringConverter strConverter)
         {
 
-            return strConverter.Conv(reader.ReadBytes((int)length));
+            return strConverter.ReadConv(reader.ReadBytes((int)length));
 
         }
 
