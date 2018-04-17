@@ -201,6 +201,7 @@ namespace SharpConnect.MySql
                 int columnCount = currentSubTable.FieldCount;
                 int nullBmpLen = (columnCount + 7 + 2) / 8;
                 byte[] nullBitmap = bufferReader.ReadBytes(nullBmpLen);
+
                 for (int i = 0; i < columnCount; ++i)
                 {
                     //check if this cell is null (1) or not (0)
@@ -625,24 +626,24 @@ namespace SharpConnect.MySql
         {
             return GetString(GetOrdinal(colName));
         }
-        public string GetString(int colIndex, Encoding enc)
-        {
-            //TODO: check match type and index here
-            return cells[colIndex].myString;
-        }
-        public string GetString(string colName, Encoding enc)
-        {
-            return GetString(GetOrdinal(colName));
-        }
-        public string GetString(int colIndex, IStringConverter strConv)
-        {
-            //TODO: check match type and index here
-            return cells[colIndex].myString;
-        }
-        public string GetString(string colName, IStringConverter strConv)
-        {
-            return GetString(GetOrdinal(colName));
-        }
+        //public string GetString(int colIndex, Encoding enc)
+        //{
+        //    //TODO: check match type and index here
+        //    return cells[colIndex].myString;
+        //}
+        //public string GetString(string colName, Encoding enc)
+        //{
+        //    return GetString(GetOrdinal(colName));
+        //}
+        //public string GetString(int colIndex, IStringConverter strConv)
+        //{
+        //    //TODO: check match type and index here
+        //    return cells[colIndex].myString;
+        //}
+        //public string GetString(string colName, IStringConverter strConv)
+        //{
+        //    return GetString(GetOrdinal(colName));
+        //}
 
 
         public byte[] GetBuffer(int colIndex)
