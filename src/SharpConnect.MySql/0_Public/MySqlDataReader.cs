@@ -30,8 +30,10 @@ namespace SharpConnect.MySql
 
     public interface IStringConverter
     {
-        string Conv(string input);
-        string Conv(byte[] input);
+        string ReadConv(string input);
+        string ReadConv(byte[] input);
+        //-----------------------------------
+        byte[] WriteConv(string input);
     }
 
     public class QueryParsingConfig
@@ -347,16 +349,22 @@ namespace SharpConnect.MySql
                             data.type = MySqlDataType.NULL;
                             return data;
                         }
+
                         if (qparsingConfig.DateStrings)
                         {
+                            //return datetime as string
                             return data;
                         }
+
+                        //handle datetime
+                        //TODO: review other invalid datetime eg 0000-00-00 00:00, 0000-00-00 00:00:00
                         if (data.myString == "0000-00-00")
                         {
                             data.myDateTime = DateTime.MinValue;//?                             
                             data.type = type;
                             return data;
                         }
+                        
                         //-------------------------------------------------------------
                         //    var originalString = dateString;
                         //    if (field.type === Types.DATE) {
@@ -615,9 +623,28 @@ namespace SharpConnect.MySql
         }
         public string GetString(string colName)
         {
-
             return GetString(GetOrdinal(colName));
         }
+        public string GetString(int colIndex, Encoding enc)
+        {
+            //TODO: check match type and index here
+            return cells[colIndex].myString;
+        }
+        public string GetString(string colName, Encoding enc)
+        {
+            return GetString(GetOrdinal(colName));
+        }
+        public string GetString(int colIndex, IStringConverter strConv)
+        {
+            //TODO: check match type and index here
+            return cells[colIndex].myString;
+        }
+        public string GetString(string colName, IStringConverter strConv)
+        {
+            return GetString(GetOrdinal(colName));
+        }
+
+
         public byte[] GetBuffer(int colIndex)
         {
             //TODO: check match type and index here
@@ -785,14 +812,18 @@ namespace SharpConnect.MySql
 
     class Utf8StringConverter : IStringConverter
     {
-        public string Conv(byte[] input)
+        public string ReadConv(byte[] input)
         {
             return Encoding.UTF8.GetString(input);
         }
 
-        public string Conv(string input)
+        public string ReadConv(string input)
         {
             throw new NotImplementedException();
+        }
+        public byte[] WriteConv(string writeStr)
+        {
+            return Encoding.UTF8.GetBytes(writeStr.ToCharArray());
         }
     }
 
@@ -1038,14 +1069,8 @@ namespace SharpConnect.MySql
         {
 
             TRY_AGAIN:
-
             if (IsEmptyTable)
             {
-                if (firstResultArrived)
-                {
-                    return false;
-                }
-
                 //no current table 
                 bool hasSomeSubTables = false;
                 lock (subTables)
