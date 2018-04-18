@@ -129,6 +129,7 @@ namespace SharpConnect.MySql
             _sqlStringTemplate = sql;
             Connection = conn;
             Parameters = cmds;
+            this.StringConverter = conn.StringConv;
         }
 
         public CommandParams Parameters

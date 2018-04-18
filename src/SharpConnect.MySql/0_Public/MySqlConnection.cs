@@ -69,8 +69,8 @@ namespace SharpConnect.MySql
         internal int ConnSignature
         {
             get
-            { 
-                return (_signature != 0)? _signature: _signature = string.Concat(Host, Username, Database, PortNumber).GetHashCode();                
+            {
+                return (_signature != 0) ? _signature : _signature = string.Concat(Host, Username, Database, PortNumber).GetHashCode();
             }
         }
         public static MySqlConnectionString Parse(string connString)
@@ -240,6 +240,7 @@ namespace SharpConnect.MySql
             }
         }
 
+        public IStringConverter StringConv { get; set; }
         internal void SetMaxAllowedPacket(int value)
         {
             this._conn.PacketWriter.SetMaxAllowedPacket(value);

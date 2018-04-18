@@ -20,7 +20,12 @@ namespace SharpConnect.MySql
         public void AddWithValue(string key, string value)
         {
             var data = new MyStructData();
-            if (value != null)
+            if (value == "")
+            {
+                data.myString = "";
+                data.type = MySqlDataType.VAR_STRING;
+            }
+            else if (value != null)
             {
                 //replace some value 
                 if (StringConv != null)
@@ -44,8 +49,14 @@ namespace SharpConnect.MySql
         public void AddWithValue(string key, string value, IStringConverter strConv)
         {
             var data = new MyStructData();
-            if (value != null)
+            if (value == "")
             {
+                data.myString = "";
+                data.type = MySqlDataType.VAR_STRING;
+            }
+            else if (value != null)
+            {
+
                 //replace some value 
                 if (strConv != null)
                 {
@@ -68,7 +79,12 @@ namespace SharpConnect.MySql
         public void AddWithValue(string key, string value, System.Text.Encoding enc)
         {
             var data = new MyStructData();
-            if (value != null)
+            if (value == "")
+            {
+                data.myString = "";
+                data.type = MySqlDataType.VAR_STRING;
+            }
+            else if (value != null)
             {
                 //replace some value 
                 if (enc != null)
