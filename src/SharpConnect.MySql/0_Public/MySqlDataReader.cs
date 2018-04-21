@@ -365,7 +365,7 @@ namespace SharpConnect.MySql
                             data.type = type;
                             return data;
                         }
-                        
+
                         //-------------------------------------------------------------
                         //    var originalString = dateString;
                         //    if (field.type === Types.DATE) {
@@ -745,15 +745,12 @@ namespace SharpConnect.MySql
                 case MySqlDataType.LONG:
                 case MySqlDataType.INT24:
                 case MySqlDataType.YEAR:
-                    return data.myInt32;
-                //stbuilder.Append(data.myInt32.ToString());
-
+                    return data.myInt32; 
                 case MySqlDataType.LONGLONG:
-                    return data.myInt64;
-                //stbuilder.Append(data.myInt64.ToString());
+                    return data.myInt64;                
 
                 case MySqlDataType.DECIMAL:
-                    //stbuilder.Append(data.myDecimal.ToString());
+                case MySqlDataType.NEWDECIMAL:
                     return data.myDecimal;
                 case MySqlDataType.NULL:
                     return null;
@@ -764,7 +761,7 @@ namespace SharpConnect.MySql
 
         public object GetValue(string colName)
         {
-            return GetDateTime(GetOrdinal(colName));
+            return GetValue(GetOrdinal(colName));
         }
 
         //---------------------------------------------
