@@ -51,13 +51,13 @@ namespace MySqlTest
         static void CreateTable(MySqlConnection conn)
         {
             string sql = "create table test001(col_id  int(10) unsigned not null auto_increment, col1 int(10)," +
-                "col2 char(2),col3 varchar(255),col4 datetime,col5 decimal(5,2),  primary key(col_id) )";
+                "col2 char(2),col3 varchar(255),col4 datetime,col5 decimal(5,2), col6 decimal(16,8), primary key(col_id) )";
             var cmd = new MySqlCommand(sql, conn);
             cmd.ExecuteNonQuery();
         }
         static void InsertData(MySqlConnection conn)
         {
-            string sql = "insert into test001(col1,col2,col3,col4,col5) values(10,'AA','123456789','0001-01-01',5.1)";
+            string sql = "insert into test001(col1,col2,col3,col4,col5,col6) values(10,'AA','123456789','0001-01-01',5.1,10.2857948)";
             var cmd = new MySqlCommand(sql, conn);
             cmd.ExecuteNonQuery();
             uint lastInsertId = cmd.LastInsertedId;
@@ -79,6 +79,7 @@ namespace MySqlTest
                 object o2 = reader.GetValue("col3");
                 object o3 = reader.GetValue("col4");
                 object o4 = reader.GetValue("col5");
+                object o5 = reader.GetValue("col6");
             }
             reader.Close();
         }
