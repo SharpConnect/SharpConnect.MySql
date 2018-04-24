@@ -48,6 +48,10 @@ namespace SharpConnect.MySql
         public bool BigNumberStrings;
     }
 
+    public class MySqlDataReaderException : Exception
+    {
+    }
+
 
     public abstract class MySqlDataReader
     {
@@ -226,6 +230,7 @@ namespace SharpConnect.MySql
                 }
             }
         }
+
         MyStructData ReadCurrentRowBinaryProtocol(MySqlFieldDefinition f)
         {
             string numberString = null;
@@ -520,11 +525,72 @@ namespace SharpConnect.MySql
         }
 
         //---------------------------------------------
-
         public sbyte GetInt8(int colIndex)
         {
-            //TODO: check match type and check index here 
-            return (sbyte)cells[colIndex].myInt32;
+
+            //TODO: check this very carefully ***
+            MyStructData data = cells[colIndex];
+            //conversion table
+            switch (data.type)
+            {
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
+                    //we can't convert this to byte
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.TINY:
+                case MySqlDataType.SHORT:
+                case MySqlDataType.LONG:
+                case MySqlDataType.INT24:
+                case MySqlDataType.YEAR:
+                    //check value range
+                    if (data.myInt32 >= sbyte.MinValue && data.myInt32 <= sbyte.MaxValue)
+                    {
+                        return (sbyte)data.myInt32;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
+                case MySqlDataType.NEWDECIMAL:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.LONGLONG:
+                    if (data.myInt64 >= sbyte.MinValue && data.myInt64 <= sbyte.MaxValue)
+                    {
+                        return (sbyte)data.myInt64;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+                case MySqlDataType.BIT:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
+                    {
+                        //try convert to int first
+                        if (sbyte.TryParse(data.myString, out sbyte num))
+                        {
+                            return num;
+                        }
+                        else
+                        {
+                            throw new MySqlDataReaderException();
+                        }
+                    }
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.GEOMETRY:
+                default:
+                    throw new MySqlDataReaderException();
+            }
+
         }
         public sbyte GetInt8(string colName)
         {
@@ -532,19 +598,140 @@ namespace SharpConnect.MySql
         }
         public byte GetUInt8(int colIndex)
         {
-            //TODO: check match type and check index here
-            return (byte)cells[colIndex].myInt32;
+            //TODO: check match type and check index here 
+            //TODO: check this very carefully ***
+            MyStructData data = cells[colIndex];
+            //conversion table
+            switch (data.type)
+            {
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
+                    //we can't convert this to byte
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.TINY: //
+                case MySqlDataType.SHORT://2
+                case MySqlDataType.LONG: //4
+                case MySqlDataType.INT24://4 (3 bytes)
+                case MySqlDataType.YEAR:
+                    //check value range
+                    if (data.myInt32 >= byte.MinValue && data.myInt32 <= byte.MaxValue)
+                    {
+                        return (byte)data.myInt32;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
+                case MySqlDataType.NEWDECIMAL:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.LONGLONG:
+                    if (data.myInt64 >= byte.MinValue && data.myInt64 <= byte.MaxValue)
+                    {
+                        return (byte)data.myInt64;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+                case MySqlDataType.BIT:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
+                    {
+                        //try convert to int first
+                        if (byte.TryParse(data.myString, out byte num))
+                        {
+                            return num;
+                        }
+                        else
+                        {
+                            throw new MySqlDataReaderException();
+                        }
+                    }
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.GEOMETRY:
+                default:
+                    throw new MySqlDataReaderException();
+            }
         }
         public byte GetUInt8(string colName)
         {
-
             return GetUInt8(GetOrdinal(colName));
         }
-
-
         public short GetInt16(int colIndex)
-        {   //TODO: check match type and check index here
-            return (short)cells[colIndex].myInt32;
+        {
+
+            //TODO: check match type and check index here 
+            //TODO: check this very carefully ***
+            MyStructData data = cells[colIndex];
+            //conversion table
+            switch (data.type)
+            {
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
+                    //we can't convert this to byte
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.TINY: //
+                case MySqlDataType.SHORT://2
+                case MySqlDataType.LONG: //4
+                case MySqlDataType.INT24://4 (3 bytes)
+                case MySqlDataType.YEAR:
+                    //check value range
+                    if (data.myInt32 >= short.MinValue && data.myInt32 <= short.MaxValue)
+                    {
+                        return (short)data.myInt32;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
+                case MySqlDataType.NEWDECIMAL:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.LONGLONG:
+                    if (data.myInt64 >= short.MinValue && data.myInt64 <= short.MaxValue)
+                    {
+                        return (byte)data.myInt64;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+                case MySqlDataType.BIT:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
+                    {
+                        //try convert to int first
+                        if (short.TryParse(data.myString, out short num))
+                        {
+                            return num;
+                        }
+                        else
+                        {
+                            throw new MySqlDataReaderException();
+                        }
+                    }
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.GEOMETRY:
+                default:
+                    throw new MySqlDataReaderException();
+            }
         }
         public short GetInt16(string colName)
         {
@@ -552,8 +739,69 @@ namespace SharpConnect.MySql
         }
         public ushort GetUInt16(int colIndex)
         {
-            //TODO: check match type and check index here
-            return (ushort)cells[colIndex].myInt32;
+            //TODO: check match type and check index here 
+            //TODO: check this very carefully ***
+            MyStructData data = cells[colIndex];
+            //conversion table
+            switch (data.type)
+            {
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
+                    //we can't convert this to byte
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.TINY: //
+                case MySqlDataType.SHORT://2
+                case MySqlDataType.LONG: //4
+                case MySqlDataType.INT24://4 (3 bytes)
+                case MySqlDataType.YEAR:
+                    //check value range
+                    if (data.myInt32 >= ushort.MinValue && data.myInt32 <= ushort.MaxValue)
+                    {
+                        return (ushort)data.myInt32;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
+                case MySqlDataType.NEWDECIMAL:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.LONGLONG:
+                    if (data.myInt64 >= ushort.MinValue && data.myInt64 <= ushort.MaxValue)
+                    {
+                        return (ushort)data.myInt64;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+                case MySqlDataType.BIT:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
+                    {
+                        //try convert to int first
+                        if (ushort.TryParse(data.myString, out ushort num))
+                        {
+                            return num;
+                        }
+                        else
+                        {
+                            throw new MySqlDataReaderException();
+                        }
+                    }
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.GEOMETRY:
+                default:
+                    throw new MySqlDataReaderException();
+            }
         }
         public ushort GetUInt16(string colName)
         {
@@ -561,8 +809,62 @@ namespace SharpConnect.MySql
         }
         public int GetInt32(int colIndex)
         {
-            //TODO: check match type and check index here
-            return cells[colIndex].myInt32;
+            //TODO: check match type and check index here 
+            //TODO: check this very carefully ***
+            MyStructData data = cells[colIndex];
+            //conversion table
+            switch (data.type)
+            {
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
+                    //we can't convert this to byte
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.TINY: //
+                case MySqlDataType.SHORT://2
+                case MySqlDataType.LONG: //4
+                case MySqlDataType.INT24://4 (3 bytes)
+                case MySqlDataType.YEAR:
+                    //check value range
+                    return data.myInt32;
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
+                case MySqlDataType.NEWDECIMAL:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.LONGLONG:
+                    if (data.myInt64 >= int.MinValue && data.myInt64 <= int.MaxValue)
+                    {
+                        return (int)data.myInt64;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+                case MySqlDataType.BIT:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
+                    {
+                        //try convert to int first
+                        if (int.TryParse(data.myString, out int num))
+                        {
+                            return num;
+                        }
+                        else
+                        {
+                            throw new MySqlDataReaderException();
+                        }
+                    }
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.GEOMETRY:
+                default:
+                    throw new MySqlDataReaderException();
+            }
         }
         public int GetInt32(string colName)
         {
@@ -570,8 +872,73 @@ namespace SharpConnect.MySql
         }
         public uint GetUInt32(int colIndex)
         {
-            //TODO: check match type and check index here
-            return cells[colIndex].myUInt32;
+            //TODO: check match type and check index here 
+            //TODO: check this very carefully ***
+            MyStructData data = cells[colIndex];
+            //conversion table
+            switch (data.type)
+            {
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
+                    //we can't convert this to byte
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.TINY: //
+                case MySqlDataType.SHORT://2
+                case MySqlDataType.LONG: //4
+                case MySqlDataType.INT24://4 (3 bytes)
+                case MySqlDataType.YEAR:
+                    //check value range
+                    //cast data to uint                   
+
+                    if (data.myInt32 >= uint.MinValue)
+                    {
+                        return (uint)data.myInt32;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
+                case MySqlDataType.NEWDECIMAL:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.LONGLONG:
+
+                    if (data.myInt64 >= uint.MinValue && data.myInt64 <= uint.MaxValue)
+                    {
+                        return (uint)data.myInt64;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+                case MySqlDataType.BIT:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
+                    {
+                        //try convert to int first
+                        if (uint.TryParse(data.myString, out uint num))
+                        {
+                            return num;
+                        }
+                        else
+                        {
+                            throw new MySqlDataReaderException();
+                        }
+                    }
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.GEOMETRY:
+                default:
+                    throw new MySqlDataReaderException();
+            }
         }
         public uint GetUInt32(string colName)
         {
@@ -579,8 +946,64 @@ namespace SharpConnect.MySql
         }
         public long GetLong(int colIndex)
         {
-            //TODO: check match type and check index here
-            return cells[colIndex].myInt64;
+            //TODO: check match type and check index here 
+            //TODO: check this very carefully ***
+            MyStructData data = cells[colIndex];
+            //conversion table
+            switch (data.type)
+            {
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
+                    //we can't convert this to byte
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.TINY: //
+                case MySqlDataType.SHORT://2
+                case MySqlDataType.LONG: //4
+                case MySqlDataType.INT24://4 (3 bytes)
+                case MySqlDataType.YEAR:
+                    //check value range
+                    //cast data to uint        
+                    if (data.myInt64 >= long.MinValue && data.myInt64 <= long.MaxValue)
+                    {
+                        return data.myInt64;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
+                case MySqlDataType.NEWDECIMAL:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.LONGLONG:
+                    return data.myInt64;
+                case MySqlDataType.BIT:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
+                    {
+                        //try convert to int first
+                        if (long.TryParse(data.myString, out long num))
+                        {
+                            return num;
+                        }
+                        else
+                        {
+                            throw new MySqlDataReaderException();
+                        }
+                    }
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.GEOMETRY:
+                default:
+                    throw new MySqlDataReaderException();
+            }
+
         }
         public long GetLong(string colName)
         {
@@ -589,7 +1012,70 @@ namespace SharpConnect.MySql
         public ulong GetULong(int colIndex)
         {
             //TODO: check match type and check index here
-            return cells[colIndex].myUInt64;
+            //TODO: check match type and check index here 
+            //TODO: check this very carefully ***
+            MyStructData data = cells[colIndex];
+            //conversion table
+            switch (data.type)
+            {
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
+                    //we can't convert this to byte
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.TINY: //
+                case MySqlDataType.SHORT://2
+                case MySqlDataType.LONG: //4
+                case MySqlDataType.INT24://4 (3 bytes)
+                case MySqlDataType.YEAR:
+                    //check value range
+                    //cast data to uint   
+                    if (data.myInt32 >= 0)
+                    {
+                        return (ulong)data.myInt32;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
+                case MySqlDataType.NEWDECIMAL:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.LONGLONG:
+                    if (data.myInt64 >= 0)
+                    {
+                        return (ulong)data.myInt64;
+                    }
+                    else
+                    {
+                        throw new MySqlDataReaderException();
+                    }
+                case MySqlDataType.BIT:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
+                    {
+                        //try convert to int first
+                        if (ulong.TryParse(data.myString, out ulong num))
+                        {
+                            return num;
+                        }
+                        else
+                        {
+                            throw new MySqlDataReaderException();
+                        }
+                    }
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.GEOMETRY:
+                default:
+                    throw new MySqlDataReaderException();
+            }
         }
         public ulong GetULong(string colName)
         {
@@ -598,29 +1084,169 @@ namespace SharpConnect.MySql
         public decimal GetDecimal(int colIndex)
         {
             //TODO: check match type and index here
-            return cells[colIndex].myDecimal;
+
+            //TODO: check match type and check index here
+            //TODO: check match type and check index here 
+            //TODO: check this very carefully ***
+            MyStructData data = cells[colIndex];
+            //conversion table
+            switch (data.type)
+            {
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
+                    //we can't convert this to byte
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.TINY: //
+                case MySqlDataType.SHORT://2
+                case MySqlDataType.LONG: //4
+                case MySqlDataType.INT24://4 (3 bytes)
+                case MySqlDataType.YEAR:
+                    //check value range
+                    //cast data to uint   
+                    return data.myInt32;
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
+                    return (decimal)data.myDouble;
+                case MySqlDataType.NEWDECIMAL:
+                    return data.myDecimal;
+                case MySqlDataType.LONGLONG:
+                    return data.myInt64;
+                case MySqlDataType.BIT:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
+                    {
+                        //try convert to int first
+                        if (decimal.TryParse(data.myString, out decimal num))
+                        {
+                            return num;
+                        }
+                        else
+                        {
+                            throw new MySqlDataReaderException();
+                        }
+                    }
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.GEOMETRY:
+                default:
+                    throw new MySqlDataReaderException();
+            }
         }
 
         public double GetDouble(int colIndex)
         {
             //TODO: check match type and index here
-            return cells[colIndex].myDouble;
+            MyStructData data = cells[colIndex];
+            //conversion table
+            switch (data.type)
+            {
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
+                    //we can't convert this to byte
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.TINY: //
+                case MySqlDataType.SHORT://2
+                case MySqlDataType.LONG: //4
+                case MySqlDataType.INT24://4 (3 bytes)
+                case MySqlDataType.YEAR:
+                    //check value range
+                    //cast data to uint   
+                    return data.myInt32;
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
+                    return data.myDouble;
+                case MySqlDataType.NEWDECIMAL:
+                    //TODO: review here again
+                    return (double)data.myDecimal;
+                case MySqlDataType.LONGLONG:
+                    return data.myInt64;
+                case MySqlDataType.BIT:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
+                    {
+                        //try convert to int first
+                        if (double.TryParse(data.myString, out double num))
+                        {
+                            return num;
+                        }
+                        else
+                        {
+                            throw new MySqlDataReaderException();
+                        }
+                    }
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.GEOMETRY:
+                default:
+                    throw new MySqlDataReaderException();
+            }
         }
         public double GetDouble(string colName)
         {
             //TODO: check match type and index here
             return GetDouble(GetOrdinal(colName));
-        }
-
-
+        } 
         public decimal GetDecimal(string colName)
         {
             return GetDecimal(GetOrdinal(colName));
         }
         public string GetString(int colIndex)
         {
-            //TODO: check match type and index here
-            return cells[colIndex].myString;
+            //TODO: check match type and check index here
+            //TODO: check match type and check index here 
+            //TODO: check this very carefully ***
+            MyStructData data = cells[colIndex];
+            //conversion table
+            switch (data.type)
+            {
+                case MySqlDataType.TIMESTAMP:
+                case MySqlDataType.DATE:
+                case MySqlDataType.DATETIME:
+                case MySqlDataType.NEWDATE:
+                    return data.myDateTime.ToString("s");
+                case MySqlDataType.TINY: //
+                case MySqlDataType.SHORT://2
+                case MySqlDataType.LONG: //4
+                case MySqlDataType.INT24://4 (3 bytes)
+                case MySqlDataType.YEAR:
+                    return data.myInt32.ToString();
+                case MySqlDataType.FLOAT:
+                case MySqlDataType.DOUBLE:
+                    return data.myDouble.ToString();
+                case MySqlDataType.NEWDECIMAL:
+                    return data.myDecimal.ToString();
+                case MySqlDataType.LONGLONG:
+                    return data.myInt64.ToString();
+                case MySqlDataType.BIT:
+                    //convert bit to string
+                    //TODO: review
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.STRING:
+                case MySqlDataType.VAR_STRING:
+                    {
+                        return data.myString;
+                    }
+                case MySqlDataType.TINY_BLOB:
+                case MySqlDataType.MEDIUM_BLOB:
+                case MySqlDataType.LONG_BLOB:
+                case MySqlDataType.BLOB:
+                    throw new MySqlDataReaderException();
+                case MySqlDataType.GEOMETRY:
+                default:
+                    throw new MySqlDataReaderException();
+            } 
         }
         public string GetString(string colName)
         {
@@ -745,9 +1371,9 @@ namespace SharpConnect.MySql
                 case MySqlDataType.LONG:
                 case MySqlDataType.INT24:
                 case MySqlDataType.YEAR:
-                    return data.myInt32; 
+                    return data.myInt32;
                 case MySqlDataType.LONGLONG:
-                    return data.myInt64;                
+                    return data.myInt64;
 
                 case MySqlDataType.DECIMAL:
                 case MySqlDataType.NEWDECIMAL:
@@ -807,6 +1433,12 @@ namespace SharpConnect.MySql
         }
 
     }
+
+
+
+
+
+
 
     class Utf8StringConverter : IStringConverter
     {
