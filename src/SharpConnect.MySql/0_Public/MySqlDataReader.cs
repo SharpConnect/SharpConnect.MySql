@@ -1197,7 +1197,7 @@ namespace SharpConnect.MySql
         {
             //TODO: check match type and index here
             return GetDouble(GetOrdinal(colName));
-        } 
+        }
         public decimal GetDecimal(string colName)
         {
             return GetDecimal(GetOrdinal(colName));
@@ -1246,7 +1246,7 @@ namespace SharpConnect.MySql
                 case MySqlDataType.GEOMETRY:
                 default:
                     throw new MySqlDataReaderException();
-            } 
+            }
         }
         public string GetString(string colName)
         {
@@ -1457,14 +1457,14 @@ namespace SharpConnect.MySql
         }
     }
 
-    class MySqlExecException : Exception
+    public class MySqlExecException : Exception
     {
-        public MySqlExecException(MySqlErrorResult err)
+        internal MySqlExecException(MySqlErrorResult err)
             : base(err.ToString())
         {
             this.Error = err;
         }
-        public MySqlErrorResult Error { get; private set; }
+        internal MySqlErrorResult Error { get; private set; }
         public override string ToString()
         {
             return Error.ToString();

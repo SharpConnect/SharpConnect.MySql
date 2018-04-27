@@ -53,6 +53,7 @@ namespace SharpConnect.MySql.AsyncPatt
             return ch.AddTask(() =>
             {
                 ch.AutoCallNext = false;
+                cmd.ExectNonQueryInAsyncModel = true;
                 cmd.ExecuteNonQuery(ch.Next);
 
             });

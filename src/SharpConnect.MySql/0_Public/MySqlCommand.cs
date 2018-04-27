@@ -36,8 +36,13 @@ namespace SharpConnect.MySql
 
             public static int ExecuteNonQuery(this MySqlCommand cmd)
             {
+                cmd.ExectNonQueryInAsyncModel = false;
                 cmd.InternalExecuteNonQuery();
-
+                
+                if (cmd.HasError)
+                {
+                    throw cmd.Error;
+                }
                 return (int)cmd.AffectedRows;
             }
         }
@@ -50,6 +55,7 @@ namespace SharpConnect.MySql
             public static void Prepare(this MySqlCommand cmd, Action nextAction)
             {
                 cmd.InternalPrepare(nextAction);
+
             }
             public static void ExecuteReader(this MySqlCommand cmd, Action<MySqlDataReader> eachRow)
             {
@@ -167,10 +173,12 @@ namespace SharpConnect.MySql
             _query = new Query(Connection.Conn, _sqlStringTemplate, Parameters);
             _query.SetErrorListener(err =>
             {
-                HasError = true;
+                this.Error = new MySqlExecException(err);
+                throw this.Error;
             });
             _query.Prepare(nextAction);
         }
+
         /// <summary>
         /// sync execute reader
         /// </summary>
@@ -262,6 +270,7 @@ namespace SharpConnect.MySql
             _query.Execute(true, () => { });//send empty lambda for async  
         }
 
+        internal bool ExectNonQueryInAsyncModel { get; set; }
         /// <summary>
         /// sync/async execute non query
         /// </summary>
@@ -273,14 +282,35 @@ namespace SharpConnect.MySql
                 _query = new Query(Connection.Conn, _sqlStringTemplate, Parameters);
                 _query.SetErrorListener(err =>
                 {
-                    HasError = true;
+                    this.Error = new MySqlExecException(err);
+                    if (this.ExectNonQueryInAsyncModel)
+                    {
+                        throw this.Error;
+                    }
                 });
+
             }
-            _query.Execute(false, nextAction);
+            _query.Execute(false, nextAction); 
         }
 
 
-        public bool HasError { get; private set; }
+        public bool HasError
+        {
+            get { return _latestError != null; }
+        }
+
+        MySqlExecException _latestError;
+        public MySqlExecException Error
+        {
+            get
+            {
+                return _latestError;
+            }
+            set
+            {
+                _latestError = value;
+            }
+        }
         public uint LastInsertedId
         {
             get
@@ -305,7 +335,6 @@ namespace SharpConnect.MySql
             }
         }
     }
-
 
 
 }

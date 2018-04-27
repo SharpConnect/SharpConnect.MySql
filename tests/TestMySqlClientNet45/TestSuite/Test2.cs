@@ -41,6 +41,78 @@ namespace MySqlTest
             }
 
         }
+        [Test]
+        public static void T_InsertAndSelect2()
+        {
+            int n = 1;
+            long total;
+            long avg;
+
+            Test(n, TimeUnit.Ticks, out total, out avg, () =>
+            {
+                var connStr = GetMySqlConnString();
+                var conn = new MySqlConnection(connStr);
+                conn.UseConnectionPool = true;
+                conn.Open();
+
+                DropTableIfExists(conn);
+
+                //-----------------------
+                {
+                    //create table
+                    string sql = "create table test001(col_id int(10) unsigned not null auto_increment, col1 int(10)," +
+                "col2 int(11) unsigned, primary key(col_id) )";
+                    var cmd = new MySqlCommand(sql, conn);
+                    cmd.ExecuteNonQuery();
+                }
+                //-----------------------
+                for (int i = 0; i < 100; ++i)
+                {
+                    string sql = "insert into test001(col1,col2) values(?col1, ?col2);";
+
+                    var cmd = new MySqlCommand(sql, conn);
+                    cmd.Parameters.AddWithValue("?col1", -10);
+                    cmd.Parameters.AddWithValue("?col2", 10);
+
+                    cmd.ExecuteNonQuery();
+                    uint lastInsertId = cmd.LastInsertedId;
+                }
+                //-----------------------
+                {
+
+                    string sql = "select col1,col2 from test001";
+                    var cmd = new MySqlCommand(sql, conn);
+#if DEBUG
+                    conn.dbugPleaseBreak = true;
+#endif
+                    var reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        object o0 = reader.GetValue(0);
+                        object o1 = reader.GetValue(1);
+                        //
+                        object o0_1 = reader.GetString(0);
+                        object o1_1 = reader.GetString(1);
+
+                        object o0_2 = reader.GetDouble(0);
+                        object o1_2 = reader.GetDouble(1);
+
+                        object o0_3 = reader.GetDecimal(0);
+                        object o1_3 = reader.GetDecimal(1);
+
+                        object o0_4 = reader.GetInt16(0);
+                        object o1_4 = reader.GetUInt8(1);
+                    }
+                    reader.Close();
+                }
+                conn.Close();
+            });
+            Report.WriteLine("avg:" + avg);
+
+
+        }
+
+
         static void DropTableIfExists(MySqlConnection conn)
         {
             string sql = "drop table if exists test001";
@@ -50,7 +122,7 @@ namespace MySqlTest
 
         static void CreateTable(MySqlConnection conn)
         {
-            string sql = "create table test001(col_id  int(10) unsigned not null auto_increment, col1 int(10)," +
+            string sql = "create table test001(col_id int(10) unsigned not null auto_increment, col1 int(10)," +
                 "col2 char(2),col3 varchar(255),col4 datetime,col5 decimal(5,2), col6 decimal(16,8), primary key(col_id) )";
             var cmd = new MySqlCommand(sql, conn);
             cmd.ExecuteNonQuery();

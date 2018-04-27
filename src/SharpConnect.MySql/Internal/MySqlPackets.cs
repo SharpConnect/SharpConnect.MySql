@@ -408,7 +408,7 @@ namespace SharpConnect.MySql.Internal
             where T : struct
         {
             int size = System.Runtime.InteropServices.Marshal.SizeOf(str);
-            byte[] arr = new byte[size]; 
+            byte[] arr = new byte[size];
             unsafe
             {
                 fixed (byte* h = &arr[0])
@@ -418,15 +418,15 @@ namespace SharpConnect.MySql.Internal
             }
             return arr;
         }
-        
+
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
         struct EncodedDateTime
         {
             public ushort year;
             public byte month, day, hour, minute, second;
-            public int second_part;            
+            public int second_part;
         }
-         
+
         static bool WriteValueByType(MySqlStreamWriter writer,
             ref MyStructData dataTemp,
             ref TempSingleValueHolder singleValueHolder)
@@ -444,9 +444,9 @@ namespace SharpConnect.MySql.Internal
                         //we not write null data
                         return true;
                     case MySqlDataType.DATE:
-                    case MySqlDataType.DATETIME:                    
+                    case MySqlDataType.DATETIME:
                         {
-                            EncodedDateTime mysqlDtm = new EncodedDateTime(); 
+                            EncodedDateTime mysqlDtm = new EncodedDateTime();
 
                             DateTime dtm = dataTemp.myDateTime;
                             mysqlDtm.year = (ushort)dtm.Year;
@@ -455,10 +455,10 @@ namespace SharpConnect.MySql.Internal
                             //
                             mysqlDtm.hour = (byte)dtm.Hour;
                             mysqlDtm.minute = (byte)dtm.Minute;
-                            mysqlDtm.second = (byte)dtm.Second; 
-                            singleValueHolder.isBufferOrString = true; 
+                            mysqlDtm.second = (byte)dtm.Second;
+                            singleValueHolder.isBufferOrString = true;
 
-                            byte[] dtmBuffer = GetBytes(mysqlDtm); 
+                            byte[] dtmBuffer = GetBytes(mysqlDtm);
 
                             singleValueHolder.bufferContent = dtmBuffer;
                             singleValueHolder.contentLen = dtmBuffer.Length;
@@ -471,8 +471,8 @@ namespace SharpConnect.MySql.Internal
                                 //write in first round
                                 writer.WriteLengthCodedBuffer(singleValueHolder.bufferContent);
                                 return true;
-                            } 
-                        } 
+                            }
+                        }
                         break;
                     case MySqlDataType.BIT:
                     case MySqlDataType.BLOB:
@@ -928,6 +928,8 @@ namespace SharpConnect.MySql.Internal
                     writer.WriteLengthCodedString(dataTemp.myString);
                     break;
                 case MySqlDataType.LONG:
+                    //TODO: review here again!
+                    throw new NotSupportedException();
                     writer.WriteUnsignedNumber(4, (uint)dataTemp.myInt32);
                     break;
                 case MySqlDataType.LONGLONG:
@@ -1006,7 +1008,7 @@ namespace SharpConnect.MySql.Internal
                 _sqlState = r.ReadString(5);
             }
 
-            message = r.ReadPacketTerminatedString(); 
+            message = r.ReadPacketTerminatedString();
         }
 
         public override void WritePacket(MySqlStreamWriter writer)
