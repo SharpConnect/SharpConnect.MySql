@@ -1165,7 +1165,7 @@ namespace SharpConnect.MySql
                     return data.myDouble;
                 case MySqlDataType.NEWDECIMAL:
                     //TODO: review here again
-                    return (double)data.myDecimal;
+                    return Convert.ToDouble(data.myDecimal);
                 case MySqlDataType.LONGLONG:
                     return data.myInt64;
                 case MySqlDataType.BIT:
@@ -1215,6 +1215,7 @@ namespace SharpConnect.MySql
                 case MySqlDataType.DATE:
                 case MySqlDataType.DATETIME:
                 case MySqlDataType.NEWDATE:
+                    //convert datetime to string
                     return data.myDateTime.ToString("s");
                 case MySqlDataType.TINY: //
                 case MySqlDataType.SHORT://2

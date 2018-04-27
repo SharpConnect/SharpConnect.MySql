@@ -401,6 +401,9 @@ namespace SharpConnect.MySql.Internal
     }
 
 
+
+
+
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
     struct MyStructData
     {
@@ -429,8 +432,7 @@ namespace SharpConnect.MySql.Internal
         public string myString;
         [System.Runtime.InteropServices.FieldOffset(24)]
         public MySqlDataType type; //1  byte
-
-
+        
         public override string ToString()
         {
             switch (type)
