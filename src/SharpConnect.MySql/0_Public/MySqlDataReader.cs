@@ -148,10 +148,7 @@ namespace SharpConnect.MySql
         //---------------------------------------------
 
         internal bool StopReadingNextRow { get; set; } //for async read state
-
-
-
-
+         
 
         internal virtual void InternalClose(Action nextAction = null) { }
         internal bool IsEmptyTable
