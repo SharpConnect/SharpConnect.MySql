@@ -148,7 +148,7 @@ namespace SharpConnect.MySql
         //---------------------------------------------
 
         internal bool StopReadingNextRow { get; set; } //for async read state
-         
+
 
         internal virtual void InternalClose(Action nextAction = null) { }
         internal bool IsEmptyTable
@@ -617,6 +617,17 @@ namespace SharpConnect.MySql
         public string GetString(int colIndex)
         {
             //TODO: check match type and index here
+            if (!(cells[colIndex].myObj is string))
+            {
+                if (cells[colIndex].myObj is byte[])
+                {
+                    return System.Text.Encoding.UTF8.GetString(cells[colIndex].myBuffer);
+                }
+                else
+                {
+                    return null;
+                }
+            }
             return cells[colIndex].myString;
         }
         public string GetString(string colName)
@@ -742,9 +753,9 @@ namespace SharpConnect.MySql
                 case MySqlDataType.LONG:
                 case MySqlDataType.INT24:
                 case MySqlDataType.YEAR:
-                    return data.myInt32; 
+                    return data.myInt32;
                 case MySqlDataType.LONGLONG:
-                    return data.myInt64;                
+                    return data.myInt64;
 
                 case MySqlDataType.DECIMAL:
                 case MySqlDataType.NEWDECIMAL:
@@ -805,7 +816,7 @@ namespace SharpConnect.MySql
 
     }
 
-    class Utf8StringConverter : IStringConverter
+    public class Utf8StringConverter : IStringConverter
     {
         public string ReadConv(byte[] input)
         {
@@ -901,7 +912,7 @@ namespace SharpConnect.MySql
         /// </summary>
         internal void WaitUntilFirstDataArrive()
         {
-            TRY_AGAIN:
+        TRY_AGAIN:
             if (emptySubTable)
             {
                 //no current table 
@@ -953,7 +964,7 @@ namespace SharpConnect.MySql
         /// <param name="onEachSubTable"></param>
         internal void ReadSubTable(Action<MySqlSubTable> onEachSubTable)
         {
-            TRY_AGAIN:
+        TRY_AGAIN:
 
             if (this.IsEmptyTable)
             {
@@ -1063,7 +1074,7 @@ namespace SharpConnect.MySql
         protected internal override bool InternalRead()
         {
 
-            TRY_AGAIN:
+        TRY_AGAIN:
             if (IsEmptyTable)
             {
                 //no current table 
