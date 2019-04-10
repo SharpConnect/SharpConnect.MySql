@@ -145,7 +145,7 @@ namespace SharpConnect.MySql
         }
         public string CommandText
         {
-            get { return this._sqlStringTemplate.UserRawSql; }
+            get { return _sqlStringTemplate.UserRawSql; }
         }
         MySqlConnection _conn;
         public MySqlConnection Connection
