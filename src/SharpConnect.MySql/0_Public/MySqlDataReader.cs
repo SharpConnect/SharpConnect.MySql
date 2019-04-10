@@ -558,7 +558,23 @@ namespace SharpConnect.MySql
         }
         public int GetInt32(int colIndex)
         {
-            //TODO: check match type and check index here
+            //TODO: check match type and check index here             
+            return cells[colIndex].myInt32;
+        }
+        public int ConvertToInt32(int colIndex)
+        {
+            if (cells[colIndex].type == MySqlDataType.DECIMAL ||
+               cells[colIndex].type == MySqlDataType.NEWDECIMAL)
+            {
+                //parse from string 
+                //to double -> to int
+                string numAsString = cells[colIndex].myString;
+                if (double.TryParse(numAsString, out double result))
+                {
+                    return (int)result;
+                }
+                return 0;
+            }
             return cells[colIndex].myInt32;
         }
         public int GetInt32(string colName)
