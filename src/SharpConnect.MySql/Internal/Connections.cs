@@ -185,7 +185,7 @@ namespace SharpConnect.MySql.Internal
                                 //delete recv handle **before** invoke it, and
                                 //reset state to 'rest' state
                                 this.whenRecvData = null;
-                                this._workingState = WorkingState.Rest;
+                                _workingState = WorkingState.Rest;
                                 tmpWhenRecvData(result);
                             }
                         }
@@ -257,14 +257,7 @@ namespace SharpConnect.MySql.Internal
             //--------------------------------
 
             ////blocking***
-            ////wait *** 
-            ////TODO: implement wait logic,timeout logic,cancel logic here*** 
-            ////------------------------------
-            ////_startWait = DateTime.Now;
-            //while (_globalWaiting)
-            //{
-            //    System.Threading.Thread.Sleep(0); //tight loop,***
-            //};  
+            ////wait ***  
         }
         internal void UnWait()
         {
@@ -274,7 +267,7 @@ namespace SharpConnect.MySql.Internal
                 _globalWaiting = false;
                 Monitor.Pulse(_connLocker);
             }
-            //_globalWaiting = false;
+            
         }
 
         /// <summary>
@@ -288,11 +281,11 @@ namespace SharpConnect.MySql.Internal
                 throw new NotSupportedException("already connected");
             }
             _mysqlParserMx.UseConnectionParser();
-            this._workingState = WorkingState.Rest;
+            _workingState = WorkingState.Rest;
             //--------------
             var endpoint = new IPEndPoint(IPAddress.Parse(config.host), config.port);
             socket.Connect(endpoint);
-            this._workingState = WorkingState.Rest;
+            _workingState = WorkingState.Rest;
             //--------------
             //**start listen after connect
             InitWait();
@@ -338,7 +331,7 @@ namespace SharpConnect.MySql.Internal
                         var ok = mysql_result2 as MySqlOkResult;
                         if (ok != null)
                         {
-                            this._workingState = WorkingState.Rest;
+                            _workingState = WorkingState.Rest;
                         }
                         else
                         {
@@ -432,7 +425,7 @@ namespace SharpConnect.MySql.Internal
             }
 #endif
             this.whenSendCompleted = whenSendCompleted;
-            this._workingState = WorkingState.Sending;
+            _workingState = WorkingState.Sending;
             sendIO.EnqueueOutputData(sendBuffer, len);
             sendIO.StartSendAsync();
         }
@@ -453,7 +446,7 @@ namespace SharpConnect.MySql.Internal
             }
 #endif
             this.whenRecvData = whenCompleteAction;
-            this._workingState = WorkingState.Receiving;
+            _workingState = WorkingState.Receiving;
             recvIO.StartReceive();
         }
 

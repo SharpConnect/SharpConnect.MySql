@@ -47,7 +47,7 @@ namespace SharpConnect.MySql.Internal
         public Packet(PacketHeader header)
         {
             //ensure that we have header before parse packet body 
-            this._header = header;
+            _header = header;
         }
         /// <summary>
         /// parse only body part, please ensure content length before parse
@@ -228,7 +228,7 @@ namespace SharpConnect.MySql.Internal
 
         public override void WritePacket(MySqlStreamWriter writer)
         {
-            Write(writer, this._sql);
+            Write(writer, _sql);
         }
 
         /// <summary>
@@ -308,7 +308,7 @@ namespace SharpConnect.MySql.Internal
         }
         public override void WritePacket(MySqlStreamWriter writer)
         {
-            this._header = Write(writer);
+            _header = Write(writer);
         }
         public static PacketHeader Write(MySqlStreamWriter writer)
         {
@@ -339,7 +339,7 @@ namespace SharpConnect.MySql.Internal
 
         public override void WritePacket(MySqlStreamWriter writer)
         {
-            this._header = Write(writer, this._sql);
+            _header = Write(writer, _sql);
         }
         public static PacketHeader Write(MySqlStreamWriter writer, string sql)
         {
@@ -372,7 +372,7 @@ namespace SharpConnect.MySql.Internal
 
         public override void WritePacket(MySqlStreamWriter writer)
         {
-            Write(writer, this._statementId, _prepareValues);
+            Write(writer, _statementId, _prepareValues);
         }
         //----------------------------
         struct TempSingleValueHolder
@@ -859,7 +859,7 @@ namespace SharpConnect.MySql.Internal
         }
         public override void WritePacket(MySqlStreamWriter writer)
         {
-            _header = Write(writer, this._statementId);
+            _header = Write(writer, _statementId);
         }
         public static PacketHeader Write(MySqlStreamWriter writer, uint stmtId)
         {
@@ -1364,7 +1364,7 @@ namespace SharpConnect.MySql.Internal
         public DataRowPacket(PacketHeader header, byte[] rowDataBuffer)
             : base(header)
         {
-            this._rowDataBuffer = rowDataBuffer;
+            _rowDataBuffer = rowDataBuffer;
         }
         public override void ParsePacketContent(MySqlStreamReader r)
         {

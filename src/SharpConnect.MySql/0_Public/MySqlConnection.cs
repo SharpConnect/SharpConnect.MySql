@@ -140,7 +140,7 @@ namespace SharpConnect.MySql
         Connection _conn;
         public MySqlConnection(MySqlConnectionString connStr)
         {
-            this._connStr = connStr;
+            _connStr = connStr;
         }
         public MySqlConnection(string host, string uid, string psw, string db)
             : this(new MySqlConnectionString(host, uid, psw, db))
@@ -236,14 +236,14 @@ namespace SharpConnect.MySql
         {
             get
             {
-                return this._conn;
+                return _conn;
             }
         }
 
         public IStringConverter StringConv { get; set; }
         internal void SetMaxAllowedPacket(int value)
         {
-            this._conn.PacketWriter.SetMaxAllowedPacket(value);
+            _conn.PacketWriter.SetMaxAllowedPacket(value);
         }
 
 #if DEBUG

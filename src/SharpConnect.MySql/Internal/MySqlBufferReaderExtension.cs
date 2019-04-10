@@ -87,7 +87,7 @@ namespace SharpConnect.MySql.Internal
             //            break;
             //        default:
             //            var err = new Error('Unexpected first byte' + (bits ? ': 0x' + bits.toString(16) : ''));
-            //            err.offset = (this._offset - this._packetOffset - 1);
+            //            err.offset = (_offset - _packetOffset - 1);
             //            err.code = 'PARSER_BAD_LENGTH_BYTE';
             //            throw err;
             //    }
@@ -118,7 +118,7 @@ namespace SharpConnect.MySql.Internal
             //{
             //    value = (new BigNumber(low)).plus((new BigNumber(MUL_32BIT)).times(high)).toString();
 
-            //    if (this._supportBigNumbers)
+            //    if (_supportBigNumbers)
             //    {
             //        return value;
             //    }
@@ -127,7 +127,7 @@ namespace SharpConnect.MySql.Internal
             //      'parseLengthCodedNumber: JS precision range exceeded, ' +
             //      'number is >= 53 bit: "' + value + '"'
             //    );
-            //    err.offset = (this._offset - this._packetOffset - 8);
+            //    err.offset = (_offset - _packetOffset - 8);
             //    err.code = 'PARSER_JS_PRECISION_RANGE_EXCEEDED';
             //    throw err;
             //}
@@ -299,17 +299,17 @@ namespace SharpConnect.MySql.Internal
             }
             //if (bytes === 1)
             //{
-            //    return this._buffer[this._offset++];
+            //    return _buffer[_offset++];
             //}
 
-            //var buffer = this._buffer;
-            //var offset = this._offset + bytes - 1;
+            //var buffer = _buffer;
+            //var offset = _offset + bytes - 1;
             //var value = 0;
 
             //if (bytes > 4)
             //{
             //    var err = new Error('parseUnsignedNumber: Supports only up to 4 bytes');
-            //    err.offset = (this._offset - this._packetOffset - 1);
+            //    err.offset = (_offset - _packetOffset - 1);
             //    err.code = 'PARSER_UNSIGNED_TOO_LONG';
             //    throw err;
             //}
@@ -318,14 +318,14 @@ namespace SharpConnect.MySql.Internal
             //long start = Position;
             //long end = start + n - 1;
 
-            //while (offset >= this._offset)
+            //while (offset >= _offset)
             //{
             //    value = ((value << 8) | buffer[offset]) >>> 0;
             //    offset--;
             //}
 
 
-            //this._offset += bytes;
+            //_offset += bytes;
             //return value;
             //return value;
         }
