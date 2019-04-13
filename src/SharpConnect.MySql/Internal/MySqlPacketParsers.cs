@@ -79,8 +79,8 @@ namespace SharpConnect.MySql.Internal
         public ResultPacketParser(bool isProtocol41, bool isPrepare = false)
         {
 
-            this._isProtocol41 = isProtocol41;
-            this._forPrepareResult = isPrepare; //binary protocol
+            _isProtocol41 = isProtocol41;
+            _forPrepareResult = isPrepare; //binary protocol
         }
         public override void Reset()
         {
@@ -165,12 +165,12 @@ namespace SharpConnect.MySql.Internal
             {
                 return _needMoreData = true;
             }
-            if (this._currentMultResultSet != null)
+            if (_currentMultResultSet != null)
             {
                 //in multiple result set mode ***
                 //see https://dev.mysql.com/doc/internals/en/multi-resultset.html
                 //
-                var okPacket = new OkPacket(_currentHeader, this._isProtocol41);
+                var okPacket = new OkPacket(_currentHeader, _isProtocol41);
                 okPacket.ParsePacketContent(reader);
                 _parseResult = _currentMultResultSet;
                 _parsingState = ResultPacketState.ShouldEnd; //*
@@ -179,7 +179,7 @@ namespace SharpConnect.MySql.Internal
             }
             else
             {
-                var okPacket = new OkPacket(_currentHeader, this._isProtocol41);
+                var okPacket = new OkPacket(_currentHeader, _isProtocol41);
                 okPacket.ParsePacketContent(reader);
                 _parseResult = new MySqlOkResult(okPacket);
                 _parsingState = ResultPacketState.ShouldEnd; //*
@@ -241,8 +241,13 @@ namespace SharpConnect.MySql.Internal
                 return _needMoreData = true;
             }
 
+#if DEBUG
+            if (reader.dbugMonitorData1)
+            {
 
-            var fieldPacket = new FieldPacket(_currentHeader, this._isProtocol41);
+            }
+#endif
+            var fieldPacket = new FieldPacket(_currentHeader, _isProtocol41);
             fieldPacket.ParsePacketContent(reader);
             fieldPacket.FieldIndex = _tableHeader.ColumnCount; //set this before  add to field list
             _tableHeader.AddField(fieldPacket);
@@ -265,7 +270,7 @@ namespace SharpConnect.MySql.Internal
             {
                 return _needMoreData = true;
             }
-            var eofPacket = new EofPacket(_currentHeader, this._isProtocol41);
+            var eofPacket = new EofPacket(_currentHeader, _isProtocol41);
             eofPacket.ParsePacketContent(reader);
             _parsingState = ResultPacketState.Row_Header;
             return false;
@@ -388,7 +393,7 @@ namespace SharpConnect.MySql.Internal
                 return _needMoreData = true;
             }
             //finish all of each row
-            var eofPacket = new EofPacket(_currentHeader, this._isProtocol41);
+            var eofPacket = new EofPacket(_currentHeader, _isProtocol41);
             eofPacket.ParsePacketContent(reader);
 
             if (((eofPacket.serverStatus & (int)MySqlServerStatus.SERVER_MORE_RESULTS_EXISTS)) != 0)
@@ -493,6 +498,10 @@ namespace SharpConnect.MySql.Internal
                     if (_generateResultMode)
                     {
                         //generate new result
+                        if (_rows != null)
+                        {
+
+                        }
                         _rows = new List<DataRowPacket>();
                     }
                 }
@@ -539,7 +548,7 @@ namespace SharpConnect.MySql.Internal
 
         public PrepareResponsePacketParser(bool isProtocol41)
         {
-            this._isProtocol41 = isProtocol41;
+            _isProtocol41 = isProtocol41;
         }
         public override void Parse(MySqlStreamReader reader)
         {
@@ -703,7 +712,7 @@ namespace SharpConnect.MySql.Internal
                 return _needMoreData = true;
             }
 
-            var eofPacket = new EofPacket(_currentHeader, this._isProtocol41);
+            var eofPacket = new EofPacket(_currentHeader, _isProtocol41);
             eofPacket.ParsePacketContent(reader);
 
             if (_okPrepare.num_columns > 0)
@@ -765,7 +774,7 @@ namespace SharpConnect.MySql.Internal
                 return _needMoreData = true;
             }
 
-            var eofPacket = new EofPacket(_currentHeader, this._isProtocol41);
+            var eofPacket = new EofPacket(_currentHeader, _isProtocol41);
             eofPacket.ParsePacketContent(reader);
             //
             _finalResult = new MySqlPrepareResponseResult(_okPrepare, _tableHeader);
@@ -844,17 +853,17 @@ namespace SharpConnect.MySql.Internal
         //built in sub-parsers
         MySqlConnectionPacketParser connParser;
         PrepareResponsePacketParser prepareResponseParser;
-     
+
         //-------------------------
         public MySqlParserMx(ConnectionConfig userConfig)
         {
             this.userConfig = userConfig;
-            connParser = new MySqlConnectionPacketParser(); 
+            connParser = new MySqlConnectionPacketParser();
             //tableHeader.TypeCast = this.config.typeCast;
         }
         public void SetProtocol41(bool value)
         {
-            this._isProtocol41 = value;
+            _isProtocol41 = value;
         }
         public void UseConnectionParser()
         {
@@ -877,7 +886,7 @@ namespace SharpConnect.MySql.Internal
         {
             //switch from current parser to another
             ParseResult = null;
-            prepareResponseParser = new PrepareResponsePacketParser(this._isProtocol41);
+            prepareResponseParser = new PrepareResponsePacketParser(_isProtocol41);
             currentPacketParser = prepareResponseParser;
             _mysqlStreamReader.Reset();
         }

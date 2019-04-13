@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpConnect.MySql.Utils", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestMySqlClientNetCore", "tests\TestMySqlClientNetCore\TestMySqlClientNetCore.csproj", "{43D6B245-59A9-4AA5-957F-13EE3FACD23D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMySqlParser", "feature\TestMySqlParser\TestMySqlParser.csproj", "{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -150,6 +152,18 @@ Global
 		{43D6B245-59A9-4AA5-957F-13EE3FACD23D}.x86|Any CPU.Build.0 = Debug|Any CPU
 		{43D6B245-59A9-4AA5-957F-13EE3FACD23D}.x86|x86.ActiveCfg = Debug|Any CPU
 		{43D6B245-59A9-4AA5-957F-13EE3FACD23D}.x86|x86.Build.0 = Debug|Any CPU
+		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.Debug|x86.Build.0 = Debug|Any CPU
+		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.Release|x86.ActiveCfg = Release|Any CPU
+		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.Release|x86.Build.0 = Release|Any CPU
+		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.x86|Any CPU.ActiveCfg = Release|Any CPU
+		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.x86|Any CPU.Build.0 = Release|Any CPU
+		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.x86|x86.ActiveCfg = Release|Any CPU
+		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.x86|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
