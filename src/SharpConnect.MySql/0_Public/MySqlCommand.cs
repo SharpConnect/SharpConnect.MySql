@@ -37,7 +37,10 @@ namespace SharpConnect.MySql
             public static int ExecuteNonQuery(this MySqlCommand cmd)
             {
                 cmd.InternalExecuteNonQuery();
-
+                if (cmd.HasError)
+                {
+                    throw new NotSupportedException();
+                }
                 return (int)cmd.AffectedRows;
             }
         }
@@ -127,9 +130,12 @@ namespace SharpConnect.MySql
         public MySqlCommand(SqlStringTemplate sql, CommandParams cmds, MySqlConnection conn)
         {
             _sqlStringTemplate = sql;
-            Connection = conn;
             Parameters = cmds;
-            this.StringConverter = conn.StringConv;
+            Connection = conn;
+            if (conn != null)
+            {
+                this.StringConverter = conn.StringConv;
+            }
         }
 
         public CommandParams Parameters
@@ -139,9 +145,21 @@ namespace SharpConnect.MySql
         }
         public string CommandText
         {
-            get { return this._sqlStringTemplate.UserRawSql; }
+            get { return _sqlStringTemplate.UserRawSql; }
         }
-        public MySqlConnection Connection { get; set; }
+        MySqlConnection _conn;
+        public MySqlConnection Connection
+        {
+            get { return _conn; }
+            set
+            {
+                _conn = value;
+                if (this.StringConverter == null && value != null)
+                {
+                    this.StringConverter = value.StringConv;
+                }
+            }
+        }
 
 
         IStringConverter _stringConv;

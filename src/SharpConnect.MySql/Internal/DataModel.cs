@@ -427,6 +427,8 @@ namespace SharpConnect.MySql.Internal
         public byte[] myBuffer;
         [System.Runtime.InteropServices.FieldOffset(16)]
         public string myString;
+        [System.Runtime.InteropServices.FieldOffset(16)]
+        public object myObj;//**
         [System.Runtime.InteropServices.FieldOffset(24)]
         public MySqlDataType type; //1  byte
 
