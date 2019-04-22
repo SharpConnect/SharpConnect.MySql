@@ -86,8 +86,8 @@ namespace SharpConnect.MySql.Internal
 
         public void WriteHeader(PacketHeader header)
         {
-            //  var packets  = Math.floor(this._buffer.length / MAX_PACKET_LENGTH) + 1;
-            //  var buffer   = this._buffer;
+            //  var packets  = Math.floor(_buffer.length / MAX_PACKET_LENGTH) + 1;
+            //  var buffer   = _buffer;
             //int maxPacketLength = MAX_PACKET_LENGTH;
 
             long totalPacketLength = OnlyPacketContentLength + 4;
@@ -350,8 +350,8 @@ namespace SharpConnect.MySql.Internal
 
                 //_writer.Write((byte)252); //encode  0xfc
                 ////// 16 Bit
-                ////this._buffer[this._offset++] = value & 0xff;
-                ////this._buffer[this._offset++] = (value >> 8) & 0xff;
+                ////_buffer[_offset++] = value & 0xff;
+                ////_buffer[_offset++] = (value >> 8) & 0xff;
                 //_writer.Write((byte)(value & 0xff));
                 //_writer.Write((byte)((value >> 8) & 0xff));
             }
@@ -383,7 +383,7 @@ namespace SharpConnect.MySql.Internal
                 outputBuffer[6] = ((byte)((value >> 40) & 0xff));
                 outputBuffer[7] = ((byte)((value >> 48) & 0xff));
                 //// Set last byte to 0, as we can only support 53 bits in JS (see above)
-                //this._buffer[this._offset++] = 0;
+                //_buffer[_offset++] = 0;
                 outputBuffer[8] = ((byte)0);
                 return 9;
 
@@ -400,7 +400,7 @@ namespace SharpConnect.MySql.Internal
                 //_writer.Write((byte)((value >> 40) & 0xff));
                 //_writer.Write((byte)((value >> 48) & 0xff));
                 ////// Set last byte to 0, as we can only support 53 bits in JS (see above)
-                ////this._buffer[this._offset++] = 0;
+                ////_buffer[_offset++] = 0;
                 //_writer.Write((byte)0);
             }
         }
@@ -423,8 +423,8 @@ namespace SharpConnect.MySql.Internal
             {
                 _writer.Write((byte)252); //encode  0xfc
                 //// 16 Bit
-                //this._buffer[this._offset++] = value & 0xff;
-                //this._buffer[this._offset++] = (value >> 8) & 0xff;
+                //_buffer[_offset++] = value & 0xff;
+                //_buffer[_offset++] = (value >> 8) & 0xff;
                 _writer.Write((byte)(value & 0xff));
                 _writer.Write((byte)((value >> 8) & 0xff));
             }
@@ -450,7 +450,7 @@ namespace SharpConnect.MySql.Internal
                 _writer.Write((byte)((value >> 40) & 0xff));
                 _writer.Write((byte)((value >> 48) & 0xff));
                 //// Set last byte to 0, as we can only support 53 bits in JS (see above)
-                //this._buffer[this._offset++] = 0;
+                //_buffer[_offset++] = 0;
                 _writer.Write((byte)0);
             }
         }
@@ -488,9 +488,9 @@ namespace SharpConnect.MySql.Internal
             {
                 return;
             }
-            //this._allocate(bytes);
-            //this._buffer.write(value, this._offset, 'utf-8');
-            //this._offset += bytes;
+            //_allocate(bytes);
+            //_buffer.write(value, _offset, 'utf-8');
+            //_offset += bytes;
             _writer.Write(buff);
         }
 

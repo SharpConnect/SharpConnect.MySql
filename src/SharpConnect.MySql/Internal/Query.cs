@@ -89,8 +89,8 @@ namespace SharpConnect.MySql.Internal
                 throw new Exception("Sql command can not null.");
             }
             //--------------------------------------------------------------
-            this._conn = conn;
-            this._cmdParams = cmdParams;
+            _conn = conn;
+            _cmdParams = cmdParams;
             //--------------------------------------------------------------
 
             nestTables = false;
@@ -101,12 +101,12 @@ namespace SharpConnect.MySql.Internal
         }
         bool LateClose()
         {
-            if (this._execState == QueryExecState.Closed) { return true; }
+            if (_execState == QueryExecState.Closed) { return true; }
 
             if (_queryUsedMode == QueryUseMode.ExecNonQuery || _queryUsedMode == QueryUseMode.Prepare)
             {
                 this.Close();
-                this._conn.BindingQuery = null;
+                _conn.BindingQuery = null;
                 return true;
             }
             return false;
@@ -116,11 +116,11 @@ namespace SharpConnect.MySql.Internal
         public OkPacket OkPacket { get; private set; }
         public void SetResultListener(Action<MySqlTableResult> tableResultListener)
         {
-            this._tableResultListener = tableResultListener;
+            _tableResultListener = tableResultListener;
         }
         public void SetErrorListener(Action<MySqlErrorResult> errorListener)
         {
-            this._errorListener = errorListener;
+            _errorListener = errorListener;
         }
 
         /// <summary>
