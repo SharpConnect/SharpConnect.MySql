@@ -896,8 +896,8 @@ namespace SharpConnect.MySql
             {
                 lock (_tableResultCompleteLock)
                 {
-                    _tableResultIsNotComplete = false;
                     _firstResultArrived = true;
+                    _tableResultIsNotComplete = false;
 
                     //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
                     System.Threading.Monitor.Pulse(_tableResultCompleteLock);
@@ -917,9 +917,10 @@ namespace SharpConnect.MySql
 
                 lock (_tableResultCompleteLock)
                 {
-                    _tableResultIsNotComplete = subtable.HasFollower; //*** 
+
                     invokeFirstDataArrive = !_firstResultArrived;
                     _firstResultArrived = true;
+                    _tableResultIsNotComplete = subtable.HasFollower; //*** 
 
                     //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
                     System.Threading.Monitor.Pulse(_tableResultCompleteLock);
@@ -975,24 +976,7 @@ namespace SharpConnect.MySql
                     }
                     //we are in isPartial table mode (not complete)
                     //so must wait until the table arrive ** 
-                    goto TRY_AGAIN;
-                    //-------------------------------- 
-                    //if (_tableResultIsNotComplete)
-                    //{
-                    //    //we are in isPartial table mode (not complete)
-                    //    //so must wait until the table arrive **
-                    //    //------------------                    
-                    //    //wait ***
-                    //    //------------------
-                    //    //TODO: review here *** tight loop
-                    //    //*** tigh loop
-                    //    //wait on this
-                    //    while (_tableResultIsNotComplete)
-                    //    {
-
-                    //    }
-                    //    goto TRY_AGAIN;
-                    //}
+                    goto TRY_AGAIN; 
                 }
             }
         }
@@ -1002,7 +986,7 @@ namespace SharpConnect.MySql
         /// <param name="onFirstDataArrived"></param>
         internal void SetFirstDataArriveDelegate(Action<MySqlQueryDataReader> onFirstDataArrived)
         {
-            this._onFirstDataArrived = onFirstDataArrived;
+            _onFirstDataArrived = onFirstDataArrived;
         }
 
 
@@ -1146,28 +1130,12 @@ namespace SharpConnect.MySql
                         //so must wait until the table arrive **
                         //------------------                    
                         //wait ***
-                        //------------------
-                        //TODO: review here *** tight loop
-                        //while (_tableResultIsNotComplete)
-                        //{
-                        //} //*** tight loop
-                        //------------------
+                        //------------------ 
                         lock (_tableResultCompleteLock)
                         {
                             while (_tableResultIsNotComplete)
                                 System.Threading.Monitor.Wait(_tableResultCompleteLock);
                         }
-
-                        goto TRY_AGAIN;
-                    }
-                    else if (!_firstResultArrived)
-                    {
-                        //another tight loop
-                        //wait for first result arrive
-                        //TODO: review here *** tight loop
-                        while (!_firstResultArrived)
-                        {
-                        }//*** tight loop
                         goto TRY_AGAIN;
                     }
                     else
