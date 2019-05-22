@@ -6,48 +6,45 @@ namespace SharpConnect.MySql.Internal
 {
     class WaitingTask
     {
-        Func<bool> action;
+        Func<bool> _action;
         public WaitingTask(Func<bool> action)
         {
-            this.action = action;
+            _action = action;
         }
-        public bool DoTask()
-        {
-            //return true if finish
-            return action();
-        }
+        public bool DoTask() => _action();
+        //return true if finish 
     }
 
     static class CentralWaitingTasks
     {
 
-        static Queue<WaitingTask> waitingQueue = new Queue<WaitingTask>();
-        static bool working = false;
-        static bool timerIsRunning = false;
-        static System.Threading.Timer centralTimer;
-        static object queueLock = new object();
+        static Queue<WaitingTask> s_waitingQueue = new Queue<WaitingTask>();
+        static bool s_working = false;
+        static bool s_timerIsRunning = false;
+        static System.Threading.Timer s_centralTimer;
+        static object s_queueLock = new object();
         static CentralWaitingTasks()
         {
             //timer is stop
-            centralTimer = new System.Threading.Timer(Timer_Tick, null,
+            s_centralTimer = new System.Threading.Timer(Timer_Tick, null,
                 System.Threading.Timeout.Infinite,
                 System.Threading.Timeout.Infinite);
 
         }
         static void Timer_Tick(object state)
         {
-            if (working) { return; }
-            working = true;
+            if (s_working) { return; }
+            s_working = true;
             //---------------------- 
-            for (;;)
+            for (; ; )
             {
                 //clear jobs
                 WaitingTask waitingTask = null;
-                lock (queueLock)
+                lock (s_queueLock)
                 {
-                    if (waitingQueue.Count > 0)
+                    if (s_waitingQueue.Count > 0)
                     {
-                        waitingTask = waitingQueue.Dequeue();
+                        waitingTask = s_waitingQueue.Dequeue();
                     }
                     else
                     {
@@ -71,14 +68,14 @@ namespace SharpConnect.MySql.Internal
                 }
             }
 
-            working = false;
+            s_working = false;
         }
         public static void AddWaitingTask(WaitingTask waitingTask)
         {
-            lock (queueLock)
+            lock (s_queueLock)
             {
-                waitingQueue.Enqueue(waitingTask);
-                if (!timerIsRunning)
+                s_waitingQueue.Enqueue(waitingTask);
+                if (!s_timerIsRunning)
                 {
                     StartTimer();
                 }
@@ -86,14 +83,14 @@ namespace SharpConnect.MySql.Internal
         }
         static void StartTimer()
         {
-            timerIsRunning = true;
-            centralTimer.Change(0, 1);
+            s_timerIsRunning = true;
+            s_centralTimer.Change(0, 1);
 
         }
         static void StopTimer()
         {
-            timerIsRunning = false;
-            centralTimer.Change(
+            s_timerIsRunning = false;
+            s_centralTimer.Change(
                    System.Threading.Timeout.Infinite,
                    System.Threading.Timeout.Infinite);
 
