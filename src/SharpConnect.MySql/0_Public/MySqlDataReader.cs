@@ -617,7 +617,11 @@ namespace SharpConnect.MySql
             //TODO: check match type and index here
             return cells[colIndex].myDecimal;
         }
-
+        public float GetFloat(int colIndex)
+        {
+            //TODO: check match type and index here
+            return (float)(cells[colIndex].myDouble);
+        }
         public double GetDouble(int colIndex)
         {
             //TODO: check match type and index here
@@ -869,17 +873,17 @@ namespace SharpConnect.MySql
     class MySqlQueryDataReader : MySqlDataReader
     {
         Query _query;
-        Queue<MySqlTableResult> subTables = new Queue<MySqlTableResult>();
+        Queue<MySqlTableResult> _subTables = new Queue<MySqlTableResult>();
 
-        bool emptySubTable = true;
+        bool _emptySubTable = true;
         //-------------------------
 
         //int currentTableRowCount = 0;
         //int currentRowIndex = 0;
         //-------------------------
-        bool firstResultArrived;
-        bool tableResultIsNotComplete;
-        Action<MySqlQueryDataReader> onFirstDataArrived;
+        bool _firstResultArrived;
+        bool _tableResultIsNotComplete;
+        Action<MySqlQueryDataReader> _onFirstDataArrived;
         MySqlErrorResult _errorResult = null;
 
         internal MySqlQueryDataReader(Query query)
@@ -889,38 +893,34 @@ namespace SharpConnect.MySql
             //set result listener for query object  before actual query.Read()
             query.SetErrorListener(err =>
             {
-                firstResultArrived = true;
-                tableResultIsNotComplete = false;
+                _firstResultArrived = true;
+                _tableResultIsNotComplete = false;
                 _errorResult = err;
             });
             query.SetResultListener(subtable =>
             {
                 //we need the subtable must arrive in correct order *** 
-                lock (subTables)
+                lock (_subTables)
                 {
-                    subTables.Enqueue(subtable);
+                    _subTables.Enqueue(subtable);
                 }
 
-                tableResultIsNotComplete = subtable.HasFollower; //***
-                if (!firstResultArrived)
+                _tableResultIsNotComplete = subtable.HasFollower; //***
+                if (!_firstResultArrived)
                 {
-                    firstResultArrived = true;
-                    if (onFirstDataArrived != null)
+                    _firstResultArrived = true;
+                    if (_onFirstDataArrived != null)
                     {
-                        onFirstDataArrived(this);
-                        onFirstDataArrived = null;
+                        _onFirstDataArrived(this);
+                        _onFirstDataArrived = null;
                     }
                 }
             });
         }
-        public bool HasError
-        {
-            get { return _errorResult != null; }
-        }
-        public MySqlErrorResult Error
-        {
-            get { return _errorResult; }
-        }
+        public bool HasError => _errorResult != null;
+
+        public MySqlErrorResult Error => _errorResult;
+
 
         public override void SetCurrentRowIndex(int index)
         {
@@ -933,22 +933,22 @@ namespace SharpConnect.MySql
         internal void WaitUntilFirstDataArrive()
         {
         TRY_AGAIN:
-            if (emptySubTable)
+            if (_emptySubTable)
             {
                 //no current table 
                 bool hasSomeSubTables = false;
-                lock (subTables)
+                lock (_subTables)
                 {
-                    if (subTables.Count > 0)
+                    if (_subTables.Count > 0)
                     {
-                        MySqlSubTable subt = new MySqlSubTable(subTables.Dequeue());
+                        MySqlSubTable subt = new MySqlSubTable(_subTables.Dequeue());
                         SetCurrentSubTable(subt);
                         hasSomeSubTables = true;
                     }
                 }
                 if (!hasSomeSubTables)
                 {
-                    if (tableResultIsNotComplete)
+                    if (_tableResultIsNotComplete)
                     {
                         //we are in isPartial table mode (not complete)
                         //so must wait until the table arrive **
@@ -958,7 +958,7 @@ namespace SharpConnect.MySql
                         //TODO: review here *** tight loop
                         //*** tigh loop
                         //wait on this
-                        while (tableResultIsNotComplete)
+                        while (_tableResultIsNotComplete)
                         {
 
                         }
@@ -973,7 +973,7 @@ namespace SharpConnect.MySql
         /// <param name="onFirstDataArrived"></param>
         internal void SetFirstDataArriveDelegate(Action<MySqlQueryDataReader> onFirstDataArrived)
         {
-            this.onFirstDataArrived = onFirstDataArrived;
+            this._onFirstDataArrived = onFirstDataArrived;
         }
 
 
@@ -990,25 +990,25 @@ namespace SharpConnect.MySql
             {
                 //no current table  
                 bool hasSomeSubTables = false;
-                lock (subTables)
+                lock (_subTables)
                 {
-                    if (subTables.Count > 0)
+                    if (_subTables.Count > 0)
                     {
                         //1. get subtable
-                        SetCurrentSubTable(new MySqlSubTable(subTables.Dequeue()));
+                        SetCurrentSubTable(new MySqlSubTable(_subTables.Dequeue()));
                         hasSomeSubTables = true;
                     }
                 }
                 if (!hasSomeSubTables)
                 {
-                    if (tableResultIsNotComplete)
+                    if (_tableResultIsNotComplete)
                     {
                         //we are in isPartial table mode (not complete)
                         //so must wait until the table arrive **
                         //------------------                    
                         CentralWaitingTasks.AddWaitingTask(new WaitingTask(() =>
                         {
-                            if (tableResultIsNotComplete)
+                            if (_tableResultIsNotComplete)
                             {
                                 //not complete, continue waiting
                                 return false;
@@ -1021,12 +1021,12 @@ namespace SharpConnect.MySql
                             }
                         }));
                     }
-                    else if (!firstResultArrived)
+                    else if (!_firstResultArrived)
                     {
 
                         CentralWaitingTasks.AddWaitingTask(new WaitingTask(() =>
                         {
-                            if (!firstResultArrived)
+                            if (!_firstResultArrived)
                             {
                                 //not complete, continue waiting
                                 return false;
@@ -1099,11 +1099,11 @@ namespace SharpConnect.MySql
             {
                 //no current table 
                 bool hasSomeSubTables = false;
-                lock (subTables)
+                lock (_subTables)
                 {
-                    if (subTables.Count > 0)
+                    if (_subTables.Count > 0)
                     {
-                        MySqlSubTable subT = new MySqlSubTable(subTables.Dequeue());
+                        MySqlSubTable subT = new MySqlSubTable(_subTables.Dequeue());
                         SetCurrentSubTable(subT);
                         hasSomeSubTables = true;
                     }
@@ -1112,7 +1112,7 @@ namespace SharpConnect.MySql
                 if (!hasSomeSubTables)
                 {
 
-                    if (tableResultIsNotComplete)
+                    if (_tableResultIsNotComplete)
                     {
                         //we are in isPartial table mode (not complete)
                         //so must wait until the table arrive **
@@ -1120,18 +1120,18 @@ namespace SharpConnect.MySql
                         //wait ***
                         //------------------
                         //TODO: review here *** tight loop
-                        while (tableResultIsNotComplete)
+                        while (_tableResultIsNotComplete)
                         {
                         } //*** tight loop
                         //------------------
                         goto TRY_AGAIN;
                     }
-                    else if (!firstResultArrived)
+                    else if (!_firstResultArrived)
                     {
                         //another tight loop
                         //wait for first result arrive
                         //TODO: review here *** tight loop
-                        while (!firstResultArrived)
+                        while (!_firstResultArrived)
                         {
                         }//*** tight loop
                         goto TRY_AGAIN;
