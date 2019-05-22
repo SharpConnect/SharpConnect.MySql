@@ -129,10 +129,10 @@ namespace SharpConnect.Internal
 #if DEBUG
         public byte[] dbugReadToBytes()
         {
-            int bytesTransfer = recvArgs.BytesTransferred;
+            int bytesTransfer = _recvArgs.BytesTransferred;
             byte[] destBuffer = new byte[bytesTransfer];
-            Buffer.BlockCopy(recvArgs.Buffer,
-                recvStartOffset,
+            Buffer.BlockCopy(_recvArgs.Buffer,
+                _recvStartOffset,
                 destBuffer,
                 0, bytesTransfer);
             return destBuffer;
@@ -469,7 +469,7 @@ namespace SharpConnect.Internal
             {
                 //read from current index 
                 //and advanced the readIndex to next***
-                dbugWriteInfo(Position - 1 + " (byte) " + originalBuffer[readIndex + 1]);
+                dbugWriteInfo(Position - 1 + " (byte) " + _originalBuffer[_readIndex + 1]);
             }
 #endif
 

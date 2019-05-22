@@ -418,7 +418,7 @@ namespace SharpConnect.MySql.Internal
             }
             //--------------------------------------------------------------
 #if DEBUG
-            if (this.whenSendCompleted != null)
+            if (_whenSendCompleted != null)
             {
                 //must be null 
                 throw new Exception("sending something?...");
@@ -439,7 +439,7 @@ namespace SharpConnect.MySql.Internal
             }
             //--------------------------------------------------------------
 #if DEBUG
-            if (this.whenRecvData != null)
+            if (_whenRecvData != null)
             {
                 //must be null 
                 throw new Exception("receving something?...");
