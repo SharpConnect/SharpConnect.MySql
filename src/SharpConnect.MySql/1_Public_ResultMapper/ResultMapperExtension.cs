@@ -245,7 +245,11 @@ namespace SharpConnect.MySql.Mapper
         {
         }
         public RecordMapBase(Delegate del)
-            : base(del.GetMethodInfo())
+#if NET20
+                : base(del.GetMethodInfo())
+#else
+                : base(System.Reflection.RuntimeReflectionExtensions.GetMethodInfo(del))
+#endif
         {
         }
         protected U GetValueOrDefaultFromActualIndex<U>(int actualIndex)
