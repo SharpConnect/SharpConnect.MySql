@@ -27,12 +27,12 @@ namespace SharpConnect.MySql.Internal
 
     class SqlSection
     {
-        public readonly SqlSectionKind sectionKind;
+        public readonly SqlSectionKind SectionKind;
         public readonly string Text;
         public SqlSection(string text, SqlSectionKind sectionKind)
         {
             this.Text = text;
-            this.sectionKind = sectionKind;
+            this.SectionKind = sectionKind;
         }
 #if DEBUG
         public override string ToString()
@@ -221,17 +221,9 @@ namespace SharpConnect.MySql
             }
         }
 
-        internal List<SqlBoundSection> GetValueKeys()
-        {
-            return _valuesKeys;
-        }
-        internal string UserRawSql
-        {
-            get
-            {
-                return _userRawSql;
-            }
-        }
+        internal List<SqlBoundSection> GetValueKeys() => _valuesKeys;
+
+        internal string UserRawSql => _userRawSql;
 
         static void AppendOnlyTime(System.Text.StringBuilder stbuilder, DateTime dtm)
         {
@@ -328,7 +320,7 @@ namespace SharpConnect.MySql
             for (int i = 0; i < count; i++)
             {
                 var sqlSection = _sqlSections[i];
-                switch (sqlSection.sectionKind)
+                switch (sqlSection.SectionKind)
                 {
                     default:
                         throw new NotSupportedException();

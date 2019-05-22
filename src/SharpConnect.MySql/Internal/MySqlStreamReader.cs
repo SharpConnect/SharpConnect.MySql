@@ -71,25 +71,14 @@ namespace SharpConnect.MySql.Internal
         /// <summary>
         /// current stream's paring position
         /// </summary>
-        public long ReadPosition
-        {
-            get { return _stream.Position; }
-        }
+        public long ReadPosition => _stream.Position;
 
-        public bool Ensure(uint len)
-        {
-            return _stream.Position + len <= _currentInputLength;
-        }
+        public bool Ensure(uint len) => _stream.Position + len <= _currentInputLength;
+
         /// <summary>
         /// actual buffer length
         /// </summary>
-        public long CurrentInputLength
-        {
-            get
-            {
-                return _currentInputLength;
-            }
-        }
+        public long CurrentInputLength => _currentInputLength;
 
         public void Dispose()
         {
