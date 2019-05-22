@@ -214,10 +214,7 @@ namespace SharpConnect.MySql.Internal
             {
                 //can close twice without error
                 case QueryExecState.Closed:
-                    if (nextAction != null)
-                    {
-                        nextAction();
-                    }
+                    nextAction?.Invoke();
                     return; //***
                 case QueryExecState.Closing:
                     throw new Exception("conn is closing ...");
@@ -227,13 +224,17 @@ namespace SharpConnect.MySql.Internal
             //-------------------------------------------------
             if (nextAction == null)
             {
-                //blocking
+                //blocking***
                 _sqlParserMx.UseFlushMode(true);
                 //wait where   
                 //TODO: review here *** tight loop
                 while (!_recvComplete)
                 {
+                    //wait 
+                    System.Threading.Thread.Sleep(0);
                 };
+
+
                 _sqlParserMx.UseFlushMode(false); //switch back// 
                 //blocking 
                 if (_prepareContext != null)
@@ -247,7 +248,7 @@ namespace SharpConnect.MySql.Internal
             else
             {
 
-                //non blocking
+                //non blocking***
                 if (!_recvComplete)
                 {
                     _sqlParserMx.UseFlushMode(true);
@@ -356,7 +357,6 @@ namespace SharpConnect.MySql.Internal
         Action _whenRecvComplete;
         void RecvComplete()
         {
-
             //_recvComplete used by multithread
             _recvComplete = true;
             //need to store to local var
@@ -390,12 +390,11 @@ namespace SharpConnect.MySql.Internal
                 }
             }
         }
-
         void RecvPacket_A(Action whenRecv)
         {
-
             _recvComplete = false;
             bool isFirstRecv = true;
+            //before start recv
             _conn.StartReceive(result =>
             {
                 if (result == null)
@@ -453,14 +452,9 @@ namespace SharpConnect.MySql.Internal
                                 MySqlTableResult tableResult = result as MySqlTableResult;
                                 //***
                                 _recvComplete = !tableResult.HasFollower;
-
-                                if (_tableResultListener != null)
-                                {
-                                    //the _tableResultListener may modifid by other state (Close)
-                                    //if don't lock we need to store it to local var
-                                    _tableResultListener(tableResult);
-                                }
-
+                                //the _tableResultListener may modifid by other state (Close)
+                                //if don't lock we need to store it to local var
+                                _tableResultListener?.Invoke(tableResult);
                                 //----------------------------------------- 
                                 if (!tableResult.HasFollower)
                                 {
@@ -481,12 +475,10 @@ namespace SharpConnect.MySql.Internal
                                         //not the last one
                                         //(the last one may complete or not complete)
                                         table.HasFollower = true;
-                                        if (_tableResultListener != null)
-                                        {
-                                            //the _tableResultListener may modifid by other state (Close)
-                                            //if don't lock we need to store it to local var
-                                            _tableResultListener(table);
-                                        }
+
+                                        //the _tableResultListener may modifid by other state (Close)
+                                        //if don't lock we need to store it to local var
+                                        _tableResultListener?.Invoke(table);
                                     }
                                     else
                                     {
@@ -497,12 +489,10 @@ namespace SharpConnect.MySql.Internal
                                         //before call  RecvComplete();
 
                                         _recvComplete = !table.HasFollower;
-                                        if (_tableResultListener != null)
-                                        {
-                                            //the _tableResultListener may modifid by other state (Close)
-                                            //if don't lock we need to store it to local var
-                                            _tableResultListener(table);
-                                        }
+
+                                        //the _tableResultListener may modifid by other state (Close)
+                                        //if don't lock we need to store it to local var
+                                        _tableResultListener?.Invoke(table);
 
                                         if (!table.HasFollower)
                                         {
