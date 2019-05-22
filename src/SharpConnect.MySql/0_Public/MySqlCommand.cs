@@ -186,6 +186,7 @@ namespace SharpConnect.MySql
             _query.SetErrorListener(err =>
             {
                 HasError = true;
+                ErrorMsg = err.Message;
             });
             _query.Prepare(nextAction);
         }
@@ -297,7 +298,7 @@ namespace SharpConnect.MySql
             _query.Execute(false, nextAction);
         }
 
-
+        public string ErrorMsg { get; internal set; }
         public bool HasError { get; private set; }
         public uint LastInsertedId
         {
