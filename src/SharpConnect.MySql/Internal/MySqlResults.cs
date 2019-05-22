@@ -55,6 +55,7 @@ namespace SharpConnect.MySql.Internal
             this.IsError = true;
         }
         public override MySqlResultKind Kind { get { return MySqlResultKind.Error; } }
+        public string Message => errPacket.message;
 #if DEBUG
         public override string ToString()
         {

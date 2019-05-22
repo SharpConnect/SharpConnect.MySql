@@ -198,8 +198,9 @@ namespace SharpConnect.MySql
         {
             //1 unicode char => 2 bytes store
             var data = new MyStructData();
-            data.myUInt32 = value;
-            data.type = MySqlDataType.LONGLONG; //TODO:?
+            //data.myUInt32 = value;
+            data.myString = value.ToString();
+            data.type = MySqlDataType.STRING; //TODO:?
             _values[key] = data;
         }
         public void AddWithValue(string key, ushort value)
