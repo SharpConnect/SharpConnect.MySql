@@ -50,14 +50,10 @@ namespace SharpConnect.MySql.Internal
         {
             Dispose();
         }
-        public long Position
-        {
-            get { return _writer.OriginalStreamPosition; }
-        }
-        public long Length
-        {
-            get { return _writer.Length; }
-        }
+        public long Position => _writer.OriginalStreamPosition;
+
+        public long Length => _writer.Length;
+
         public void SetMaxAllowedPacket(int max)
         {
             _serverMaxDataLength = max;
@@ -110,13 +106,9 @@ namespace SharpConnect.MySql.Internal
             _writer.RewindWriteAndJumpBack(_headerBuffer, (int)_startPacketPosition);
         }
 
-        public uint OnlyPacketContentLength
-        {
-            get
-            {
-                return ((uint)(_writer.OriginalStreamPosition - _startPacketPosition)) - 4;
-            }
-        }
+        public uint OnlyPacketContentLength => ((uint)(_writer.OriginalStreamPosition - _startPacketPosition)) - 4;
+
+
         public void WriteNullTerminatedString(string str)
         {
             byte[] buff = _encoding.GetBytes(str.ToCharArray());
@@ -528,10 +520,8 @@ namespace SharpConnect.MySql.Internal
             _ms = new MemoryStream();
             _writer = new BinaryWriter(_ms);
         }
-        public int Length
-        {
-            get { return _offset; }
-        }
+        public int Length => _offset;
+
         public void Dispose()
         {
             Close();

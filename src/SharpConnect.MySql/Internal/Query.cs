@@ -26,9 +26,6 @@ using System.Collections.Generic;
 namespace SharpConnect.MySql.Internal
 {
 
-
-
-
     enum QueryExecState
     {
         Rest,
@@ -45,8 +42,10 @@ namespace SharpConnect.MySql.Internal
     }
     class Query
     {
+#if DEBUG
         public bool typeCast;
-        public bool nestTables;
+#endif
+        public bool _nestTables;
         CommandParams _cmdParams;
         Connection _conn;
         bool _prepareStatementMode;
@@ -93,7 +92,7 @@ namespace SharpConnect.MySql.Internal
             _cmdParams = cmdParams;
             //--------------------------------------------------------------
 
-            nestTables = false;
+            _nestTables = false;
             _sqlParserMx = conn.MySqlParserMx;
             _writer = conn.PacketWriter;
             //_receiveBuffer = null;
@@ -354,7 +353,7 @@ namespace SharpConnect.MySql.Internal
         //----------------------------------------------
         bool _assignRecvCompleteHandler;
         bool _recvComplete = true;
-        Action whenRecvComplete;
+        Action _whenRecvComplete;
         void RecvComplete()
         {
 
@@ -364,8 +363,8 @@ namespace SharpConnect.MySql.Internal
             if (_assignRecvCompleteHandler)
             {
                 _assignRecvCompleteHandler = false;
-                var tmpRecvComplete = whenRecvComplete;
-                whenRecvComplete = null; //clear 
+                Action tmpRecvComplete = _whenRecvComplete;
+                _whenRecvComplete = null; //clear 
                 tmpRecvComplete();
             }
         }
@@ -379,14 +378,14 @@ namespace SharpConnect.MySql.Internal
             else
             {
                 //store to local var
-                this.whenRecvComplete = whenRecvComplete;
+                _whenRecvComplete = whenRecvComplete;
                 _assignRecvCompleteHandler = true;
                 //after assign check again
                 //assignRecvCompleteHandler may changed by another thread
                 if (_recvComplete && _assignRecvCompleteHandler)
                 {
                     _assignRecvCompleteHandler = false;
-                    this.whenRecvComplete = null;
+                    _whenRecvComplete = null;
                     whenRecvComplete();
                 }
             }
