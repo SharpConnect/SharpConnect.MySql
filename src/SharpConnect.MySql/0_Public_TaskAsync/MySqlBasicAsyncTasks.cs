@@ -219,36 +219,36 @@ namespace SharpConnect.MySql.AsyncPatt
         /// <summary>
         /// latest run task index
         /// </summary>
-        int currentIndex = -1;
-        int insertIndex = -1;
-        Action onFinish;
-        Action onBeginTask;
-        bool pleaseStop;
-        bool isStarted = false;
-        bool finish = false;
-        List<BasicTaskBase> taskList = new List<BasicTaskBase>();
+        int _currentIndex = -1;
+        int _insertIndex = -1;
+        Action _onFinish;
+        Action _onBeginTask;
+        bool _pleaseStop;
+        bool _isStarted = false;
+        bool _finish = false;
+        List<BasicTaskBase> _taskList = new List<BasicTaskBase>();
 
 
         void AddTask(BasicTaskBase actionTask)
         {
-            if (insertIndex < 0)
+            if (_insertIndex < 0)
             {
                 //un-start so
-                taskList.Add(actionTask);
+                _taskList.Add(actionTask);
             }
             else
             {
-                if (insertIndex == taskList.Count - 1)
+                if (_insertIndex == _taskList.Count - 1)
                 {
                     //append to last task
-                    taskList.Add(actionTask);
+                    _taskList.Add(actionTask);
                 }
                 else
                 {
-                    taskList.Insert(insertIndex + 1, actionTask);
+                    _taskList.Insert(_insertIndex + 1, actionTask);
                 }
 
-                insertIndex++;
+                _insertIndex++;
             }
         }
 
@@ -262,26 +262,26 @@ namespace SharpConnect.MySql.AsyncPatt
         public void Start(Action whenFinish = null)
         {
             //start once ***
-            if (isStarted)
+            if (_isStarted)
             {
                 throw new Exception("task chain has started!");
             }
             if (whenFinish != null)
             {
-                if (this.onFinish != null)
+                if (_onFinish != null)
                 {
                     throw new Exception("task chain has on finish handler!");
                 }
                 else
                 {
-                    this.onFinish = whenFinish;
+                    _onFinish = whenFinish;
                 }
             }
             //------------------------------
-            isStarted = true;
-            pleaseStop = false;
+            _isStarted = true;
+            _pleaseStop = false;
             this.AutoCallNext = true;
-            if (taskList.Count > 0)
+            if (_taskList.Count > 0)
             {
                 //finish task
                 this.AddTask(() =>
@@ -289,91 +289,71 @@ namespace SharpConnect.MySql.AsyncPatt
                 });
                 //---------------------------------
                 //update insert index= current index
-                insertIndex = currentIndex = 0;
-                if (onBeginTask != null)
+                _insertIndex = _currentIndex = 0;
+                if (_onBeginTask != null)
                 {
-                    onBeginTask();
+                    _onBeginTask();
                 }
-                taskList[0].Start();
+                _taskList[0].Start();
             }
         }
         public void WhenFinish(Action onFinish)
         {
-            this.onFinish = onFinish;
+            _onFinish = onFinish;
         }
         public void BeforeEachTaskBegin(Action onBeginTask)
         {
-            this.onBeginTask = onBeginTask;
+            _onBeginTask = onBeginTask;
         }
         public void Stop()
         {
             //stop the chain
             //but not cancel task execution
-            pleaseStop = true;
+            _pleaseStop = true;
         }
 
         internal void Next()
         {
-            if (pleaseStop)
+            if (_pleaseStop)
             {
                 //just stop
                 //not exec further
             }
             else
             {
-                if (currentIndex + 1 < taskList.Count)
+                if (_currentIndex + 1 < _taskList.Count)
                 {
-                    insertIndex = ++currentIndex;
+                    _insertIndex = ++_currentIndex;
                     //update insert index= current index***
 
-                    if (onBeginTask != null)
+                    if (_onBeginTask != null)
                     {
-                        onBeginTask();
+                        _onBeginTask();
                     }
 
-                    taskList[currentIndex].Start();
+                    _taskList[_currentIndex].Start();
                 }
                 else
                 {
-                    if (!finish)
+                    if (!_finish)
                     {
                         //run once
-                        finish = true;
+                        _finish = true;
 
                         //finish
-                        if (onFinish != null)
+                        if (_onFinish != null)
                         {
-                            onFinish();
+                            _onFinish();
                         }
                     }
                 }
             }
         }
-        public int CurrentTaskIndex
-        {
-            get
-            {
-                return currentIndex;
-            }
-        }
-        public int TaskCount
-        {
-            get
-            {
-                return taskList.Count;
 
-            }
-        }
-        public bool AutoCallNext
-        {
-            get;
-            set;
-        }
+        public int CurrentTaskIndex => _currentIndex;
 
+        public int TaskCount => _taskList.Count;
 
-
+        public bool AutoCallNext { get; set; }
     }
-
-
-
 }

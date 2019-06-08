@@ -8,26 +8,26 @@ namespace SharpConnect.MySql.Internal
     static class MySqlTypeConversionInfo
     {
         //built in type conversion 
-        static Dictionary<Type, ProperDataType> dataTypeMaps = new Dictionary<Type, ProperDataType>();
-        static Dictionary<MySqlDataType, MySqlTypeConversionPlan> implicitConvPlan = new Dictionary<MySqlDataType, MySqlTypeConversionPlan>();
+        static Dictionary<Type, ProperDataType> s_dataTypeMaps = new Dictionary<Type, ProperDataType>();
+        static Dictionary<MySqlDataType, MySqlTypeConversionPlan> s_implicitConvPlan = new Dictionary<MySqlDataType, MySqlTypeConversionPlan>();
         static MySqlTypeConversionInfo()
         {
             //-----------------------------------------------------------
-            dataTypeMaps.Add(typeof(bool), ProperDataType.Bool);
-            dataTypeMaps.Add(typeof(byte), ProperDataType.Byte);
-            dataTypeMaps.Add(typeof(sbyte), ProperDataType.Sbyte);
-            dataTypeMaps.Add(typeof(char), ProperDataType.Char);
-            dataTypeMaps.Add(typeof(Int16), ProperDataType.Int16);
-            dataTypeMaps.Add(typeof(UInt16), ProperDataType.UInt16);
-            dataTypeMaps.Add(typeof(int), ProperDataType.Int32);
-            dataTypeMaps.Add(typeof(uint), ProperDataType.UInt32);
-            dataTypeMaps.Add(typeof(long), ProperDataType.Int64);
-            dataTypeMaps.Add(typeof(ulong), ProperDataType.UInt64);
-            dataTypeMaps.Add(typeof(float), ProperDataType.Float32);
-            dataTypeMaps.Add(typeof(double), ProperDataType.Double64);
-            dataTypeMaps.Add(typeof(DateTime), ProperDataType.DateTime);
-            dataTypeMaps.Add(typeof(string), ProperDataType.String);
-            dataTypeMaps.Add(typeof(byte[]), ProperDataType.Buffer);
+            s_dataTypeMaps.Add(typeof(bool), ProperDataType.Bool);
+            s_dataTypeMaps.Add(typeof(byte), ProperDataType.Byte);
+            s_dataTypeMaps.Add(typeof(sbyte), ProperDataType.Sbyte);
+            s_dataTypeMaps.Add(typeof(char), ProperDataType.Char);
+            s_dataTypeMaps.Add(typeof(Int16), ProperDataType.Int16);
+            s_dataTypeMaps.Add(typeof(UInt16), ProperDataType.UInt16);
+            s_dataTypeMaps.Add(typeof(int), ProperDataType.Int32);
+            s_dataTypeMaps.Add(typeof(uint), ProperDataType.UInt32);
+            s_dataTypeMaps.Add(typeof(long), ProperDataType.Int64);
+            s_dataTypeMaps.Add(typeof(ulong), ProperDataType.UInt64);
+            s_dataTypeMaps.Add(typeof(float), ProperDataType.Float32);
+            s_dataTypeMaps.Add(typeof(double), ProperDataType.Double64);
+            s_dataTypeMaps.Add(typeof(DateTime), ProperDataType.DateTime);
+            s_dataTypeMaps.Add(typeof(string), ProperDataType.String);
+            s_dataTypeMaps.Add(typeof(byte[]), ProperDataType.Buffer);
             //-----------------------------------------------------------  
             {
                 //mysql src is blob
@@ -217,9 +217,8 @@ namespace SharpConnect.MySql.Internal
         }
         public static ProperDataType GetProperDataType(object o)
         {
-            ProperDataType foundProperType;
             Type o_type;
-            if (!dataTypeMaps.TryGetValue(o_type = o.GetType(), out foundProperType))
+            if (!s_dataTypeMaps.TryGetValue(o_type = o.GetType(), out ProperDataType foundProperType))
             {
                 return ProperDataType.Unknown;
             }
@@ -229,16 +228,15 @@ namespace SharpConnect.MySql.Internal
         {
             //for all plan
             plan.AddConvTarget(typeof(string), MySqlDataConversionTechnique.GenString);
-            implicitConvPlan.Add(plan.SourceMySqlType, plan);
+            s_implicitConvPlan.Add(plan.SourceMySqlType, plan);
         }
         static void Register(MySqlTypeConversionPlan plan)
         {
-            implicitConvPlan.Add(plan.SourceMySqlType, plan);
+            s_implicitConvPlan.Add(plan.SourceMySqlType, plan);
         }
         public static bool TryGetImplicitConversion(MySqlDataType mysqlDataType, Type targetType, out MySqlDataConversionTechnique foundTechnique)
         {
-            MySqlTypeConversionPlan convPlan;
-            if (implicitConvPlan.TryGetValue(mysqlDataType, out convPlan))
+            if (s_implicitConvPlan.TryGetValue(mysqlDataType, out MySqlTypeConversionPlan convPlan))
             {
                 //found conv for some mysql data type
                 if (convPlan.TryGetConvTechnique(targetType, out foundTechnique))
@@ -268,7 +266,7 @@ namespace SharpConnect.MySql.Internal
 
     class MySqlTypeConversionPlan
     {
-        Dictionary<Type, MySqlDataConversionTechnique> convTechniques = new Dictionary<Type, MySqlDataConversionTechnique>();
+        Dictionary<Type, MySqlDataConversionTechnique> _convTechniques = new Dictionary<Type, MySqlDataConversionTechnique>();
 
         public MySqlTypeConversionPlan(MySqlDataType sourceMySqlType)
         {
@@ -276,13 +274,13 @@ namespace SharpConnect.MySql.Internal
         }
         public void AddConvTarget(Type targetType, MySqlDataConversionTechnique convTech)
         {
-            this.convTechniques.Add(targetType, convTech);
+            _convTechniques.Add(targetType, convTech);
         }
         public void AddConvTargets(Type[] targetTypes, MySqlDataConversionTechnique convTech)
         {
             for (int i = targetTypes.Length - 1; i >= 0; --i)
             {
-                convTechniques.Add(targetTypes[i], convTech);
+                _convTechniques.Add(targetTypes[i], convTech);
             }
         }
         public MySqlDataType SourceMySqlType
@@ -291,9 +289,8 @@ namespace SharpConnect.MySql.Internal
             private set;
         }
 
-        public bool TryGetConvTechnique(Type targetType, out MySqlDataConversionTechnique found)
-        {
-            return convTechniques.TryGetValue(targetType, out found);
-        }
+        public bool TryGetConvTechnique(Type targetType, out MySqlDataConversionTechnique found) => _convTechniques.TryGetValue(targetType, out found);
+
+
     }
 }

@@ -232,15 +232,10 @@ namespace SharpConnect.MySql
                 _conn.Disconnect(onComplete);
             }
         }
-        internal Connection Conn
-        {
-            get
-            {
-                return _conn;
-            }
-        }
+        internal Connection Conn => _conn;
 
         public IStringConverter StringConv { get; set; }
+
         internal void SetMaxAllowedPacket(int value)
         {
             _conn.PacketWriter.SetMaxAllowedPacket(value);
@@ -264,9 +259,9 @@ namespace SharpConnect.MySql
             //we use another connection to kill current th
 
             Connection internalConn = tobeKillConn.Conn;
-            string realSql = "KILL " + internalConn.threadId;
+            string realSql = "KILL " + internalConn._threadId;
             //sql = "FLUSH QUERY CACHE;";             
-            Connection killConn = new Connection(internalConn.config);
+            Connection killConn = new Connection(internalConn._config);
             killConn.Connect();
             var q = new Query(killConn, realSql, null);
             q.Execute(false); //wait  
