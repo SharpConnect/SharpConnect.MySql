@@ -258,14 +258,7 @@ namespace SharpConnect.MySql
                         }
                         else if (fieldType == MySqlDataType.LONGLONG)
                         {
-                            if (numberString[0] == '-')
-                            {
-                                myData.myInt64 = Convert.ToInt64(numberString);
-                            }
-                            else
-                            {
-                                myData.myUInt64 = Convert.ToUInt64(numberString);
-                            }
+                            myData.myInt64 = Convert.ToInt64(numberString);
                             myData.type = fieldType;
                         }
                         else//decimal
@@ -388,53 +381,18 @@ namespace SharpConnect.MySql
                 case MySqlDataType.LONG:
                 case MySqlDataType.INT24:
                 case MySqlDataType.YEAR:
+
                     //TODO: review here,                    
                     data.myString = numberString = r.ReadLengthCodedString(this.StringConverter);
-                    if (numberString == null || numberString.Length == 0 ||
-                        (f.IsZeroFill && numberString[0] == '0'))
+                    if (numberString == null ||
+                        (f.IsZeroFill && numberString[0] == '0') ||
+                        numberString.Length == 0)
                     {
                         data.type = MySqlDataType.NULL;
                     }
                     else
                     {
-                        bool minus = numberString[0] == '-';
-                        if (minus)
-                        {
-                            if (long.TryParse(numberString, out long result))
-                            {
-                                if (result < int.MinValue || result > int.MaxValue)
-                                {
-                                    data.myInt64 = result;
-                                }
-                                else
-                                {
-                                    data.myInt32 = (int)result;
-                                }
-                            }
-                            else
-                            {
-                                //formatting error
-                            }
-                        }
-                        else
-                        {
-                            if (ulong.TryParse(numberString, out ulong result))
-                            {
-                                if (result > uint.MaxValue)
-                                {
-                                    data.myUInt64 = result;
-                                }
-                                else
-                                {
-                                    data.myUInt32 = (uint)result;
-                                }
-                            }
-                            else
-                            {
-                                //formatting error
-                            }
-                        }
-                        //data.myInt32 = Convert.ToInt32(numberString);
+                        data.myInt32 = Convert.ToInt32(numberString);
                         data.type = type;
                     }
                     return data;
@@ -480,15 +438,7 @@ namespace SharpConnect.MySql
                     }
                     else if (type == MySqlDataType.LONGLONG)
                     {
-                        if (numberString[0] == '-')
-                        {
-                            data.myInt64 = Convert.ToInt64(numberString);
-                        }
-                        else
-                        {
-                            data.myUInt64 = Convert.ToUInt64(numberString);
-                        }
-
+                        data.myInt64 = Convert.ToInt64(numberString);
                         data.type = type;
                     }
                     else//decimal
@@ -932,14 +882,14 @@ namespace SharpConnect.MySql
                         hasSomeSubTables = true;
                     }
                 }
-                if (!hasSomeSubTables)
+                if (!hasSomeSubTables && !_firstResultArrived)
                 {
                     //wait for table is complete
                     //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
                     //--------------------------------
                     lock (_tableResultCompleteLock)
                     {
-                        while (_tableResultIsNotComplete)
+                        while (_tableResultIsNotComplete && !_firstResultArrived)
                             System.Threading.Monitor.Wait(_tableResultCompleteLock);
                     }
                     //we are in isPartial table mode (not complete)
