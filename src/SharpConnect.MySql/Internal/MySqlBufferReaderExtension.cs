@@ -24,7 +24,6 @@ namespace SharpConnect.MySql.Internal
         /// <returns></returns>
         public static uint U2(this BufferReader bufferReader)
         {
-
             uint b0 = bufferReader.ReadByte(); //low bit
             uint b1 = bufferReader.ReadByte(); //high bit
             return (b1 << 8) | (b0);

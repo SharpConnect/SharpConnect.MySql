@@ -16,7 +16,6 @@ namespace SharpConnect.MySql
             public static MySqlDataReader ExecuteReader(this MySqlCommand cmd)
             {
                 return cmd.InternalExecuteReader();
-
             }
             public static bool Read(this MySqlDataReader reader)
             {
@@ -143,14 +142,12 @@ namespace SharpConnect.MySql
             get;
             private set;
         }
-        public string CommandText
-        {
-            get { return _sqlStringTemplate.UserRawSql; }
-        }
+        public string CommandText => _sqlStringTemplate.UserRawSql;
+
         MySqlConnection _conn;
         public MySqlConnection Connection
         {
-            get { return _conn; }
+            get => _conn;
             set
             {
                 _conn = value;
@@ -160,12 +157,10 @@ namespace SharpConnect.MySql
                 }
             }
         }
-
-
         IStringConverter _stringConv;
         public IStringConverter StringConverter
         {
-            get { return _stringConv; }
+            get => _stringConv;
             set
             {
                 _stringConv = value;
@@ -186,6 +181,7 @@ namespace SharpConnect.MySql
             _query.SetErrorListener(err =>
             {
                 HasError = true;
+                ErrorMsg = err.Message;
             });
             _query.Prepare(nextAction);
         }
@@ -297,23 +293,15 @@ namespace SharpConnect.MySql
             _query.Execute(false, nextAction);
         }
 
-
+        public string ErrorMsg { get; internal set; }
         public bool HasError { get; private set; }
-        public uint LastInsertedId
-        {
-            get
-            {
-                //after execute non query                 
-                return _query.OkPacket.insertId;
-            }
-        }
-        public uint AffectedRows
-        {
-            get
-            {   //after execute non query
-                return (_query.OkPacket != null) ? _query.OkPacket.affectedRows : 0;
-            }
-        }
+
+        //after execute non query      
+        public uint LastInsertedId => _query.OkPacket.insertId;
+
+        //after execute non query
+        public uint AffectedRows => (_query.OkPacket != null) ? _query.OkPacket.affectedRows : 0;
+
         public void Dispose()
         {
             if (_query != null)

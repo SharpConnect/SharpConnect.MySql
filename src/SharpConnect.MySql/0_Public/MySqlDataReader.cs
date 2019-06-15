@@ -52,19 +52,19 @@ namespace SharpConnect.MySql
     public abstract class MySqlDataReader
     {
 
-        MySqlSubTable currentSubTable;
-        List<DataRowPacket> rows;
-        int currentRowIndex;
-        int subTableRowCount;
-        bool isEmptyTable = true; //default
-        MyStructData[] cells;
-        BufferReader bufferReader = new BufferReader();
-        StringBuilder tmpStringBuilder = new StringBuilder();
+        MySqlSubTable _currentSubTable;
+        List<DataRowPacket> _rows;
+        int _currentRowIndex;
+        int _subTableRowCount;
+        bool _isEmptyTable = true; //default
+        MyStructData[] _cells;
+        BufferReader _bufferReader = new BufferReader();
+        StringBuilder _tmpStringBuilder = new StringBuilder();
         IStringConverter _strConverter = s_utf8StrConv; //default
         bool _isBinaryProtocol;//isPrepare (binary) or text protocol
 
         QueryParsingConfig _queryParsingConf = s_defaultConf;
-        Dictionary<string, int> fieldMaps = null;
+        Dictionary<string, int> _fieldMaps = null;
 
         /// <summary>
         /// internal read may be blocked.
@@ -72,10 +72,10 @@ namespace SharpConnect.MySql
         /// <returns></returns>
         protected internal virtual bool InternalRead()
         {
-            if (currentRowIndex < subTableRowCount)
+            if (_currentRowIndex < _subTableRowCount)
             {
-                SetCurrentRow(currentRowIndex);
-                currentRowIndex++;
+                SetCurrentRow(_currentRowIndex);
+                _currentRowIndex++;
                 return true;
             }
             else
@@ -86,35 +86,23 @@ namespace SharpConnect.MySql
 
         public virtual void SetCurrentRowIndex(int index)
         {
-            this.currentRowIndex = index;
-            if (index < rows.Count)
+            _currentRowIndex = index;
+            if (index < _rows.Count)
             {
                 SetCurrentRow(index);
             }
         }
-        public MySqlSubTable CurrentSubTable
-        {
-            get { return currentSubTable; }
-        }
 
-        public bool IsLastTable
-        {
-            get { return currentSubTable.IsLastTable; }
-        }
-        public int FieldCount
-        {
-            get
-            {
-                return currentSubTable.FieldCount;
-            }
-        }
+        public MySqlSubTable CurrentSubTable => _currentSubTable;
+
+        public bool IsLastTable => _currentSubTable.IsLastTable;
+
+        public int FieldCount => _currentSubTable.FieldCount;
+
 
         public IStringConverter StringConverter
         {
-            get
-            {
-                return _strConverter;
-            }
+            get => _strConverter;
             set
             {
                 if (value == null)
@@ -134,70 +122,60 @@ namespace SharpConnect.MySql
         /// </summary>
         /// <param name="colIndex"></param>
         /// <returns></returns>
-        public string GetName(int colIndex)
-        {
-            return currentSubTable.GetFieldDefinition(colIndex).Name;
-        }
-        public bool HasRows
-        {
-            get
-            {
-                return !isEmptyTable && subTableRowCount > 0;
-            }
-        }
+        public string GetName(int colIndex) => _currentSubTable.GetFieldDefinition(colIndex).Name;
+
+        public bool HasRows => !_isEmptyTable && _subTableRowCount > 0;
         //---------------------------------------------
 
         internal bool StopReadingNextRow { get; set; } //for async read state
 
-
         internal virtual void InternalClose(Action nextAction = null) { }
-        internal bool IsEmptyTable
-        {
-            get { return isEmptyTable; }
-        }
+
+        internal bool IsEmptyTable => _isEmptyTable;
+
         internal void SetCurrentSubTable(MySqlSubTable currentSubTable)
         {
-            this.currentSubTable = currentSubTable;
-            this.fieldMaps = null;
+            _currentSubTable = currentSubTable;
+            _fieldMaps = null;
 
             if (!currentSubTable.IsEmpty)
             {
-                isEmptyTable = false;
-                this.rows = currentSubTable.GetMySqlTableResult().rows;
+                _isEmptyTable = false;
+                _rows = currentSubTable.GetMySqlTableResult().rows;
                 _isBinaryProtocol = currentSubTable.IsBinaryProtocol;
-                subTableRowCount = rows.Count;
+                _subTableRowCount = _rows.Count;
                 //buffer for each row 
-                cells = new MyStructData[currentSubTable.FieldCount];
+                _cells = new MyStructData[currentSubTable.FieldCount];
             }
             else
             {
-                isEmptyTable = true;
+                _isEmptyTable = true;
                 _isBinaryProtocol = false;
-                rows = null;
-                subTableRowCount = 0;
+                _rows = null;
+                _subTableRowCount = 0;
 
             }
-            currentRowIndex = 0;
+            _currentRowIndex = 0;
         }
         internal void SetCurrentRow(int currentIndex)
         {
             //this for internal use
-            DataRowPacket currentRow = rows[currentIndex];
+            DataRowPacket currentRow = _rows[currentIndex];
             //expand this row to buffer ***
-            bufferReader.SetSource(currentRow._rowDataBuffer);
+            _bufferReader.SetSource(currentRow._rowDataBuffer);
 
             if (_isBinaryProtocol)
             {
                 //read each cell , binary protocol ***
                 //1. skip start packet byte [00]
-                bufferReader.Position = 1;
+                _bufferReader.Position = 1;
                 //2. read null-bitmap, length:(column-count+7+2)/8
                 //A Binary Protocol Resultset Row is made up of the NULL bitmap containing as many bits as we have columns in the resultset +2 and the values for columns that are not NULL in the Binary Protocol Value format.
                 //see: https://dev.mysql.com/doc/internals/en/binary-protocol-resultset-row.html#packet-ProtocolBinary::ResultsetRow
 
-                int columnCount = currentSubTable.FieldCount;
+                int columnCount = _currentSubTable.FieldCount;
                 int nullBmpLen = (columnCount + 7 + 2) / 8;
-                byte[] nullBitmap = bufferReader.ReadBytes(nullBmpLen);
+                byte[] nullBitmap = _bufferReader.ReadBytes(nullBmpLen);
 
                 for (int i = 0; i < columnCount; ++i)
                 {
@@ -208,7 +186,7 @@ namespace SharpConnect.MySql
                     if (((nullBmpByte >> shift) & 1) == 0)
                     {
                         //not null
-                        cells[i] = ReadCurrentRowBinaryProtocol(currentSubTable.GetFieldDefinition(i));
+                        _cells[i] = ReadCurrentRowBinaryProtocol(_currentSubTable.GetFieldDefinition(i));
                     }
                 }
 
@@ -216,10 +194,10 @@ namespace SharpConnect.MySql
             else
             {
                 //read each cell , read as text protocol
-                int columnCount = currentSubTable.FieldCount;
+                int columnCount = _currentSubTable.FieldCount;
                 for (int i = 0; i < columnCount; ++i)
                 {
-                    cells[i] = ReadCurrentRowTextProtocol(currentSubTable.GetFieldDefinition(i));
+                    _cells[i] = ReadCurrentRowTextProtocol(_currentSubTable.GetFieldDefinition(i));
                 }
             }
         }
@@ -228,7 +206,7 @@ namespace SharpConnect.MySql
             string numberString = null;
             MySqlDataType fieldType = (MySqlDataType)f.FieldType;
             MyStructData myData = new MyStructData();
-            BufferReader r = this.bufferReader;
+            BufferReader r = _bufferReader;
             switch (fieldType)
             {
                 case MySqlDataType.TIMESTAMP://
@@ -280,14 +258,7 @@ namespace SharpConnect.MySql
                         }
                         else if (fieldType == MySqlDataType.LONGLONG)
                         {
-                            if (numberString[0] == '-')
-                            {
-                                myData.myInt64 = Convert.ToInt64(numberString);
-                            }
-                            else
-                            {
-                                myData.myUInt64 = Convert.ToUInt64(numberString);
-                            }
+                            myData.myInt64 = Convert.ToInt64(numberString);
                             myData.type = fieldType;
                         }
                         else//decimal
@@ -332,7 +303,7 @@ namespace SharpConnect.MySql
         MyStructData ReadCurrentRowTextProtocol(MySqlFieldDefinition f)
         {
 
-            BufferReader r = this.bufferReader;
+            BufferReader r = _bufferReader;
             MyStructData data = new MyStructData();
             MySqlDataType type = (MySqlDataType)f.FieldType;
             string numberString = null;
@@ -346,7 +317,7 @@ namespace SharpConnect.MySql
                     {
 
                         QueryParsingConfig qparsingConfig = _queryParsingConf;
-                        tmpStringBuilder.Length = 0;//clear 
+                        _tmpStringBuilder.Length = 0;//clear 
                         data.myString = r.ReadLengthCodedString(this.StringConverter);
                         data.type = type;
                         if (data.myString == null)
@@ -375,11 +346,11 @@ namespace SharpConnect.MySql
                         //    if (field.type === Types.DATE) {
                         //      dateString += ' 00:00:00';
                         //    }
-                        tmpStringBuilder.Append(data.myString);
+                        _tmpStringBuilder.Append(data.myString);
                         //string originalString = dateString;
                         if (type == MySqlDataType.DATE)
                         {
-                            tmpStringBuilder.Append(" 00:00:00");
+                            _tmpStringBuilder.Append(" 00:00:00");
                         }
                         //    if (timeZone !== 'local') {
                         //      dateString += ' ' + timeZone;
@@ -387,10 +358,10 @@ namespace SharpConnect.MySql
 
                         if (!qparsingConfig.UseLocalTimeZone)
                         {
-                            tmpStringBuilder.Append(' ' + qparsingConfig.TimeZone);
+                            _tmpStringBuilder.Append(' ' + qparsingConfig.TimeZone);
                         }
 
-                        if (!DateTime.TryParse(tmpStringBuilder.ToString(),
+                        if (!DateTime.TryParse(_tmpStringBuilder.ToString(),
                             System.Globalization.CultureInfo.InvariantCulture,
                             System.Globalization.DateTimeStyles.None,
                             out data.myDateTime))
@@ -402,7 +373,7 @@ namespace SharpConnect.MySql
                         //data.myDateTime = DateTime.Parse(tmpStringBuilder.ToString(),
                         //    System.Globalization.CultureInfo.InvariantCulture);
                         data.type = type;
-                        tmpStringBuilder.Length = 0;//clear 
+                        _tmpStringBuilder.Length = 0;//clear 
                     }
                     return data;
                 case MySqlDataType.TINY:
@@ -410,53 +381,18 @@ namespace SharpConnect.MySql
                 case MySqlDataType.LONG:
                 case MySqlDataType.INT24:
                 case MySqlDataType.YEAR:
+
                     //TODO: review here,                    
                     data.myString = numberString = r.ReadLengthCodedString(this.StringConverter);
-                    if (numberString == null || numberString.Length == 0 ||
-                        (f.IsZeroFill && numberString[0] == '0'))
+                    if (numberString == null ||
+                        (f.IsZeroFill && numberString[0] == '0') ||
+                        numberString.Length == 0)
                     {
                         data.type = MySqlDataType.NULL;
                     }
                     else
                     {
-                        bool minus = numberString[0] == '-';
-                        if (minus)
-                        {
-                            if (long.TryParse(numberString, out long result))
-                            {
-                                if (result < int.MinValue || result > int.MaxValue)
-                                {
-                                    data.myInt64 = result;
-                                }
-                                else
-                                {
-                                    data.myInt32 = (int)result;
-                                }
-                            }
-                            else
-                            {
-                                //formatting error
-                            }
-                        }
-                        else
-                        {
-                            if (ulong.TryParse(numberString, out ulong result))
-                            {
-                                if (result > uint.MaxValue)
-                                {
-                                    data.myUInt64 = result;
-                                }
-                                else
-                                {
-                                    data.myUInt32 = (uint)result;
-                                }
-                            }
-                            else
-                            {
-                                //formatting error
-                            }
-                        }
-                        //data.myInt32 = Convert.ToInt32(numberString);
+                        data.myInt32 = Convert.ToInt32(numberString);
                         data.type = type;
                     }
                     return data;
@@ -502,15 +438,7 @@ namespace SharpConnect.MySql
                     }
                     else if (type == MySqlDataType.LONGLONG)
                     {
-                        if (numberString[0] == '-')
-                        {
-                            data.myInt64 = Convert.ToInt64(numberString);
-                        }
-                        else
-                        {
-                            data.myUInt64 = Convert.ToUInt64(numberString);
-                        }
-
+                        data.myInt64 = Convert.ToInt64(numberString);
                         data.type = type;
                     }
                     else//decimal
@@ -571,139 +499,94 @@ namespace SharpConnect.MySql
         }
 
         //---------------------------------------------
+        //TODO: check match type and check index here 
+        public sbyte GetInt8(int colIndex) => (sbyte)_cells[colIndex].myInt32;
 
-        public sbyte GetInt8(int colIndex)
-        {
-            //TODO: check match type and check index here 
-            return (sbyte)cells[colIndex].myInt32;
-        }
-        public sbyte GetInt8(string colName)
-        {
-            return GetInt8(GetOrdinal(colName));
-        }
-        public byte GetUInt8(int colIndex)
-        {
-            //TODO: check match type and check index here
-            return (byte)cells[colIndex].myInt32;
-        }
-        public byte GetUInt8(string colName)
-        {
+        public sbyte GetInt8(string colName) => GetInt8(GetOrdinal(colName));
 
-            return GetUInt8(GetOrdinal(colName));
-        }
+        //TODO: check match type and check index here
+        public byte GetUInt8(int colIndex) => (byte)_cells[colIndex].myInt32;
+
+        public byte GetUInt8(string colName) => GetUInt8(GetOrdinal(colName));
 
 
-        public short GetInt16(int colIndex)
-        {   //TODO: check match type and check index here
-            return (short)cells[colIndex].myInt32;
-        }
-        public short GetInt16(string colName)
-        {
-            return GetInt16(GetOrdinal(colName));
-        }
-        public ushort GetUInt16(int colIndex)
-        {
-            //TODO: check match type and check index here
-            return (ushort)cells[colIndex].myInt32;
-        }
-        public ushort GetUInt16(string colName)
-        {
-            return GetUInt16(GetOrdinal(colName));
-        }
-        public int GetInt32(int colIndex)
-        {
-            //TODO: check match type and check index here             
-            return cells[colIndex].myInt32;
-        }
+        //TODO: check match type and check index here
+        public short GetInt16(int colIndex) => (short)_cells[colIndex].myInt32;
+
+        public short GetInt16(string colName) => GetInt16(GetOrdinal(colName));
+        //TODO: check match type and check index here
+        public ushort GetUInt16(int colIndex) => (ushort)_cells[colIndex].myInt32;
+
+        public ushort GetUInt16(string colName) => GetUInt16(GetOrdinal(colName));
+
+        //TODO: check match type and check index here             
+        public int GetInt32(int colIndex) => _cells[colIndex].myInt32;
+
         public int ConvertToInt32(int colIndex)
         {
-            if (cells[colIndex].type == MySqlDataType.DECIMAL ||
-               cells[colIndex].type == MySqlDataType.NEWDECIMAL)
+            if (_cells[colIndex].type == MySqlDataType.DECIMAL ||
+               _cells[colIndex].type == MySqlDataType.NEWDECIMAL)
             {
                 //parse from string 
                 //to double -> to int
-                string numAsString = cells[colIndex].myString;
+                string numAsString = _cells[colIndex].myString;
                 if (double.TryParse(numAsString, out double result))
                 {
                     return (int)result;
                 }
                 return 0;
             }
-            return cells[colIndex].myInt32;
+            return _cells[colIndex].myInt32;
         }
-        public int GetInt32(string colName)
-        {
-            return GetInt32(GetOrdinal(colName));
-        }
-        public uint GetUInt32(int colIndex)
-        {
-            //TODO: check match type and check index here
-            return cells[colIndex].myUInt32;
-        }
-        public uint GetUInt32(string colName)
-        {
-            return GetUInt32(GetOrdinal(colName));
-        }
-        public long GetLong(int colIndex)
-        {
-            //TODO: check match type and check index here
-            return cells[colIndex].myInt64;
-        }
-        public long GetLong(string colName)
-        {
-            return GetLong(GetOrdinal(colName));
-        }
-        public ulong GetULong(int colIndex)
-        {
-            //TODO: check match type and check index here
-            return cells[colIndex].myUInt64;
-        }
-        public ulong GetULong(string colName)
-        {
-            return GetULong(GetOrdinal(colName));
-        }
-        public decimal GetDecimal(int colIndex)
-        {
-            //TODO: check match type and index here
-            return cells[colIndex].myDecimal;
-        }
+        public int GetInt32(string colName) => GetInt32(GetOrdinal(colName));
 
-        public double GetDouble(int colIndex)
-        {
-            //TODO: check match type and index here
-            return cells[colIndex].myDouble;
-        }
-        public double GetDouble(string colName)
-        {
-            //TODO: check match type and index here
-            return GetDouble(GetOrdinal(colName));
-        }
+        //TODO: check match type and check index here
+        public uint GetUInt32(int colIndex) => _cells[colIndex].myUInt32;
 
+        public uint GetUInt32(string colName) => GetUInt32(GetOrdinal(colName));
 
-        public decimal GetDecimal(string colName)
-        {
-            return GetDecimal(GetOrdinal(colName));
-        }
+        //TODO: check match type and check index here
+        public long GetLong(int colIndex) => _cells[colIndex].myInt64;
+
+        public long GetLong(string colName) => GetLong(GetOrdinal(colName));
+
+        //TODO: check match type and check index here
+        public ulong GetULong(int colIndex) => _cells[colIndex].myUInt64;
+
+        public ulong GetULong(string colName) => GetULong(GetOrdinal(colName));
+
+        //TODO: check match type and index here
+        public decimal GetDecimal(int colIndex) => _cells[colIndex].myDecimal;
+
+        //TODO: check match type and index here
+        public float GetFloat(int colIndex) => (float)(_cells[colIndex].myDouble);
+
+        //TODO: check match type and index here
+        public double GetDouble(int colIndex) => _cells[colIndex].myDouble;
+
+        //TODO: check match type and index here
+        public double GetDouble(string colName) => GetDouble(GetOrdinal(colName));
+
+        public decimal GetDecimal(string colName) => GetDecimal(GetOrdinal(colName));
+
         public string GetString(int colIndex)
         {
             //TODO: check match type and index here
-            if (!(cells[colIndex].myObj is string))
+            if (!(_cells[colIndex].myObj is string))
             {
-                if (cells[colIndex].myObj is byte[])
+                if (_cells[colIndex].myObj is byte[])
                 {
-                    return System.Text.Encoding.UTF8.GetString(cells[colIndex].myBuffer);
+                    return System.Text.Encoding.UTF8.GetString(_cells[colIndex].myBuffer);
                 }
                 else
                 {
                     return null;
                 }
             }
-            return cells[colIndex].myString;
+            return _cells[colIndex].myString;
         }
-        public string GetString(string colName)
-        {
-            return GetString(GetOrdinal(colName));
-        }
+        public string GetString(string colName) => GetString(GetOrdinal(colName));
+
         //public string GetString(int colIndex, Encoding enc)
         //{
         //    //TODO: check match type and index here
@@ -724,36 +607,28 @@ namespace SharpConnect.MySql
         //}
 
 
-        public byte[] GetBuffer(int colIndex)
-        {
-            //TODO: check match type and index here
-            return cells[colIndex].myBuffer;
-        }
-        public byte[] GetBuffer(string colName)
-        {
-            return GetBuffer(GetOrdinal(colName));
-        }
-        public bool IsDBNull(int colIndex)
-        {
-            return cells[colIndex].type == MySqlDataType.NULL;
-        }
-        public bool IsDBNull(string colName)
-        {
-            return IsDBNull(GetOrdinal(colName));
-        }
+        //TODO: check match type and index here
+        public byte[] GetBuffer(int colIndex) => _cells[colIndex].myBuffer;
+
+        public byte[] GetBuffer(string colName) => GetBuffer(GetOrdinal(colName));
+
+        public bool IsDBNull(int colIndex) => _cells[colIndex].type == MySqlDataType.NULL;
+
+        public bool IsDBNull(string colName) => IsDBNull(GetOrdinal(colName));
+
         public DateTime GetDateTime(int colIndex)
         {
             //TODO: check match type and check index here
             //date time commin
-            switch (cells[colIndex].type)
+            switch (_cells[colIndex].type)
             {
                 case MySqlDataType.STRING:
-                    return DateTime.Parse((string)cells[colIndex].myString);
+                    return DateTime.Parse((string)_cells[colIndex].myString);
                 case MySqlDataType.BLOB:
                     return DateTime.MinValue;
                 case MySqlDataType.DATE:
                 case MySqlDataType.DATETIME:
-                    return cells[colIndex].myDateTime;
+                    return _cells[colIndex].myDateTime;
                 default:
                     throw new NotSupportedException();
             }
@@ -766,7 +641,7 @@ namespace SharpConnect.MySql
 
         public object GetValue(int colIndex)
         {
-            MyStructData data = cells[colIndex];
+            MyStructData data = _cells[colIndex];
             switch (data.type)
             {
                 case MySqlDataType.BLOB:
@@ -816,7 +691,7 @@ namespace SharpConnect.MySql
                 //break;
                 case MySqlDataType.FLOAT:
                     return data.myDouble;//TODO: review here
-                //stbuilder.Append(((float)data.myDouble).ToString());
+                                         //stbuilder.Append(((float)data.myDouble).ToString());
 
                 case MySqlDataType.TINY:
                 case MySqlDataType.SHORT:
@@ -837,20 +712,17 @@ namespace SharpConnect.MySql
             }
         }
 
-        public object GetValue(string colName)
-        {
-            return GetValue(GetOrdinal(colName));
-        }
+        public object GetValue(string colName) => GetValue(GetOrdinal(colName));
+
 
         //---------------------------------------------
         public int GetOrdinal(string colName)
         {
-            if (fieldMaps == null)
+            if (_fieldMaps == null)
             {
                 EvaluateFieldMap();
             }
-            int foundIndex;
-            if (!fieldMaps.TryGetValue(colName, out foundIndex))
+            if (!_fieldMaps.TryGetValue(colName, out int foundIndex))
             {
                 throw new Exception("not found the colName " + colName);
             }
@@ -859,13 +731,13 @@ namespace SharpConnect.MySql
         void EvaluateFieldMap()
         {
 
-            fieldMaps = new Dictionary<string, int>();
-            if (isEmptyTable) { return; }
+            _fieldMaps = new Dictionary<string, int>();
+            if (_isEmptyTable) { return; }
             //-------------------------------------
-            int j = this.currentSubTable.FieldCount;
+            int j = _currentSubTable.FieldCount;
             for (int i = 0; i < j; ++i)
             {
-                fieldMaps.Add(currentSubTable.GetFieldName(i), i);
+                _fieldMaps.Add(_currentSubTable.GetFieldName(i), i);
             }
 
         }
@@ -919,17 +791,18 @@ namespace SharpConnect.MySql
     class MySqlQueryDataReader : MySqlDataReader
     {
         Query _query;
-        Queue<MySqlTableResult> subTables = new Queue<MySqlTableResult>();
+        Queue<MySqlTableResult> _subTables = new Queue<MySqlTableResult>();
 
-        bool emptySubTable = true;
+        bool _emptySubTable = true;
         //-------------------------
 
         //int currentTableRowCount = 0;
         //int currentRowIndex = 0;
         //-------------------------
-        bool firstResultArrived;
-        bool tableResultIsNotComplete;
-        Action<MySqlQueryDataReader> onFirstDataArrived;
+        bool _firstResultArrived;
+        bool _tableResultIsNotComplete;
+        object _tableResultCompleteLock = new object();
+        Action<MySqlQueryDataReader> _onFirstDataArrived;
         MySqlErrorResult _errorResult = null;
 
         internal MySqlQueryDataReader(Query query)
@@ -939,38 +812,51 @@ namespace SharpConnect.MySql
             //set result listener for query object  before actual query.Read()
             query.SetErrorListener(err =>
             {
-                firstResultArrived = true;
-                tableResultIsNotComplete = false;
+                lock (_tableResultCompleteLock)
+                {
+                    _firstResultArrived = true;
+                    _tableResultIsNotComplete = false;
+
+                    //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
+                    System.Threading.Monitor.Pulse(_tableResultCompleteLock);
+                }
+
                 _errorResult = err;
             });
             query.SetResultListener(subtable =>
             {
                 //we need the subtable must arrive in correct order *** 
-                lock (subTables)
+                lock (_subTables)
                 {
-                    subTables.Enqueue(subtable);
+                    _subTables.Enqueue(subtable);
                 }
 
-                tableResultIsNotComplete = subtable.HasFollower; //***
-                if (!firstResultArrived)
+                bool invokeFirstDataArrive = false;
+
+                lock (_tableResultCompleteLock)
                 {
-                    firstResultArrived = true;
-                    if (onFirstDataArrived != null)
-                    {
-                        onFirstDataArrived(this);
-                        onFirstDataArrived = null;
-                    }
+
+                    invokeFirstDataArrive = !_firstResultArrived;
+                    _firstResultArrived = true;
+                    _tableResultIsNotComplete = subtable.HasFollower; //*** 
+
+                    //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
+                    System.Threading.Monitor.Pulse(_tableResultCompleteLock);
                 }
+
+                //---
+                if (invokeFirstDataArrive && _onFirstDataArrived != null)
+                {
+                    _onFirstDataArrived(this);
+                    _onFirstDataArrived = null;
+                }
+
             });
         }
-        public bool HasError
-        {
-            get { return _errorResult != null; }
-        }
-        public MySqlErrorResult Error
-        {
-            get { return _errorResult; }
-        }
+        public bool HasError => _errorResult != null;
+
+        public MySqlErrorResult Error => _errorResult;
+
 
         public override void SetCurrentRowIndex(int index)
         {
@@ -983,37 +869,32 @@ namespace SharpConnect.MySql
         internal void WaitUntilFirstDataArrive()
         {
         TRY_AGAIN:
-            if (emptySubTable)
+            if (_emptySubTable)
             {
                 //no current table 
                 bool hasSomeSubTables = false;
-                lock (subTables)
+                lock (_subTables)
                 {
-                    if (subTables.Count > 0)
+                    if (_subTables.Count > 0)
                     {
-                        MySqlSubTable subt = new MySqlSubTable(subTables.Dequeue());
+                        MySqlSubTable subt = new MySqlSubTable(_subTables.Dequeue());
                         SetCurrentSubTable(subt);
                         hasSomeSubTables = true;
                     }
                 }
-                if (!hasSomeSubTables)
+                if (!hasSomeSubTables && !_firstResultArrived)
                 {
-                    if (tableResultIsNotComplete)
+                    //wait for table is complete
+                    //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
+                    //--------------------------------
+                    lock (_tableResultCompleteLock)
                     {
-                        //we are in isPartial table mode (not complete)
-                        //so must wait until the table arrive **
-                        //------------------                    
-                        //wait ***
-                        //------------------
-                        //TODO: review here *** tight loop
-                        //*** tigh loop
-                        //wait on this
-                        while (tableResultIsNotComplete)
-                        {
-
-                        }
-                        goto TRY_AGAIN;
+                        while (_tableResultIsNotComplete && !_firstResultArrived)
+                            System.Threading.Monitor.Wait(_tableResultCompleteLock);
                     }
+                    //we are in isPartial table mode (not complete)
+                    //so must wait until the table arrive ** 
+                    goto TRY_AGAIN;
                 }
             }
         }
@@ -1023,7 +904,7 @@ namespace SharpConnect.MySql
         /// <param name="onFirstDataArrived"></param>
         internal void SetFirstDataArriveDelegate(Action<MySqlQueryDataReader> onFirstDataArrived)
         {
-            this.onFirstDataArrived = onFirstDataArrived;
+            _onFirstDataArrived = onFirstDataArrived;
         }
 
 
@@ -1040,25 +921,25 @@ namespace SharpConnect.MySql
             {
                 //no current table  
                 bool hasSomeSubTables = false;
-                lock (subTables)
+                lock (_subTables)
                 {
-                    if (subTables.Count > 0)
+                    if (_subTables.Count > 0)
                     {
                         //1. get subtable
-                        SetCurrentSubTable(new MySqlSubTable(subTables.Dequeue()));
+                        SetCurrentSubTable(new MySqlSubTable(_subTables.Dequeue()));
                         hasSomeSubTables = true;
                     }
                 }
                 if (!hasSomeSubTables)
                 {
-                    if (tableResultIsNotComplete)
+                    if (_tableResultIsNotComplete)
                     {
                         //we are in isPartial table mode (not complete)
                         //so must wait until the table arrive **
                         //------------------                    
                         CentralWaitingTasks.AddWaitingTask(new WaitingTask(() =>
                         {
-                            if (tableResultIsNotComplete)
+                            if (_tableResultIsNotComplete)
                             {
                                 //not complete, continue waiting
                                 return false;
@@ -1071,12 +952,12 @@ namespace SharpConnect.MySql
                             }
                         }));
                     }
-                    else if (!firstResultArrived)
+                    else if (!_firstResultArrived)
                     {
 
                         CentralWaitingTasks.AddWaitingTask(new WaitingTask(() =>
                         {
-                            if (!firstResultArrived)
+                            if (!_firstResultArrived)
                             {
                                 //not complete, continue waiting
                                 return false;
@@ -1136,7 +1017,6 @@ namespace SharpConnect.MySql
             });
         }
 
-
         /// <summary>
         /// sync read row
         /// </summary>
@@ -1149,11 +1029,11 @@ namespace SharpConnect.MySql
             {
                 //no current table 
                 bool hasSomeSubTables = false;
-                lock (subTables)
+                lock (_subTables)
                 {
-                    if (subTables.Count > 0)
+                    if (_subTables.Count > 0)
                     {
-                        MySqlSubTable subT = new MySqlSubTable(subTables.Dequeue());
+                        MySqlSubTable subT = new MySqlSubTable(_subTables.Dequeue());
                         SetCurrentSubTable(subT);
                         hasSomeSubTables = true;
                     }
@@ -1162,28 +1042,18 @@ namespace SharpConnect.MySql
                 if (!hasSomeSubTables)
                 {
 
-                    if (tableResultIsNotComplete)
+                    if (_tableResultIsNotComplete)
                     {
                         //we are in isPartial table mode (not complete)
                         //so must wait until the table arrive **
                         //------------------                    
                         //wait ***
-                        //------------------
-                        //TODO: review here *** tight loop
-                        while (tableResultIsNotComplete)
+                        //------------------ 
+                        lock (_tableResultCompleteLock)
                         {
-                        } //*** tight loop
-                        //------------------
-                        goto TRY_AGAIN;
-                    }
-                    else if (!firstResultArrived)
-                    {
-                        //another tight loop
-                        //wait for first result arrive
-                        //TODO: review here *** tight loop
-                        while (!firstResultArrived)
-                        {
-                        }//*** tight loop
+                            while (_tableResultIsNotComplete)
+                                System.Threading.Monitor.Wait(_tableResultCompleteLock);
+                        }
                         goto TRY_AGAIN;
                     }
                     else
@@ -1269,28 +1139,20 @@ namespace SharpConnect.MySql
         }
     }
 
-
-
     public struct MySqlSubTable
     {
         public static readonly MySqlSubTable Empty = new MySqlSubTable();
-        readonly MySqlTableResult tableResult;
+        readonly MySqlTableResult _tableResult;
         internal MySqlSubTable(MySqlTableResult tableResult)
         {
-            this.tableResult = tableResult;
+            _tableResult = tableResult;
         }
-        internal bool IsBinaryProtocol
-        {
-            get
-            {
-                return this.tableResult.tableHeader.IsBinaryProtocol;
-            }
-        }
+        internal bool IsBinaryProtocol => _tableResult.tableHeader.IsBinaryProtocol;
         public SubTableHeader Header
         {
             get
             {
-                if (tableResult == null)
+                if (_tableResult == null)
                 {
                     //empty subtable header
                     return new SubTableHeader();
@@ -1298,67 +1160,34 @@ namespace SharpConnect.MySql
                 else
                 {
 
-                    return new SubTableHeader(this.tableResult.tableHeader);
+                    return new SubTableHeader(_tableResult.tableHeader);
                 }
-
             }
         }
 
-        public int RowCount
-        {
-            get
-            {
-                return tableResult.rows.Count;
-            }
-        }
-        public bool HasRows
-        {
-            get
-            {
-                return tableResult.rows != null && tableResult.rows.Count > 0;
-            }
-        }
-        internal MySqlTableResult GetMySqlTableResult()
-        {
-            return this.tableResult;
-        }
-        internal DataRowPacket GetRow(int index)
-        {
-            return tableResult.rows[index];
-        }
-        public bool IsEmpty
-        {
-            get { return tableResult == null; }
-        }
+        public int RowCount => _tableResult.rows.Count;
 
-        public MySqlDataReader CreateDataReader()
-        {
-            return new MySubTableDataReader(this);
-        }
+        public bool HasRows => _tableResult.rows != null && _tableResult.rows.Count > 0;
 
-        public int FieldCount
-        {
-            get
-            {
-                return tableResult.tableHeader.ColumnCount;
-            }
-        }
-        public MySqlFieldDefinition GetFieldDefinition(int index)
-        {
-            return new MySqlFieldDefinition(tableResult.tableHeader.GetField(index));
-        }
+        internal MySqlTableResult GetMySqlTableResult() => _tableResult;
 
-        public string GetFieldName(int index)
-        {
-            return tableResult.tableHeader.GetField(index).name;
-        }
-        public int GetFieldType(int index)
-        {
-            return tableResult.tableHeader.GetField(index).columnType;
-        }
+        internal DataRowPacket GetRow(int index) => _tableResult.rows[index];
+
+        public bool IsEmpty => _tableResult == null;
+
+        public MySqlDataReader CreateDataReader() => new MySubTableDataReader(this);
+
+        public int FieldCount => _tableResult.tableHeader.ColumnCount;
+
+        public MySqlFieldDefinition GetFieldDefinition(int index) => new MySqlFieldDefinition(_tableResult.tableHeader.GetField(index));
+
+        public string GetFieldName(int index) => _tableResult.tableHeader.GetField(index).name;
+
+        public int GetFieldType(int index) => _tableResult.tableHeader.GetField(index).columnType;
+
         public MySqlFieldDefinition GetFieldDefinition(string fieldname)
         {
-            int index = tableResult.tableHeader.GetFieldIndex(fieldname);
+            int index = _tableResult.tableHeader.GetFieldIndex(fieldname);
             if (index > -1)
             {
                 return GetFieldDefinition(index);
@@ -1369,62 +1198,55 @@ namespace SharpConnect.MySql
             }
         }
         //----------------------------
-        public bool IsLastTable
-        {
-            get { return !tableResult.HasFollower; }
-        }
+        public bool IsLastTable => !_tableResult.HasFollower;
+
 
         //-------------------------------------------------------
         public static bool operator ==(MySqlSubTable sub1, MySqlSubTable sub2)
         {
-            return sub1.tableResult == sub2.tableResult;
+            return sub1._tableResult == sub2._tableResult;
         }
         public static bool operator !=(MySqlSubTable sub1, MySqlSubTable sub2)
         {
-            return sub1.tableResult != sub2.tableResult;
+            return sub1._tableResult != sub2._tableResult;
         }
-        public override int GetHashCode()
-        {
-            return tableResult.GetHashCode();
-        }
+        public override int GetHashCode() => _tableResult.GetHashCode();
+
         public override bool Equals(object obj)
         {
             if (obj is MySqlSubTable)
             {
-                return ((MySqlSubTable)obj).tableResult == this.tableResult;
+                return ((MySqlSubTable)obj)._tableResult == _tableResult;
             }
             return false;
         }
-        //-------------------------------------------------------
-
-
     }
 
 
     public struct SubTableHeader
     {
-        TableHeader tableHeader;
+        TableHeader _tableHeader;
         internal SubTableHeader(TableHeader tableHeader)
         {
-            this.tableHeader = tableHeader;
+            _tableHeader = tableHeader;
         }
         public static bool operator ==(SubTableHeader sub1, SubTableHeader sub2)
         {
-            return sub1.tableHeader == sub2.tableHeader;
+            return sub1._tableHeader == sub2._tableHeader;
         }
         public static bool operator !=(SubTableHeader sub1, SubTableHeader sub2)
         {
-            return sub1.tableHeader != sub2.tableHeader;
+            return sub1._tableHeader != sub2._tableHeader;
         }
         public override int GetHashCode()
         {
-            return tableHeader.GetHashCode();
+            return _tableHeader.GetHashCode();
         }
         public override bool Equals(object obj)
         {
             if (obj is SubTableHeader)
             {
-                return ((SubTableHeader)obj).tableHeader == this.tableHeader;
+                return ((SubTableHeader)obj)._tableHeader == _tableHeader;
             }
             return false;
         }
@@ -1432,48 +1254,25 @@ namespace SharpConnect.MySql
 
     public struct MySqlFieldDefinition
     {
-        FieldPacket fieldPacket;
+        FieldPacket _fieldPacket;
 
         public static readonly MySqlFieldDefinition Empty = new MySqlFieldDefinition();
 
         internal MySqlFieldDefinition(FieldPacket fieldPacket)
         {
-            this.fieldPacket = fieldPacket;
+            _fieldPacket = fieldPacket;
         }
-        public bool IsEmpty
-        {
-            get { return fieldPacket == null; }
-        }
-        public int FieldType
-        {
-            get { return this.fieldPacket.columnType; }
-        }
-        public string Name
-        {
-            get { return this.fieldPacket.name; }
-        }
-        public int FieldIndex
-        {
-            get
-            {
-                return fieldPacket.FieldIndex;
-            }
-        }
-        internal bool MarkedAsBinary
-        {
-            get
-            {
-                return fieldPacket.charsetNr == (int)CharSets.BINARY;
-            }
-        }
-        internal bool IsZeroFill
-        {
-            get
-            {
-                return fieldPacket.zeroFill;
-            }
-        }
+        public bool IsEmpty => _fieldPacket == null;
 
+        public int FieldType => _fieldPacket.columnType;
+
+        public string Name => _fieldPacket.name;
+
+        public int FieldIndex => _fieldPacket.FieldIndex;
+
+        internal bool MarkedAsBinary => _fieldPacket.charsetNr == (int)CharSets.BINARY;
+
+        internal bool IsZeroFill => _fieldPacket.zeroFill;
     }
 
 }
