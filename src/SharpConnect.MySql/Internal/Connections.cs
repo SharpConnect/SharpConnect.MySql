@@ -48,14 +48,14 @@ namespace SharpConnect.MySql.Internal
     /// <summary>
     /// core connection session
     /// </summary>
-    class Connection
+    class Connection : IDisposable
     {
         public ConnectionConfig _config;
         WorkingState _workingState;
         //---------------------------------
         //core socket connection, send/recv io
-        Socket socket;
-        readonly SocketAsyncEventArgs _recvSendArgs;
+        Socket _socket;
+        SocketAsyncEventArgs _recvSendArgs;
         readonly RecvIO _recvIO;
         readonly SendIO _sendIO;
         readonly int _recvBufferSize;
@@ -76,7 +76,7 @@ namespace SharpConnect.MySql.Internal
             _config = userConfig;
             _recvBufferSize = userConfig.recvBufferSize;
             _sendBufferSize = userConfig.sendBufferSize;
-            socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             _writer = new MySqlStreamWriter(_config.GetEncoding());
 
             //------------------
@@ -105,17 +105,23 @@ namespace SharpConnect.MySql.Internal
                 }
             };
             //------------------
-            _recvSendArgs.AcceptSocket = socket;
+            _recvSendArgs.AcceptSocket = _socket;
             _mysqlParserMx = new MySqlParserMx(_config);
-
         }
-        public ConnectionState State
+        public void Dispose()
         {
-            get
+            if (_recvSendArgs != null)
             {
-                return socket.Connected ? ConnectionState.Connected : ConnectionState.Disconnected;
+                _recvSendArgs.Dispose();
+                _recvSendArgs = null;
+            }
+            if(_socket != null)
+            {                
+                _socket = null;
             }
         }
+        public ConnectionState State => _socket.Connected ? ConnectionState.Connected : ConnectionState.Disconnected;
+
         public WorkingState WorkingState
         {
             get => _workingState;
@@ -267,7 +273,6 @@ namespace SharpConnect.MySql.Internal
                 _globalWaiting = false;
                 Monitor.Pulse(_connLocker);
             }
-
         }
 
         /// <summary>
@@ -284,7 +289,7 @@ namespace SharpConnect.MySql.Internal
             _workingState = WorkingState.Rest;
             //--------------
             var endpoint = new IPEndPoint(IPAddress.Parse(_config.host), _config.port);
-            socket.Connect(endpoint);
+            _socket.Connect(endpoint);
             _workingState = WorkingState.Rest;
             //--------------
             //**start listen after connect
@@ -374,7 +379,7 @@ namespace SharpConnect.MySql.Internal
             InitWait();
             StartSend(data, 0, data.Length, () =>
             {
-                socket.Shutdown(SocketShutdown.Both);
+                _socket.Shutdown(SocketShutdown.Both);
                 _workingState = WorkingState.Disconnected;
                 UnWait();
                 if (nextAction != null)
@@ -403,11 +408,10 @@ namespace SharpConnect.MySql.Internal
                 this.BindingQuery = null;
             }
         }
-        internal MySqlStreamWriter PacketWriter
-        {
-            get { return _writer; }
-        }
-        internal bool IsProtocol41 { get { return _isProtocol41; } }
+
+        internal MySqlStreamWriter PacketWriter => _writer;
+
+        internal bool IsProtocol41 => _isProtocol41;
 
         public void StartSend(byte[] sendBuffer, int start, int len, Action whenSendCompleted)
         {
