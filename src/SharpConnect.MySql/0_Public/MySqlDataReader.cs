@@ -882,14 +882,14 @@ namespace SharpConnect.MySql
                         hasSomeSubTables = true;
                     }
                 }
-                if (!hasSomeSubTables)
+                if (!hasSomeSubTables && !_firstResultArrived)
                 {
                     //wait for table is complete
                     //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
                     //--------------------------------
                     lock (_tableResultCompleteLock)
                     {
-                        while (_tableResultIsNotComplete)
+                        while (_tableResultIsNotComplete && !_firstResultArrived)
                             System.Threading.Monitor.Wait(_tableResultCompleteLock);
                     }
                     //we are in isPartial table mode (not complete)
