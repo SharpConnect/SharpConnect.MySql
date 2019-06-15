@@ -230,6 +230,8 @@ namespace SharpConnect.MySql
             else
             {
                 _conn.Disconnect(onComplete);
+                _conn.Dispose();
+                _conn = null;
             }
         }
         internal Connection Conn => _conn;
