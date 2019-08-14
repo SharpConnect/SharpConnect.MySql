@@ -287,6 +287,7 @@ namespace SharpConnect.MySql
                 _query = new Query(Connection.Conn, _sqlStringTemplate, Parameters);
                 _query.SetErrorListener(err =>
                 {
+                    ErrorMsg = err.Message;
                     HasError = true;
                 });
             }
