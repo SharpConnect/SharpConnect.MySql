@@ -114,6 +114,10 @@ namespace SharpConnect.MySql.Internal
             _packetHeaderStartAt = 0;
             _currentInputLength = 0;
         }
+        public void ClearReadData()
+        {
+           
+        }
         //------------------------------------------------------ 
         internal void AppendBuffer(SharpConnect.Internal.RecvIO recvIO, int count)
         {

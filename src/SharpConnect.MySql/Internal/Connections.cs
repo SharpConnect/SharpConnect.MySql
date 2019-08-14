@@ -621,10 +621,7 @@ namespace SharpConnect.MySql.Internal
                 default: throw new NotImplementedException();
                 case CharSets.UTF8_GENERAL_CI: return Encoding.UTF8;
                 case CharSets.ASCII: return Encoding.ASCII;
-
             }
-
         }
-
     }
 }
