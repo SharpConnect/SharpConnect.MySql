@@ -1103,6 +1103,21 @@ namespace SharpConnect.MySql.Internal
                     //var err  = new TypeError('Received invalid field length');
                     //err.code = 'PARSER_INVALID_FIELD_LENGTH';
                     //throw err;
+
+
+                    //save log file here
+                    StringBuilder stbuilder = new StringBuilder();
+                    stbuilder.AppendLine(DateTime.Now.ToString("s"));
+                    stbuilder.AppendLine("invalid field length occur!");
+                    stbuilder.AppendLine("catalog:" + catalog);
+                    stbuilder.AppendLine("schema:" + schema);
+                    stbuilder.AppendLine("table:" + table);
+                    stbuilder.AppendLine("orgTable:" + orgTable);
+                    stbuilder.AppendLine("name:" + name);
+                    stbuilder.AppendLine("orgName:" + orgName);
+
+                    System.IO.File.AppendAllText("invalid_field_length.txt", stbuilder.ToString());
+
 #if DEBUG
                     if (lengthCodedNumber == 0)
                     {

@@ -359,7 +359,7 @@ namespace SharpConnect.MySql.Internal
                     _rows.Add(new DataRowPacket(_currentHeader, _ms.ToArray()));
 
 #if NET20
-                    ms.Close();
+                    _ms.Close();
 #endif
                     _ms.Dispose();
                     _ms = null;
