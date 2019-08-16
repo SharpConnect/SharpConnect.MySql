@@ -115,8 +115,8 @@ namespace SharpConnect.MySql.Internal
                 _recvSendArgs.Dispose();
                 _recvSendArgs = null;
             }
-            if(_socket != null)
-            {                
+            if (_socket != null)
+            {
                 _socket = null;
             }
         }
@@ -136,6 +136,10 @@ namespace SharpConnect.MySql.Internal
 
             throw new NotImplementedException();
         }
+
+
+        object _recvLock = new object();
+
         void HandleReceive(RecvEventCode recvEventCode)
         {
             switch (recvEventCode)
@@ -161,51 +165,57 @@ namespace SharpConnect.MySql.Internal
                         }
 #endif
 
-                        bool needMoreData = _mysqlParserMx.ParseData(_recvIO);
-                        //please note that: result packet may not ready in first round
-                        //but parser mx may 'release' some part of the result (eg. large table)
-                        MySqlResult result = _mysqlParserMx.ParseResult; //'release' result 
-                        //---------------------------------------------------------------
-                        if (result != null)
+                        lock (_recvLock)
                         {
-                            //if we has some 'release' result from parser mx
+                            bool needMoreData = false;
+                            needMoreData = _mysqlParserMx.ParseData(_recvIO);
+                            //please note that: result packet may not ready in first round
+                            //but parser mx may 'release' some part of the result (eg. large table)
+                            MySqlResult result = _mysqlParserMx.ParseResult; //'release' result 
+                                                                             //---------------------------------------------------------------
+                            if (result != null)
+                            {
+                                //if we has some 'release' result from parser mx
+                                if (needMoreData)
+                                {
+                                    //this is 'partial result'
+                                    if (_whenRecvData == null)
+                                    {
+                                        //?
+                                    }
+                                    //-------------------------
+                                    //partial release data here
+                                    //before recv next
+                                    //because we want to 'sync'
+                                    //the series of result
+                                    _whenRecvData(result);
+                                    //-------------------------
+                                }
+                                else
+                                {
+                                    //when recv complete***
+                                    Action<MySqlResult> tmpWhenRecvData = _whenRecvData;
+                                    //delete recv handle **before** invoke it, and
+                                    //reset state to 'rest' state
+                                    _whenRecvData = null;
+                                    _workingState = WorkingState.Rest;
+                                    tmpWhenRecvData(result);
+                                }
+                            }
+
+                            //--------------------------
                             if (needMoreData)
                             {
-                                //this is 'partial result'
-                                if (_whenRecvData == null)
-                                {
-                                    //?
-                                }
-                                //-------------------------
-                                //partial release data here
-                                //before recv next
-                                //because we want to 'sync'
-                                //the series of result
-                                _whenRecvData(result);
-                                //-------------------------
+                                //so if it need more data then start receive next
+                                _recvIO.StartReceive();//*** 
                             }
                             else
                             {
-                                //when recv complete***
-                                Action<MySqlResult> tmpWhenRecvData = _whenRecvData;
-                                //delete recv handle **before** invoke it, and
-                                //reset state to 'rest' state
-                                _whenRecvData = null;
-                                _workingState = WorkingState.Rest;
-                                tmpWhenRecvData(result);
-                            }
-                        }
-                        //--------------------------
-                        if (needMoreData)
-                        {
-                            //so if it need more data then start receive next
-                            _recvIO.StartReceive();//***
-                        }
-                        else
-                        {
 
+                            }
+                            //--------------------------
                         }
-                        //--------------------------
+
                     }
                     break;
             }
@@ -310,11 +320,11 @@ namespace SharpConnect.MySql.Internal
                 // https://dev.mysql.com/doc/internals/en/sha256.html
 
                 byte[] token = string.IsNullOrEmpty(_config.password) ?
-                          /*1*/  new byte[0] :   //Empty passwords are not hashed, but sent as empty string. 
+                              /*1*/  new byte[0] :   //Empty passwords are not hashed, but sent as empty string. 
 
-                          /* or 2*/  MakeToken(_config.password, GetScrollbleBuffer(
-                                         handshake_packet.scrambleBuff1,
-                                         handshake_packet.scrambleBuff2));
+                              /* or 2*/  MakeToken(_config.password, GetScrollbleBuffer(
+                                             handshake_packet.scrambleBuff1,
+                                             handshake_packet.scrambleBuff2));
 
                 _writer.IncrementPacketNumber();
                 //----------------------------
@@ -330,29 +340,29 @@ namespace SharpConnect.MySql.Internal
                 _mysqlParserMx.UseResultParser();
                 //------------------------------------
                 StartSend(sendBuff, 0, sendBuff.Length, () =>
-                {
-                    StartReceive(mysql_result2 =>
                     {
-                        var ok = mysql_result2 as MySqlOkResult;
-                        if (ok != null)
-                        {
-                            _workingState = WorkingState.Rest;
-                        }
-                        else
-                        {
+                        StartReceive(mysql_result2 =>
+                            {
+                    var ok = mysql_result2 as MySqlOkResult;
+                    if (ok != null)
+                    {
+                        _workingState = WorkingState.Rest;
+                    }
+                    else
+                    {
                             //TODO: review here
                             //error  
                             _workingState = WorkingState.Error;
-                        }
+                    }
                         //set max allow of the server ***
                         //todo set max allow packet***
                         UnWait();
-                        if (nextAction != null)
-                        {
-                            nextAction();
-                        }
-                    });
+                    if (nextAction != null)
+                    {
+                        nextAction();
+                    }
                 });
+                    });
             });
             if (nextAction == null)
             {
