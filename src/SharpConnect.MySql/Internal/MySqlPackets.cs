@@ -987,7 +987,7 @@ namespace SharpConnect.MySql.Internal
     {
         byte _fieldCount;
         uint _errno;
-        char _sqlStateMarker;
+        string _sqlStateMarker;
         string _sqlState;
         public string message;
         public ErrPacket(PacketHeader header) : base(header) { }
@@ -998,7 +998,7 @@ namespace SharpConnect.MySql.Internal
             _errno = r.U2();//2
             if (r.PeekByte() == 0x23)
             {
-                _sqlStateMarker = r.ReadChar();
+                _sqlStateMarker = r.ReadString(1);
                 _sqlState = r.ReadString(5);
             }
 
