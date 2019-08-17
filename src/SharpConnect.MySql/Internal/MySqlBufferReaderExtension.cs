@@ -53,13 +53,7 @@ namespace SharpConnect.MySql.Internal
             uint b3 = bufferReader.ReadByte(); //high bit
             return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
         }
-
-        public static uint ReadLengthCodedNumber(this BufferReader bufferReader)
-        {
-            //ignore is null
-            bool isNull;
-            return ReadLengthCodedNumber(bufferReader, out isNull);
-        }
+         
         public static uint ReadLengthCodedNumber(this BufferReader reader, out bool isNullData)
         {
 
@@ -106,13 +100,22 @@ namespace SharpConnect.MySql.Internal
             //    var value;
             uint low = U4(reader);
             uint high = U4(reader);
-            if ((uint)(high >> 21) > 0)
-            {
-                //TODO: review here 
-                //support big number
-                long value = low + ((2 << 32) * high);
-            }
-            return low + ((2 << 32) * high);
+            //
+            throw new NotSupportedException("big number!");
+
+
+            //var MUL_32BIT = Math.pow(2, 32);
+            //long  MUL_32BIT= 1L<<32;
+
+            //if ((uint)(high >> 21) > 0)
+            //{
+            //    //TODO: review here 
+            //    //support big number
+            //    //var MUL_32BIT = Math.pow(2, 32);
+            //    //var (1L << 32)
+            //    long value = low + ((1L << 32) * high);
+            //}
+            //return low + ((1L << 32) * high);
             //if (high >>> 21)
             //{
             //    value = (new BigNumber(low)).plus((new BigNumber(MUL_32BIT)).times(high)).toString();
@@ -139,8 +142,8 @@ namespace SharpConnect.MySql.Internal
         {
 
             //var length = this.parseLengthCodedNumber();
-            bool isNull;
-            uint length = ReadLengthCodedNumber(reader, out isNull);
+        
+            uint length = ReadLengthCodedNumber(reader, out bool isNull);
             //if (length === null) {
             //  return null;
             //}
