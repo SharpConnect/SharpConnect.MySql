@@ -557,9 +557,11 @@ namespace SharpConnect.MySql
 
         //TODO: check match type and index here
         public decimal GetDecimal(int colIndex) => _cells[colIndex].myDecimal;
+        public decimal GetDecimal(string colName) => GetDecimal(GetOrdinal(colName));
 
         //TODO: check match type and index here
         public float GetFloat(int colIndex) => (float)(_cells[colIndex].myDouble);
+        public float GetFloat(string colName) => (float)(_cells[GetOrdinal(colName)].myDouble);
 
         //TODO: check match type and index here
         public double GetDouble(int colIndex) => _cells[colIndex].myDouble;
@@ -567,7 +569,7 @@ namespace SharpConnect.MySql
         //TODO: check match type and index here
         public double GetDouble(string colName) => GetDouble(GetOrdinal(colName));
 
-        public decimal GetDecimal(string colName) => GetDecimal(GetOrdinal(colName));
+
 
         public string GetString(int colIndex)
         {
