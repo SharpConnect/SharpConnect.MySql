@@ -53,7 +53,7 @@ namespace SharpConnect.MySql.Internal
             uint b3 = bufferReader.ReadByte(); //high bit
             return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
         }
-         
+
         public static uint ReadLengthCodedNumber(this BufferReader reader, out bool isNullData)
         {
 
@@ -101,21 +101,58 @@ namespace SharpConnect.MySql.Internal
             uint low = U4(reader);
             uint high = U4(reader);
             //
-            throw new NotSupportedException("big number!");
+            throw new NotSupportedException("big number!,please use " + nameof(ReadLengthCodedNumberInt64));
+        }
+        const long MUL_32BIT = 1L << 32;
+        public static long ReadLengthCodedNumberInt64(this BufferReader reader, out bool isNullData)
+        {
 
+            isNullData = false;
+            byte bits = reader.ReadByte();
+            if (bits <= 250)
+            {
+                return bits;
+            }
+            //    switch (bits)
+            //    {
+            //        case 251:
+            //            return null;
+            //        case 252:
+            //            return this.parseUnsignedNumber(2);
+            //        case 253:
+            //            return this.parseUnsignedNumber(3);
+            //        case 254:
+            //            break;
+            //        default:
+            //            var err = new Error('Unexpected first byte' + (bits ? ': 0x' + bits.toString(16) : ''));
+            //            err.offset = (_offset - _packetOffset - 1);
+            //            err.code = 'PARSER_BAD_LENGTH_BYTE';
+            //            throw err;
+            //    }
 
-            //var MUL_32BIT = Math.pow(2, 32);
-            //long  MUL_32BIT= 1L<<32;
+            switch (bits)
+            {
+                case 251:
+                    isNullData = true;
+                    return 0;
+                case 252: return U2(reader);
+                case 253: return U3(reader);
+                case 254: break;
+                default: throw new Exception("Unexpected first byte");
+            }
+            //    var low = this.parseUnsignedNumber(4);
+            //    var high = this.parseUnsignedNumber(4);
+            //    var value;
+            uint low = U4(reader);
+            uint high = U4(reader);
 
-            //if ((uint)(high >> 21) > 0)
-            //{
-            //    //TODO: review here 
-            //    //support big number
-            //    //var MUL_32BIT = Math.pow(2, 32);
-            //    //var (1L << 32)
-            //    long value = low + ((1L << 32) * high);
-            //}
-            //return low + ((1L << 32) * high);
+            if ((uint)(high >> 21) > 0)
+            {
+                //TODO: review here 
+                //support big number
+                long value = low + ((MUL_32BIT) * high);
+            }
+            return low + ((MUL_32BIT) * high);
             //if (high >>> 21)
             //{
             //    value = (new BigNumber(low)).plus((new BigNumber(MUL_32BIT)).times(high)).toString();
@@ -137,12 +174,13 @@ namespace SharpConnect.MySql.Internal
             //value = low + (MUL_32BIT * high);
 
             //return value;
+
         }
         public static string ReadLengthCodedString(this BufferReader reader, IStringConverter strConverter)
         {
 
             //var length = this.parseLengthCodedNumber();
-        
+
             uint length = ReadLengthCodedNumber(reader, out bool isNull);
             //if (length === null) {
             //  return null;

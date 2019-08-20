@@ -339,13 +339,83 @@ namespace SharpConnect.MySql.Internal
                 //    var value;
                 uint low = U4();
                 uint high = U4();
+                throw new Exception("NOT SUPPORT LARGE NUMBER, please use " + nameof(ReadLengthCodedNumberInt64));
+
+            }
+        }
+
+        const long MUL_32BIT = 1L << 32;
+        public long ReadLengthCodedNumberInt64(out bool isNullData)
+        {
+#if DEBUG
+            dbugBreakOnMonitorData();
+#endif
+            lock (_stream)
+            {
+                isNullData = false;
+                //if (_offset >= _buffer.length)
+                //    {
+                //        var err = new Error('Parser: read past end');
+                //        err.offset = (_offset - _packetOffset);
+                //        err.code = 'PARSER_READ_PAST_END';
+                //        throw err;
+                //    }
+                if (ReadPosition >= CurrentInputLength)
+                {
+                    throw new Exception("Parser: read past end");
+                }
+                //    var bits = _buffer[_offset++];
+
+                byte bits = _reader.ReadByte();
+                //    if (bits <= 250)
+                //    {
+                //        return bits;
+                //    }
+
+                if (bits <= 250)
+                {
+                    return bits;
+                }
+                //    switch (bits)
+                //    {
+                //        case 251:
+                //            return null;
+                //        case 252:
+                //            return this.parseUnsignedNumber(2);
+                //        case 253:
+                //            return this.parseUnsignedNumber(3);
+                //        case 254:
+                //            break;
+                //        default:
+                //            var err = new Error('Unexpected first byte' + (bits ? ': 0x' + bits.toString(16) : ''));
+                //            err.offset = (_offset - _packetOffset - 1);
+                //            err.code = 'PARSER_BAD_LENGTH_BYTE';
+                //            throw err;
+                //    }
+
+                switch (bits)
+                {
+                    case 251:
+                        isNullData = true;
+                        return 0;
+                    case 252: return U2();
+                    case 253: return U3();
+                    case 254: break;
+                    default: throw new Exception("Unexpected first byte");
+                }
+                //    var low = this.parseUnsignedNumber(4);
+                //    var high = this.parseUnsignedNumber(4);
+                //    var value;
+                uint low = U4();
+                uint high = U4();
+
                 if ((uint)(high >> 21) > 0)
                 {
                     //TODO: review here 
                     //support big number
-                    long value = low + ((2 << 32) * high);
+                    long value = low + ((MUL_32BIT) * high);
                 }
-                return low + ((2 << 32) * high);
+                return low + ((MUL_32BIT) * high);
                 //if (high >>> 21)
                 //{
                 //    value = (new BigNumber(low)).plus((new BigNumber(MUL_32BIT)).times(high)).toString();
@@ -367,9 +437,8 @@ namespace SharpConnect.MySql.Internal
                 //value = low + (MUL_32BIT * high);
 
                 //return value;
-            } 
+            }
         }
-
 
         /// <summary>
         /// read unsigned 2 bytes
@@ -513,7 +582,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-       
+
 
         public string ReadString(uint length)
         {
