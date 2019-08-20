@@ -1105,6 +1105,9 @@ namespace SharpConnect.MySql.Internal
                     //throw err;
 
 
+#if DEBUG
+                    //https://stackoverflow.com/questions/40781793/received-invalid-field-length-error-in-nodejs-with-mysql-application
+
                     //save log file here
                     StringBuilder stbuilder = new StringBuilder();
                     stbuilder.AppendLine(DateTime.Now.ToString("s"));
@@ -1118,7 +1121,7 @@ namespace SharpConnect.MySql.Internal
 
                     System.IO.File.AppendAllText("invalid_field_length.txt", stbuilder.ToString());
 
-#if DEBUG
+
                     if (lengthCodedNumber == 0)
                     {
                         //error
