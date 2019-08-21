@@ -44,22 +44,15 @@ namespace SharpConnect.MySql.Internal
         }
         public unsafe double ReadDouble()
         {
-
-            byte[] mybuffer = _srcBuffer;
-
-            uint num = (uint)(((mybuffer[_position + 0] | (mybuffer[_position + 1] << 8)) | (mybuffer[_position + 2] << 0x10)) | (mybuffer[_position + 3] << 0x18));
-            uint num2 = (uint)(((mybuffer[_position + 4] | (mybuffer[_position + 5] << 8)) | (mybuffer[_position + 6] << 0x10)) | (mybuffer[_position + 7] << 0x18));
-            ulong num3 = (num2 << 0x20) | num;
+            double value = BitConverter.ToDouble(_srcBuffer, _position);
             _position += 8;
-            return *(((double*)&num3));
-
+            return value;
         }
         public unsafe float ReadFloat()
         {
-            byte[] mybuffer = _srcBuffer;
-            uint num = (uint)(((mybuffer[_position + 0] | (mybuffer[_position + 1] << 8)) | (mybuffer[_position + 2] << 0x10)) | (mybuffer[_position + 3] << 0x18));
+            float value = BitConverter.ToSingle(_srcBuffer, _position);
             _position += 4;
-            return *(((float*)&num));
+            return value;
         }
         public int ReadInt32()
         {
