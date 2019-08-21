@@ -304,7 +304,7 @@ namespace SharpConnect.MySql.Internal
 
     enum MySqlDataType : byte
     {
-        // Manually extracted from mysql-5.5.23/include/mysql_com.h
+        
         // some more info here: http://dev.mysql.com/doc/refman/5.5/en/c-api-prepared-statement-type-codes.html
         DECIMAL = 0x00, //exports.DECIMAL     = 0x00; // aka DECIMAL (http://dev.mysql.com/doc/refman/5.0/en/precision-math-decimal-changes.html)
         /// <summary>

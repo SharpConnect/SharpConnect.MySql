@@ -891,8 +891,16 @@ namespace SharpConnect.MySql
                     //--------------------------------
                     lock (_tableResultCompleteLock)
                     {
+                        int tryCount = 0;
                         while (_tableResultIsNotComplete && !_firstResultArrived)
-                            System.Threading.Monitor.Wait(_tableResultCompleteLock);
+                        {
+                            if (tryCount > 3)
+                            {
+                                throw new Exception("timeout!");
+                            }
+                            System.Threading.Monitor.Wait(_tableResultCompleteLock, 250);//wait within 250 ms lock
+                            tryCount++;
+                        }
                     }
                     //we are in isPartial table mode (not complete)
                     //so must wait until the table arrive ** 
@@ -900,6 +908,8 @@ namespace SharpConnect.MySql
                 }
             }
         }
+
+
         /// <summary>
         /// non blocking
         /// </summary>
@@ -1035,8 +1045,7 @@ namespace SharpConnect.MySql
                 {
                     if (_subTables.Count > 0)
                     {
-                        MySqlSubTable subT = new MySqlSubTable(_subTables.Dequeue());
-                        SetCurrentSubTable(subT);
+                        SetCurrentSubTable(new MySqlSubTable(_subTables.Dequeue()));
                         hasSomeSubTables = true;
                     }
                 }
@@ -1056,7 +1065,6 @@ namespace SharpConnect.MySql
                             int zeroCount = 0;
                             while (_tableResultIsNotComplete)
                             {
-                               
                                 int subTableCount = 0;
                                 lock (_subTables)
                                 {
@@ -1065,17 +1073,17 @@ namespace SharpConnect.MySql
                                 //
                                 if (subTableCount == 0)
                                 {
-                                    if (zeroCount > 2)
+                                    if (zeroCount > 3)
                                     {
-                                        System.Threading.Thread.Sleep(1);
-                                        zeroCount = 0;
+                                        throw new Exception("timeout!");
+                                        //zeroCount = 0;
                                     }
                                     zeroCount++;
-                                    System.Threading.Monitor.Wait(_tableResultCompleteLock, 250); 
+                                    System.Threading.Monitor.Wait(_tableResultCompleteLock, 250); //wait within 250 ms lock
                                 }
                                 else
                                 {
-                                    break;
+                                    break; //break from while
                                 }
                             }
                         }

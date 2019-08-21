@@ -251,16 +251,15 @@ namespace SharpConnect.MySql.Internal
 
 
         //TODO: review here
-        bool _globalWaiting = false;
+        int _globalWaiting = 0;
         object _connLocker = new object();
 
         public void InitWait()
         {
-            if (_globalWaiting)
+            if (Interlocked.CompareExchange(ref _globalWaiting, 1, 0) == 1)
             {
                 throw new Exception("we are waiting for something...");
             }
-            _globalWaiting = true;
         }
 
         internal void Wait()
@@ -268,19 +267,31 @@ namespace SharpConnect.MySql.Internal
             //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
             //--------------------------------
             lock (_connLocker)
-                while (_globalWaiting)
-                    Monitor.Wait(_connLocker);
-            //--------------------------------
+            {
+                int tryCount = 0;
+                while (_globalWaiting == 1)
+                {
+                    if (tryCount > 10)
+                    {
+                        throw new Exception("timeout!");
+                    }
 
+                    Monitor.Wait(_connLocker, 250);//wait within 250ms
+                    tryCount++;
+                }
+            }
+            //--------------------------------
             ////blocking***
             ////wait ***  
         }
+
         internal void UnWait()
         {
+
             //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
             lock (_connLocker)                 // Let's now wake up the thread by
             {                              // setting _go=true and pulsing.
-                _globalWaiting = false;
+                Interlocked.Exchange(ref _globalWaiting, 0);//set to false
                 Monitor.Pulse(_connLocker);
             }
         }
