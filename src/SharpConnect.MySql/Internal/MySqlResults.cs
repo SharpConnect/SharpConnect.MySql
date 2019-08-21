@@ -44,7 +44,7 @@ namespace SharpConnect.MySql.Internal
         {
             this.packet = packet;
         }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.Handshake; } }
+        public override MySqlResultKind Kind => MySqlResultKind.Handshake;
     }
     class MySqlErrorResult : MySqlResult
     {
@@ -54,7 +54,7 @@ namespace SharpConnect.MySql.Internal
             this.errPacket = errPacket;
             this.IsError = true;
         }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.Error; } }
+        public override MySqlResultKind Kind => MySqlResultKind.Error;
         public string Message => errPacket.message;
 #if DEBUG
         public override string ToString()
@@ -74,7 +74,7 @@ namespace SharpConnect.MySql.Internal
         {
             return "<Insert ID : " + okpacket.insertId + " >";
         }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.Ok; } }
+        public override MySqlResultKind Kind => MySqlResultKind.Ok;
     }
 
 
@@ -87,15 +87,15 @@ namespace SharpConnect.MySql.Internal
             this.okPacket = okPrepare;
             this.tableHeader = tableHeader;
         }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.PrepareResponse; } }
+        public override MySqlResultKind Kind => MySqlResultKind.PrepareResponse;
     }
 
     class MySqlTableResult : MySqlResult
     {
         public readonly TableHeader tableHeader;
-        public readonly List<DataRowPacket> rows;
+        public readonly DataRowPacket[] rows;
 
-        public MySqlTableResult(TableHeader tableHeader, List<DataRowPacket> rows)
+        public MySqlTableResult(TableHeader tableHeader, DataRowPacket[] rows)
         {
             this.tableHeader = tableHeader;
             this.rows = rows;
@@ -104,7 +104,7 @@ namespace SharpConnect.MySql.Internal
         /// this is not the last table of result, It has one or more follower table
         /// </summary>
         public bool HasFollower { get; set; }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.TableResult; } }
+        public override MySqlResultKind Kind => MySqlResultKind.TableResult;
     }
 
     class MySqlMultiTableResult : MySqlResult
@@ -117,6 +117,6 @@ namespace SharpConnect.MySql.Internal
         {
             subTables.Add(table);
         }
-        public override MySqlResultKind Kind { get { return MySqlResultKind.MultiTableResult; } }
+        public override MySqlResultKind Kind => MySqlResultKind.MultiTableResult;
     }
 }

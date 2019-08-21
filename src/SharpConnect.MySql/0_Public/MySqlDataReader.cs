@@ -53,7 +53,7 @@ namespace SharpConnect.MySql
     {
 
         MySqlSubTable _currentSubTable;
-        List<DataRowPacket> _rows;
+        DataRowPacket[] _rows;
         int _currentRowIndex;
         int _subTableRowCount;
         bool _isEmptyTable = true; //default
@@ -87,7 +87,7 @@ namespace SharpConnect.MySql
         public virtual void SetCurrentRowIndex(int index)
         {
             _currentRowIndex = index;
-            if (index < _rows.Count)
+            if (index < _rows.Length)
             {
                 SetCurrentRow(index);
             }
@@ -143,7 +143,7 @@ namespace SharpConnect.MySql
                 _isEmptyTable = false;
                 _rows = currentSubTable.GetMySqlTableResult().rows;
                 _isBinaryProtocol = currentSubTable.IsBinaryProtocol;
-                _subTableRowCount = _rows.Count;
+                _subTableRowCount = _rows.Length;
                 //buffer for each row 
                 _cells = new MyStructData[currentSubTable.FieldCount];
             }
@@ -997,21 +997,21 @@ namespace SharpConnect.MySql
         /// <param name="onEachRow"></param>
         public void Read(Action onEachRow)
         {
-            ReadSubTable(st =>
+            ReadSubTable(subTable =>
             {
                 //on each subtable
-                MySqlDataReader tableReader = st.CreateDataReader();
+                MySqlDataReader tableReader = subTable.CreateDataReader();
 
                 tableReader.StringConverter = this.StringConverter;
 
-                int j = st.RowCount;
+                int j = subTable.RowCount;
                 for (int i = 0; i < j; ++i)
                 {
                     tableReader.SetCurrentRowIndex(i);
                     onEachRow();
                 }
                 //if last one
-                if (st.IsLastTable)
+                if (subTable.IsLastTable)
                 {
                     //async close
                     this.InternalClose(() => { });
@@ -1190,9 +1190,9 @@ namespace SharpConnect.MySql
             }
         }
 
-        public int RowCount => _tableResult.rows.Count;
+        public int RowCount => _tableResult.rows.Length;
 
-        public bool HasRows => _tableResult.rows != null && _tableResult.rows.Count > 0;
+        public bool HasRows => _tableResult.rows != null && _tableResult.rows.Length > 0;
 
         internal MySqlTableResult GetMySqlTableResult() => _tableResult;
 

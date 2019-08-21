@@ -69,7 +69,9 @@ namespace SharpConnect.MySql.Internal
 
         TableHeader _tableHeader;
         MySqlResult _parseResult;
+
         List<DataRowPacket> _rows;
+
         MySqlMultiTableResult _currentMultResultSet;
 
         bool _supportPartialRelease = true;
@@ -402,8 +404,8 @@ namespace SharpConnect.MySql.Internal
 
             if (((eofPacket.serverStatus & (int)MySqlServerStatus.SERVER_MORE_RESULTS_EXISTS)) != 0)
             {
-                var tableResult = new MySqlTableResult(_tableHeader, _rows);
-                _rows = null;//reset
+                var tableResult = new MySqlTableResult(_tableHeader, _rows.ToArray());
+                _rows.Clear();
 
                 //more than one result table
                 //mu
@@ -428,9 +430,9 @@ namespace SharpConnect.MySql.Internal
             {
                 //after finish we create a result table 
                 //the move rows into the table
-                _parseResult = new MySqlTableResult(_tableHeader, _rows);
+                _parseResult = new MySqlTableResult(_tableHeader, _rows.ToArray());
                 //not link to the rows anymore
-                _rows = null;
+                _rows.Clear();
                 _currentMultResultSet = null;
                 _parsingState = ResultPacketState.ShouldEnd;//***  
                 return true;//end
@@ -500,7 +502,7 @@ namespace SharpConnect.MySql.Internal
                 {
                     if (_rows != null && _rows.Count > 0)
                     {
-                        _parseResult = new MySqlTableResult(_tableHeader, _rows) { HasFollower = true };
+                        _parseResult = new MySqlTableResult(_tableHeader, _rows.ToArray()) { HasFollower = true };
                     }
                     if (_generateResultMode)
                     {
@@ -511,7 +513,7 @@ namespace SharpConnect.MySql.Internal
 
                         }
 #endif
-                        _rows = new List<DataRowPacket>();
+                        _rows.Clear();
                     }
                 }
             }
