@@ -18,7 +18,7 @@ namespace SharpConnect.MySql
             }
             public static void ResetConnection(this MySqlConnection conn)
             {
-                conn.ResetConnection();
+                conn.InternalResetConnection();
             }
 
             public static void Dispose(this MySqlConnection conn)
