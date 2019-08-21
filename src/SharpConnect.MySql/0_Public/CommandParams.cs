@@ -228,6 +228,7 @@ namespace SharpConnect.MySql
             data.type = MySqlDataType.LONGLONG;//** 
             _values[key] = data;
         }
+
         public void AddWithValue(string key, ulong value)
         {
             var data = new MyStructData();
@@ -237,7 +238,11 @@ namespace SharpConnect.MySql
             //data.type = Types.LONGLONG;
             _values[key] = data;
         }
-        public void AddNull(string key)
+        /// <summary>
+        /// add null data
+        /// </summary>
+        /// <param name="key"></param>
+        public void SetNull(string key)
         {
             var data = new MyStructData();
             data.myString = null;
@@ -254,7 +259,7 @@ namespace SharpConnect.MySql
             //get type of value
             if (value == null)
             {
-                AddNull(key);
+                SetNull(key);
                 return;
             }
 
