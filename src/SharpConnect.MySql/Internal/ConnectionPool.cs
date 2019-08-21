@@ -1,4 +1,4 @@
-﻿//MIT, 2015-2018, brezza92, EngineKit and contributors
+﻿//MIT, 2015-2019, brezza92, EngineKit and contributors
 
 using System;
 using System.Collections.Generic;
@@ -70,16 +70,16 @@ namespace SharpConnect.MySql.Internal
             {
                 lock (s_connLock)
                 {
-                    Queue<Connection> found;
+
                     //not found
-                    if (!s_connQueue.TryGetValue(connstr.ConnSignature, out found))
+                    if (!s_connQueue.TryGetValue(connstr.ConnSignature, out Queue<Connection> found))
                     {
                         return null;
                     }
 
                     if (found.Count > 0)
                     {
-                        var conn = found.Dequeue();
+                        Connection conn = found.Dequeue();
                         //TODO: check if conn is valid
                         conn.IsStoredInConnPool = false;
                         return conn.State == ConnectionState.Connected ? conn : null;
@@ -95,9 +95,9 @@ namespace SharpConnect.MySql.Internal
             {
                 lock (s_connLock)
                 {
-                    Queue<Connection> found;
+
                     //not found
-                    if (!s_connQueue.TryGetValue(connstr.ConnSignature, out found))
+                    if (!s_connQueue.TryGetValue(connstr.ConnSignature, out Queue<Connection> found))
                     {
                         found = new Queue<Connection>();
                         s_connQueue.Add(connstr.ConnSignature, found);

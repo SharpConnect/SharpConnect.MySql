@@ -1,4 +1,4 @@
-﻿//MIT, 2015-2018, brezza92, EngineKit and contributors
+﻿//MIT, 2015-2019, brezza92, EngineKit and contributors
 
 using System;
 using SharpConnect.MySql.Internal;
@@ -12,6 +12,15 @@ namespace SharpConnect.MySql
             {
                 conn.InternalOpen();
             }
+            public static void Ping(this MySqlConnection conn)
+            {
+                conn.InternalPing();
+            }
+            public static void ResetConnection(this MySqlConnection conn)
+            {
+                conn.InternalResetConnection();
+            }
+
             public static void Dispose(this MySqlConnection conn)
             {
                 //?
@@ -26,15 +35,23 @@ namespace SharpConnect.MySql
             public static void Open(this MySqlConnection conn, Action onComplete, Action next = null)
             {
                 conn.InternalOpen(onComplete);
-                if (next != null)
-                {
-                    next();
-                }
+                next?.Invoke();
+            }
+            public static void Ping(this MySqlConnection conn, Action onComplete, Action next = null)
+            {
+                conn.InternalPing(onComplete);
+                next?.Invoke();
+            }
+            public static void ResetConnection(this MySqlConnection conn, Action onComplete, Action next = null)
+            {
+                conn.InternalResetConnection(onComplete);
+                next?.Invoke();
             }
             public static void Close(this MySqlConnection conn, Action onComplete)
             {
                 conn.InternalClose(onComplete);
             }
+
             public static void Stop(this MySqlDataReader reader)
             {
                 reader.StopReadingNextRow = true;
@@ -171,6 +188,7 @@ namespace SharpConnect.MySql
                 }
             }
         }
+
         internal void InternalOpen(Action onComplete = null)
         {
             this.FromConnectionPool = false;//reset
@@ -211,6 +229,16 @@ namespace SharpConnect.MySql
                     { port = _connStr.PortNumber });
                 _conn.Connect(onComplete);
             }
+        }
+
+
+        internal void InternalPing(Action onComplete = null)
+        {
+            _conn.Ping(onComplete);
+        }
+        internal void InternalResetConnection(Action onComplete = null)
+        {
+            _conn.ResetConnection(onComplete);
         }
         public void Close()
         {

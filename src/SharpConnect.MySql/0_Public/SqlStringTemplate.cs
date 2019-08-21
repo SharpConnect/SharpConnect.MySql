@@ -1,5 +1,4 @@
-﻿//LICENSE: MIT 
-//MIT, 2015-2018, brezza92, EngineKit and contributors 
+﻿//MIT, 2015-2019, brezza92, EngineKit and contributors 
 
 using System;
 using System.Collections.Generic;

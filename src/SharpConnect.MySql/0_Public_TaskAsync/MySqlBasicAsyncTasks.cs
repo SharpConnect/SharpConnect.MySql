@@ -63,22 +63,22 @@ namespace SharpConnect.MySql.AsyncPatt
             return ch.AddTask(() =>
             {
                 ch.AutoCallNext = false;
-                cmd.InternalExecuteReader(subtable =>
+                cmd.InternalExecuteReader(reader =>
                 {
                     //this method is respond for call next ***
                     ch.AutoCallNext = true;
                     //**
                     //fetch data
-                    while (subtable.InternalRead())
+                    while (reader.InternalRead())
                     {
-                        readerReady(subtable);
-                        if (subtable.StopReadingNextRow)
+                        readerReady(reader);
+                        if (reader.StopReadingNextRow)
                         {
                             break;
                         }
                     }
                     //
-                    subtable.Close(() => { });
+                    reader.Close(() => { });
                     //
                     if (ch.AutoCallNext)
                     {
@@ -92,11 +92,11 @@ namespace SharpConnect.MySql.AsyncPatt
             return ch.AddTask(() =>
             {
                 ch.AutoCallNext = false;
-                cmd.InternalExecuteSubTableReader(subtable =>
+                cmd.InternalExecuteSubTableReader(reader =>
                 {
                     //this method is respond for call next ***
                     ch.AutoCallNext = true;
-                    readerReady(subtable);
+                    readerReady(reader);
                     if (ch.AutoCallNext)
                     {
                         ch.Next();

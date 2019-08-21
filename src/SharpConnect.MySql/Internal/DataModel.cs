@@ -1,6 +1,6 @@
 ﻿//LICENSE: MIT
 //Copyright(c) 2012 Felix Geisendörfer(felix @debuggable.com) and contributors 
-//MIT, 2015-2018, brezza92, EngineKit and contributors
+//MIT, 2015-2019, brezza92, EngineKit and contributors
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy
 //of this software and associated documentation files (the "Software"), to deal
@@ -304,7 +304,7 @@ namespace SharpConnect.MySql.Internal
 
     enum MySqlDataType : byte
     {
-        // Manually extracted from mysql-5.5.23/include/mysql_com.h
+        
         // some more info here: http://dev.mysql.com/doc/refman/5.5/en/c-api-prepared-statement-type-codes.html
         DECIMAL = 0x00, //exports.DECIMAL     = 0x00; // aka DECIMAL (http://dev.mysql.com/doc/refman/5.0/en/precision-math-decimal-changes.html)
         /// <summary>
@@ -397,6 +397,7 @@ namespace SharpConnect.MySql.Internal
         STMT_FETCH,     //STMT_FETCH         : 0x1c,
         DAEMON,         //DAEMON             : 0x1d,  // deprecated
         BINLOG_DUMP_GTID,//BINLOG_DUMP_GTID  : 0x1e,
+        RESET_CONNECTION, //                 : 0x1f       
         UNKNOWN = 0xff    //UNKNOWN            : 0xff   // bad!
     }
 

@@ -1,4 +1,4 @@
-﻿//MIT, 2015-2018, brezza92, EngineKit and contributors
+﻿//MIT, 2015-2019, brezza92, EngineKit and contributors
 
 using System;
 using SharpConnect.MySql.Internal;
@@ -287,6 +287,7 @@ namespace SharpConnect.MySql
                 _query = new Query(Connection.Conn, _sqlStringTemplate, Parameters);
                 _query.SetErrorListener(err =>
                 {
+                    ErrorMsg = err.Message;
                     HasError = true;
                 });
             }

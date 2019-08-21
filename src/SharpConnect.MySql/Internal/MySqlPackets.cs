@@ -1,7 +1,7 @@
 ﻿//LICENSE: MIT
 //Copyright(c) 2012 Felix Geisendörfer(felix @debuggable.com) and contributors 
 //Copyright(c) 2013 Andrey Sidorov(sidorares @yandex.ru) and contributors
-//MIT, 2015-2018, brezza92, EngineKit and contributors
+//MIT, 2015-2019, brezza92, EngineKit and contributors
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy
 //of this software and associated documentation files (the "Software"), to deal
@@ -201,9 +201,65 @@ namespace SharpConnect.MySql.Internal
             _header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(_header);
         }
-
-
     }
+
+    class ComPingPacket : Packet
+    {
+        //ping from client to server
+        public ComPingPacket(PacketHeader header)
+            : base(header)
+        {
+            //https://dev.mysql.com/doc/internals/en/com-ping.html
+            //14.6.15 COM_PING
+            //COM_PING:
+            //    check if the server is alive
+            //    Returns
+            //        OK_Packet
+            //    Payload
+            //1[0e] COM_PING
+        }
+        public override void ParsePacketContent(MySqlStreamReader r)
+        {
+            throw new NotImplementedException();
+        }
+        public override void WritePacket(MySqlStreamWriter writer)
+        {
+            writer.ReserveHeader();
+            writer.WriteByte((byte)Command.PING);
+            var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
+            writer.WriteHeader(header);
+        }
+    }
+    class ComResetConnectionPacket : Packet
+    {
+        public ComResetConnectionPacket(PacketHeader header)
+            : base(header)
+        {
+            //https://dev.mysql.com/doc/internals/en/com-reset-connection.html
+            //14.6.19 COM_RESET_CONNECTION
+
+            //COM_RESET_CONNECTION:
+            //    Resets the session state; more lightweight than COM_CHANGE_USER because it does not close and reopen the connection, and does not re-authenticate
+            //    Payload
+            //        1[1f] COM_RESET_CONNECTION
+            //Returns
+            //        a ERR_Packet
+            //        a OK_Packet
+
+        }
+        public override void ParsePacketContent(MySqlStreamReader r)
+        {
+            throw new NotImplementedException();
+        }
+        public override void WritePacket(MySqlStreamWriter writer)
+        {
+            writer.ReserveHeader();
+            writer.WriteByte((byte)Command.RESET_CONNECTION);
+            var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
+            writer.WriteHeader(header);
+        }
+    }
+
 
     class ComQueryPacket : Packet
     {
@@ -214,10 +270,8 @@ namespace SharpConnect.MySql.Internal
         {
             _sql = sql;
         }
-
         public override void ParsePacketContent(MySqlStreamReader r)
         {
-
             _QUERY_CMD = r.ReadByte();//1
             _sql = r.ReadPacketTerminatedString();
         }
@@ -285,9 +339,7 @@ namespace SharpConnect.MySql.Internal
                     var header = new PacketHeader((uint)currentPacketContentSize, writer.IncrementPacketNumber());
                     writer.WriteHeader(header);
                 }
-
             }
-
         }
     }
 
@@ -987,7 +1039,7 @@ namespace SharpConnect.MySql.Internal
     {
         byte _fieldCount;
         uint _errno;
-        char _sqlStateMarker;
+        string _sqlStateMarker;
         string _sqlState;
         public string message;
         public ErrPacket(PacketHeader header) : base(header) { }
@@ -998,7 +1050,7 @@ namespace SharpConnect.MySql.Internal
             _errno = r.U2();//2
             if (r.PeekByte() == 0x23)
             {
-                _sqlStateMarker = r.ReadChar();
+                _sqlStateMarker = r.ReadString(1);
                 _sqlState = r.ReadString(5);
             }
 
@@ -1103,7 +1155,25 @@ namespace SharpConnect.MySql.Internal
                     //var err  = new TypeError('Received invalid field length');
                     //err.code = 'PARSER_INVALID_FIELD_LENGTH';
                     //throw err;
+
+
 #if DEBUG
+                    //https://stackoverflow.com/questions/40781793/received-invalid-field-length-error-in-nodejs-with-mysql-application
+
+                    //save log file here
+                    StringBuilder stbuilder = new StringBuilder();
+                    stbuilder.AppendLine(DateTime.Now.ToString("s"));
+                    stbuilder.AppendLine("invalid field length occur!");
+                    stbuilder.AppendLine("catalog:" + catalog);
+                    stbuilder.AppendLine("schema:" + schema);
+                    stbuilder.AppendLine("table:" + table);
+                    stbuilder.AppendLine("orgTable:" + orgTable);
+                    stbuilder.AppendLine("name:" + name);
+                    stbuilder.AppendLine("orgName:" + orgName);
+
+                    System.IO.File.AppendAllText("invalid_field_length.txt", stbuilder.ToString());
+
+
                     if (lengthCodedNumber == 0)
                     {
                         //error

@@ -1,4 +1,4 @@
-﻿//MIT, 2015-2018, brezza92, EngineKit and contributors
+﻿//MIT, 2015-2019, brezza92, EngineKit and contributors
 
 using System;
 using System.Collections.Generic;
@@ -53,7 +53,7 @@ namespace SharpConnect.MySql
     {
 
         MySqlSubTable _currentSubTable;
-        List<DataRowPacket> _rows;
+        DataRowPacket[] _rows;
         int _currentRowIndex;
         int _subTableRowCount;
         bool _isEmptyTable = true; //default
@@ -87,7 +87,7 @@ namespace SharpConnect.MySql
         public virtual void SetCurrentRowIndex(int index)
         {
             _currentRowIndex = index;
-            if (index < _rows.Count)
+            if (index < _rows.Length)
             {
                 SetCurrentRow(index);
             }
@@ -143,7 +143,7 @@ namespace SharpConnect.MySql
                 _isEmptyTable = false;
                 _rows = currentSubTable.GetMySqlTableResult().rows;
                 _isBinaryProtocol = currentSubTable.IsBinaryProtocol;
-                _subTableRowCount = _rows.Count;
+                _subTableRowCount = _rows.Length;
                 //buffer for each row 
                 _cells = new MyStructData[currentSubTable.FieldCount];
             }
@@ -557,9 +557,11 @@ namespace SharpConnect.MySql
 
         //TODO: check match type and index here
         public decimal GetDecimal(int colIndex) => _cells[colIndex].myDecimal;
+        public decimal GetDecimal(string colName) => GetDecimal(GetOrdinal(colName));
 
         //TODO: check match type and index here
         public float GetFloat(int colIndex) => (float)(_cells[colIndex].myDouble);
+        public float GetFloat(string colName) => (float)(_cells[GetOrdinal(colName)].myDouble);
 
         //TODO: check match type and index here
         public double GetDouble(int colIndex) => _cells[colIndex].myDouble;
@@ -567,7 +569,7 @@ namespace SharpConnect.MySql
         //TODO: check match type and index here
         public double GetDouble(string colName) => GetDouble(GetOrdinal(colName));
 
-        public decimal GetDecimal(string colName) => GetDecimal(GetOrdinal(colName));
+
 
         public string GetString(int colIndex)
         {
@@ -889,8 +891,16 @@ namespace SharpConnect.MySql
                     //--------------------------------
                     lock (_tableResultCompleteLock)
                     {
+                        int tryCount = 0;
                         while (_tableResultIsNotComplete && !_firstResultArrived)
-                            System.Threading.Monitor.Wait(_tableResultCompleteLock);
+                        {
+                            if (tryCount > 3)
+                            {
+                                throw new Exception("timeout!");
+                            }
+                            System.Threading.Monitor.Wait(_tableResultCompleteLock, 250);//wait within 250 ms lock
+                            tryCount++;
+                        }
                     }
                     //we are in isPartial table mode (not complete)
                     //so must wait until the table arrive ** 
@@ -898,6 +908,8 @@ namespace SharpConnect.MySql
                 }
             }
         }
+
+
         /// <summary>
         /// non blocking
         /// </summary>
@@ -995,21 +1007,21 @@ namespace SharpConnect.MySql
         /// <param name="onEachRow"></param>
         public void Read(Action onEachRow)
         {
-            ReadSubTable(st =>
+            ReadSubTable(subTable =>
             {
                 //on each subtable
-                MySqlDataReader tableReader = st.CreateDataReader();
+                MySqlDataReader tableReader = subTable.CreateDataReader();
 
                 tableReader.StringConverter = this.StringConverter;
 
-                int j = st.RowCount;
+                int j = subTable.RowCount;
                 for (int i = 0; i < j; ++i)
                 {
                     tableReader.SetCurrentRowIndex(i);
                     onEachRow();
                 }
                 //if last one
-                if (st.IsLastTable)
+                if (subTable.IsLastTable)
                 {
                     //async close
                     this.InternalClose(() => { });
@@ -1033,8 +1045,7 @@ namespace SharpConnect.MySql
                 {
                     if (_subTables.Count > 0)
                     {
-                        MySqlSubTable subT = new MySqlSubTable(_subTables.Dequeue());
-                        SetCurrentSubTable(subT);
+                        SetCurrentSubTable(new MySqlSubTable(_subTables.Dequeue()));
                         hasSomeSubTables = true;
                     }
                 }
@@ -1051,8 +1062,30 @@ namespace SharpConnect.MySql
                         //------------------ 
                         lock (_tableResultCompleteLock)
                         {
+                            int zeroCount = 0;
                             while (_tableResultIsNotComplete)
-                                System.Threading.Monitor.Wait(_tableResultCompleteLock);
+                            {
+                                int subTableCount = 0;
+                                lock (_subTables)
+                                {
+                                    subTableCount = _subTables.Count;
+                                }
+                                //
+                                if (subTableCount == 0)
+                                {
+                                    if (zeroCount > 3)
+                                    {
+                                        throw new Exception("timeout!");
+                                        //zeroCount = 0;
+                                    }
+                                    zeroCount++;
+                                    System.Threading.Monitor.Wait(_tableResultCompleteLock, 250); //wait within 250 ms lock
+                                }
+                                else
+                                {
+                                    break; //break from while
+                                }
+                            }
                         }
                         goto TRY_AGAIN;
                     }
@@ -1165,9 +1198,9 @@ namespace SharpConnect.MySql
             }
         }
 
-        public int RowCount => _tableResult.rows.Count;
+        public int RowCount => _tableResult.rows.Length;
 
-        public bool HasRows => _tableResult.rows != null && _tableResult.rows.Count > 0;
+        public bool HasRows => _tableResult.rows != null && _tableResult.rows.Length > 0;
 
         internal MySqlTableResult GetMySqlTableResult() => _tableResult;
 
