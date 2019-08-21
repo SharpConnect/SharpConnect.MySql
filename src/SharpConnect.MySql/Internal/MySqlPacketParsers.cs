@@ -863,10 +863,13 @@ namespace SharpConnect.MySql.Internal
         //-------------------------
         public MySqlParserMx(ConnectionConfig userConfig)
         {
-            this._userConfig = userConfig;
+            _userConfig = userConfig;
             _connParser = new MySqlConnectionPacketParser();
+            _mysqlStreamReader.SupportBigNumber = userConfig.supportBigNumbers;
             //tableHeader.TypeCast = this.config.typeCast;
         }
+       
+
         public void SetProtocol41(bool value)
         {
             _isProtocol41 = value;

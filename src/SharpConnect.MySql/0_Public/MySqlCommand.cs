@@ -298,10 +298,10 @@ namespace SharpConnect.MySql
         public bool HasError { get; private set; }
 
         //after execute non query      
-        public uint LastInsertedId => _query.OkPacket.insertId;
+        public long LastInsertedId => _query.OkPacket.insertId;
 
         //after execute non query
-        public uint AffectedRows => (_query.OkPacket != null) ? _query.OkPacket.affectedRows : 0;
+        public long AffectedRows => (_query.OkPacket != null) ? _query.OkPacket.affectedRows : 0;
 
         public void Dispose()
         {

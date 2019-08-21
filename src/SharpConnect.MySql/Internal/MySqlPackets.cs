@@ -1319,8 +1319,8 @@ namespace SharpConnect.MySql.Internal
     class OkPacket : Packet
     {
         uint _fieldCount;
-        public uint affectedRows;
-        public uint insertId;
+        public long affectedRows;
+        public long insertId;
         public uint _serverStatus;
         public uint _warningCount;
         public string _message;
@@ -1333,10 +1333,11 @@ namespace SharpConnect.MySql.Internal
 
         public override void ParsePacketContent(MySqlStreamReader r)
         {
-
             _fieldCount = r.ReadByte();
-            affectedRows = r.ReadLengthCodedNumber();
-            insertId = r.ReadLengthCodedNumber();
+
+            affectedRows = r.ReadLengthCodedNumberInt64(out bool isNull1);
+            insertId = r.ReadLengthCodedNumberInt64(out bool isNull2);
+
             if (_protocol41)
             {
                 _serverStatus = r.U2();
