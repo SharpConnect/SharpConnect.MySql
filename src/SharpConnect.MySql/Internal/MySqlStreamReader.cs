@@ -52,7 +52,7 @@ namespace SharpConnect.MySql.Internal
             _stream = new MemoryStream();
             _reader = new BinaryReader(_stream, encoding);
         }
-
+        public bool SupportBigNumber { get; set; }
 #if DEBUG
         [System.Diagnostics.Conditional("DEBUG")]
         void dbugBreakOnMonitorData()
@@ -274,7 +274,9 @@ namespace SharpConnect.MySql.Internal
             dbugBreakOnMonitorData();
 #endif
 
-            //var length = this.parseLengthCodedNumber();
+
+            //max lenght from ReadLengthCodedNumber = 256*256*256
+            //if you want more data than this value-> set support large Number = true
 
             uint length = ReadLengthCodedNumber(out bool isNull);
             //if (length === null) {
@@ -282,7 +284,6 @@ namespace SharpConnect.MySql.Internal
             //}
             return isNull ? null : ReadString(length);
             //return this.parseString(length);
-
         }
 
         public bool ReadLengthCodedBuffer(out byte[] outputBuffer)
@@ -317,7 +318,7 @@ namespace SharpConnect.MySql.Internal
 
         public uint ReadLengthCodedNumber()
         {
-            //ignore is null 
+            //ignore is null  
             return ReadLengthCodedNumber(out bool isNull);
         }
         public uint ReadLengthCodedNumber(out bool isNullData)
