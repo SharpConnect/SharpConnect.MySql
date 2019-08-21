@@ -230,6 +230,36 @@ namespace SharpConnect.MySql.Internal
             writer.WriteHeader(header);
         }
     }
+    /// <summary>
+    /// change defaul schema(DB)
+    /// </summary>
+    class ComInitDB : Packet
+    {
+        string _defaultDB;
+        public ComInitDB(PacketHeader header, string dbfaultDB)
+            : base(header)
+        {
+            //https://dev.mysql.com/doc/internals/en/com-init-db.html
+            //1[02] COM_INIT_DB
+            //string[EOF] schema name
+            _defaultDB = dbfaultDB;
+        }
+        public override void ParsePacketContent(MySqlStreamReader r)
+        {
+            throw new NotImplementedException();
+        }
+        public override void WritePacket(MySqlStreamWriter writer)
+        {
+            byte[] buffer = writer.GetEncodeBytes(_defaultDB.ToCharArray());
+            int totalLen = buffer.Length;
+
+            writer.ReserveHeader();
+            writer.WriteByte((byte)Command.INIT_DB);
+            writer.WriteBinaryString(buffer);
+            var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
+            writer.WriteHeader(header);
+        }
+    }
     class ComResetConnectionPacket : Packet
     {
         public ComResetConnectionPacket(PacketHeader header)
@@ -268,6 +298,10 @@ namespace SharpConnect.MySql.Internal
         public ComQueryPacket(PacketHeader header, string sql)
             : base(header)
         {
+            //https://dev.mysql.com/doc/internals/en/com-query.html
+            //[03] COM_QUERY
+            //string[EOF] the query the server shall execute
+
             _sql = sql;
         }
         public override void ParsePacketContent(MySqlStreamReader r)

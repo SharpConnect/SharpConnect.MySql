@@ -16,6 +16,10 @@ namespace SharpConnect.MySql
             {
                 conn.InternalPing();
             }
+            public static void ChangeDB(this MySqlConnection conn,string newDbName)
+            {
+                conn.InternalChangeDB(newDbName);
+            }
             public static void ResetConnection(this MySqlConnection conn)
             {
                 conn.InternalResetConnection();
@@ -40,6 +44,11 @@ namespace SharpConnect.MySql
             public static void Ping(this MySqlConnection conn, Action onComplete, Action next = null)
             {
                 conn.InternalPing(onComplete);
+                next?.Invoke();
+            }
+            public static void ChangeDB(this MySqlConnection conn, string newDbName, Action onComplete, Action next = null)
+            {
+                conn.InternalChangeDB(newDbName, onComplete);
                 next?.Invoke();
             }
             public static void ResetConnection(this MySqlConnection conn, Action onComplete, Action next = null)
@@ -239,6 +248,11 @@ namespace SharpConnect.MySql
         internal void InternalResetConnection(Action onComplete = null)
         {
             _conn.ResetConnection(onComplete);
+        }
+
+        internal void InternalChangeDB(string newDbName, Action onComplete = null)
+        {
+            _conn.ChangeDB(newDbName, onComplete);
         }
         public void Close()
         {
