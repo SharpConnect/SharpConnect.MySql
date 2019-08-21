@@ -201,9 +201,65 @@ namespace SharpConnect.MySql.Internal
             _header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
             writer.WriteHeader(_header);
         }
-
-
     }
+
+    class ComPingPacket : Packet
+    {
+        //ping from client to server
+        public ComPingPacket(PacketHeader header)
+            : base(header)
+        {
+            //https://dev.mysql.com/doc/internals/en/com-ping.html
+            //14.6.15 COM_PING
+            //COM_PING:
+            //    check if the server is alive
+            //    Returns
+            //        OK_Packet
+            //    Payload
+            //1[0e] COM_PING
+        }
+        public override void ParsePacketContent(MySqlStreamReader r)
+        {
+            throw new NotImplementedException();
+        }
+        public override void WritePacket(MySqlStreamWriter writer)
+        {
+            writer.ReserveHeader();
+            writer.WriteByte((byte)Command.PING);
+            var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
+            writer.WriteHeader(header);
+        }
+    }
+    class ComResetConnectionPacket : Packet
+    {
+        public ComResetConnectionPacket(PacketHeader header)
+            : base(header)
+        {
+            //https://dev.mysql.com/doc/internals/en/com-reset-connection.html
+            //14.6.19 COM_RESET_CONNECTION
+
+            //COM_RESET_CONNECTION:
+            //    Resets the session state; more lightweight than COM_CHANGE_USER because it does not close and reopen the connection, and does not re-authenticate
+            //    Payload
+            //        1[1f] COM_RESET_CONNECTION
+            //Returns
+            //        a ERR_Packet
+            //        a OK_Packet
+
+        }
+        public override void ParsePacketContent(MySqlStreamReader r)
+        {
+            throw new NotImplementedException();
+        }
+        public override void WritePacket(MySqlStreamWriter writer)
+        {
+            writer.ReserveHeader();
+            writer.WriteByte((byte)Command.RESET_CONNECTION);
+            var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
+            writer.WriteHeader(header);
+        }
+    }
+
 
     class ComQueryPacket : Packet
     {
@@ -214,10 +270,8 @@ namespace SharpConnect.MySql.Internal
         {
             _sql = sql;
         }
-
         public override void ParsePacketContent(MySqlStreamReader r)
         {
-
             _QUERY_CMD = r.ReadByte();//1
             _sql = r.ReadPacketTerminatedString();
         }
@@ -285,9 +339,7 @@ namespace SharpConnect.MySql.Internal
                     var header = new PacketHeader((uint)currentPacketContentSize, writer.IncrementPacketNumber());
                     writer.WriteHeader(header);
                 }
-
             }
-
         }
     }
 

@@ -285,6 +285,8 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
+
+
         /// <summary>
         /// open connection, +/- blocking
         /// </summary>
@@ -340,29 +342,29 @@ namespace SharpConnect.MySql.Internal
                 _mysqlParserMx.UseResultParser();
                 //------------------------------------
                 StartSend(sendBuff, 0, sendBuff.Length, () =>
+                {
+                    StartReceive(mysql_result2 =>
                     {
-                        StartReceive(mysql_result2 =>
-                            {
-                    var ok = mysql_result2 as MySqlOkResult;
-                    if (ok != null)
-                    {
-                        _workingState = WorkingState.Rest;
-                    }
-                    else
-                    {
+                        var ok = mysql_result2 as MySqlOkResult;
+                        if (ok != null)
+                        {
+                            _workingState = WorkingState.Rest;
+                        }
+                        else
+                        {
                             //TODO: review here
                             //error  
                             _workingState = WorkingState.Error;
-                    }
+                        }
                         //set max allow of the server ***
                         //todo set max allow packet***
                         UnWait();
-                    if (nextAction != null)
-                    {
-                        nextAction();
-                    }
-                });
+                        if (nextAction != null)
+                        {
+                            nextAction();
+                        }
                     });
+                });
             });
             if (nextAction == null)
             {
@@ -374,6 +376,121 @@ namespace SharpConnect.MySql.Internal
                 UnWait();
             }
         }
+
+
+        /// <summary>
+        /// ping server, +/- blocking
+        /// </summary>
+        /// <param name="nextAction"></param>
+        public void Ping(Action nextAction = null)
+        {
+            //ping server
+            if (State == ConnectionState.Disconnected)
+            {
+                throw new NotSupportedException("open connection first");
+            }
+
+            _writer.Reset();
+            ComPingPacket pingPacket = new ComPingPacket(new PacketHeader());
+            pingPacket.WritePacket(_writer);
+            byte[] data = _writer.ToArray();
+            InitWait();
+            StartSend(data, 0, data.Length, () =>
+            {
+                StartReceive(mysql_result2 =>
+                {
+                    var ok = mysql_result2 as MySqlOkResult;
+                    if (ok != null)
+                    {
+                        _workingState = WorkingState.Rest;
+                    }
+                    else
+                    {
+                        //TODO: review here
+                        //error  
+                        _workingState = WorkingState.Error;
+                    }
+                    //set max allow of the server ***
+                    //todo set max allow packet***
+                    UnWait();
+                    if (nextAction != null)
+                    {
+                        nextAction();
+                    }
+                });
+
+            });
+            if (nextAction == null)
+            {
+                Wait(); //block
+            }
+            else
+            {
+                UnWait();
+            }
+        }
+
+        /// <summary>
+        /// reset connection
+        /// </summary>
+        /// <param name="nextAction"></param>
+        public void ResetConnection(Action nextAction = null)
+        {
+            //https://dev.mysql.com/doc/internals/en/com-reset-connection.html
+            //COM_RESET_CONNECTION:
+
+            //Resets the session state; more lightweight than COM_CHANGE_USER because it does not close and reopen the connection, and does not re-authenticate
+
+            //Payload
+
+            //1   [1f] COM_RESET_CONNECTION
+
+            //Returns
+            //  a ERR_Packet
+
+            //  a OK_Packet
+
+            _writer.Reset();
+            ComPingPacket pingPacket = new ComPingPacket(new PacketHeader());
+            pingPacket.WritePacket(_writer);
+            byte[] data = _writer.ToArray();
+            InitWait();
+            StartSend(data, 0, data.Length, () =>
+            {
+                StartReceive(mysql_result2 =>
+                {
+                    var ok = mysql_result2 as MySqlOkResult;
+                    if (ok != null)
+                    {
+                        _workingState = WorkingState.Rest;
+                    }
+                    else
+                    {
+                        //TODO: review here
+                        //error  
+                        _workingState = WorkingState.Error;
+                    }
+                    //set max allow of the server ***
+                    //todo set max allow packet***
+                    UnWait();
+                    if (nextAction != null)
+                    {
+                        nextAction();
+                    }
+                });
+
+            });
+            if (nextAction == null)
+            {
+                Wait(); //block
+            }
+            else
+            {
+                UnWait();
+            }
+
+        }
+
 
         /// <summary>
         /// close conncetion, +/- blocking

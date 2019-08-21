@@ -397,6 +397,7 @@ namespace SharpConnect.MySql.Internal
         STMT_FETCH,     //STMT_FETCH         : 0x1c,
         DAEMON,         //DAEMON             : 0x1d,  // deprecated
         BINLOG_DUMP_GTID,//BINLOG_DUMP_GTID  : 0x1e,
+        RESET_CONNECTION, //                 : 0x1f       
         UNKNOWN = 0xff    //UNKNOWN            : 0xff   // bad!
     }
 
