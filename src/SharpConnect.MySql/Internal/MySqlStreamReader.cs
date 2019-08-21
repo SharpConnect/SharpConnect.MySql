@@ -100,19 +100,18 @@ namespace SharpConnect.MySql.Internal
         }
         public void Reset()
         {
-            lock (_stream)
-            {
-#if DEBUG
-                dbugBreakOnMonitorData();
-                if (_stream.Position < _currentInputLength)
-                {
 
-                }
-#endif
-                _stream.Position = 0;
-                _packetHeaderStartAt = 0;
-                _currentInputLength = 0;
+#if DEBUG
+            dbugBreakOnMonitorData();
+            if (_stream.Position < _currentInputLength)
+            {
+
             }
+#endif
+            _stream.Position = 0;
+            _packetHeaderStartAt = 0;
+            _currentInputLength = 0;
+
         }
 
 
@@ -135,42 +134,41 @@ namespace SharpConnect.MySql.Internal
 
         internal void ClearReadBuffer()
         {
-            lock (_stream)
+
+            long readingPos = _stream.Position;
+
+            if (_currentInputLength > STREAM_BUFFER_SIZE_LIM)
             {
-                long readingPos = _stream.Position;
+                //clear read data
+                long unreadLength = _currentInputLength - readingPos;
 
-                if (_currentInputLength > STREAM_BUFFER_SIZE_LIM)
+                if (unreadLength > 0)
                 {
-                    //clear read data
-                    long unreadLength = _currentInputLength - readingPos;
+                    //swap data
+                    int unreadLenInt32 = (int)unreadLength;
+                    int readDataLen = (int)readingPos;
 
-                    if (unreadLength > 0)
+                    byte[] unreadData = null;
+                    if (unreadLenInt32 < SWAP_SIZE)
                     {
-                        //swap data
-                        int unreadLenInt32 = (int)unreadLength;
-                        int readDataLen = (int)readingPos;
-
-                        byte[] unreadData = null;
-                        if (unreadLenInt32 < SWAP_SIZE)
-                        {
-                            unreadData = GetTmpSwapBuffer();
-                        }
-                        else
-                        {
-                            unreadData = new byte[unreadLenInt32];
-                        }
-                        //copy data from stram to temp buffer
-                        _stream.Read(unreadData, 0, unreadLenInt32);
-                        _stream.SetLength(0); //clear old stream
-                        _stream.Write(unreadData, 0, unreadLenInt32); //write back
-                        _stream.Position = 0;//set pos to 0
-                        _currentInputLength = unreadLenInt32;
-                        _packetHeaderStartAt -= readDataLen; //offset 
-
-                        readingPos = 0;
+                        unreadData = GetTmpSwapBuffer();
                     }
+                    else
+                    {
+                        unreadData = new byte[unreadLenInt32];
+                    }
+                    //copy data from stram to temp buffer
+                    _stream.Read(unreadData, 0, unreadLenInt32);
+                    _stream.SetLength(0); //clear old stream
+                    _stream.Write(unreadData, 0, unreadLenInt32); //write back
+                    _stream.Position = 0;//set pos to 0
+                    _currentInputLength = unreadLenInt32;
+                    _packetHeaderStartAt -= readDataLen; //offset 
+
+                    readingPos = 0;
                 }
             }
+
         }
 
 
@@ -180,17 +178,16 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
-            {
-                long saved_pos = _stream.Position;
-                _stream.Position = _currentInputLength;
-                //----------------------------
-                recvIO.CopyTo(0, _stream, count);
-                //----------------------------
-                //_stream.Write(buffer, 0, count);
-                _stream.Position = saved_pos;
-                _currentInputLength += count;
-            }
+
+            long saved_pos = _stream.Position;
+            _stream.Position = _currentInputLength;
+            //----------------------------
+            recvIO.CopyTo(0, _stream, count);
+            //----------------------------
+            //_stream.Write(buffer, 0, count);
+            _stream.Position = saved_pos;
+            _currentInputLength += count;
+
         }
 
         //------------------------------------------------------
@@ -199,20 +196,19 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
-            {
-                _bList.Clear();
-                byte temp = _reader.ReadByte();
-                _bList.Add(temp);
-                while (temp != 0)
-                {
-                    temp = _reader.ReadByte();
-                    _bList.Add(temp);
-                }
 
-                byte[] bytes = _bList.ToArray();
-                return _encoding.GetString(bytes);
+            _bList.Clear();
+            byte temp = _reader.ReadByte();
+            _bList.Add(temp);
+            while (temp != 0)
+            {
+                temp = _reader.ReadByte();
+                _bList.Add(temp);
             }
+
+            byte[] bytes = _bList.ToArray();
+            return _encoding.GetString(bytes);
+
         }
 
         public byte ReadByte()
@@ -220,10 +216,9 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
-            {
-                return _reader.ReadByte();
-            }
+
+            return _reader.ReadByte();
+
         }
 
         public byte[] ReadBuffer(int n)
@@ -231,23 +226,20 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
-            {
-                if (n > 0)
-                    return _reader.ReadBytes(n);
-                else
-                    return null;
-            }
+
+            if (n > 0)
+                return _reader.ReadBytes(n);
+            else
+                return null;
+
         }
         public void SkipForward(int byteOffset)
         {
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
-            {
-                _reader.BaseStream.Position += byteOffset;
-            }
+            _reader.BaseStream.Position += byteOffset;
+
         }
 
         public PacketHeader ReadPacketHeader()
@@ -255,26 +247,25 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
-            {
-                _packetHeaderStartAt = _stream.Position;
 
-                PacketHeader header = new PacketHeader(U3(), ReadByte());
+            _packetHeaderStartAt = _stream.Position;
+
+            PacketHeader header = new PacketHeader(U3(), ReadByte());
 #if DEBUG
-                if (header.PacketNumber > debugLastPacketNum + 1)
-                {
-                    SharpConnect.Internal.dbugConsole.WriteLine("header.PacketNumber : " + header.PacketNumber + " > lastPacketNumber :" + debugLastPacketNum);
-                }
-                else if (header.PacketNumber > 0 && header.PacketNumber < debugLastPacketNum && debugLastPacketNum != 2)
-                {
-                    //?
-                }
-                SharpConnect.Internal.dbugConsole.WriteLine("h>> " + header.PacketNumber + ":" + debugLastPacketNum + ":" + _packetHeaderStartAt);
-                debugLastPacketNum = header.PacketNumber;
-#endif
-                _packetLength = header.ContentLength + 4;
-                return header;
+            if (header.PacketNumber > debugLastPacketNum + 1)
+            {
+                SharpConnect.Internal.dbugConsole.WriteLine("header.PacketNumber : " + header.PacketNumber + " > lastPacketNumber :" + debugLastPacketNum);
             }
+            else if (header.PacketNumber > 0 && header.PacketNumber < debugLastPacketNum && debugLastPacketNum != 2)
+            {
+                //?
+            }
+            SharpConnect.Internal.dbugConsole.WriteLine("h>> " + header.PacketNumber + ":" + debugLastPacketNum + ":" + _packetHeaderStartAt);
+            debugLastPacketNum = header.PacketNumber;
+#endif
+            _packetLength = header.ContentLength + 4;
+            return header;
+
         }
 
         public string ReadLengthCodedString()
@@ -282,17 +273,16 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
-            {
-                //var length = this.parseLengthCodedNumber();
 
-                uint length = ReadLengthCodedNumber(out bool isNull);
-                //if (length === null) {
-                //  return null;
-                //}
-                return isNull ? null : ReadString(length);
-                //return this.parseString(length);
-            }
+            //var length = this.parseLengthCodedNumber();
+
+            uint length = ReadLengthCodedNumber(out bool isNull);
+            //if (length === null) {
+            //  return null;
+            //}
+            return isNull ? null : ReadString(length);
+            //return this.parseString(length);
+
         }
 
         public bool ReadLengthCodedBuffer(out byte[] outputBuffer)
@@ -300,19 +290,18 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
-            {
-                uint length = ReadLengthCodedNumber(out bool isNull);
-                outputBuffer = isNull ? null : ReadBuffer((int)length);
-                return isNull;
-            }
+
+            uint length = ReadLengthCodedNumber(out bool isNull);
+            outputBuffer = isNull ? null : ReadBuffer((int)length);
+            return isNull;
+
 
         }
 
         public byte[] ReadLengthCodedBuffer()
         {
-            byte[] output = null;
-            if (ReadLengthCodedBuffer(out output))
+
+            if (ReadLengthCodedBuffer(out byte[] output))
             {
                 return output;
             }
@@ -336,67 +325,66 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
+
+            isNullData = false;
+            //if (_offset >= _buffer.length)
+            //    {
+            //        var err = new Error('Parser: read past end');
+            //        err.offset = (_offset - _packetOffset);
+            //        err.code = 'PARSER_READ_PAST_END';
+            //        throw err;
+            //    }
+            if (ReadPosition >= CurrentInputLength)
             {
-                isNullData = false;
-                //if (_offset >= _buffer.length)
-                //    {
-                //        var err = new Error('Parser: read past end');
-                //        err.offset = (_offset - _packetOffset);
-                //        err.code = 'PARSER_READ_PAST_END';
-                //        throw err;
-                //    }
-                if (ReadPosition >= CurrentInputLength)
-                {
-                    throw new Exception("Parser: read past end");
-                }
-                //    var bits = _buffer[_offset++];
-
-                byte bits = _reader.ReadByte();
-                //    if (bits <= 250)
-                //    {
-                //        return bits;
-                //    }
-
-                if (bits <= 250)
-                {
-                    return bits;
-                }
-                //    switch (bits)
-                //    {
-                //        case 251:
-                //            return null;
-                //        case 252:
-                //            return this.parseUnsignedNumber(2);
-                //        case 253:
-                //            return this.parseUnsignedNumber(3);
-                //        case 254:
-                //            break;
-                //        default:
-                //            var err = new Error('Unexpected first byte' + (bits ? ': 0x' + bits.toString(16) : ''));
-                //            err.offset = (_offset - _packetOffset - 1);
-                //            err.code = 'PARSER_BAD_LENGTH_BYTE';
-                //            throw err;
-                //    }
-
-                switch (bits)
-                {
-                    case 251:
-                        isNullData = true;
-                        return 0;
-                    case 252: return U2();
-                    case 253: return U3();
-                    case 254: break;
-                    default: throw new Exception("Unexpected first byte");
-                }
-                //    var low = this.parseUnsignedNumber(4);
-                //    var high = this.parseUnsignedNumber(4);
-                //    var value;
-                uint low = U4();
-                uint high = U4();
-                throw new Exception("NOT SUPPORT LARGE NUMBER, please use " + nameof(ReadLengthCodedNumberInt64));
-
+                throw new Exception("Parser: read past end");
             }
+            //    var bits = _buffer[_offset++];
+
+            byte bits = _reader.ReadByte();
+            //    if (bits <= 250)
+            //    {
+            //        return bits;
+            //    }
+
+            if (bits <= 250)
+            {
+                return bits;
+            }
+            //    switch (bits)
+            //    {
+            //        case 251:
+            //            return null;
+            //        case 252:
+            //            return this.parseUnsignedNumber(2);
+            //        case 253:
+            //            return this.parseUnsignedNumber(3);
+            //        case 254:
+            //            break;
+            //        default:
+            //            var err = new Error('Unexpected first byte' + (bits ? ': 0x' + bits.toString(16) : ''));
+            //            err.offset = (_offset - _packetOffset - 1);
+            //            err.code = 'PARSER_BAD_LENGTH_BYTE';
+            //            throw err;
+            //    }
+
+            switch (bits)
+            {
+                case 251:
+                    isNullData = true;
+                    return 0;
+                case 252: return U2();
+                case 253: return U3();
+                case 254: break;
+                default: throw new Exception("Unexpected first byte");
+            }
+            //    var low = this.parseUnsignedNumber(4);
+            //    var high = this.parseUnsignedNumber(4);
+            //    var value;
+            uint low = U4();
+            uint high = U4();
+            throw new Exception("NOT SUPPORT LARGE NUMBER, please use " + nameof(ReadLengthCodedNumberInt64));
+
+
         }
 
         const long MUL_32BIT = 1L << 32;
@@ -405,94 +393,93 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
+
+            isNullData = false;
+            //if (_offset >= _buffer.length)
+            //    {
+            //        var err = new Error('Parser: read past end');
+            //        err.offset = (_offset - _packetOffset);
+            //        err.code = 'PARSER_READ_PAST_END';
+            //        throw err;
+            //    }
+            if (ReadPosition >= CurrentInputLength)
             {
-                isNullData = false;
-                //if (_offset >= _buffer.length)
-                //    {
-                //        var err = new Error('Parser: read past end');
-                //        err.offset = (_offset - _packetOffset);
-                //        err.code = 'PARSER_READ_PAST_END';
-                //        throw err;
-                //    }
-                if (ReadPosition >= CurrentInputLength)
-                {
-                    throw new Exception("Parser: read past end");
-                }
-                //    var bits = _buffer[_offset++];
-
-                byte bits = _reader.ReadByte();
-                //    if (bits <= 250)
-                //    {
-                //        return bits;
-                //    }
-
-                if (bits <= 250)
-                {
-                    return bits;
-                }
-                //    switch (bits)
-                //    {
-                //        case 251:
-                //            return null;
-                //        case 252:
-                //            return this.parseUnsignedNumber(2);
-                //        case 253:
-                //            return this.parseUnsignedNumber(3);
-                //        case 254:
-                //            break;
-                //        default:
-                //            var err = new Error('Unexpected first byte' + (bits ? ': 0x' + bits.toString(16) : ''));
-                //            err.offset = (_offset - _packetOffset - 1);
-                //            err.code = 'PARSER_BAD_LENGTH_BYTE';
-                //            throw err;
-                //    }
-
-                switch (bits)
-                {
-                    case 251:
-                        isNullData = true;
-                        return 0;
-                    case 252: return U2();
-                    case 253: return U3();
-                    case 254: break;
-                    default: throw new Exception("Unexpected first byte");
-                }
-                //    var low = this.parseUnsignedNumber(4);
-                //    var high = this.parseUnsignedNumber(4);
-                //    var value;
-                uint low = U4();
-                uint high = U4();
-
-                if ((uint)(high >> 21) > 0)
-                {
-                    //TODO: review here 
-                    //support big number
-                    long value = low + ((MUL_32BIT) * high);
-                }
-                return low + ((MUL_32BIT) * high);
-                //if (high >>> 21)
-                //{
-                //    value = (new BigNumber(low)).plus((new BigNumber(MUL_32BIT)).times(high)).toString();
-
-                //    if (_supportBigNumbers)
-                //    {
-                //        return value;
-                //    }
-
-                //    var err = new Error(
-                //      'parseLengthCodedNumber: JS precision range exceeded, ' +
-                //      'number is >= 53 bit: "' + value + '"'
-                //    );
-                //    err.offset = (_offset - _packetOffset - 8);
-                //    err.code = 'PARSER_JS_PRECISION_RANGE_EXCEEDED';
-                //    throw err;
-                //}
-
-                //value = low + (MUL_32BIT * high);
-
-                //return value;
+                throw new Exception("Parser: read past end");
             }
+            //    var bits = _buffer[_offset++];
+
+            byte bits = _reader.ReadByte();
+            //    if (bits <= 250)
+            //    {
+            //        return bits;
+            //    }
+
+            if (bits <= 250)
+            {
+                return bits;
+            }
+            //    switch (bits)
+            //    {
+            //        case 251:
+            //            return null;
+            //        case 252:
+            //            return this.parseUnsignedNumber(2);
+            //        case 253:
+            //            return this.parseUnsignedNumber(3);
+            //        case 254:
+            //            break;
+            //        default:
+            //            var err = new Error('Unexpected first byte' + (bits ? ': 0x' + bits.toString(16) : ''));
+            //            err.offset = (_offset - _packetOffset - 1);
+            //            err.code = 'PARSER_BAD_LENGTH_BYTE';
+            //            throw err;
+            //    }
+
+            switch (bits)
+            {
+                case 251:
+                    isNullData = true;
+                    return 0;
+                case 252: return U2();
+                case 253: return U3();
+                case 254: break;
+                default: throw new Exception("Unexpected first byte");
+            }
+            //    var low = this.parseUnsignedNumber(4);
+            //    var high = this.parseUnsignedNumber(4);
+            //    var value;
+            uint low = U4();
+            uint high = U4();
+
+            if ((uint)(high >> 21) > 0)
+            {
+                //TODO: review here 
+                //support big number
+                long value = low + ((MUL_32BIT) * high);
+            }
+            return low + ((MUL_32BIT) * high);
+            //if (high >>> 21)
+            //{
+            //    value = (new BigNumber(low)).plus((new BigNumber(MUL_32BIT)).times(high)).toString();
+
+            //    if (_supportBigNumbers)
+            //    {
+            //        return value;
+            //    }
+
+            //    var err = new Error(
+            //      'parseLengthCodedNumber: JS precision range exceeded, ' +
+            //      'number is >= 53 bit: "' + value + '"'
+            //    );
+            //    err.offset = (_offset - _packetOffset - 8);
+            //    err.code = 'PARSER_JS_PRECISION_RANGE_EXCEEDED';
+            //    throw err;
+            //}
+
+            //value = low + (MUL_32BIT * high);
+
+            //return value;
+
         }
 
         /// <summary>
@@ -504,12 +491,11 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
-            {
-                uint b0 = _reader.ReadByte(); //low bit
-                uint b1 = _reader.ReadByte(); //high bit
-                return (b1 << 8) | (b0);
-            }
+
+            uint b0 = _reader.ReadByte(); //low bit
+            uint b1 = _reader.ReadByte(); //high bit
+            return (b1 << 8) | (b0);
+
         }
 
         /// <summary>
@@ -521,13 +507,12 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
-            {
-                uint b0 = _reader.ReadByte(); //low bit
-                uint b1 = _reader.ReadByte();
-                uint b2 = _reader.ReadByte(); //high bit
-                return (b2 << 16) | (b1 << 8) | (b0);
-            }
+
+            uint b0 = _reader.ReadByte(); //low bit
+            uint b1 = _reader.ReadByte();
+            uint b2 = _reader.ReadByte(); //high bit
+            return (b2 << 16) | (b1 << 8) | (b0);
+
         }
         /// <summary>
         /// read unsigned 4 bytes
@@ -538,14 +523,13 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
-            {
-                uint b0 = _reader.ReadByte(); //low bit
-                uint b1 = _reader.ReadByte();
-                uint b2 = _reader.ReadByte();
-                uint b3 = _reader.ReadByte(); //high bit
-                return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
-            }
+
+            uint b0 = _reader.ReadByte(); //low bit
+            uint b1 = _reader.ReadByte();
+            uint b2 = _reader.ReadByte();
+            uint b3 = _reader.ReadByte(); //high bit
+            return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
+
         }
 
 
@@ -554,37 +538,36 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
+
+            switch (n)
             {
-                switch (n)
-                {
-                    case 0: throw new NotSupportedException();
-                    case 1: return _reader.ReadByte();
-                    case 2:
-                        {
-                            uint b0 = _reader.ReadByte(); //low bit
-                            uint b1 = _reader.ReadByte(); //high bit
-                            return (b1 << 8) | (b0);
-                        }
-                    case 3:
-                        {
-                            uint b0 = _reader.ReadByte(); //low bit
-                            uint b1 = _reader.ReadByte();
-                            uint b2 = _reader.ReadByte(); //high bit
-                            return (b2 << 16) | (b1 << 8) | (b0);
-                        }
-                    case 4:
-                        {
-                            uint b0 = _reader.ReadByte(); //low bit
-                            uint b1 = _reader.ReadByte();
-                            uint b2 = _reader.ReadByte();
-                            uint b3 = _reader.ReadByte(); //high bit
-                            return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
-                        }
-                    default:
-                        throw new Exception("parseUnsignedNumber: Supports only up to 4 bytes");
-                }
+                case 0: throw new NotSupportedException();
+                case 1: return _reader.ReadByte();
+                case 2:
+                    {
+                        uint b0 = _reader.ReadByte(); //low bit
+                        uint b1 = _reader.ReadByte(); //high bit
+                        return (b1 << 8) | (b0);
+                    }
+                case 3:
+                    {
+                        uint b0 = _reader.ReadByte(); //low bit
+                        uint b1 = _reader.ReadByte();
+                        uint b2 = _reader.ReadByte(); //high bit
+                        return (b2 << 16) | (b1 << 8) | (b0);
+                    }
+                case 4:
+                    {
+                        uint b0 = _reader.ReadByte(); //low bit
+                        uint b1 = _reader.ReadByte();
+                        uint b2 = _reader.ReadByte();
+                        uint b3 = _reader.ReadByte(); //high bit
+                        return (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0);
+                    }
+                default:
+                    throw new Exception("parseUnsignedNumber: Supports only up to 4 bytes");
             }
+
             //if (bytes === 1)
             //{
             //    return _buffer[_offset++];
@@ -623,18 +606,17 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
+
+            long distance = (_packetHeaderStartAt + _packetLength) - ReadPosition;
+            if (distance > 0)
             {
-                long distance = (_packetHeaderStartAt + _packetLength) - ReadPosition;
-                if (distance > 0)
-                {
-                    return new string(_reader.ReadChars((int)distance));
-                }
-                else
-                {
-                    return null;
-                }
+                return new string(_reader.ReadChars((int)distance));
             }
+            else
+            {
+                return null;
+            }
+
         }
 
 
@@ -644,10 +626,9 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
-            {
-                return _encoding.GetString(_reader.ReadBytes((int)length));
-            }
+
+            return _encoding.GetString(_reader.ReadBytes((int)length));
+
         }
 
         public List<Geometry> ReadGeometryValues()
@@ -655,33 +636,31 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
+            //var buffer = this.parseLengthCodedBuffer();
+            //var offset = 4;
+            byte[] buffer = ReadLengthCodedBuffer();
+            int offset = 4;
+            //if (buffer === null || !buffer.length) {
+            //  return null;
+            //}
+            if (buffer == null)
             {
-                //var buffer = this.parseLengthCodedBuffer();
-                //var offset = 4;
-                byte[] buffer = ReadLengthCodedBuffer();
-                int offset = 4;
-                //if (buffer === null || !buffer.length) {
-                //  return null;
-                //}
-                if (buffer == null)
-                {
-                    return null;
-                }
-
-                List<Geometry> result = new List<Geometry>();
-                int byteOrder = buffer[offset++];
-                int wkbType = byteOrder != 0 ? ReadInt32LE(buffer, offset) : ReadInt32BE(buffer, offset);
-                offset += 4;
-                //function parseGeometry() {
-                //  var result = null;
-                //  var byteOrder = buffer.readUInt8(offset); offset += 1;
-                //  var wkbType = byteOrder? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset); offset += 4;
-
-                //return parseGeometry();
-                ReadGeometry(result, buffer, byteOrder, wkbType, offset);
-                return result;
+                return null;
             }
+
+            List<Geometry> result = new List<Geometry>();
+            int byteOrder = buffer[offset++];
+            int wkbType = byteOrder != 0 ? ReadInt32LE(buffer, offset) : ReadInt32BE(buffer, offset);
+            offset += 4;
+            //function parseGeometry() {
+            //  var result = null;
+            //  var byteOrder = buffer.readUInt8(offset); offset += 1;
+            //  var wkbType = byteOrder? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset); offset += 4;
+
+            //return parseGeometry();
+            ReadGeometry(result, buffer, byteOrder, wkbType, offset);
+            return result;
+
         }
 
         void ReadGeometry(List<Geometry> result, byte[] buffer, int byteOrder, int wkbType, int offset)
@@ -689,99 +668,98 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
+
+            double x;
+            double y;
+            int numPoints;
+            Geometry value = new Geometry();
+            switch (wkbType)
             {
-                double x;
-                double y;
-                int numPoints;
-                Geometry value = new Geometry();
-                switch (wkbType)
-                {
-                    case 1:// WKBPoint
+                case 1:// WKBPoint
+                    x = byteOrder != 0 ? ReadDoubleLE(buffer, offset) : ReadDoubleBE(buffer, offset);
+                    offset += 8;
+                    y = byteOrder != 0 ? ReadDoubleLE(buffer, offset) : ReadDoubleBE(buffer, offset);
+                    offset += 8;
+                    value.SetValue(x, y);
+                    result.Add(value);
+                    break;
+                //      var x = byteOrder? buffer.readDoubleLE(offset) : buffer.readDoubleBE(offset); offset += 8;
+                //      var y = byteOrder? buffer.readDoubleLE(offset) : buffer.readDoubleBE(offset); offset += 8;
+                //      result = {x: x, y: y};
+                //      break;
+                case 2:// WKBLineString
+                    numPoints = byteOrder != 0 ? ReadInt32LE(buffer, offset) : ReadInt32BE(buffer, offset);
+                    offset += 4;
+                    for (int i = numPoints; i > 0; i--)
+                    {
                         x = byteOrder != 0 ? ReadDoubleLE(buffer, offset) : ReadDoubleBE(buffer, offset);
                         offset += 8;
                         y = byteOrder != 0 ? ReadDoubleLE(buffer, offset) : ReadDoubleBE(buffer, offset);
                         offset += 8;
                         value.SetValue(x, y);
                         result.Add(value);
-                        break;
-                    //      var x = byteOrder? buffer.readDoubleLE(offset) : buffer.readDoubleBE(offset); offset += 8;
-                    //      var y = byteOrder? buffer.readDoubleLE(offset) : buffer.readDoubleBE(offset); offset += 8;
-                    //      result = {x: x, y: y};
-                    //      break;
-                    case 2:// WKBLineString
+                    }
+                    break;
+                //      var numPoints = byteOrder? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset); offset += 4;
+                //      result = [];
+                //      for(var i=numPoints;i>0;i--) {
+                //        var x = byteOrder? buffer.readDoubleLE(offset) : buffer.readDoubleBE(offset); offset += 8;
+                //        var y = byteOrder? buffer.readDoubleLE(offset) : buffer.readDoubleBE(offset); offset += 8;
+                //        result.push({x: x, y: y});
+                //      }
+                //      break;
+                case 3:// WKBPolygon
+                    int numRings = byteOrder != 0 ? ReadInt32LE(buffer, offset) : ReadInt32BE(buffer, offset);
+                    offset += 4;
+                    for (int i = numRings; i > 0; i--)
+                    {
                         numPoints = byteOrder != 0 ? ReadInt32LE(buffer, offset) : ReadInt32BE(buffer, offset);
                         offset += 4;
-                        for (int i = numPoints; i > 0; i--)
+                        List<Geometry> lines = new List<Geometry>();
+                        for (int j = numPoints; i > 0; j--)
                         {
                             x = byteOrder != 0 ? ReadDoubleLE(buffer, offset) : ReadDoubleBE(buffer, offset);
                             offset += 8;
                             y = byteOrder != 0 ? ReadDoubleLE(buffer, offset) : ReadDoubleBE(buffer, offset);
                             offset += 8;
-                            value.SetValue(x, y);
-                            result.Add(value);
+                            lines.Add(new Geometry(x, y));
                         }
-                        break;
-                    //      var numPoints = byteOrder? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset); offset += 4;
-                    //      result = [];
-                    //      for(var i=numPoints;i>0;i--) {
-                    //        var x = byteOrder? buffer.readDoubleLE(offset) : buffer.readDoubleBE(offset); offset += 8;
-                    //        var y = byteOrder? buffer.readDoubleLE(offset) : buffer.readDoubleBE(offset); offset += 8;
-                    //        result.push({x: x, y: y});
+                        value.AddChildValues(lines);
+                        result.Add(value);
+                    }
+                    break;
+                //      var numRings = byteOrder? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset); offset += 4;
+                //      result = [];
+                //      for(var i=numRings;i>0;i--) {
+                //        var numPoints = byteOrder? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset); offset += 4;
+                //        var line = [];
+                //        for(var j=numPoints;j>0;j--) {
+                //          var x = byteOrder? buffer.readDoubleLE(offset) : buffer.readDoubleBE(offset); offset += 8;
+                //          var y = byteOrder? buffer.readDoubleLE(offset) : buffer.readDoubleBE(offset); offset += 8;
+                //          line.push({x: x, y: y});
+                //        }
+                //        result.push(line);
+                //      }
+                //      break;
+                case 4:// WKBMultiPoint
+                case 5:// WKBMultiLineString
+                case 6:// WKBMultiPolygon
+                case 7:// WKBGeometryCollection
+                    int num = byteOrder != 0 ? ReadInt32LE(buffer, offset) : ReadInt32BE(buffer, offset);
+                    offset += 4;
+                    for (int i = num; i > 0; i--)
+                    {
+                        ReadGeometry(result, buffer, byteOrder, wkbType, offset);
+                    }
+                    //var num = byteOrder? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset); offset += 4;
+                    //      var result = [];
+                    //      for(var i=num;i>0;i--) {
+                    //        result.push(parseGeometry());
                     //      }
-                    //      break;
-                    case 3:// WKBPolygon
-                        int numRings = byteOrder != 0 ? ReadInt32LE(buffer, offset) : ReadInt32BE(buffer, offset);
-                        offset += 4;
-                        for (int i = numRings; i > 0; i--)
-                        {
-                            numPoints = byteOrder != 0 ? ReadInt32LE(buffer, offset) : ReadInt32BE(buffer, offset);
-                            offset += 4;
-                            List<Geometry> lines = new List<Geometry>();
-                            for (int j = numPoints; i > 0; j--)
-                            {
-                                x = byteOrder != 0 ? ReadDoubleLE(buffer, offset) : ReadDoubleBE(buffer, offset);
-                                offset += 8;
-                                y = byteOrder != 0 ? ReadDoubleLE(buffer, offset) : ReadDoubleBE(buffer, offset);
-                                offset += 8;
-                                lines.Add(new Geometry(x, y));
-                            }
-                            value.AddChildValues(lines);
-                            result.Add(value);
-                        }
-                        break;
-                    //      var numRings = byteOrder? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset); offset += 4;
-                    //      result = [];
-                    //      for(var i=numRings;i>0;i--) {
-                    //        var numPoints = byteOrder? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset); offset += 4;
-                    //        var line = [];
-                    //        for(var j=numPoints;j>0;j--) {
-                    //          var x = byteOrder? buffer.readDoubleLE(offset) : buffer.readDoubleBE(offset); offset += 8;
-                    //          var y = byteOrder? buffer.readDoubleLE(offset) : buffer.readDoubleBE(offset); offset += 8;
-                    //          line.push({x: x, y: y});
-                    //        }
-                    //        result.push(line);
-                    //      }
-                    //      break;
-                    case 4:// WKBMultiPoint
-                    case 5:// WKBMultiLineString
-                    case 6:// WKBMultiPolygon
-                    case 7:// WKBGeometryCollection
-                        int num = byteOrder != 0 ? ReadInt32LE(buffer, offset) : ReadInt32BE(buffer, offset);
-                        offset += 4;
-                        for (int i = num; i > 0; i--)
-                        {
-                            ReadGeometry(result, buffer, byteOrder, wkbType, offset);
-                        }
-                        //var num = byteOrder? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset); offset += 4;
-                        //      var result = [];
-                        //      for(var i=num;i>0;i--) {
-                        //        result.push(parseGeometry());
-                        //      }
-                        break;
-                        //return reult;
-                }
+                    break;
+                    //return reult;
             }
+
         }
 
         int ReadInt32LE(byte[] buffer, int start)
@@ -835,21 +813,18 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-            lock (_stream)
-            {
-                byte result = _reader.ReadByte();
-                _reader.BaseStream.Position--;
-                return result;
-            }
+
+            byte result = _reader.ReadByte();
+            _reader.BaseStream.Position--;
+            return result;
+
             //return (byte)_reader.PeekChar();
         }
 
         public bool ReachedPacketEnd()
         {
-            lock (_stream)
-            {
-                return this.ReadPosition == _packetHeaderStartAt + _packetLength;
-            }
+            return this.ReadPosition == _packetHeaderStartAt + _packetLength;
+
         }
 
     }
