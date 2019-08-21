@@ -987,7 +987,7 @@ namespace SharpConnect.MySql.Internal
     {
         byte _fieldCount;
         uint _errno;
-        char _sqlStateMarker;
+        string _sqlStateMarker;
         string _sqlState;
         public string message;
         public ErrPacket(PacketHeader header) : base(header) { }
@@ -998,7 +998,7 @@ namespace SharpConnect.MySql.Internal
             _errno = r.U2();//2
             if (r.PeekByte() == 0x23)
             {
-                _sqlStateMarker = r.ReadChar();
+                _sqlStateMarker = r.ReadString(1);
                 _sqlState = r.ReadString(5);
             }
 
@@ -1103,7 +1103,25 @@ namespace SharpConnect.MySql.Internal
                     //var err  = new TypeError('Received invalid field length');
                     //err.code = 'PARSER_INVALID_FIELD_LENGTH';
                     //throw err;
+
+
 #if DEBUG
+                    //https://stackoverflow.com/questions/40781793/received-invalid-field-length-error-in-nodejs-with-mysql-application
+
+                    //save log file here
+                    StringBuilder stbuilder = new StringBuilder();
+                    stbuilder.AppendLine(DateTime.Now.ToString("s"));
+                    stbuilder.AppendLine("invalid field length occur!");
+                    stbuilder.AppendLine("catalog:" + catalog);
+                    stbuilder.AppendLine("schema:" + schema);
+                    stbuilder.AppendLine("table:" + table);
+                    stbuilder.AppendLine("orgTable:" + orgTable);
+                    stbuilder.AppendLine("name:" + name);
+                    stbuilder.AppendLine("orgName:" + orgName);
+
+                    System.IO.File.AppendAllText("invalid_field_length.txt", stbuilder.ToString());
+
+
                     if (lengthCodedNumber == 0)
                     {
                         //error
