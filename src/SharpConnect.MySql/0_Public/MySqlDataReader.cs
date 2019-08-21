@@ -1053,8 +1053,30 @@ namespace SharpConnect.MySql
                         //------------------ 
                         lock (_tableResultCompleteLock)
                         {
+                            int zeroCount = 0;
                             while (_tableResultIsNotComplete)
-                                System.Threading.Monitor.Wait(_tableResultCompleteLock);
+                            {
+                                if (zeroCount > 2)
+                                {
+                                    System.Threading.Thread.Sleep(1);
+                                    zeroCount = 0;
+                                }
+                                int subTableCount = 0;
+                                lock (_subTables)
+                                {
+                                    subTableCount = _subTables.Count;
+                                }
+                                //
+                                if (subTableCount == 0)
+                                {
+                                    zeroCount++;
+                                    System.Threading.Monitor.Wait(_tableResultCompleteLock, 30); 
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
                         }
                         goto TRY_AGAIN;
                     }

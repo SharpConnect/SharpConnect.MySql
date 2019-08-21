@@ -113,12 +113,67 @@ namespace SharpConnect.MySql.Internal
                 _packetHeaderStartAt = 0;
                 _currentInputLength = 0;
             }
-
         }
-        public void ClearReadData()
+
+
+        const int SWAP_SIZE = 1024 * 2000;//2MB adjustable
+        const int STREAM_BUFFER_SIZE_LIM = 1024 * 2000;
+
+        [ThreadStatic]//***
+        static byte[] s_tmpSwapBuffer;
+        static byte[] GetTmpSwapBuffer()
         {
-
+            if (s_tmpSwapBuffer == null)
+            {
+                return s_tmpSwapBuffer = new byte[SWAP_SIZE];
+            }
+            else
+            {
+                return s_tmpSwapBuffer;
+            }
         }
+
+        internal void ClearReadBuffer()
+        {
+            lock (_stream)
+            {
+                long readingPos = _stream.Position;
+
+                if (_currentInputLength > STREAM_BUFFER_SIZE_LIM)
+                {
+                    //clear read data
+                    long unreadLength = _currentInputLength - readingPos;
+
+                    if (unreadLength > 0)
+                    {
+                        //swap data
+                        int unreadLenInt32 = (int)unreadLength;
+                        int readDataLen = (int)readingPos;
+
+                        byte[] unreadData = null;
+                        if (unreadLenInt32 < SWAP_SIZE)
+                        {
+                            unreadData = GetTmpSwapBuffer();
+                        }
+                        else
+                        {
+                            unreadData = new byte[unreadLenInt32];
+                        }
+                        //copy data from stram to temp buffer
+                        _stream.Read(unreadData, 0, unreadLenInt32);
+                        _stream.SetLength(0); //clear old stream
+                        _stream.Write(unreadData, 0, unreadLenInt32); //write back
+                        _stream.Position = 0;//set pos to 0
+                        _currentInputLength = unreadLenInt32;
+                        _packetHeaderStartAt -= readDataLen; //offset 
+
+                        readingPos = 0;
+                    }
+                }
+            }
+        }
+
+
         //------------------------------------------------------ 
         internal void AppendBuffer(SharpConnect.Internal.RecvIO recvIO, int count)
         {

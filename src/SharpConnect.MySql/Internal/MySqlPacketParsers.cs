@@ -323,7 +323,7 @@ namespace SharpConnect.MySql.Internal
             {
                 throw new NotSupportedException("???");
             }
-            else if (_currentHeader.ContentLength >= Packet.MAX_PACKET_LENGTH)
+            else if (_currentHeader.ContentLength == Packet.MAX_PACKET_LENGTH)
             {
                 //can't complete in this round 
                 //so store data into temp extra large buffer 
@@ -370,6 +370,7 @@ namespace SharpConnect.MySql.Internal
                 {
                     _rows.Add(new DataRowPacket(_currentHeader,
                     reader.ReadBuffer((int)_currentHeader.ContentLength)));
+                    reader.ClearReadBuffer();
                 }
 
             }
@@ -489,7 +490,7 @@ namespace SharpConnect.MySql.Internal
             //1. need more data or
             //2. finish
 
-            reader.ClearReadData();
+            reader.ClearReadBuffer();
 
             if (_needMoreData)
             {
