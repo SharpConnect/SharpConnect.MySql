@@ -442,6 +442,58 @@ namespace SharpConnect.MySql.Internal
         }
 
         /// <summary>
+        /// change default db
+        /// </summary>
+        /// <param name="newDbName"></param>
+        /// <param name="nextAction"></param>
+        public void ChangeDB(string newDbName, Action nextAction = null)
+        {
+            //ping server
+            if (State == ConnectionState.Disconnected)
+            {
+                throw new NotSupportedException("open connection first");
+            }
+
+            _writer.Reset();
+            ComInitDB initDb = new ComInitDB(new PacketHeader(), newDbName);
+            initDb.WritePacket(_writer);
+            byte[] data = _writer.ToArray();
+            InitWait();
+            StartSend(data, 0, data.Length, () =>
+            {
+                StartReceive(mysql_result2 =>
+                {
+                    var ok = mysql_result2 as MySqlOkResult;
+                    if (ok != null)
+                    {
+                        _workingState = WorkingState.Rest;
+                    }
+                    else
+                    {
+                        //TODO: review here
+                        //error  
+                        _workingState = WorkingState.Error;
+                    }
+                    //set max allow of the server ***
+                    //todo set max allow packet***
+                    UnWait();
+                    if (nextAction != null)
+                    {
+                        nextAction();
+                    }
+                });
+
+            });
+            if (nextAction == null)
+            {
+                Wait(); //block
+            }
+            else
+            {
+                UnWait();
+            }
+        }
+        /// <summary>
         /// reset connection
         /// </summary>
         /// <param name="nextAction"></param>
