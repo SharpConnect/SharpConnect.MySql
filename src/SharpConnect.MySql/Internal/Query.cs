@@ -228,6 +228,7 @@ namespace SharpConnect.MySql.Internal
                 _sqlParserMx.UseFlushMode(true);
                 //wait where   
                 //TODO: review here *** tight loop
+
                 while (!_recvComplete)
                 {
                     //wait 
