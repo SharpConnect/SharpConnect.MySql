@@ -1,7 +1,7 @@
 ﻿//LICENSE: MIT
 //Copyright(c) 2012 Felix Geisendörfer(felix @debuggable.com) and contributors 
 //Copyright(c) 2013 Andrey Sidorov(sidorares @yandex.ru) and contributors
-//MIT, 2015-2018, brezza92, EngineKit and contributors
+//MIT, 2015-2019, brezza92, EngineKit and contributors
 
 using System;
 namespace SharpConnect.MySql.Internal
