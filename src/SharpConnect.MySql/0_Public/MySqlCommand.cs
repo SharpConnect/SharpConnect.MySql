@@ -33,14 +33,14 @@ namespace SharpConnect.MySql
                 return result;
             }
 
-            public static int ExecuteNonQuery(this MySqlCommand cmd)
+            public static uint ExecuteNonQuery(this MySqlCommand cmd)
             {
                 cmd.InternalExecuteNonQuery();
                 if (cmd.HasError)
                 {
                     throw new NotSupportedException();
                 }
-                return (int)cmd.AffectedRows;
+                return cmd.AffectedRows;
             }
         }
     }
@@ -298,10 +298,10 @@ namespace SharpConnect.MySql
         public bool HasError { get; private set; }
 
         //after execute non query      
-        public long LastInsertedId => _query.OkPacket.insertId;
+        public uint LastInsertedId => _query.OkPacket.InsertIdAsUInt32;
 
         //after execute non query
-        public long AffectedRows => (_query.OkPacket != null) ? _query.OkPacket.affectedRows : 0;
+        public uint AffectedRows => (_query.OkPacket != null) ? _query.OkPacket.AffectedRowsAsUInt32 : 0;
 
         public void Dispose()
         {

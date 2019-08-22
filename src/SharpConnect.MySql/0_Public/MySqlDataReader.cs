@@ -821,8 +821,7 @@ namespace SharpConnect.MySql
 
                     //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
                     System.Threading.Monitor.Pulse(_tableResultCompleteLock);
-                }
-
+                } 
                 _errorResult = err;
             });
             query.SetResultListener(subtable =>

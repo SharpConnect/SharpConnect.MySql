@@ -1353,8 +1353,8 @@ namespace SharpConnect.MySql.Internal
     class OkPacket : Packet
     {
         uint _fieldCount;
-        public long affectedRows;
-        public long insertId;
+        internal long affectedRows;
+        internal long insertId;
         public uint _serverStatus;
         public uint _warningCount;
         public string _message;
@@ -1363,6 +1363,34 @@ namespace SharpConnect.MySql.Internal
             : base(header)
         {
             _protocol41 = protocol41;
+        }
+        public uint InsertIdAsUInt32
+        {
+            get
+            {
+                if (insertId <= uint.MaxValue)
+                {
+                    return (uint)insertId;
+                }
+                else
+                {
+                    throw new Exception("insertId is large number");
+                }
+            }
+        }
+        public uint AffectedRowsAsUInt32
+        {
+            get
+            {
+                if (affectedRows <= uint.MaxValue)
+                {
+                    return (uint)affectedRows;
+                }
+                else
+                {
+                    throw new Exception("insertId is large number");
+                }
+            }
         }
 
         public override void ParsePacketContent(MySqlStreamReader r)
