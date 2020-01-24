@@ -89,23 +89,30 @@ namespace SharpConnect.MySql
                         throw new NotSupportedException();
                     case ParseState.FIND_MARKER:
 
-                        if (ch == '?' || ch == '@')
+                        if (ch == '@' && ((i + 1 < length) && rawSql[i + 1] == '\''))
                         {
-                            binderEscapeChar = ch;
-                            //found begining point of new marker
-                            if (stBuilder.Length > 0)
+                            //look ahead next char
+                            //'user_a'@'%' is ok 
+                        }
+                        else
+                        {
+                            if (ch == '?' || ch == '@')
                             {
-                                _sqlSections.Add(new SqlSection(stBuilder.ToString(), SqlSectionKind.SqlText));
-                                stBuilder.Length = 0;
+                                binderEscapeChar = ch;
+                                //found begining point of new marker
+                                if (stBuilder.Length > 0)
+                                {
+                                    _sqlSections.Add(new SqlSection(stBuilder.ToString(), SqlSectionKind.SqlText));
+                                    stBuilder.Length = 0;
+                                }
+                                state = ParseState.COLLECT_MARKER_KEY;
                             }
-                            state = ParseState.COLLECT_MARKER_KEY;
+                            else if (ch == '\'' || ch == '"' || ch == '`')
+                            {
+                                escapeChar = ch;
+                                state = ParseState.STRING_ESCAPE;
+                            }
                         }
-                        else if (ch == '\'' || ch == '"' || ch == '`')
-                        {
-                            escapeChar = ch;
-                            state = ParseState.STRING_ESCAPE;
-                        }
-
                         stBuilder.Append(ch);
                         break;
                     case ParseState.COLLECT_MARKER_KEY:

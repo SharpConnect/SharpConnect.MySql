@@ -1,4 +1,4 @@
-﻿//2010, CPOL, Stan Kirk
+﻿//CPOL, 2010, Stan Kirk
 //MIT, 2015-2018, EngineKit and contributors
 
 using System;
