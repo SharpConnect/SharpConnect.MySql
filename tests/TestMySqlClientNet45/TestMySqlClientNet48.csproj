@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MySqlClient</RootNamespace>
     <AssemblyName>TestMySqlClientNet45</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFrameworkProfile />
@@ -91,9 +91,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SharpConnect.MySql.Net45\SharpConnect.MySql.Net45.csproj">
+    <ProjectReference Include="..\..\src\SharpConnect.MySql.Net45\SharpConnect.MySql.Net48.csproj">
       <Project>{c783e6ea-145d-4e5a-81c7-61faf2d81df4}</Project>
-      <Name>SharpConnect.MySql.Net45</Name>
+      <Name>SharpConnect.MySql.Net48</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\src\SharpConnect.MySql.Utils\SharpConnect.MySql.Utils.csproj">
       <Project>{513be02f-13b1-40b8-ab63-103fb0958953}</Project>
