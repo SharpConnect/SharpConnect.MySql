@@ -93,6 +93,9 @@
     <Compile Include="..\TestMySqlClientNet45\TestSuite\Test8_MySqlUtils.cs">
       <Link>TestSuite\Test8_MySqlUtils.cs</Link>
     </Compile>
+    <Compile Include="..\TestMySqlClientNet45\TestSuite\Test9_Json.cs">
+      <Link>TestSuite\Test9_Json.cs</Link>
+    </Compile>
     <Compile Include="TestSuite_BasicTasks\Test2Async.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -62,6 +62,7 @@
     <Compile Include="TestSuite2_TAP\Test7_TAP.cs" />
     <Compile Include="TestSuite\Test7_StoreProc.cs" />
     <Compile Include="TestSuite\Test8_MySqlUtils.cs" />
+    <Compile Include="TestSuite\Test9_Json.cs" />
     <Compile Include="TestSuite\TestSuite.cs" />
     <EmbeddedResource Include="FormTestSuite.resx">
       <DependentUpon>FormTestSuite.cs</DependentUpon>
