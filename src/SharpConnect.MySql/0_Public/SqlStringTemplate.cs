@@ -67,7 +67,7 @@ namespace SharpConnect.MySql
         List<SqlBoundSection> _valuesKeys = new List<SqlBoundSection>(); //only value keys        
         List<SqlSection> _specialKeys = new List<SqlSection>();
         string _userRawSql; //raw sql from user code
-        public SqlStringTemplate(string rawSql)
+        public SqlStringTemplate(string rawSql, bool at_sign_is_binder = true)
         {
             _userRawSql = rawSql;
             //------------------------------
@@ -96,7 +96,7 @@ namespace SharpConnect.MySql
                         }
                         else
                         {
-                            if (ch == '?' || ch == '@')
+                            if (ch == '?' || (at_sign_is_binder && ch == '@'))
                             {
                                 binderEscapeChar = ch;
                                 //found begining point of new marker
@@ -136,7 +136,7 @@ namespace SharpConnect.MySql
                                 throw new NotSupportedException("syntax err!");
                             }
                         }
-                        else if (ch == '@')
+                        else if (at_sign_is_binder && ch == '@')
                         {
                             stBuilder.Append(ch);
                             if (binderEscapeChar == '@')
@@ -342,9 +342,8 @@ namespace SharpConnect.MySql
                         }
                         else
                         {
-                            //get bind data
-                            MyStructData bindedData;
-                            if (!cmdParams.TryGetData(sqlSection.Text, out bindedData))
+                            //get bind data 
+                            if (!cmdParams.TryGetData(sqlSection.Text, out MyStructData bindedData))
                             {
                                 throw new Exception("Error : This key not assign." + sqlSection.Text);
                             }
@@ -356,8 +355,7 @@ namespace SharpConnect.MySql
                         }
                         break;
                     case SqlSectionKind.SpecialKey:
-                        string found;
-                        if (cmdParams.TryGetSqlPart(sqlSection.Text, out found))
+                        if (cmdParams.TryGetSqlPart(sqlSection.Text, out string found))
                         {
                             strBuilder.Append(found);
                         }
