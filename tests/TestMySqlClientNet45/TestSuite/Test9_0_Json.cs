@@ -9,7 +9,7 @@ namespace MySqlTest
     public class TestSet_Json : MySqlTestSet
     {
         [Test]
-        public static void T_CreateDatabaseInfo_Manual()
+        public static void T_TestJson()
         {
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
@@ -275,6 +275,7 @@ namespace MySqlTest
                 }
             }
         }
-
     }
+
+
 }
