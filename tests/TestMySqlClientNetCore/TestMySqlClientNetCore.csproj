@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
     <AssemblyName>TestMySqlClientNetCore</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>TestMySqlClientNetCore</PackageId>
@@ -12,6 +12,19 @@
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\TestMySqlClientNet45\TestSuite\MyTestSet.cs" Link="TestSuite\MyTestSet.cs" />
+    <Compile Include="..\TestMySqlClientNet45\TestSuite\Test1.cs" Link="TestSuite\Test1.cs" />
+    <Compile Include="..\TestMySqlClientNet45\TestSuite\Test2.cs" Link="TestSuite\Test2.cs" />
+    <Compile Include="..\TestMySqlClientNet45\TestSuite\Test2_SimpleMapper.cs" Link="TestSuite\Test2_SimpleMapper.cs" />
+    <Compile Include="..\TestMySqlClientNet45\TestSuite\Test3_AsyncSocket.cs" Link="TestSuite\Test3_AsyncSocket.cs" />
+    <Compile Include="..\TestMySqlClientNet45\TestSuite\Test4_PreparedStatement.cs" Link="TestSuite\Test4_PreparedStatement.cs" />
+    <Compile Include="..\TestMySqlClientNet45\TestSuite\Test6_Blob.cs" Link="TestSuite\Test6_Blob.cs" />
+    <Compile Include="..\TestMySqlClientNet45\TestSuite\Test7_StoreProc.cs" Link="TestSuite\Test7_StoreProc.cs" />
+    <Compile Include="..\TestMySqlClientNet45\TestSuite\Test9_Json.cs" Link="TestSuite\Test9_Json.cs" />
+    <Compile Include="..\TestMySqlClientNet45\TestSuite\TestSuite.cs" Link="TestSuite\TestSuite.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SharpConnect.MySql.NetStandard\SharpConnect.MySql.NetStandard.csproj" />

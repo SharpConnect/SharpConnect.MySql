@@ -9,15 +9,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TestExternal", "TestExterna
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NetCore", "NetCore", "{DE93C55D-ADAF-41D1-9654-60232B9F0070}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Net45", "Net45", "{E4C3D1FA-86FF-4110-A9D4-EF3410739FD3}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Net48", "Net48", "{E4C3D1FA-86FF-4110-A9D4-EF3410739FD3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMySqlClientNet45", "..\tests\TestMySqlClientNet45\TestMySqlClientNet45.csproj", "{8CF48690-E585-4444-9D22-4375D839CF36}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMySqlClientNet48", "..\tests\TestMySqlClientNet45\TestMySqlClientNet48.csproj", "{8CF48690-E585-4444-9D22-4375D839CF36}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpConnect.MySql", "SharpConnect.MySql.Net20\SharpConnect.MySql.csproj", "{94D01EDE-0499-422F-8081-90D94AD163FA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMySqlClientNet20", "..\tests\TestMySqlClientNet20\TestMySqlClientNet20.csproj", "{4C9B28FE-9C9E-4CA3-9D23-4861BFDDA1E5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpConnect.MySql.Net45", "SharpConnect.MySql.Net45\SharpConnect.MySql.Net45.csproj", "{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpConnect.MySql.Net48", "SharpConnect.MySql.Net45\SharpConnect.MySql.Net48.csproj", "{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpConnect.MySql", "SharpConnect.MySql\SharpConnect.MySql.csproj", "{F8FAF3E4-64BA-4809-BD91-DA113FA24A71}"
 EndProject
