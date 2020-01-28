@@ -520,7 +520,7 @@ namespace SharpConnect.MySql.Internal
             //  a OK_Packet
 
             _writer.Reset();
-            ComPingPacket pingPacket = new ComPingPacket(new PacketHeader());
+            ComResetConnectionPacket pingPacket = new ComResetConnectionPacket(new PacketHeader());
             pingPacket.WritePacket(_writer);
             byte[] data = _writer.ToArray();
             InitWait();
