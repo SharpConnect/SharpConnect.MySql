@@ -56,7 +56,7 @@ namespace SharpConnect.MySql.AsyncPatt
                 {
                     while (exec_reader.InternalRead())
                     {
-                        //
+                       
                         readerDel(exec_reader);
                         if (exec_reader.StopReadingNextRow)
                         {

@@ -17,6 +17,37 @@ namespace MySqlTest
         {
             output = JsonSerializer.Deserialize<T>(r.GetString(index));
         }
+        public static string EscapeMore(string jsonstr)
+        {
+            //why we need this see => https://dev.mysql.com/doc/refman/5.7/en/json.html
+            StringBuilder sb = new StringBuilder();
+            char[] buff = jsonstr.ToCharArray();
+            for (int i = 0; i < buff.Length; ++i)
+            {
+                char c0 = buff[i];
+                if (c0 == '\\')
+                {
+                    //check next char
+                    sb.Append("\\\\");
+                }
+                else
+                {
+                    sb.Append(c0);
+                }
+            }
+            return sb.ToString();
+        }
+
+        static JsonSerializerOptions s_json_opts = new JsonSerializerOptions
+        {
+            //SOME WARNING: https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-how-to?view=netcore-3.1#customize-character-encoding
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+
+        public static void AddWithJsonString<T>(this CommandParams cmd, string key, T input)
+        {
+            cmd.AddWithValue(key, EscapeMore(JsonSerializer.Serialize<T>(input, s_json_opts)));
+        }
     }
 
     public class TestSet_Json9_1 : MySqlTestSet
@@ -37,26 +68,7 @@ namespace MySqlTest
             public string mascot { get; set; }
         }
 
-        static string EscapeMore(string jsonstr)
-        {
-            //why we need this see => https://dev.mysql.com/doc/refman/5.7/en/json.html
-            StringBuilder sb = new StringBuilder();
-            char[] buff = jsonstr.ToCharArray();
-            for (int i = 0; i < buff.Length; ++i)
-            {
-                char c0 = buff[i];
-                if (c0 == '\\')
-                {
-                    //check next char
-                    sb.Append("\\\\");
-                }
-                else
-                {
-                    sb.Append(c0);
-                }
-            }
-            return sb.ToString();
-        }
+
 
         static void TestJson2(MySqlConnection conn)
         {
@@ -86,7 +98,7 @@ namespace MySqlTest
             //new MySqlCommand("INSERT INTO facts VALUES  ('{\"mascot\": \"Our mascot is a dolphin named  \\\\\"A\\\\\"\"}')", conn).ExecuteNonQuery(); 
             //----------------------
             {
-                string json_str = EscapeMore(JsonSerializer.Serialize(mascot1, options));
+                string json_str = TestSet_JsonHelper.EscapeMore(JsonSerializer.Serialize(mascot1, options));
                 //1. insert 
                 new MySqlCommand($"INSERT INTO facts VALUES  ('{json_str}')", conn).ExecuteNonQuery();
 
@@ -108,7 +120,7 @@ namespace MySqlTest
             {
                 //1. insert
                 var cmd = new MySqlCommand("INSERT INTO facts VALUES  (?data)", conn);
-                cmd.Parameters.AddWithValue("?data", EscapeMore(JsonSerializer.Serialize(mascot1, options)));
+                cmd.Parameters.AddWithJsonString("?data", mascot1);
                 cmd.ExecuteNonQuery();
 
                 //2. select
@@ -119,10 +131,13 @@ namespace MySqlTest
                     //
                     string data = reader.GetString(0);
                     System.Diagnostics.Debug.WriteLine(data);
+
+                    //read object 
+                    //1.
                     var my_obj = JsonSerializer.Deserialize<MyDataObject>(data);
-                    //
+                    //2.
                     var my_obj1 = reader.GetObjectFromJson<MyDataObject>(0);
-                    //
+                    //3.
                     reader.GetObjectFromJson(0, out MyDataObject my_obj2);
                 }
                 reader.Close();
