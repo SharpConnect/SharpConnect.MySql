@@ -13,34 +13,24 @@ namespace MySqlTest
         public static void T_Ping()
         {
             var connStr = GetMySqlConnString();
-            var conn = new MySqlConnection(connStr); 
+            var conn = new MySqlConnection(connStr);
             conn.Open();
-
             bool ping = conn.Ping();
-
-
             conn.Close();
         }
         [Test]
         public static void T_InsertAndSelect()
-        {
-            int n = 1;
-            long total;
-            long avg;
+        {           
             try
             {
-                Test(n, TimeUnit.Ticks, out total, out avg, () =>
+                int n = 1;
+                Test(n, TimeUnit.Ticks, out long total, out long avg, () =>
                 {
                     var connStr = GetMySqlConnString();
                     var conn = new MySqlConnection(connStr);
                     conn.UseConnectionPool = true;
                     conn.Open();
-
-
-                    //test ping server
-                    bool test_ping = conn.Ping();
-
-
+ 
                     DropTableIfExists(conn);
                     CreateTable(conn);
                     for (int i = 0; i < 100; ++i)
