@@ -17,7 +17,7 @@ namespace SharpConnect.MySql
                 conn.InternalPing();
                 return conn.LatestPingResult;
             }
-            public static void ChangeDB(this MySqlConnection conn,string newDbName)
+            public static void ChangeDB(this MySqlConnection conn, string newDbName)
             {
                 conn.InternalChangeDB(newDbName);
             }
@@ -259,22 +259,34 @@ namespace SharpConnect.MySql
         {
             this.InternalClose();
         }
+
+
         internal void InternalClose(Action onComplete = null)
         {
             if (UseConnectionPool)
             {
                 _conn.ForceReleaseBindingQuery();
                 ConnectionPool.ReleaseConnection(_connStr, _conn);
-                if (onComplete != null)
-                {
-                    onComplete();
-                }
+                onComplete?.Invoke();
             }
             else
             {
-                _conn.Disconnect(onComplete);
-                _conn.Dispose();
-                _conn = null;
+                if (onComplete != null)
+                {
+                    //not block
+                    _conn.Disconnect(() =>
+                    {
+                        _conn.Dispose();
+                        _conn = null;
+                    });
+                }
+                else
+                {
+                    _conn.Disconnect(); //block
+                    _conn.Dispose();
+                    _conn = null;
+                }
+
             }
         }
         internal Connection Conn => _conn;
