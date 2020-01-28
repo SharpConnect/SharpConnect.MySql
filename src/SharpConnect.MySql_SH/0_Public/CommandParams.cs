@@ -1,4 +1,4 @@
-﻿//MIT, 2015-2019, brezza92, EngineKit and contributors
+﻿//MIT, 2015-present, brezza92, EngineKit and contributors
 
 using System;
 using System.Collections.Generic;

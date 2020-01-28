@@ -2,9 +2,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+
 using SharpConnect.MySql;
 using MySqlTest;
-using System.Reflection;
+
 namespace TestOnNetCore
 {
     public class Program
@@ -18,7 +20,7 @@ namespace TestOnNetCore
             Console.WriteLine("---");
             TestCaseExtracter.ExtractTestCase(typeof(Program).GetTypeInfo().Assembly, testList);
 
-            AGAIN_HERE:
+        AGAIN_HERE:
             //---------
             int j = testList.Count;
             for (int i = 0; i < j; ++i)

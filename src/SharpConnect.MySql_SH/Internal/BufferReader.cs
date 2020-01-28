@@ -1,4 +1,4 @@
-﻿//MIT, 2016-2018, EngineKit 
+﻿//MIT, 2016-present, EngineKit 
 using System;
 namespace SharpConnect.MySql.Internal
 {
