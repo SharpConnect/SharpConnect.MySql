@@ -388,7 +388,8 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-
+        bool _latestPingResult;
+        internal bool LatestPingResult => _latestPingResult;
         /// <summary>
         /// ping server, +/- blocking
         /// </summary>
@@ -396,10 +397,13 @@ namespace SharpConnect.MySql.Internal
         public void Ping(Action nextAction = null)
         {
             //ping server
+            _latestPingResult = false;
+
             if (State == ConnectionState.Disconnected)
             {
                 throw new NotSupportedException("open connection first");
             }
+
 
             _writer.Reset();
             ComPingPacket pingPacket = new ComPingPacket(new PacketHeader());
@@ -410,10 +414,10 @@ namespace SharpConnect.MySql.Internal
             {
                 StartReceive(mysql_result2 =>
                 {
-                    var ok = mysql_result2 as MySqlOkResult;
-                    if (ok != null)
+                    if (mysql_result2 is MySqlOkResult ok)
                     {
                         _workingState = WorkingState.Rest;
+                        _latestPingResult = true;
                     }
                     else
                     {
