@@ -240,7 +240,7 @@ namespace SharpConnect.MySql
             }
         }
 
-        internal bool LatestPingResult => _conn.LatestPingResult;
+        internal bool LatestPingResult => _conn.LatestCallIsOk;
         internal void InternalPing(Action onComplete = null)
         {
             _conn.Ping(onComplete);

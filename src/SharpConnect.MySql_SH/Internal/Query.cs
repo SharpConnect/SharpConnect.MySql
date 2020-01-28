@@ -417,10 +417,10 @@ namespace SharpConnect.MySql.Internal
                     {
                         default: throw new NotSupportedException();//unknown
                         case MySqlResultKind.Ok:
-                            {
-                                MySqlOkResult ok = result as MySqlOkResult;
-                                OkPacket = ok.okpacket;
+                            {                                   
+                                OkPacket = (result as MySqlOkResult).okpacket;
                                 RecvComplete();
+
                             }
                             break;
                         case MySqlResultKind.Error:

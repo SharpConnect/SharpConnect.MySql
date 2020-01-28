@@ -354,12 +354,14 @@ namespace SharpConnect.MySql.Internal
                 _mysqlParserMx.SetProtocol41(_isProtocol41);
                 _mysqlParserMx.UseResultParser();
                 //------------------------------------
+                _latestCallIsOk = false;
                 StartSend(sendBuff, 0, sendBuff.Length, () =>
                 {
                     StartReceive(mysql_result2 =>
                     {                        
                         if (mysql_result2 is MySqlOkResult)
                         {
+                            _latestCallIsOk = true;
                             _workingState = WorkingState.Rest;
                         }
                         else
@@ -392,8 +394,9 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        bool _latestPingResult;
-        internal bool LatestPingResult => _latestPingResult;
+        bool _latestCallIsOk;
+        internal bool LatestCallIsOk => _latestCallIsOk;
+
         /// <summary>
         /// ping server, +/- blocking
         /// </summary>
@@ -401,7 +404,7 @@ namespace SharpConnect.MySql.Internal
         public void Ping(Action nextAction = null)
         {
             //ping server
-            _latestPingResult = false;
+           
 
             if (State == ConnectionState.Disconnected)
             {
@@ -414,6 +417,8 @@ namespace SharpConnect.MySql.Internal
             pingPacket.WritePacket(_writer);
             byte[] data = _writer.ToArray();
             InitWait();
+
+            _latestCallIsOk = false;
             StartSend(data, 0, data.Length, () =>
             {
                 StartReceive(mysql_result2 =>
@@ -421,7 +426,7 @@ namespace SharpConnect.MySql.Internal
                     if (mysql_result2 is MySqlOkResult)
                     {
                         _workingState = WorkingState.Rest;
-                        _latestPingResult = true;
+                        _latestCallIsOk = true;
                     }
                     else
                     {
@@ -468,12 +473,15 @@ namespace SharpConnect.MySql.Internal
             initDb.WritePacket(_writer);
             byte[] data = _writer.ToArray();
             InitWait();
+
+            _latestCallIsOk = false;
             StartSend(data, 0, data.Length, () =>
             {
                 StartReceive(mysql_result2 =>
                 {
                     if (mysql_result2 is MySqlOkResult)
                     {
+                        _latestCallIsOk = true;
                         _workingState = WorkingState.Rest;
                     }
                     else
@@ -524,12 +532,15 @@ namespace SharpConnect.MySql.Internal
             pingPacket.WritePacket(_writer);
             byte[] data = _writer.ToArray();
             InitWait();
+
+            _latestCallIsOk = false;
             StartSend(data, 0, data.Length, () =>
             {
                 StartReceive(mysql_result2 =>
                 {
                     if (mysql_result2 is MySqlOkResult)
                     {
+                        _latestCallIsOk = true;
                         _workingState = WorkingState.Rest;
                     }
                     else
