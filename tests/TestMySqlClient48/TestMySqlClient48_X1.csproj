@@ -115,11 +115,5 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\SharpConnect.MySql.Net45\SharpConnect.MySql.Net48.csproj">
-      <Project>{c783e6ea-145d-4e5a-81c7-61faf2d81df4}</Project>
-      <Name>SharpConnect.MySql.Net48</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
