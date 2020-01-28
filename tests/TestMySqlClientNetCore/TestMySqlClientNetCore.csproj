@@ -18,7 +18,6 @@
     <Compile Include="..\TestMySqlClient48_Part1\TestSuite\Test1.cs" Link="TestSuite\Test1.cs" />
     <Compile Include="..\TestMySqlClient48_Part1\TestSuite\Test2.cs" Link="TestSuite\Test2.cs" />
     <Compile Include="..\TestMySqlClient48_Part1\TestSuite\Test2_SimpleMapper.cs" Link="TestSuite\Test2_SimpleMapper.cs" />
-    <Compile Include="..\TestMySqlClient48_Part1\TestSuite\Test3_AsyncSocket.cs" Link="TestSuite\Test3_AsyncSocket.cs" />
     <Compile Include="..\TestMySqlClient48_Part1\TestSuite\Test4_PreparedStatement.cs" Link="TestSuite\Test4_PreparedStatement.cs" />
     <Compile Include="..\TestMySqlClient48_Part1\TestSuite\Test6_Blob.cs" Link="TestSuite\Test6_Blob.cs" />
     <Compile Include="..\TestMySqlClient48_Part1\TestSuite\Test7_StoreProc.cs" Link="TestSuite\Test7_StoreProc.cs" />
