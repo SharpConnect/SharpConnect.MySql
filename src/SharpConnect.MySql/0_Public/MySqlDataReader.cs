@@ -65,6 +65,7 @@ namespace SharpConnect.MySql
 
         QueryParsingConfig _queryParsingConf = s_defaultConf;
         Dictionary<string, int> _fieldMaps = null;
+        Dictionary<string, int> _All_UPPPER_CASE_fieldMaps = null;
 
         /// <summary>
         /// internal read may be blocked.
@@ -608,7 +609,62 @@ namespace SharpConnect.MySql
         //    return GetString(GetOrdinal(colName));
         //}
 
+        /// <summary>
+        /// copy part of buffer from specifc pos + readLen and write to specific dstIndex
+        /// </summary>
+        /// <param name="colIndex"></param>
+        /// <param name="srcIndex">byteOffset of src</param>
+        /// <param name="output">buffer to receive data</param>
+        /// <param name="dstIndex">dst byte index</param>
+        /// <param name="readLen">read len</param>
+        /// <returns></returns>
+        public long GetBytes(int colIndex, int srcIndex, byte[] output, int dstIndex, int readLen)
+        {
+            byte[] buffer = _cells[colIndex].myBuffer;
 
+            if (srcIndex >= buffer.Length)
+            {
+                //no more data to read
+                return 0;
+            }
+            else
+            {
+                if (srcIndex + readLen > buffer.Length)
+                {
+                    readLen = buffer.Length - srcIndex;
+                }
+
+                //check if we have avaliable dst space or not
+                if (dstIndex < output.Length)
+                {
+                    if (dstIndex + readLen > output.Length)
+                    {
+                        //we can read some part of this 
+                        //to output
+                        readLen = output.Length - dstIndex;
+                        Buffer.BlockCopy(buffer, srcIndex, output, dstIndex, readLen);
+                        return readLen;
+                    }
+                    else
+                    {
+                        Buffer.BlockCopy(buffer, srcIndex, output, dstIndex, readLen);
+                        return readLen;
+                    }
+                }
+                else
+                {
+                    //dst index is output len
+                    throw new NotSupportedException();
+                }
+
+            }
+
+        }
+        public int GetByteBufferLen(int colIndex)
+        {
+            byte[] buffer = _cells[colIndex].myBuffer;
+            return (buffer != null) ? buffer.Length : 0;
+        }
         //TODO: check match type and index here
         public byte[] GetBuffer(int colIndex) => _cells[colIndex].myBuffer;
 
@@ -726,7 +782,21 @@ namespace SharpConnect.MySql
             }
             if (!_fieldMaps.TryGetValue(colName, out int foundIndex))
             {
-                throw new Exception("not found the colName " + colName);
+                //try another chance, 
+                if (_All_UPPPER_CASE_fieldMaps == null)
+                {
+                    //init a new one, only when need
+                    _All_UPPPER_CASE_fieldMaps = new Dictionary<string, int>(_fieldMaps.Count);
+                    foreach (var kv in _fieldMaps)
+                    {
+                        _All_UPPPER_CASE_fieldMaps[kv.Key] = kv.Value;
+                    }
+                }
+                //try again
+                if (!_All_UPPPER_CASE_fieldMaps.TryGetValue(colName.ToUpper(), out foundIndex))
+                {
+                    throw new Exception("not found the colName " + colName);
+                }
             }
             return foundIndex;
         }
@@ -821,7 +891,7 @@ namespace SharpConnect.MySql
 
                     //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
                     System.Threading.Monitor.Pulse(_tableResultCompleteLock);
-                } 
+                }
                 _errorResult = err;
             });
             query.SetResultListener(subtable =>
