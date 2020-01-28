@@ -18,7 +18,7 @@ namespace MySqlTest
             var conn = new MySqlConnection(connStr);
             await conn.OpenAsync();
             await conn.ChangeDbAsync("mysql");
-            await conn.CloseAsync();            
+            await conn.CloseAsync();
         }
         [Test]
         public static async void T_Ping_Async()
@@ -30,6 +30,58 @@ namespace MySqlTest
             bool pingResult = await conn.PingAsync();
             await conn.CloseAsync();
 
+        }
+        [Test]
+        public static async void T_ResetConnection_Async()
+        {
+            //open ,ping, close
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            await conn.OpenAsync();
+
+            {
+                var cmd = new MySqlCommand(new SqlStringTemplate("set @x=20;", false), conn);
+                await cmd.ExecuteNonQueryAsync();
+            }
+            {
+                var cmd = new MySqlCommand(new SqlStringTemplate("set @y=@x+10;", false), conn);
+                await cmd.ExecuteNonQueryAsync();
+            }
+            {
+                var cmd = new MySqlCommand(new SqlStringTemplate("select @x,@y", false), conn);
+
+                await cmd.ExecuteReaderAsync(reader =>
+                {
+                    int x = reader.GetInt32(0);
+                    int y = reader.GetInt32(1);
+
+                    //test values
+                    if (x != 20 || y != x + 10)
+                    {
+                        throw new NotSupportedException();
+                    }
+                });
+            }
+
+            //
+            await conn.ResetConnectionAsync();
+
+            {
+                var cmd = new MySqlCommand(new SqlStringTemplate("select @x,@y", false), conn);
+                await cmd.ExecuteReaderAsync(reader =>
+                {
+                    int x = reader.GetInt32(0);
+                    int y = reader.GetInt32(1);
+
+                    //test values after reset conn
+                    if (x != 0 || y != 0)
+                    {
+                        throw new NotSupportedException();
+                    }
+                });
+            }
+
+            await conn.CloseAsync();
         }
         [Test]
         public static async void T_OpenAndClose_TAP()

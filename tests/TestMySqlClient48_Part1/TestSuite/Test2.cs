@@ -19,8 +19,63 @@ namespace MySqlTest
             conn.Close();
         }
         [Test]
+        public static void T_ResetConnection()
+        {
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+
+            {
+                var cmd = new MySqlCommand(new SqlStringTemplate("set @x=20;", false), conn);
+                cmd.ExecuteNonQuery();
+            }
+            {
+                var cmd = new MySqlCommand(new SqlStringTemplate("set @y=@x+10;", false), conn);
+                cmd.ExecuteNonQuery();
+            }
+            {
+                var cmd = new MySqlCommand(new SqlStringTemplate("select @x,@y", false), conn);
+                var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    int x = reader.GetInt32(0);
+                    int y = reader.GetInt32(1);
+
+                    //test values
+                    if (x != 20 || y != x + 10)
+                    {
+                        throw new NotSupportedException();
+                    }
+                }
+                reader.Close();
+            }
+
+            //
+            conn.ResetConnection();
+
+            {
+                var cmd = new MySqlCommand(new SqlStringTemplate("select @x,@y", false), conn);
+                var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    int x = reader.GetInt32(0);
+                    int y = reader.GetInt32(1);
+
+                    //test values after reset conn
+                    if (x != 0 || y != 0)
+                    {
+                        throw new NotSupportedException();
+                    }
+                }
+                reader.Close();
+            }
+
+
+            conn.Close();
+        }
+        [Test]
         public static void T_InsertAndSelect()
-        {           
+        {
             try
             {
                 int n = 1;
@@ -30,7 +85,7 @@ namespace MySqlTest
                     var conn = new MySqlConnection(connStr);
                     conn.UseConnectionPool = true;
                     conn.Open();
- 
+
                     DropTableIfExists(conn);
                     CreateTable(conn);
                     for (int i = 0; i < 100; ++i)
