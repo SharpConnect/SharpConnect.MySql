@@ -158,7 +158,10 @@ namespace SharpConnect.MySql.Internal
                 //blocking
                 _conn.InitWait();
                 SendAndRecv_A(_writer.ToArray(), _conn.UnWait);
-                _conn.Wait();
+                if (!_conn.Wait())
+                {
+                    //TODO: handle wait-timeout
+                }
             }
         }
 
@@ -199,7 +202,10 @@ namespace SharpConnect.MySql.Internal
                 {
                     ExecuteNonPrepare_A(_conn.UnWait);
                 }
-                _conn.Wait();
+                if (!_conn.Wait())
+                {
+                    //TODO: handle wait-timeout
+                }
             }
         }
 
@@ -242,7 +248,10 @@ namespace SharpConnect.MySql.Internal
                 {
                     _conn.InitWait();
                     ClosePrepareStmt_A(_conn.UnWait);
-                    _conn.Wait();
+                    if (!_conn.Wait())
+                    {
+                        //handle wait timeout
+                    }
                 }
                 _execState = QueryExecState.Closed;
             }

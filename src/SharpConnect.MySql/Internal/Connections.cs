@@ -262,7 +262,7 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        internal void Wait()
+        internal bool Wait()
         {
             //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
             //--------------------------------
@@ -273,13 +273,15 @@ namespace SharpConnect.MySql.Internal
                 {
                     if (tryCount > 10)
                     {
-                        throw new Exception("timeout!");
+                        return false;
+                        //throw new Exception("timeout!");
                     }
 
                     Monitor.Wait(_connLocker, 250);//wait within 250ms
                     tryCount++;
                 }
             }
+            return true;
             //--------------------------------
             ////blocking***
             ////wait ***  
@@ -355,9 +357,8 @@ namespace SharpConnect.MySql.Internal
                 StartSend(sendBuff, 0, sendBuff.Length, () =>
                 {
                     StartReceive(mysql_result2 =>
-                    {
-                        var ok = mysql_result2 as MySqlOkResult;
-                        if (ok != null)
+                    {                        
+                        if (mysql_result2 is MySqlOkResult)
                         {
                             _workingState = WorkingState.Rest;
                         }
@@ -370,17 +371,20 @@ namespace SharpConnect.MySql.Internal
                         //set max allow of the server ***
                         //todo set max allow packet***
                         UnWait();
-                        if (nextAction != null)
-                        {
-                            nextAction();
-                        }
+
+                        nextAction?.Invoke();
+
                     });
                 });
             });
             if (nextAction == null)
             {
                 //block ....
-                Wait();
+                if (!Wait())
+                {
+                    //TODO: handle wait timeout
+
+                }
             }
             else
             {
@@ -414,7 +418,7 @@ namespace SharpConnect.MySql.Internal
             {
                 StartReceive(mysql_result2 =>
                 {
-                    if (mysql_result2 is MySqlOkResult ok)
+                    if (mysql_result2 is MySqlOkResult)
                     {
                         _workingState = WorkingState.Rest;
                         _latestPingResult = true;
@@ -428,16 +432,17 @@ namespace SharpConnect.MySql.Internal
                     //set max allow of the server ***
                     //todo set max allow packet***
                     UnWait();
-                    if (nextAction != null)
-                    {
-                        nextAction();
-                    }
+
+                    nextAction?.Invoke();
                 });
 
             });
             if (nextAction == null)
             {
-                Wait(); //block
+                if (!Wait()) //block
+                {
+                    //TODO: handle wait-timeout
+                }
             }
             else
             {
@@ -467,8 +472,7 @@ namespace SharpConnect.MySql.Internal
             {
                 StartReceive(mysql_result2 =>
                 {
-                    var ok = mysql_result2 as MySqlOkResult;
-                    if (ok != null)
+                    if (mysql_result2 is MySqlOkResult)
                     {
                         _workingState = WorkingState.Rest;
                     }
@@ -481,10 +485,8 @@ namespace SharpConnect.MySql.Internal
                     //set max allow of the server ***
                     //todo set max allow packet***
                     UnWait();
-                    if (nextAction != null)
-                    {
-                        nextAction();
-                    }
+
+                    nextAction?.Invoke();
                 });
 
             });
@@ -526,8 +528,7 @@ namespace SharpConnect.MySql.Internal
             {
                 StartReceive(mysql_result2 =>
                 {
-                    var ok = mysql_result2 as MySqlOkResult;
-                    if (ok != null)
+                    if (mysql_result2 is MySqlOkResult)
                     {
                         _workingState = WorkingState.Rest;
                     }
@@ -540,16 +541,17 @@ namespace SharpConnect.MySql.Internal
                     //set max allow of the server ***
                     //todo set max allow packet***
                     UnWait();
-                    if (nextAction != null)
-                    {
-                        nextAction();
-                    }
-                });
 
+                    nextAction?.Invoke();
+                });
             });
+            //------------------------
             if (nextAction == null)
             {
-                Wait(); //block
+                if (!Wait()) //block
+                {
+                    //TODO: handle wait timeout
+                }
             }
             else
             {
@@ -576,14 +578,15 @@ namespace SharpConnect.MySql.Internal
                 _socket.Shutdown(SocketShutdown.Both);
                 _workingState = WorkingState.Disconnected;
                 UnWait();
-                if (nextAction != null)
-                {
-                    nextAction();
-                }
+                nextAction?.Invoke();
             });
+
             if (nextAction == null)
             {
-                Wait(); //block
+                if (!Wait())//block
+                {
+                    //TODO: handle wait-timeout
+                }
             }
             else
             {
