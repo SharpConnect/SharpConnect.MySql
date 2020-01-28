@@ -18,7 +18,7 @@ namespace MySqlTest
             var conn = new MySqlConnection(connStr);
             await conn.OpenAsync();
             await conn.ChangeDbAsync("mysql");
-            await conn.CloseAsync();
+            await conn.CloseAsync();            
         }
         [Test]
         public static async void T_Ping_Async()
