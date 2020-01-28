@@ -1,6 +1,6 @@
 ﻿//LICENSE: MIT
 //Copyright(c) 2012 Felix Geisendörfer(felix @debuggable.com) and contributors 
-//MIT, 2015-2019, brezza92, EngineKit and contributors
+//MIT, 2015-present, brezza92, EngineKit and contributors
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy
 //of this software and associated documentation files (the "Software"), to deal
