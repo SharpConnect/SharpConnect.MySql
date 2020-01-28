@@ -6,8 +6,21 @@ using SharpConnect.MySql;
 using SharpConnect.MySql.SyncPatt;
 namespace MySqlTest
 {
+
     public class TestSet2 : MySqlTestSet
     {
+        [Test]
+        public static void T_Ping()
+        {
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr); 
+            conn.Open();
+
+            bool ping = conn.Ping();
+
+
+            conn.Close();
+        }
         [Test]
         public static void T_InsertAndSelect()
         {
@@ -22,6 +35,11 @@ namespace MySqlTest
                     var conn = new MySqlConnection(connStr);
                     conn.UseConnectionPool = true;
                     conn.Open();
+
+
+                    //test ping server
+                    bool test_ping = conn.Ping();
+
 
                     DropTableIfExists(conn);
                     CreateTable(conn);

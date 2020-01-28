@@ -27,7 +27,12 @@ namespace SharpConnect.MySql.AsyncPatt
             cmd.Prepare(() => tcs.SetResult(0));
             return tcs.Task;
         }
-     
+        public static Task<bool> PingAsync(this MySqlConnection conn)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            conn.Ping(() => tcs.SetResult(conn.LatestPingResult));
+            return tcs.Task;
+        }
 
         public static Task ExecuteNonQueryAsync(this MySqlCommand cmd)
         {
