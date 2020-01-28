@@ -12,9 +12,10 @@ namespace SharpConnect.MySql
             {
                 conn.InternalOpen();
             }
-            public static void Ping(this MySqlConnection conn)
+            public static bool Ping(this MySqlConnection conn)
             {
                 conn.InternalPing();
+                return conn.LatestPingResult;
             }
             public static void ChangeDB(this MySqlConnection conn,string newDbName)
             {
@@ -240,7 +241,7 @@ namespace SharpConnect.MySql
             }
         }
 
-
+        internal bool LatestPingResult => _conn.LatestPingResult;
         internal void InternalPing(Action onComplete = null)
         {
             _conn.Ping(onComplete);
