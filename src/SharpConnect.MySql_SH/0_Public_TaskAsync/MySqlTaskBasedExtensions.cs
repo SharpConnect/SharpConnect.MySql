@@ -33,7 +33,12 @@ namespace SharpConnect.MySql.AsyncPatt
             conn.Ping(() => tcs.SetResult(conn.LatestPingResult));
             return tcs.Task;
         }
-
+        public static Task ChangeDbAsync(this MySqlConnection conn, string newDbName)
+        {
+            var tcs = new TaskCompletionSource<int>();
+            conn.ChangeDB(newDbName, () => tcs.SetResult(0));
+            return tcs.Task;
+        }
         public static Task ExecuteNonQueryAsync(this MySqlCommand cmd)
         {
             var tcs = new TaskCompletionSource<int>();
@@ -61,7 +66,7 @@ namespace SharpConnect.MySql.AsyncPatt
                 {
                     while (exec_reader.InternalRead())
                     {
-                       
+
                         readerDel(exec_reader);
                         if (exec_reader.StopReadingNextRow)
                         {

@@ -11,11 +11,21 @@ namespace MySqlTest
     public class TestSet7_TAP : MySqlTestSet
     {
         [Test]
+        public static async void T_ChangeDbAsync()
+        {
+            //open ,cnang db sync, close
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
+            await conn.OpenAsync();
+            await conn.ChangeDbAsync("mysql");
+            await conn.CloseAsync();
+        }
+        [Test]
         public static async void T_Ping_Async()
         {
             //open ,ping, close
             var connStr = GetMySqlConnString();
-            var conn = new MySqlConnection(connStr);            
+            var conn = new MySqlConnection(connStr);
             await conn.OpenAsync();
             bool pingResult = await conn.PingAsync();
             await conn.CloseAsync();
