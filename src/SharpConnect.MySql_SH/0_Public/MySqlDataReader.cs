@@ -65,7 +65,7 @@ namespace SharpConnect.MySql
 
         QueryParsingConfig _queryParsingConf = s_defaultConf;
         Dictionary<string, int> _fieldMaps = null;
-        Dictionary<string, int> _All_UPPPER_CASE_fieldMaps = null;
+        Dictionary<string, int> _all_UPPPER_CASE_fieldMaps = null;
 
         /// <summary>
         /// internal read may be blocked.
@@ -783,17 +783,17 @@ namespace SharpConnect.MySql
             if (!_fieldMaps.TryGetValue(colName, out int foundIndex))
             {
                 //try another chance, 
-                if (_All_UPPPER_CASE_fieldMaps == null)
+                if (_all_UPPPER_CASE_fieldMaps == null)
                 {
                     //init a new one, only when need
-                    _All_UPPPER_CASE_fieldMaps = new Dictionary<string, int>(_fieldMaps.Count);
+                    _all_UPPPER_CASE_fieldMaps = new Dictionary<string, int>(_fieldMaps.Count);
                     foreach (var kv in _fieldMaps)
                     {
-                        _All_UPPPER_CASE_fieldMaps[kv.Key] = kv.Value;
+                        _all_UPPPER_CASE_fieldMaps[kv.Key] = kv.Value;
                     }
                 }
                 //try again
-                if (!_All_UPPPER_CASE_fieldMaps.TryGetValue(colName.ToUpper(), out foundIndex))
+                if (!_all_UPPPER_CASE_fieldMaps.TryGetValue(colName.ToUpper(), out foundIndex))
                 {
                     throw new Exception("not found the colName " + colName);
                 }
