@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{8CF48690-E585-4444-9D22-4375D839CF36}</ProjectGuid>
+    <ProjectGuid>{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MySqlClient</RootNamespace>
