@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26730.12
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMySqlClientNet20", "tests\TestMySqlClientNet20\TestMySqlClientNet20.csproj", "{4C9B28FE-9C9E-4CA3-9D23-4861BFDDA1E5}"
 EndProject
@@ -9,13 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpConnect.MySql", "src\S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpConnect.Data", "..\SharpConnect.Data\src\SharpConnect.Data\SharpConnect.Data.csproj", "{9AFB3F52-D37D-4FBA-AC0D-76D95AE956B0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpConnect.MySql.Net45", "src\SharpConnect.MySql.Net45\SharpConnect.MySql.Net45.csproj", "{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpConnect.MySql.NetStandard", "src\SharpConnect.MySql.NetStandard\SharpConnect.MySql.NetStandard.csproj", "{66295232-5DD8-4FC7-A01B-3896F60E0631}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpConnect.MySql.NetCore", "src\SharpConnect.MySql.NetCore\SharpConnect.MySql.NetCore.csproj", "{7E4BEA58-7461-44EC-8437-A811FBCB9622}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMySqlClientNet45", "tests\TestMySqlClientNet45\TestMySqlClientNet45.csproj", "{8CF48690-E585-4444-9D22-4375D839CF36}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpConnect.MySql.Utils", "src\SharpConnect.MySql.Utils\SharpConnect.MySql.Utils.csproj", "{513BE02F-13B1-40B8-AB63-103FB0958953}"
 EndProject
@@ -23,7 +17,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestMySqlClientNetCore", "t
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMySqlParser", "feature\TestMySqlParser\TestMySqlParser.csproj", "{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SharpConnect.MySql_SH", "src\SharpConnect.MySql_SH\SharpConnect.MySql_SH.shproj", "{29AC99CF-3906-4007-919A-FA324296E61F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMySqlClient48_P1", "tests\TestMySqlClient48_Part1\TestMySqlClient48_P1.csproj", "{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMySqlClient48_P2", "tests\TestMySqlClient48_Part2\TestMySqlClient48_P2.csproj", "{EA1188A1-D631-4C58-BB54-75E9C07C11EC}"
+EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		src\SharpConnect.MySql_SH\SharpConnect.MySql_SH.projitems*{29ac99cf-3906-4007-919a-fa324296e61f}*SharedItemsImports = 13
+		src\SharpConnect.MySql_SH\SharpConnect.MySql_SH.projitems*{94d01ede-0499-422f-8081-90d94ad163fa}*SharedItemsImports = 4
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|x86 = Debug|x86
@@ -66,18 +70,6 @@ Global
 		{9AFB3F52-D37D-4FBA-AC0D-76D95AE956B0}.x86|Any CPU.Build.0 = x86|Any CPU
 		{9AFB3F52-D37D-4FBA-AC0D-76D95AE956B0}.x86|x86.ActiveCfg = x86|x86
 		{9AFB3F52-D37D-4FBA-AC0D-76D95AE956B0}.x86|x86.Build.0 = x86|x86
-		{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}.Debug|x86.Build.0 = Debug|Any CPU
-		{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}.Release|x86.ActiveCfg = Release|Any CPU
-		{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}.Release|x86.Build.0 = Release|Any CPU
-		{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}.x86|Any CPU.ActiveCfg = Release|Any CPU
-		{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}.x86|Any CPU.Build.0 = Release|Any CPU
-		{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}.x86|x86.ActiveCfg = Release|Any CPU
-		{C783E6EA-145D-4E5A-81C7-61FAF2D81DF4}.x86|x86.Build.0 = Release|Any CPU
 		{66295232-5DD8-4FC7-A01B-3896F60E0631}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{66295232-5DD8-4FC7-A01B-3896F60E0631}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{66295232-5DD8-4FC7-A01B-3896F60E0631}.Debug|x86.ActiveCfg = Debug|Any CPU
@@ -90,30 +82,6 @@ Global
 		{66295232-5DD8-4FC7-A01B-3896F60E0631}.x86|Any CPU.Build.0 = Debug|Any CPU
 		{66295232-5DD8-4FC7-A01B-3896F60E0631}.x86|x86.ActiveCfg = Debug|Any CPU
 		{66295232-5DD8-4FC7-A01B-3896F60E0631}.x86|x86.Build.0 = Debug|Any CPU
-		{7E4BEA58-7461-44EC-8437-A811FBCB9622}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7E4BEA58-7461-44EC-8437-A811FBCB9622}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7E4BEA58-7461-44EC-8437-A811FBCB9622}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{7E4BEA58-7461-44EC-8437-A811FBCB9622}.Debug|x86.Build.0 = Debug|Any CPU
-		{7E4BEA58-7461-44EC-8437-A811FBCB9622}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7E4BEA58-7461-44EC-8437-A811FBCB9622}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7E4BEA58-7461-44EC-8437-A811FBCB9622}.Release|x86.ActiveCfg = Release|Any CPU
-		{7E4BEA58-7461-44EC-8437-A811FBCB9622}.Release|x86.Build.0 = Release|Any CPU
-		{7E4BEA58-7461-44EC-8437-A811FBCB9622}.x86|Any CPU.ActiveCfg = Debug|Any CPU
-		{7E4BEA58-7461-44EC-8437-A811FBCB9622}.x86|Any CPU.Build.0 = Debug|Any CPU
-		{7E4BEA58-7461-44EC-8437-A811FBCB9622}.x86|x86.ActiveCfg = Debug|Any CPU
-		{7E4BEA58-7461-44EC-8437-A811FBCB9622}.x86|x86.Build.0 = Debug|Any CPU
-		{8CF48690-E585-4444-9D22-4375D839CF36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8CF48690-E585-4444-9D22-4375D839CF36}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8CF48690-E585-4444-9D22-4375D839CF36}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{8CF48690-E585-4444-9D22-4375D839CF36}.Debug|x86.Build.0 = Debug|Any CPU
-		{8CF48690-E585-4444-9D22-4375D839CF36}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8CF48690-E585-4444-9D22-4375D839CF36}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8CF48690-E585-4444-9D22-4375D839CF36}.Release|x86.ActiveCfg = Release|Any CPU
-		{8CF48690-E585-4444-9D22-4375D839CF36}.Release|x86.Build.0 = Release|Any CPU
-		{8CF48690-E585-4444-9D22-4375D839CF36}.x86|Any CPU.ActiveCfg = Release|Any CPU
-		{8CF48690-E585-4444-9D22-4375D839CF36}.x86|Any CPU.Build.0 = Release|Any CPU
-		{8CF48690-E585-4444-9D22-4375D839CF36}.x86|x86.ActiveCfg = Release|Any CPU
-		{8CF48690-E585-4444-9D22-4375D839CF36}.x86|x86.Build.0 = Release|Any CPU
 		{513BE02F-13B1-40B8-AB63-103FB0958953}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{513BE02F-13B1-40B8-AB63-103FB0958953}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{513BE02F-13B1-40B8-AB63-103FB0958953}.Debug|x86.ActiveCfg = Debug|Any CPU
@@ -150,6 +118,30 @@ Global
 		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.x86|Any CPU.Build.0 = Release|Any CPU
 		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.x86|x86.ActiveCfg = Release|Any CPU
 		{01E9D47B-ADCD-4C2E-B2DC-0877494AF69A}.x86|x86.Build.0 = Release|Any CPU
+		{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}.Debug|x86.Build.0 = Debug|Any CPU
+		{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}.Release|x86.ActiveCfg = Release|Any CPU
+		{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}.Release|x86.Build.0 = Release|Any CPU
+		{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}.x86|Any CPU.ActiveCfg = Release|Any CPU
+		{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}.x86|Any CPU.Build.0 = Release|Any CPU
+		{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}.x86|x86.ActiveCfg = Release|Any CPU
+		{9C1A94B7-C13A-4F48-B30F-AC546F7E2609}.x86|x86.Build.0 = Release|Any CPU
+		{EA1188A1-D631-4C58-BB54-75E9C07C11EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA1188A1-D631-4C58-BB54-75E9C07C11EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA1188A1-D631-4C58-BB54-75E9C07C11EC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EA1188A1-D631-4C58-BB54-75E9C07C11EC}.Debug|x86.Build.0 = Debug|Any CPU
+		{EA1188A1-D631-4C58-BB54-75E9C07C11EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA1188A1-D631-4C58-BB54-75E9C07C11EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EA1188A1-D631-4C58-BB54-75E9C07C11EC}.Release|x86.ActiveCfg = Release|Any CPU
+		{EA1188A1-D631-4C58-BB54-75E9C07C11EC}.Release|x86.Build.0 = Release|Any CPU
+		{EA1188A1-D631-4C58-BB54-75E9C07C11EC}.x86|Any CPU.ActiveCfg = Release|Any CPU
+		{EA1188A1-D631-4C58-BB54-75E9C07C11EC}.x86|Any CPU.Build.0 = Release|Any CPU
+		{EA1188A1-D631-4C58-BB54-75E9C07C11EC}.x86|x86.ActiveCfg = Release|Any CPU
+		{EA1188A1-D631-4C58-BB54-75E9C07C11EC}.x86|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
