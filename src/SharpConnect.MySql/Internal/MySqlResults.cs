@@ -37,7 +37,7 @@ namespace SharpConnect.MySql.Internal
         public bool IsError { get; protected set; }
         public abstract MySqlResultKind Kind { get; }
     }
-    class MySqlHandshakeResult : MySqlResult
+    sealed class MySqlHandshakeResult : MySqlResult
     {
         public readonly HandshakePacket packet;
         public MySqlHandshakeResult(HandshakePacket packet)
@@ -46,7 +46,7 @@ namespace SharpConnect.MySql.Internal
         }
         public override MySqlResultKind Kind => MySqlResultKind.Handshake;
     }
-    class MySqlErrorResult : MySqlResult
+    sealed class MySqlErrorResult : MySqlResult
     {
         public readonly ErrPacket errPacket;
         public MySqlErrorResult(ErrPacket errPacket)
@@ -63,7 +63,7 @@ namespace SharpConnect.MySql.Internal
         }
 #endif
     }
-    class MySqlOkResult : MySqlResult
+    sealed class MySqlOkResult : MySqlResult
     {
         public readonly OkPacket okpacket;
         public MySqlOkResult(OkPacket okpacket)
@@ -78,7 +78,7 @@ namespace SharpConnect.MySql.Internal
     }
 
 
-    class MySqlPrepareResponseResult : MySqlResult
+    sealed class MySqlPrepareResponseResult : MySqlResult
     {
         public readonly OkPrepareStmtPacket okPacket;
         public readonly TableHeader tableHeader;
@@ -90,7 +90,7 @@ namespace SharpConnect.MySql.Internal
         public override MySqlResultKind Kind => MySqlResultKind.PrepareResponse;
     }
 
-    class MySqlTableResult : MySqlResult
+    sealed class MySqlTableResult : MySqlResult
     {
         public readonly TableHeader tableHeader;
         public readonly DataRowPacket[] rows;
@@ -107,7 +107,7 @@ namespace SharpConnect.MySql.Internal
         public override MySqlResultKind Kind => MySqlResultKind.TableResult;
     }
 
-    class MySqlMultiTableResult : MySqlResult
+    sealed class MySqlMultiTableResult : MySqlResult
     {
         public readonly List<MySqlTableResult> subTables = new List<MySqlTableResult>();
         public MySqlMultiTableResult()
