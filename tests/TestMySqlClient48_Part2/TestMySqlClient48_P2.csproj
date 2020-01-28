@@ -74,10 +74,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\TestMySqlClientNet45\TestSuite\MyTestSet.cs">
+    <Compile Include="..\TestMySqlClient48_Part1\TestSuite\MyTestSet.cs">
       <Link>TestSuite\MyTestSet.cs</Link>
     </Compile>
-    <Compile Include="..\TestMySqlClientNet45\TestSuite\TestSuite.cs">
+    <Compile Include="..\TestMySqlClient48_Part1\TestSuite\TestSuite.cs">
       <Link>TestSuite\TestSuite.cs</Link>
     </Compile>
     <Compile Include="FormTestSuite.cs">
@@ -114,6 +114,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SharpConnect.MySql.NetStandard\SharpConnect.MySql.NetStandard.csproj">
+      <Project>{66295232-5dd8-4fc7-a01b-3896f60e0631}</Project>
+      <Name>SharpConnect.MySql.NetStandard</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -55,7 +55,6 @@
     <Compile Include="TestSuite\Test1.cs" />
     <Compile Include="TestSuite\Test2.cs" />
     <Compile Include="TestSuite\Test2_SimpleMapper.cs" />
-    <Compile Include="TestSuite\Test3_AsyncSocket.cs" />
     <Compile Include="TestSuite\MyTestSet.cs" />
     <Compile Include="TestSuite\Test4_PreparedStatement.cs" />
     <Compile Include="TestSuite\Test6_Blob.cs" />
@@ -91,13 +90,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SharpConnect.MySql.Net45\SharpConnect.MySql.Net48.csproj">
-      <Project>{c783e6ea-145d-4e5a-81c7-61faf2d81df4}</Project>
-      <Name>SharpConnect.MySql.Net48</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\src\SharpConnect.MySql.Utils\SharpConnect.MySql.Utils.csproj">
-      <Project>{513be02f-13b1-40b8-ab63-103fb0958953}</Project>
-      <Name>SharpConnect.MySql.Utils</Name>
+    <ProjectReference Include="..\..\src\SharpConnect.MySql.NetStandard\SharpConnect.MySql.NetStandard.csproj">
+      <Project>{66295232-5dd8-4fc7-a01b-3896f60e0631}</Project>
+      <Name>SharpConnect.MySql.NetStandard</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -1,5 +1,5 @@
 ﻿//MIT, 2016-2018, brezza92, EngineKit and contributors
-
+#if NET20
 using System;
 using System.Collections.Generic;
 using SharpConnect.MySql;
@@ -165,3 +165,4 @@ namespace MySqlTest
         }
     }
 }
+#endif
