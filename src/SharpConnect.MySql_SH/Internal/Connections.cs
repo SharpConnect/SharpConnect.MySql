@@ -134,7 +134,7 @@ namespace SharpConnect.MySql.Internal
             //TODO: review here ***
             //eg. server shutdown etc
 
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
         }
 
 
@@ -237,12 +237,8 @@ namespace SharpConnect.MySql.Internal
                         //clear handler
                         _whenSendCompleted = null;
                         _workingState = WorkingState.Rest;
-                        if (tmpWhenSendComplete != null)
-                        {
-                            //just invoke it
-                            tmpWhenSendComplete();
-                        }
 
+                        tmpWhenSendComplete?.Invoke();
                     }
                     break;
             }
@@ -354,12 +350,14 @@ namespace SharpConnect.MySql.Internal
                 _mysqlParserMx.SetProtocol41(_isProtocol41);
                 _mysqlParserMx.UseResultParser();
                 //------------------------------------
+                _latestCallIsOk = false;
                 StartSend(sendBuff, 0, sendBuff.Length, () =>
                 {
                     StartReceive(mysql_result2 =>
-                    {                        
+                    {
                         if (mysql_result2 is MySqlOkResult)
                         {
+                            _latestCallIsOk = true;
                             _workingState = WorkingState.Rest;
                         }
                         else
@@ -392,8 +390,9 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
-        bool _latestPingResult;
-        internal bool LatestPingResult => _latestPingResult;
+        bool _latestCallIsOk;
+        internal bool LatestCallIsOk => _latestCallIsOk;
+
         /// <summary>
         /// ping server, +/- blocking
         /// </summary>
@@ -401,7 +400,7 @@ namespace SharpConnect.MySql.Internal
         public void Ping(Action nextAction = null)
         {
             //ping server
-            _latestPingResult = false;
+
 
             if (State == ConnectionState.Disconnected)
             {
@@ -414,6 +413,8 @@ namespace SharpConnect.MySql.Internal
             pingPacket.WritePacket(_writer);
             byte[] data = _writer.ToArray();
             InitWait();
+
+            _latestCallIsOk = false;
             StartSend(data, 0, data.Length, () =>
             {
                 StartReceive(mysql_result2 =>
@@ -421,7 +422,7 @@ namespace SharpConnect.MySql.Internal
                     if (mysql_result2 is MySqlOkResult)
                     {
                         _workingState = WorkingState.Rest;
-                        _latestPingResult = true;
+                        _latestCallIsOk = true;
                     }
                     else
                     {
@@ -468,12 +469,15 @@ namespace SharpConnect.MySql.Internal
             initDb.WritePacket(_writer);
             byte[] data = _writer.ToArray();
             InitWait();
+
+            _latestCallIsOk = false;
             StartSend(data, 0, data.Length, () =>
             {
                 StartReceive(mysql_result2 =>
                 {
                     if (mysql_result2 is MySqlOkResult)
                     {
+                        _latestCallIsOk = true;
                         _workingState = WorkingState.Rest;
                     }
                     else
@@ -520,16 +524,19 @@ namespace SharpConnect.MySql.Internal
             //  a OK_Packet
 
             _writer.Reset();
-            ComPingPacket pingPacket = new ComPingPacket(new PacketHeader());
+            ComResetConnectionPacket pingPacket = new ComResetConnectionPacket(new PacketHeader());
             pingPacket.WritePacket(_writer);
             byte[] data = _writer.ToArray();
             InitWait();
+
+            _latestCallIsOk = false;
             StartSend(data, 0, data.Length, () =>
             {
                 StartReceive(mysql_result2 =>
                 {
                     if (mysql_result2 is MySqlOkResult)
                     {
+                        _latestCallIsOk = true;
                         _workingState = WorkingState.Rest;
                     }
                     else

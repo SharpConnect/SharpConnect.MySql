@@ -24,8 +24,7 @@ namespace SharpConnect.MySql
             public static void ResetConnection(this MySqlConnection conn)
             {
                 conn.InternalResetConnection();
-            }
-
+            }            
             public static void Dispose(this MySqlConnection conn)
             {
                 //?
@@ -177,11 +176,7 @@ namespace SharpConnect.MySql
             : this(MySqlConnectionString.Parse(connStr))
         {
         }
-        public bool UseConnectionPool
-        {
-            get;
-            set;
-        }
+        public bool UseConnectionPool { get; set; }
         public bool FromConnectionPool { get; private set; }
         public ConnectionState State
         {
@@ -241,7 +236,7 @@ namespace SharpConnect.MySql
             }
         }
 
-        internal bool LatestPingResult => _conn.LatestPingResult;
+        internal bool LatestPingResult => _conn.LatestCallIsOk;
         internal void InternalPing(Action onComplete = null)
         {
             _conn.Ping(onComplete);

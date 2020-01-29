@@ -7,7 +7,7 @@ namespace SharpConnect.MySql.Internal
     static class ConnectionPool
     {
         static readonly ConnectionPoolAgent s_connPoolAgent = new ConnectionPoolAgent();
-        static object s_queueLock = new object();
+        static readonly object s_queueLock = new object();
         public static Connection GetConnection(MySqlConnectionString connstr)
         {
             lock (s_queueLock)
@@ -33,18 +33,19 @@ namespace SharpConnect.MySql.Internal
 
 
 
-        class ConnectionPoolAgent
+        class ConnectionPoolAgent : IDisposable
         {
             static Dictionary<int, Queue<Connection>> s_connQueue = new Dictionary<int, Queue<Connection>>();
-            static object s_connLock = new object();
+            static readonly object s_connLock = new object();
 
             public ConnectionPoolAgent()
             {
             }
-            ~ConnectionPoolAgent()
+            public void Dispose()
             {
                 ClearAllConnections();
             }
+
             public void ClearAllConnections()
             {
                 lock (s_connLock)

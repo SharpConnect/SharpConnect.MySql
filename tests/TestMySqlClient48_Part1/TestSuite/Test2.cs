@@ -13,10 +13,62 @@ namespace MySqlTest
         public static void T_Ping()
         {
             var connStr = GetMySqlConnString();
-            var conn = new MySqlConnection(connStr); 
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+            bool ping = conn.Ping();
+            conn.Close();
+        }
+        [Test]
+        public static void T_ResetConnection()
+        {
+            var connStr = GetMySqlConnString();
+            var conn = new MySqlConnection(connStr);
             conn.Open();
 
-            bool ping = conn.Ping();
+            {
+                var cmd = new MySqlCommand(new SqlStringTemplate("set @x=20;", false), conn);
+                cmd.ExecuteNonQuery();
+            }
+            {
+                var cmd = new MySqlCommand(new SqlStringTemplate("set @y=@x+10;", false), conn);
+                cmd.ExecuteNonQuery();
+            }
+            {
+                var cmd = new MySqlCommand(new SqlStringTemplate("select @x,@y", false), conn);
+                var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    int x = reader.GetInt32(0);
+                    int y = reader.GetInt32(1);
+
+                    //test values
+                    if (x != 20 || y != x + 10)
+                    {
+                        throw new NotSupportedException();
+                    }
+                }
+                reader.Close();
+            }
+
+            //
+            conn.ResetConnection();
+
+            {
+                var cmd = new MySqlCommand(new SqlStringTemplate("select @x,@y", false), conn);
+                var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    int x = reader.GetInt32(0);
+                    int y = reader.GetInt32(1);
+
+                    //test values after reset conn
+                    if (x != 0 || y != 0)
+                    {
+                        throw new NotSupportedException();
+                    }
+                }
+                reader.Close();
+            }
 
 
             conn.Close();
@@ -24,22 +76,15 @@ namespace MySqlTest
         [Test]
         public static void T_InsertAndSelect()
         {
-            int n = 1;
-            long total;
-            long avg;
             try
             {
-                Test(n, TimeUnit.Ticks, out total, out avg, () =>
+                int n = 1;
+                Test(n, TimeUnit.Ticks, out long total, out long avg, () =>
                 {
                     var connStr = GetMySqlConnString();
                     var conn = new MySqlConnection(connStr);
                     conn.UseConnectionPool = true;
                     conn.Open();
-
-
-                    //test ping server
-                    bool test_ping = conn.Ping();
-
 
                     DropTableIfExists(conn);
                     CreateTable(conn);

@@ -39,6 +39,12 @@ namespace SharpConnect.MySql.AsyncPatt
             conn.ChangeDB(newDbName, () => tcs.SetResult(0));
             return tcs.Task;
         }
+        public static Task ResetConnectionAsync(this MySqlConnection conn)
+        {
+            var tcs = new TaskCompletionSource<int>();
+            conn.ResetConnection( () => tcs.SetResult(0));
+            return tcs.Task;
+        }
         public static Task ExecuteNonQueryAsync(this MySqlCommand cmd)
         {
             var tcs = new TaskCompletionSource<int>();

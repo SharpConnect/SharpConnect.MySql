@@ -13,10 +13,9 @@ namespace MySqlTest
         public static void T_OpenAndClose()
         {
             int n = 100;
-            long total;
-            long avg;
+
             var connStr = GetMySqlConnString();
-            Test(n, TimeUnit.Ticks, out total, out avg, () =>
+            Test(n, TimeUnit.Ticks, out long total, out long avg, () =>
             {
                 var conn = new MySqlConnection(connStr);
                 conn.Open();
@@ -29,11 +28,10 @@ namespace MySqlTest
         public static void T_OpenNotClose()
         {
             int n = 100;
-            long total;
-            long avg;
+
             var connStr = GetMySqlConnString();
             List<MySqlConnection> connList = new List<MySqlConnection>();
-            Test(n, TimeUnit.Ticks, out total, out avg, () =>
+            Test(n, TimeUnit.Ticks, out long total, out long avg, () =>
             {
                 var conn = new MySqlConnection(connStr);
                 conn.Open();
@@ -51,10 +49,8 @@ namespace MySqlTest
         public static void T_OpenAndCloseWithConnectionPool()
         {
             int n = 100;
-            long total;
-            long avg;
             var connStr = GetMySqlConnString();
-            Test(n, TimeUnit.Ticks, out total, out avg, () =>
+            Test(n, TimeUnit.Ticks, out long total, out long avg, () =>
             {
                 var conn = new MySqlConnection(connStr);
                 conn.UseConnectionPool = true;
@@ -69,8 +65,7 @@ namespace MySqlTest
         public static void T_Select_WithError()
         {
             int n = 100;
-            long total;
-            long avg;
+
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
@@ -99,12 +94,11 @@ namespace MySqlTest
         public static void T_Select_sysdate()
         {
             int n = 100;
-            long total;
-            long avg;
+
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
-            Test(n, TimeUnit.Ticks, out total, out avg, () =>
+            Test(n, TimeUnit.Ticks, out long total, out long avg, () =>
             {
                 try
                 {
@@ -129,12 +123,11 @@ namespace MySqlTest
         public static void T_Select_ExecuteScalar()
         {
             int n = 100;
-            long total;
-            long avg;
+
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
-            Test(n, TimeUnit.Ticks, out total, out avg, () =>
+            Test(n, TimeUnit.Ticks, out long total, out long avg, () =>
             {
                 var cmd = new MySqlCommand("select sysdate()", conn);
                 object result = cmd.ExecuteScalar();
