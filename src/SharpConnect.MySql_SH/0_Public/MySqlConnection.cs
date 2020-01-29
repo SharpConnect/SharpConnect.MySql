@@ -176,11 +176,7 @@ namespace SharpConnect.MySql
             : this(MySqlConnectionString.Parse(connStr))
         {
         }
-        public bool UseConnectionPool
-        {
-            get;
-            set;
-        }
+        public bool UseConnectionPool { get; set; }
         public bool FromConnectionPool { get; private set; }
         public ConnectionState State
         {

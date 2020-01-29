@@ -237,12 +237,8 @@ namespace SharpConnect.MySql.Internal
                         //clear handler
                         _whenSendCompleted = null;
                         _workingState = WorkingState.Rest;
-                        if (tmpWhenSendComplete != null)
-                        {
-                            //just invoke it
-                            tmpWhenSendComplete();
-                        }
 
+                        tmpWhenSendComplete?.Invoke();
                     }
                     break;
             }
@@ -358,7 +354,7 @@ namespace SharpConnect.MySql.Internal
                 StartSend(sendBuff, 0, sendBuff.Length, () =>
                 {
                     StartReceive(mysql_result2 =>
-                    {                        
+                    {
                         if (mysql_result2 is MySqlOkResult)
                         {
                             _latestCallIsOk = true;
@@ -404,7 +400,7 @@ namespace SharpConnect.MySql.Internal
         public void Ping(Action nextAction = null)
         {
             //ping server
-           
+
 
             if (State == ConnectionState.Disconnected)
             {
