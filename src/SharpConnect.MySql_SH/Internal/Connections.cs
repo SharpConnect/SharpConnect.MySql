@@ -134,7 +134,7 @@ namespace SharpConnect.MySql.Internal
             //TODO: review here ***
             //eg. server shutdown etc
 
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
         }
 
 
