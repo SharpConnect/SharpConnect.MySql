@@ -20,7 +20,7 @@ namespace MySqlTest
             var conn = new MySqlConnection(connStr);
             conn.Open(() =>
             {
-                conn.UpdateMaxAllowPacket();
+                conn.UpdateMaxAllowedPacket();
                 conn.Close();
             });
 

@@ -320,7 +320,7 @@ namespace SharpConnect.MySql
             q.Close();
             killConn.Disconnect();
         }
-        public static void UpdateMaxAllowPacket(this MySqlConnection conn)
+        public static void UpdateMaxAllowedPacket(this MySqlConnection conn)
         {
             var cmd = new MySqlCommand("SELECT @@global.max_allowed_packet", conn);
             var reader = cmd.InternalExecuteReader();
