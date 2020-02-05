@@ -35,6 +35,12 @@ namespace SharpConnect.MySql.Internal
             //if (contentLength == 5 && number == 0)
             //{ 
             //}
+
+            //if (contentLength > 1024 * 5)
+            //{
+
+            //}
+
             ContentLength = contentLength;
             PacketNumber = number;
         }
@@ -290,93 +296,7 @@ namespace SharpConnect.MySql.Internal
         }
     }
 
-
-    class ComQueryPacket : Packet
-    {
-        byte _QUERY_CMD = (byte)Command.QUERY;//0x03
-        string _sql;
-        public ComQueryPacket(PacketHeader header, string sql)
-            : base(header)
-        {
-            //https://dev.mysql.com/doc/internals/en/com-query.html
-            //[03] COM_QUERY
-            //string[EOF] the query the server shall execute
-
-            _sql = sql;
-        }
-        public override void ParsePacketContent(MySqlStreamReader r)
-        {
-            _QUERY_CMD = r.ReadByte();//1
-            _sql = r.ReadPacketTerminatedString();
-        }
-
-        public override void WritePacket(MySqlStreamWriter writer)
-        {
-            Write(writer, _sql);
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="writer"></param>
-        /// <param name="sql"></param>
-        /// <returns></returns>
-        public static void Write(MySqlStreamWriter writer, string sql)
-        {
-            //for those who don't want to alloc an new packet
-            //just write it into a stream  
-            byte[] buffer = writer.GetEncodeBytes(sql.ToCharArray());
-            int totalLen = buffer.Length;
-            int packetCount = (totalLen / Packet.MAX_PACKET_LENGTH) + 1;
-
-            if (packetCount <= 1)
-            {
-                writer.ReserveHeader();
-                writer.WriteByte((byte)Command.QUERY);
-                //check if we can write data in 1 packet or not 
-                writer.WriteBinaryString(buffer);
-                var header = new PacketHeader(writer.OnlyPacketContentLength, writer.IncrementPacketNumber());
-                writer.WriteHeader(header);
-            }
-            else
-            {
-                //we need to split to multiple packet
-
-                int currentPacketContentSize = Packet.MAX_PACKET_LENGTH;
-                int pos = 0;
-
-                for (int i = 0; i < packetCount; ++i)
-                {
-                    //write each packet to stream
-                    writer.ReserveHeader();
-                    if (i == 0)
-                    {
-                        //first packet
-                        writer.WriteByte((byte)Command.QUERY);
-                        writer.WriteBinaryString(buffer, pos, currentPacketContentSize - 1);//remove 1 query cmd
-                        pos += (currentPacketContentSize - 1);
-
-                    }
-                    else if (i == packetCount - 1)
-                    {
-                        //last packet
-                        currentPacketContentSize = totalLen - pos;
-                        writer.WriteBinaryString(buffer, pos, currentPacketContentSize);
-                    }
-                    else
-                    {
-                        writer.WriteBinaryString(buffer, pos, currentPacketContentSize);
-                        pos += (currentPacketContentSize);
-                    }
-
-                    //check if we can write data in 1 packet or not                   
-                    var header = new PacketHeader((uint)currentPacketContentSize, writer.IncrementPacketNumber());
-                    writer.WriteHeader(header);
-                }
-            }
-        }
-    }
-
+     
     class ComQuitPacket : Packet
     {
         //const byte QUIT_CMD = (byte)Command.QUIT;//0x01 
