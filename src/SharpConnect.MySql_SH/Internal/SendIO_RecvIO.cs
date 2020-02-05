@@ -165,7 +165,26 @@ namespace SharpConnect.Internal
         public void StartReceive()
         {
             _recvArgs.SetBuffer(_recvStartOffset, _recvBufferSize);
-            _recvArgs.AcceptSocket.ReceiveAsync(_recvArgs);
+
+
+            //Boolean
+            //true if the I/O operation is pending. 
+            //The Completed event on the e parameter will be raised upon completion of the operation.
+
+            //false if the I/O operation completed synchronously.
+            //In this case, 
+            //The Completed event on the e parameter will not be raised and the e object passed as a parameter may be examined
+            //immediately after the method call returns to retrieve the result of the operation.
+
+            if (_recvArgs.AcceptSocket.ReceiveAsync(_recvArgs))
+            {
+                //true=> I/O operation is pending.
+            }
+            else
+            {
+                //false=> the I/O operation completed synchronously
+                ProcessReceivedData();
+            }
         }
         /// <summary>
         /// start new receive
@@ -175,7 +194,24 @@ namespace SharpConnect.Internal
         public void StartReceive(byte[] buffer, int len)
         {
             _recvArgs.SetBuffer(buffer, 0, len);
-            _recvArgs.AcceptSocket.ReceiveAsync(_recvArgs);
+
+            //Boolean
+            //true if the I/O operation is pending. 
+            //The Completed event on the e parameter will be raised upon completion of the operation.
+            //false if the I/O operation completed synchronously.
+            //In this case, 
+            //The Completed event on the e parameter will not be raised and the e object passed as a parameter may be examined
+            //immediately after the method call returns to retrieve the result of the operation.
+
+            if (_recvArgs.AcceptSocket.ReceiveAsync(_recvArgs))
+            {
+                //true=> I/O operation is pending.
+            }
+            else
+            {
+                //false=> the I/O operation completed synchronously
+                ProcessReceivedData();
+            }
         }
         public int BytesTransferred => _recvArgs.BytesTransferred;
 
@@ -356,6 +392,9 @@ namespace SharpConnect.Internal
                 ProcessWaitingData();
             }
         }
+#if DEBUG
+        public bool dbugHasSomeEnqueueData() => _sendingQueue.Count > 0;
+#endif
         /// <summary>
         /// send next data, after prev IO complete
         /// </summary>
@@ -371,7 +410,7 @@ namespace SharpConnect.Internal
                 int remainingBytes = _sendingTargetBytes - _sendingTransferredBytes;
                 if (remainingBytes > 0)
                 {
-                    //no complete!, 
+                    //not complete!, 
                     //start next send ...
                     //****
                     sendingState = SendIOState.ReadyNextSend;
