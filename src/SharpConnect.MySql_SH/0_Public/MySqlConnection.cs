@@ -288,10 +288,7 @@ namespace SharpConnect.MySql
 
         public IStringConverter StringConv { get; set; }
 
-        internal void SetMaxAllowedPacket(int value)
-        {
-            _conn.PacketWriter.SetMaxAllowedPacket(value);
-        }
+        
 
 #if DEBUG
         public bool dbugPleaseBreak
@@ -320,22 +317,7 @@ namespace SharpConnect.MySql
             q.Close();
             killConn.Disconnect();
         }
-        public static void UpdateMaxAllowedPacket(this MySqlConnection conn)
-        {
-            var cmd = new MySqlCommand("SELECT @@global.max_allowed_packet", conn);
-            var reader = cmd.InternalExecuteReader();
-            while (MySql.SyncPatt.MySqlSyncPattExtension.Read(reader))
-            {
-                ulong value = reader.GetULong(0);
-                if (value >= int.MaxValue)
-                {
-                    throw new NotSupportedException("this version not support max allowed packet > int.MaxValue");
-                }
-                conn.SetMaxAllowedPacket((int)value); //cast down
-                break;
-            }
-            reader.InternalClose();
-        }
+       
     }
 
 

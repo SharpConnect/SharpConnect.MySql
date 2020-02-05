@@ -44,7 +44,7 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             var conn2 = new MySqlConnection(connStr);
             conn2.Open();
-            conn2.UpdateMaxAllowedPacket();//update  
+            
             conn2.ChangeDB("test");
             //---------
             var cmd3 = new MySqlCommand("select data from table2 limit 1", conn2);

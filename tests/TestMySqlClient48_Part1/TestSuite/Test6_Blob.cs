@@ -14,7 +14,7 @@ namespace MySqlTest
             var connStr = GetMySqlConnString();
             var conn = new MySqlConnection(connStr);
             conn.Open();
-            conn.UpdateMaxAllowedPacket();
+           
             //DropIfExist(conn);
             //CreateNewTable(conn);
             //InsertMore(conn);
