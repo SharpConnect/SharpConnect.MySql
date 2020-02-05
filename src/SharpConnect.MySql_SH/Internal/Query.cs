@@ -291,15 +291,130 @@ namespace SharpConnect.MySql.Internal
                 }
             }
         }
+
+
+
         void ExecuteNonPrepare_A(Action nextAction)
         {
+
+            //abstract mysql packet
+            //----------------------------------------
+            // (4 bytes header)| ( user content)
+            //----------------------------------------
+
+            // 4 bytes header => 3 bytes for user content len (so max => (1 << 24) - 1 or 0xFF, 0xFF, 0xFF
+            //                => 1 byte for packet number, so this value is 0-255  
+
+
             _sqlParserMx.UseResultParser();
-            _writer.Reset();
-            //query command may large
-            ComQueryPacket.Write(
-                _writer,
-                _sqlStrTemplate.BindValues(_cmdParams, false));
-            SendAndRecv_A(_writer.ToArray(), nextAction);
+            _writer.Reset();//*** packet number is reset to 0
+
+            //---------------
+            //https://dev.mysql.com/doc/internals/en/mysql-packet.html
+            //If a MySQL client or server wants to send data, it:
+            //Splits the data into packets of size (2^24)−1 bytes
+            //Prepends to each chunk a packet header
+            byte[] buffer = _writer.GetEncodeBytes(_sqlStrTemplate.BindValues(_cmdParams, false).ToCharArray());
+            //---------------
+
+            int totalLen = buffer.Length;
+            //packet count 
+            int packetCount = ((totalLen + Connection.MAX_PACKET_CONTENT_LENGTH) / Connection.MAX_PACKET_CONTENT_LENGTH);
+
+#if DEBUG
+            if (packetCount >= 255)
+            {
+                throw new NotSupportedException();
+            }
+#endif
+
+            if (packetCount <= 1)
+            {
+
+                //--------------------------------------------
+                //check SendIO buffer is large enough or not
+                //if not, handle this by asking for more buffer
+                //or throw error back to user
+                //--------------------------------------------
+                if (!_conn.EnsureSendIOBufferSize(totalLen))
+                {
+                    //how to handle exception
+                    //TODO: review here,
+                    //we should not throw exception on working thread
+                    throw new NotSupportedException();
+                }
+                //--------------------------------------------
+                _writer.ReserveHeader();
+                _writer.WriteByte((byte)Command.QUERY);
+                //check if we can write data in 1 packet or not 
+                _writer.WriteBinaryString(buffer);
+                //var header = new PacketHeader(_writer.OnlyPacketContentLength, _writer.IncrementPacketNumber());
+                _writer.WriteHeader(_writer.OnlyPacketContentLength, _writer.IncrementPacketNumber());
+                //
+                SendAndRecv_A(_writer.ToArray(), nextAction);
+            }
+            else
+            {
+                //we need to split to multiple packet 
+                //and we need max sendIO buffer 
+                //--------------------------------------------
+                //check SendIO buffer is large enough or not
+                //if not, handle this by asking for more buffer
+                //or throw error back to user
+                //--------------------------------------------
+
+                if (!_conn.EnsureSendIOBufferSize(Connection.MAX_PACKET_CONTENT_LENGTH))
+                {
+                    //how to handle exception
+                    //TODO: review here,
+                    //we should not throw exception on working thread
+                    throw new NotSupportedException();
+                }
+
+                //--------------------------------------------
+                int currentPacketContentSize = Connection.MAX_PACKET_CONTENT_LENGTH;
+                int pos = 0;
+
+
+                for (int packet_num = 0; packet_num < packetCount; ++packet_num)
+                {
+                    //write each packet to stream
+                    _writer.ReserveHeader();
+                    if (packet_num == 0)
+                    {
+                        //first packet
+                        _writer.WriteByte((byte)Command.QUERY);
+                        _writer.WriteBinaryString(buffer, pos, currentPacketContentSize - 1);//remove 1 query cmd
+                        pos += (currentPacketContentSize - 1);
+                    }
+                    else if (packet_num == packetCount - 1)
+                    {
+                        //last packet
+                        currentPacketContentSize = totalLen - pos;
+                        _writer.WriteBinaryString(buffer, pos, currentPacketContentSize);
+                    }
+                    else
+                    {
+                        //in between
+                        _writer.WriteBinaryString(buffer, pos, currentPacketContentSize);
+                        pos += (currentPacketContentSize);
+                    }
+
+                    //--------------
+                    //check if we can write data in 1 packet or not                   
+                    //var header = new PacketHeader((uint)currentPacketContentSize, (byte)packet_num);//*** 
+                    _writer.WriteHeader((uint)currentPacketContentSize, (byte)packet_num);//*** 
+                    _conn.EnqueueOutputData(_writer.ToArray()); //enqueue output data
+                    _writer.Reset();
+                }
+
+                _conn.StartSend(() =>
+                {
+                    //when send complete then start recv result 
+
+                    RecvPacket_A(nextAction);
+                });
+            }
         }
         void ExecutePrepareQuery_A(Action nextAction)
         {
@@ -417,10 +532,9 @@ namespace SharpConnect.MySql.Internal
                     {
                         default: throw new NotSupportedException();//unknown
                         case MySqlResultKind.Ok:
-                            {                                   
+                            {
                                 OkPacket = (result as MySqlOkResult).okpacket;
                                 RecvComplete();
-
                             }
                             break;
                         case MySqlResultKind.Error:
