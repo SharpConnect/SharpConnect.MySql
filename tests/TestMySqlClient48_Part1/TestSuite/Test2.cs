@@ -9,6 +9,144 @@ namespace MySqlTest
 
     public class TestSet2 : MySqlTestSet
     {
+
+        [Test]
+        public static void T_LargeData()
+        {
+            //create data file that large than 16 MB
+            //CREATE TABLE `table2` (
+            //  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+            //  `data` longblob NOT NULL,
+            //  PRIMARY KEY(`id`)
+            //) ENGINE = MyISAM DEFAULT CHARSET = utf8
+
+            //int size = 1024 * 50 * 1;//ok
+            //int size = 1024 * 100 * 1;//ok
+            int size = 1024 * 1000 * 18;//ok
+            //int size = 1024 * 1000 * 10;//ok
+
+            //int size = 1024;
+            byte[] buffer = new byte[size];
+            byte dd = 0;
+            for (int i = 0; i < size; ++i)
+            {
+                buffer[i] = dd;
+                dd++;
+                if (dd > 200)
+                {
+                    dd = 0;//reset;
+                }
+            }
+#if DEBUG
+
+#endif
+
+            var connStr = GetMySqlConnString();
+            var conn2 = new MySqlConnection(connStr);
+            conn2.Open();
+            conn2.UpdateMaxAllowedPacket();//update  
+            conn2.ChangeDB("test");
+            //---------
+            var cmd3 = new MySqlCommand("select data from table2 limit 1", conn2);
+            var reader3 = cmd3.ExecuteReader();
+            while (reader3.Read())
+            {
+                byte[] data_buffer = reader3.GetBuffer(0);
+
+            }
+            reader3.Close();
+            //---------
+            SqlStringTemplate sql_template = new SqlStringTemplate("insert into table2(data) values(?d)");
+            var cmd2 = new MySqlCommand(sql_template, conn2);
+            cmd2.Parameters.AddWithValue("?d", buffer);
+            cmd2.ExecuteNonQuery();//
+            if (!cmd2.HasError)
+            {
+                uint inser_id = cmd2.LastInsertedId;
+            }
+            else
+            {
+                //error
+            }
+
+            //conn2.Close();
+
+        }
+        [Test]
+        public static void T_LongData()
+        {
+            var connStr = GetMySqlConnString();
+            {
+
+                var conn2 = new MySqlConnection(connStr);
+                conn2.Open();
+                conn2.ChangeDB("test");
+                SqlStringTemplate sql_template = new SqlStringTemplate("insert into table1(name) values(?i)");
+                for (int i = 0; i < 100000; ++i)
+                {
+                    var cmd2 = new MySqlCommand(sql_template, conn2);
+                    cmd2.Parameters.AddWithValue("?i", i);
+                    cmd2.ExecuteNonQuery();//
+                }
+                conn2.Close();
+            }
+            //--------------
+            var conn = new MySqlConnection(connStr);
+            conn.Open();
+            conn.ChangeDB("test");
+            {
+                var cmd = new MySqlCommand("select * from table1", conn);
+                var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+
+
+                }
+                reader.Close();
+            }
+            conn.Close();
+        }
+        [Test]
+        public static void T_WaitTableLock()
+        {
+            var connStr = GetMySqlConnString();
+            var conn2 = new MySqlConnection(connStr);
+            conn2.Open();
+            conn2.ChangeDB("test");
+            var cmd2 = new MySqlCommand("lock tables table1 write", conn2);
+            cmd2.ExecuteNonQuery();//
+
+            //--------------
+            System.Threading.ThreadPool.QueueUserWorkItem(o =>
+            {
+                var conn = new MySqlConnection(connStr);
+                conn.Open();
+                conn.ChangeDB("test");
+                {
+                    var cmd = new MySqlCommand("select * from table1", conn);
+                    var reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+
+
+                    }
+                    reader.Close();
+                }
+                conn.Close();
+            });
+
+
+            //--------------
+            int i = 0;
+            while (i < 1000)
+            {
+                i++;
+                System.Threading.Thread.Sleep(100);
+            }
+
+            var cmd3 = new MySqlCommand("unlock tables", conn2);
+            cmd3.ExecuteNonQuery();//
+        }
         [Test]
         public static void T_Ping()
         {
