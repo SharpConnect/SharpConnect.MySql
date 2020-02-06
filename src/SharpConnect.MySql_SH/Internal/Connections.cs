@@ -50,6 +50,11 @@ namespace SharpConnect.MySql.Internal
     /// </summary>
     class Connection : IDisposable
     {
+
+        /// <summary>
+        /// mysql's max content length per packet
+        /// </summary>
+        internal const int MAX_PACKET_CONTENT_LENGTH = (1 << 24) - 1;
         public ConnectionConfig _config;
         WorkingState _workingState;
         //---------------------------------
@@ -108,6 +113,27 @@ namespace SharpConnect.MySql.Internal
             _recvSendArgs.AcceptSocket = _socket;
             _mysqlParserMx = new MySqlParserMx(_config);
         }
+        /// <summary>
+        /// (approximate) maximum waiting time for some locking operation,set this before open connection
+        /// </summary>
+        public int LockWaitingMilliseconds { get; set; }
+
+        /// <summary>
+        /// ensure that we have large buffer for request sending output
+        /// </summary>
+        /// <param name="reqSize"></param>
+        /// <returns></returns>
+        public bool EnsureSendIOBufferSize(int reqSize)
+        {
+            if (reqSize < _sendBufferSize)
+            {
+                return true;//ok
+            }
+            else
+            {
+                return false;
+            }
+        }
         public void Dispose()
         {
             if (_recvSendArgs != null)
@@ -133,12 +159,12 @@ namespace SharpConnect.MySql.Internal
         {
             //TODO: review here ***
             //eg. server shutdown etc
-
             //throw new NotImplementedException();
+
+            UnWait();//release current waiting when error
         }
 
-
-        object _recvLock = new object();
+        readonly object _recvLock = new object();
 
         void HandleReceive(RecvEventCode recvEventCode)
         {
@@ -234,11 +260,21 @@ namespace SharpConnect.MySql.Internal
                     {
                         //save when send complete here
                         Action tmpWhenSendComplete = _whenSendCompleted;
-                        //clear handler
-                        _whenSendCompleted = null;
-                        _workingState = WorkingState.Rest;
 
+#if DEBUG
+                        if (_sendIO.dbugHasSomeEnqueueData())
+                        {
+
+                        }
+                        else
+                        {
+
+                        }
+#endif
+                        _whenSendCompleted = null; //clear handler
+                        _workingState = WorkingState.Rest;
                         tmpWhenSendComplete?.Invoke();
+
                     }
                     break;
             }
@@ -258,6 +294,8 @@ namespace SharpConnect.MySql.Internal
             }
         }
 
+
+        const int EACH_ROUND = 250;//250 ms
         internal bool Wait()
         {
             //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
@@ -265,15 +303,17 @@ namespace SharpConnect.MySql.Internal
             lock (_connLocker)
             {
                 int tryCount = 0;
+                int lim_count = LockWaitingMilliseconds / EACH_ROUND;
                 while (_globalWaiting == 1)
                 {
-                    if (tryCount > 10)
+                    if (tryCount > (lim_count))
                     {
+                        //if we wait longer than 250ms*10=> 2500ms => 
+                        _globalWaiting = 0;
+                        UnWait();
                         return false;
-                        //throw new Exception("timeout!");
                     }
-
-                    Monitor.Wait(_connLocker, 250);//wait within 250ms
+                    Monitor.Wait(_connLocker, EACH_ROUND);//wait within 250ms
                     tryCount++;
                 }
             }
@@ -637,6 +677,33 @@ namespace SharpConnect.MySql.Internal
             _sendIO.EnqueueOutputData(sendBuffer, len);
             _sendIO.StartSendAsync();
         }
+        public void EnqueueOutputData(byte[] sendBuffer)
+        {
+            //must be in opened state
+            if (_workingState != WorkingState.Rest)
+            {
+                throw new Exception("sending error: state is not= opened");
+            }
+            _sendIO.EnqueueOutputData(sendBuffer, sendBuffer.Length);
+        }
+        public void StartSend(Action whenSendCompleted)
+        {
+            //must be in opened state
+            if (_workingState != WorkingState.Rest)
+            {
+                throw new Exception("sending error: state is not= opened");
+            }
+            //--------------------------------------------------------------
+#if DEBUG
+            if (_whenSendCompleted != null)
+            {
+                //must be null 
+                throw new Exception("sending something?...");
+            }
+#endif
+            _whenSendCompleted = whenSendCompleted;
+            _sendIO.StartSendAsync();
+        }
         public void StartReceive(Action<MySqlResult> whenCompleteAction)
         {
 
@@ -735,7 +802,7 @@ namespace SharpConnect.MySql.Internal
         public int clientFlags;
 
         public int recvBufferSize = 265000; //TODO: review here
-        public int sendBufferSize = 51200;
+        public int sendBufferSize = (1 << 24) + 64;//TODO: review here
 
         public ConnectionConfig()
         {
