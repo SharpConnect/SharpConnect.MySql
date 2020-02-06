@@ -213,7 +213,7 @@ namespace SharpConnect.MySql
             reader.StringConverter = this.StringConverter;
             _query.Execute(true, null);
             reader.WaitUntilFirstDataArrive();
-            //
+
             //after execute in sync mode (this method)
             //reader will wait unit first result arrive            
             if (reader.HasError)
