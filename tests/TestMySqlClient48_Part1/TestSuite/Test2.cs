@@ -10,20 +10,10 @@ namespace MySqlTest
     public class TestSet2 : MySqlTestSet
     {
 
-        [Test]
-        public static void T_LargeData()
+        static void InsertLargeData(MySqlConnection conn2)
         {
-            //create data file that large than 16 MB
-            //CREATE TABLE `table2` (
-            //  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-            //  `data` longblob NOT NULL,
-            //  PRIMARY KEY(`id`)
-            //) ENGINE = MyISAM DEFAULT CHARSET = utf8
-
-            //int size = 1024 * 50 * 1;//ok
-            //int size = 1024 * 100 * 1;//ok
-            int size = 1024 * 1000 * 18;//ok
-            //int size = 1024 * 1000 * 10;//ok
+            int size = 1024 * 1000 * 22;//ok
+                                        //int size = 1024 * 1000 * 10;//ok
 
             //int size = 1024;
             byte[] buffer = new byte[size];
@@ -37,24 +27,7 @@ namespace MySqlTest
                     dd = 0;//reset;
                 }
             }
-#if DEBUG
 
-#endif
-
-            var connStr = GetMySqlConnString();
-            var conn2 = new MySqlConnection(connStr);
-            conn2.Open();            
-            conn2.ChangeDB("test");
-            //---------
-            var cmd3 = new MySqlCommand("select data from table2 limit 1", conn2);
-            var reader3 = cmd3.ExecuteReader();
-            while (reader3.Read())
-            {
-                byte[] data_buffer = reader3.GetBuffer(0);
-
-            }
-            reader3.Close();
-            //---------
             SqlStringTemplate sql_template = new SqlStringTemplate("insert into table2(data) values(?d)");
             var cmd2 = new MySqlCommand(sql_template, conn2);
             cmd2.Parameters.AddWithValue("?d", buffer);
@@ -68,9 +41,46 @@ namespace MySqlTest
                 //error
             }
 
-            //conn2.Close();
+        }
+        [Test]
+        public static void T_LargeData()
+        {
+            //create data file that large than 16 MB
+            //CREATE TABLE `table2` (
+            //  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+            //  `data` longblob NOT NULL,
+            //  PRIMARY KEY(`id`)
+            //) ENGINE = MyISAM DEFAULT CHARSET = utf8
+
+            //int size = 1024 * 50 * 1;//ok
+            //int size = 1024 * 100 * 1;//ok
+
+            //#if DEBUG
+
+            //#endif
+            var connStr = GetMySqlConnString();
+            var conn2 = new MySqlConnection(connStr);
+            conn2.Open();
+            conn2.ChangeDB("test");
+
+            //InsertLargeData(conn2);
+            //---------
+            var cmd3 = new MySqlCommand("select data from table2 where id=30", conn2);
+            //var cmd3 = new MySqlCommand("select file from table3 limit 1", conn2);
+            var reader3 = cmd3.ExecuteReader();
+            while (reader3.Read())
+            {
+                byte[] data_buffer = reader3.GetBuffer(0);
+
+                int len = data_buffer.Length;
+            }
+            reader3.Close();
+            //---------
+
+            conn2.Close();
 
         }
+       
         [Test]
         public static void T_LongData()
         {
