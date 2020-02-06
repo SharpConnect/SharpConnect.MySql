@@ -33,6 +33,7 @@ namespace SharpConnect.MySql.Internal
         Exec,
         Closing,
         Closed,
+        Terminated,
     }
     enum QueryUseMode
     {
@@ -159,10 +160,12 @@ namespace SharpConnect.MySql.Internal
             {
                 //blocking
                 _conn.InitWait();
+                //send and recive, after revice the unwait
                 SendAndRecv_A(_writer.ToArray(), _conn.UnWait);
+                //now wait 
                 if (!_conn.Wait())
                 {
-                    //TODO: handle wait-timeout
+                    _execState = QueryExecState.Terminated;
                 }
             }
         }
@@ -188,6 +191,7 @@ namespace SharpConnect.MySql.Internal
                     ExecutePrepareQuery_A(nextAction);
                 }
                 else
+
                 {
                     ExecuteNonPrepare_A(nextAction);
                 }
@@ -207,6 +211,7 @@ namespace SharpConnect.MySql.Internal
                 if (!_conn.Wait())
                 {
                     //TODO: handle wait-timeout
+                    _execState = QueryExecState.Terminated;
                 }
             }
         }
@@ -223,6 +228,8 @@ namespace SharpConnect.MySql.Internal
             switch (_execState)
             {
                 //can close twice without error
+                case QueryExecState.Terminated:
+                    return;//***
                 case QueryExecState.Closed:
                     nextAction?.Invoke();
                     return; //***
@@ -275,6 +282,8 @@ namespace SharpConnect.MySql.Internal
                     if (!_conn.Wait())
                     {
                         //handle wait timeout
+                        _execState = QueryExecState.Terminated;
+                        return;
                     }
                 }
                 _execState = QueryExecState.Closed;
@@ -473,6 +482,11 @@ namespace SharpConnect.MySql.Internal
         void ClosePrepareStmt_A(Action nextAction)
         {
             //for prepare only
+            if (_execState == QueryExecState.Terminated)
+            {
+                return;
+            }
+
             if (_prepareContext != null)
             {
                 _sqlParserMx.UseResultParser();
