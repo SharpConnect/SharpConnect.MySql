@@ -226,13 +226,13 @@ namespace SharpConnect.MySql.Internal
 #if DEBUG
             dbugBreakOnMonitorData();
 #endif
-
             if (n > 0)
                 return _reader.ReadBytes(n);
             else
                 return null;
-
         }
+       
+
         public void SkipForward(int byteOffset)
         {
 #if DEBUG
@@ -252,6 +252,11 @@ namespace SharpConnect.MySql.Internal
 
             PacketHeader header = new PacketHeader(U3(), ReadByte());
 #if DEBUG
+            if (header.ContentLength == ((1 << 24) - 1))
+            {
+               
+            }
+
             if (header.PacketNumber > debugLastPacketNum + 1)
             {
                 SharpConnect.Internal.dbugConsole.WriteLine("header.PacketNumber : " + header.PacketNumber + " > lastPacketNumber :" + debugLastPacketNum);
