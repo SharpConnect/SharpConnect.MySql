@@ -32,7 +32,7 @@ namespace SharpConnect.MySql.Internal
         byte _packetNumber;
         long _startPacketPosition;
 
-        int _serverMaxDataLength = Packet.MAX_PACKET_LENGTH;
+        
         Encoding _encoding;
         byte[] _headerBuffer = new byte[4];//reusable header buffer
         const int BIT_16 = (int)1 << 16;//(int)Math.Pow(2, 16);
@@ -54,10 +54,7 @@ namespace SharpConnect.MySql.Internal
 
         public long Length => _writer.Length;
 
-        public void SetMaxAllowedPacket(int max)
-        {
-            _serverMaxDataLength = max;
-        }
+       
         public void Reset()
         {
             _packetNumber = 0;
@@ -80,6 +77,20 @@ namespace SharpConnect.MySql.Internal
             return _packetNumber++;
         }
 
+        public void WriteHeader(uint contentLen, byte packetNumber)
+        {
+
+#if DEBUG
+            if (contentLen > Connection.MAX_PACKET_CONTENT_LENGTH)
+            {
+                throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
+            }
+#endif
+
+            WriteEncodedUnsignedNumber0_3(_headerBuffer, contentLen);
+            _headerBuffer[3] = packetNumber;
+            _writer.RewindWriteAndJumpBack(_headerBuffer, (int)_startPacketPosition);
+        }
         public void WriteHeader(PacketHeader header)
         {
             //  var packets  = Math.floor(_buffer.length / MAX_PACKET_LENGTH) + 1;
@@ -89,14 +100,8 @@ namespace SharpConnect.MySql.Internal
             long totalPacketLength = OnlyPacketContentLength + 4;
 #if DEBUG
             //SharpConnect.Internal.dbugConsole.WriteLine("Current Packet Length = " + totalPacketLength);
-#endif
-            //TODO: review MAX_PACKET_LENGTH here ****
-            //it should be 
-            //int packetCount = (int)((totalPacketLength - 4) / _maxAllowedLength) + 1;//-4 bytes of reserve header
-            if (totalPacketLength > _serverMaxDataLength)
-            {
-                throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");
-            }
+#endif 
+             
             if (header.ContentLength > Packet.MAX_PACKET_LENGTH)
             {
                 throw new Exception("Packet for query is too larger than MAX_ALLOWED_LENGTH");

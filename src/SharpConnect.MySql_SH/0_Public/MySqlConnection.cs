@@ -24,7 +24,7 @@ namespace SharpConnect.MySql
             public static void ResetConnection(this MySqlConnection conn)
             {
                 conn.InternalResetConnection();
-            }            
+            }
             public static void Dispose(this MySqlConnection conn)
             {
                 //?
@@ -163,10 +163,14 @@ namespace SharpConnect.MySql
     public class MySqlConnection
     {
         MySqlConnectionString _connStr;
+        /// <summary>
+        /// internal MySql connection
+        /// </summary>
         Connection _conn;
         public MySqlConnection(MySqlConnectionString connStr)
         {
             _connStr = connStr;
+            LockWaitingMilliseconds = 1000 * 5; //TODO: review this default valut
         }
         public MySqlConnection(string host, string uid, string psw, string db)
             : this(new MySqlConnectionString(host, uid, psw, db))
@@ -178,6 +182,12 @@ namespace SharpConnect.MySql
         }
         public bool UseConnectionPool { get; set; }
         public bool FromConnectionPool { get; private set; }
+
+        /// <summary>
+        /// (approximate) maximum waiting time for some locking operation,set this before open connection
+        /// </summary>
+        public int LockWaitingMilliseconds { get; set; }
+
         public ConnectionState State
         {
             get
@@ -203,15 +213,13 @@ namespace SharpConnect.MySql
                 _conn = ConnectionPool.GetConnection(_connStr);
                 if (_conn != null)
                 {
+                    _conn.LockWaitingMilliseconds = LockWaitingMilliseconds;
                     FromConnectionPool = true;
-                    if (onComplete != null)
-                    {
-                        onComplete();
-                    }
+                    onComplete?.Invoke();
                 }
                 else
                 {
-                    //create new 
+                    //create new                     
                     _conn = new Connection(
                         new ConnectionConfig(
                             _connStr.Host,
@@ -219,6 +227,8 @@ namespace SharpConnect.MySql
                             _connStr.Password,
                             _connStr.Database)
                         { port = _connStr.PortNumber });
+
+                    _conn.LockWaitingMilliseconds = LockWaitingMilliseconds;
                     _conn.Connect(onComplete);
                 }
             }
@@ -232,6 +242,8 @@ namespace SharpConnect.MySql
                         _connStr.Password,
                         _connStr.Database)
                     { port = _connStr.PortNumber });
+
+                _conn.LockWaitingMilliseconds = LockWaitingMilliseconds;
                 _conn.Connect(onComplete);
             }
         }
@@ -288,10 +300,7 @@ namespace SharpConnect.MySql
 
         public IStringConverter StringConv { get; set; }
 
-        internal void SetMaxAllowedPacket(int value)
-        {
-            _conn.PacketWriter.SetMaxAllowedPacket(value);
-        }
+
 
 #if DEBUG
         public bool dbugPleaseBreak
@@ -320,22 +329,7 @@ namespace SharpConnect.MySql
             q.Close();
             killConn.Disconnect();
         }
-        public static void UpdateMaxAllowPacket(this MySqlConnection conn)
-        {
-            var cmd = new MySqlCommand("SELECT @@global.max_allowed_packet", conn);
-            var reader = cmd.InternalExecuteReader();
-            while (MySql.SyncPatt.MySqlSyncPattExtension.Read(reader))
-            {
-                ulong value = reader.GetULong(0);
-                if (value >= int.MaxValue)
-                {
-                    throw new NotSupportedException("this version not support max allowed packet > int.MaxValue");
-                }
-                conn.SetMaxAllowedPacket((int)value); //cast down
-                break;
-            }
-            reader.InternalClose();
-        }
+
     }
 
 

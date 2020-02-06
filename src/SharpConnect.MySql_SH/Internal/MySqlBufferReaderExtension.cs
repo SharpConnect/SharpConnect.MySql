@@ -100,7 +100,21 @@ namespace SharpConnect.MySql.Internal
             //    var value;
             uint low = U4(reader);
             uint high = U4(reader);
-            //
+
+            //if ((uint)(high >> 21) > 0)
+            //{
+            //    //TODO: review here 
+            //    //support big number
+            //    long value = low + ((MUL_32BIT) * high);
+            //}
+
+
+            long len = low + ((MUL_32BIT) * high);
+            if (len < uint.MaxValue)
+            {
+                return (uint)len;
+            }
+
             throw new NotSupportedException("big number!,please use " + nameof(ReadLengthCodedNumberInt64));
         }
         const long MUL_32BIT = 1L << 32;
@@ -146,12 +160,12 @@ namespace SharpConnect.MySql.Internal
             uint low = U4(reader);
             uint high = U4(reader);
 
-            if ((uint)(high >> 21) > 0)
-            {
-                //TODO: review here 
-                //support big number
-                long value = low + ((MUL_32BIT) * high);
-            }
+            //if ((uint)(high >> 21) > 0)
+            //{
+            //    //TODO: review here 
+            //    //support big number
+            //    long value = low + ((MUL_32BIT) * high);
+            //}
             return low + ((MUL_32BIT) * high);
             //if (high >>> 21)
             //{
@@ -200,22 +214,18 @@ namespace SharpConnect.MySql.Internal
             uint length = ReadLengthCodedNumber(reader, out isNull);
             byte[] output = reader.ReadBytes((int)length);
             return isNull ? null : output;
-
         }
 
         public static byte[] ReadLengthCodedBuffer(this BufferReader reader)
         {
-            bool isNull;
-            byte[] output = ReadLengthCodedBuffer(reader, out isNull);
+            byte[] output = ReadLengthCodedBuffer(reader, out bool isNull);
             return isNull ? null : output;
         }
         public static string ReadString(this BufferReader reader,
             uint length,
             IStringConverter strConverter)
         {
-
             return strConverter.ReadConv(reader.ReadBytes((int)length));
-
         }
 
         public static bool ReadLengthCodedDateTime(this BufferReader reader, out DateTime result)
