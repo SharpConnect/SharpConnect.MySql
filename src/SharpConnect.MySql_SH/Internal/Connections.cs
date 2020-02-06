@@ -161,7 +161,7 @@ namespace SharpConnect.MySql.Internal
             //eg. server shutdown etc
             //throw new NotImplementedException();
 
-            UnWait();//release current waiting when error
+            
         }
 
         readonly object _recvLock = new object();
@@ -174,6 +174,10 @@ namespace SharpConnect.MySql.Internal
                 case RecvEventCode.SocketError:
                     {
                         UnBindSocket(true);
+
+                        _workingState = WorkingState.Error;
+                        UnWait();//release current waiting when error
+                        
                     }
                     break;
                 case RecvEventCode.NoMoreReceiveData:
@@ -254,6 +258,8 @@ namespace SharpConnect.MySql.Internal
                 case SendIOEventCode.SocketError:
                     {
                         UnBindSocket(true);
+                        _workingState = WorkingState.Error;
+                        UnWait();//release current waiting when error
                     }
                     break;
                 case SendIOEventCode.SendComplete:
@@ -473,7 +479,6 @@ namespace SharpConnect.MySql.Internal
                     //set max allow of the server ***
                     //todo set max allow packet***
                     UnWait();
-
                     nextAction?.Invoke();
                 });
 

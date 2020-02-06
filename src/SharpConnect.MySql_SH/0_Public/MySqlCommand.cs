@@ -36,10 +36,27 @@ namespace SharpConnect.MySql
             public static uint ExecuteNonQuery(this MySqlCommand cmd)
             {
                 cmd.InternalExecuteNonQuery();
-                if (cmd.HasError)
+                if (cmd.HasSocketConnectionError)
                 {
-                    throw new NotSupportedException();
+                    cmd.HasError = true;
+                    if (cmd.ErrorMsg != null)
+                    {
+                        cmd.ErrorMsg += ";Socket Conn ERR";
+                    }
                 }
+                if (cmd.HasError) //has some command error
+                {
+                    //do error routing 
+                    if (cmd.HasErrorHandler)
+                    {
+                        cmd.InternalInvokeErrorHandler();
+                    }
+                    else
+                    {
+                        throw new NotSupportedException();
+                    }
+                }
+
                 return cmd.AffectedRows;
             }
         }
@@ -92,7 +109,7 @@ namespace SharpConnect.MySql
                 });
             }
             /// <summary>
-            /// sync/async execute non query
+            ///non-blocking, execute non query
             /// </summary>
             /// <param name="nextAction"></param>
             public static void ExecuteNonQuery(this MySqlCommand cmd, Action nextAction)
@@ -137,11 +154,7 @@ namespace SharpConnect.MySql
             }
         }
 
-        public CommandParams Parameters
-        {
-            get;
-            private set;
-        }
+        public CommandParams Parameters { get; set; }
         public string CommandText => _sqlStringTemplate.UserRawSql;
 
         MySqlConnection _conn;
@@ -157,6 +170,8 @@ namespace SharpConnect.MySql
                 }
             }
         }
+
+
         IStringConverter _stringConv;
         public IStringConverter StringConverter
         {
@@ -167,7 +182,6 @@ namespace SharpConnect.MySql
                 Parameters.StringConv = value;
             }
         }
-
 
         /// <summary>
         /// sync/async prepare
@@ -295,7 +309,7 @@ namespace SharpConnect.MySql
         }
 
         public string ErrorMsg { get; internal set; }
-        public bool HasError { get; private set; }
+        public bool HasError { get; internal set; }
 
         //after execute non query      
         public uint LastInsertedId => _query.OkPacket.InsertIdAsUInt32;
@@ -310,6 +324,38 @@ namespace SharpConnect.MySql
                 _query.Close();
                 _query = null;
             }
+        }
+
+
+        internal bool HasSocketConnectionError
+        {
+            get
+            {
+                if (_conn != null && _conn.Conn.WorkingState == WorkingState.Error)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+
+
+
+        //-------------
+        //this is our extension
+        MySqlCommandErrHandler _errHandler;
+        public void SetOnErrorHandler(MySqlCommandErrHandler errHandler)
+        {
+            _errHandler = errHandler;
+        }
+        public delegate void MySqlCommandErrHandler(MySqlCommand cmd);
+        internal bool HasErrorHandler => _errHandler != null;
+        internal void InternalInvokeErrorHandler()
+        {
+            _errHandler?.Invoke(this);
         }
     }
 
