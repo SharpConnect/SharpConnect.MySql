@@ -161,7 +161,7 @@ namespace SharpConnect.MySql.Internal
             //eg. server shutdown etc
             //throw new NotImplementedException();
 
-            
+
         }
 
         readonly object _recvLock = new object();
@@ -177,7 +177,7 @@ namespace SharpConnect.MySql.Internal
 
                         _workingState = WorkingState.Error;
                         UnWait();//release current waiting when error
-                        
+
                     }
                     break;
                 case RecvEventCode.NoMoreReceiveData:
@@ -314,12 +314,11 @@ namespace SharpConnect.MySql.Internal
                 {
                     if (tryCount > (lim_count))
                     {
-                        //if we wait longer than 250ms*10=> 2500ms => 
                         _globalWaiting = 0;
                         UnWait();
                         return false;
                     }
-                    Monitor.Wait(_connLocker, EACH_ROUND);//wait within 250ms
+                    Monitor.Wait(_connLocker, EACH_ROUND);
                     tryCount++;
                 }
             }
