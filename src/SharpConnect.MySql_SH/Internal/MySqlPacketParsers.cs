@@ -277,17 +277,20 @@ namespace SharpConnect.MySql.Internal
             _parsingState = ResultPacketState.Row_Header;
             return false;
         }
+
+        bool _needMoreThan1Packet;
         bool Parse_Row_Header(MySqlStreamReader reader)
         {
+
             if (!reader.Ensure(PACKET_HEADER_LENGTH + 1))
             {
                 return _needMoreData = true;
             }
-
             _currentHeader = reader.ReadPacketHeader();
             if (_currentHeader.ContentLength == Packet.MAX_PACKET_LENGTH)
             {
                 //need more than 1 packet for row content 
+                _needMoreThan1Packet = true;
                 _parsingState = ResultPacketState.Row_Content;
                 return false;
             }
@@ -295,21 +298,28 @@ namespace SharpConnect.MySql.Internal
             {
                 throw new NotSupportedException("???");
             }
-            byte packetType = reader.PeekByte();
-            switch (packetType)
+
+            if (_needMoreThan1Packet)
             {
-                case ERROR_CODE:
-                    _parsingState = ResultPacketState.Error_Content;
-                    break;
-                case EOF_CODE://0x00 or 0xfe the OK packet header
-                    _parsingState = ResultPacketState.Row_EOF;
-                    break;
-                default:
-                    _parsingState = ResultPacketState.Row_Content;
-                    break;
+                //switch to row content
+                _parsingState = ResultPacketState.Row_Content;
             }
-
-
+            else
+            {
+                byte packetType = reader.PeekByte();
+                switch (packetType)
+                {
+                    case ERROR_CODE:
+                        _parsingState = ResultPacketState.Error_Content;
+                        break;
+                    case EOF_CODE://0x00 or 0xfe the OK packet header
+                        _parsingState = ResultPacketState.Row_EOF;
+                        break;
+                    default:
+                        _parsingState = ResultPacketState.Row_Content;
+                        break;
+                }
+            }
 
             return false;
         }
@@ -332,7 +342,7 @@ namespace SharpConnect.MySql.Internal
                 //and set isLargeData= true
                 StoreBuffer(reader, (int)_currentHeader.ContentLength);
                 _isLargeData = true;
-                //we still in the row content state
+
                 _parsingState = ResultPacketState.Row_Header;
                 return false;
             }
@@ -366,6 +376,7 @@ namespace SharpConnect.MySql.Internal
                     _ms.Dispose();
                     _ms = null;
 
+                    _needMoreThan1Packet = false;
                     _isLargeData = false; //reset
                 }
                 else
@@ -868,7 +879,7 @@ namespace SharpConnect.MySql.Internal
             _mysqlStreamReader.SupportBigNumber = userConfig.supportBigNumbers;
             //tableHeader.TypeCast = this.config.typeCast;
         }
-       
+
 
         public void SetProtocol41(bool value)
         {
