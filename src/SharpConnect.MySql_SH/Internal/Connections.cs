@@ -479,7 +479,6 @@ namespace SharpConnect.MySql.Internal
                     //set max allow of the server ***
                     //todo set max allow packet***
                     UnWait();
-
                     nextAction?.Invoke();
                 });
 
