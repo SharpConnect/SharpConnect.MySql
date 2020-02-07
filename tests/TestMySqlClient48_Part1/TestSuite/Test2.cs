@@ -9,6 +9,35 @@ namespace MySqlTest
 
     public class TestSet2 : MySqlTestSet
     {
+        [Test]
+        public static void T_CallToBlankStoreProc()
+        {
+            //DELIMITER $$
+
+            //DROP PROCEDURE IF EXISTS `test`.`blank_call` $$
+            //CREATE PROCEDURE `test`.`blank_call` ()
+            //BEGIN
+
+            //END $$
+
+            //DELIMITER;
+
+            var connStr = GetMySqlConnString();
+            var conn2 = new MySqlConnection(connStr);
+            conn2.Open();
+            conn2.ChangeDB("test"); 
+
+            var cmd3 = new MySqlCommand("call blank_call()", conn2);
+            var reader3 = cmd3.ExecuteReader();
+            while (reader3.Read())
+            {
+
+            }
+            reader3.Close();
+            //---------
+
+            conn2.Close();
+        }
 
         static void InsertLargeData(MySqlConnection conn2)
         {
@@ -80,7 +109,7 @@ namespace MySqlTest
             conn2.Close();
 
         }
-       
+
         [Test]
         public static void T_LongData()
         {
