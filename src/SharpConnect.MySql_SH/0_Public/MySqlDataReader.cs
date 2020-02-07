@@ -934,18 +934,17 @@ namespace SharpConnect.MySql
             //set support in this mode
             throw new NotSupportedException();
         }
+
+        const int EACH_ROUND = 20;//
         /// <summary>
         /// blocking, wait for first data arrive
         /// </summary>
         internal void WaitUntilFirstDataArrive()
         {
+            int try_lim = _query.LockWaitingMilliseconds / EACH_ROUND;
+            int n_tryCount = 0;
 
         TRY_AGAIN:
-            if (_query.WaitingTerminated)
-            {
-                return;
-            }
-
             //some time no result return from server
             //eg. call store procedure that not return any result
             //
@@ -954,6 +953,22 @@ namespace SharpConnect.MySql
                 return;
             }
 
+            //
+            if (_query.WaitingTerminated)
+            {
+                return;
+            }
+            if (n_tryCount > 1)
+            {
+                System.Threading.Thread.Sleep(EACH_ROUND);
+            }
+            n_tryCount++;
+
+            if (n_tryCount > try_lim)
+            {
+                //timeout
+                return;
+            }
 
             if (_emptySubTable)
             {
