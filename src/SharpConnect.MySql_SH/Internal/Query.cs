@@ -33,6 +33,7 @@ namespace SharpConnect.MySql.Internal
         Exec,
         Closing,
         Closed,
+        Terminated,
     }
     enum QueryUseMode
     {
@@ -111,6 +112,8 @@ namespace SharpConnect.MySql.Internal
             return false;
         }
 
+        public bool WaitingTerminated => _conn.WaitingTerminated;
+
         public ErrPacket Error { get; private set; }
         public OkPacket OkPacket { get; private set; }
         public void SetResultListener(Action<MySqlTableResult> tableResultListener)
@@ -157,10 +160,12 @@ namespace SharpConnect.MySql.Internal
             {
                 //blocking
                 _conn.InitWait();
+                //send and recive, after revice the unwait
                 SendAndRecv_A(_writer.ToArray(), _conn.UnWait);
+                //now wait 
                 if (!_conn.Wait())
                 {
-                    //TODO: handle wait-timeout
+                    _execState = QueryExecState.Terminated;
                 }
             }
         }
@@ -186,6 +191,7 @@ namespace SharpConnect.MySql.Internal
                     ExecutePrepareQuery_A(nextAction);
                 }
                 else
+
                 {
                     ExecuteNonPrepare_A(nextAction);
                 }
@@ -205,6 +211,7 @@ namespace SharpConnect.MySql.Internal
                 if (!_conn.Wait())
                 {
                     //TODO: handle wait-timeout
+                    _execState = QueryExecState.Terminated;
                 }
             }
         }
@@ -215,29 +222,53 @@ namespace SharpConnect.MySql.Internal
         /// <param name="nextAction"></param>
         public void Close(Action nextAction = null)
         {
+
+
             //-------------------------------------------------
             switch (_execState)
             {
                 //can close twice without error
+                case QueryExecState.Terminated:
+                    return;//***
                 case QueryExecState.Closed:
                     nextAction?.Invoke();
                     return; //***
                 case QueryExecState.Closing:
+#if DEBUG
                     throw new Exception("conn is closing ...");
+#else
+                    return;
+#endif
             }
             //first ***
             _execState = QueryExecState.Closing;
-            //-------------------------------------------------
+            //------------------------------------------------- 
+            if (_conn != null && _conn.WaitingTerminated)
+            {
+                //something err
+                if (nextAction != null)
+                {
+
+                }
+                return;
+            }
+
             if (nextAction == null)
             {
                 //blocking***
                 _sqlParserMx.UseFlushMode(true);
                 //wait where   
-                //TODO: review here *** tight loop
 
+                //TODO: review here *** tight loop
                 while (!_recvComplete)
                 {
                     //wait 
+                    if (_conn.WaitingTerminated)
+                    {
+                        return;//don't do the rest
+                    }
+
+                    //TODO: review here *** tight loop
                     System.Threading.Thread.Sleep(0);
                 };
 
@@ -251,6 +282,8 @@ namespace SharpConnect.MySql.Internal
                     if (!_conn.Wait())
                     {
                         //handle wait timeout
+                        _execState = QueryExecState.Terminated;
+                        return;
                     }
                 }
                 _execState = QueryExecState.Closed;
@@ -449,6 +482,11 @@ namespace SharpConnect.MySql.Internal
         void ClosePrepareStmt_A(Action nextAction)
         {
             //for prepare only
+            if (_execState == QueryExecState.Terminated)
+            {
+                return;
+            }
+
             if (_prepareContext != null)
             {
                 _sqlParserMx.UseResultParser();

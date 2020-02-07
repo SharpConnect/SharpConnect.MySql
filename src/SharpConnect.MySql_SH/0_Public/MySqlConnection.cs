@@ -183,7 +183,7 @@ namespace SharpConnect.MySql
         public bool UseConnectionPool { get; set; }
         public bool FromConnectionPool { get; private set; }
 
-       
+
         /// <summary>
         /// (approximate) maximum waiting time for some locking operation,set this before open connection
         /// </summary>
@@ -210,11 +210,7 @@ namespace SharpConnect.MySql
         /// <summary>
         /// eg. server closed 
         /// </summary>
-        internal bool HasConnectionError
-        {
-            get => _conn.WorkingState == WorkingState.Error;
-        }
-
+        internal bool HasConnectionError => _conn.WorkingState == WorkingState.Error;
 
         internal void InternalOpen(Action onComplete = null)
         {

@@ -914,8 +914,7 @@ namespace SharpConnect.MySql.Internal
         //block ***
         public void UseFlushMode(bool value)
         {
-            ResultPacketParser resultPacketParser = _currentPacketParser as ResultPacketParser;
-            if (resultPacketParser != null)
+            if (_currentPacketParser is ResultPacketParser resultPacketParser)
             {
                 resultPacketParser.JustFlushMode = value;
                 //1. switch parser mx to flush (data) out mode

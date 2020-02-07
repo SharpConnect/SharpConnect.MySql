@@ -939,7 +939,22 @@ namespace SharpConnect.MySql
         /// </summary>
         internal void WaitUntilFirstDataArrive()
         {
+
         TRY_AGAIN:
+            if (_query.WaitingTerminated)
+            {
+                return;
+            }
+
+            //some time no result return from server
+            //eg. call store procedure that not return any result
+            //
+            if (_query.OkPacket != null)
+            {
+                return;
+            }
+
+
             if (_emptySubTable)
             {
                 //no current table 
@@ -1178,6 +1193,12 @@ namespace SharpConnect.MySql
         }
         internal override void InternalClose(Action nextAction = null)
         {
+
+            if (_query.WaitingTerminated)
+            {
+                return;
+            }
+
             if (nextAction == null)
             {
                 //block

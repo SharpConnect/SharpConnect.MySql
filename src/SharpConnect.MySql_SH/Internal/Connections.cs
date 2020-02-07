@@ -302,10 +302,15 @@ namespace SharpConnect.MySql.Internal
 
 
         const int EACH_ROUND = 250;//250 ms
+
+
+        internal bool WaitingTerminated { get; private set; }
+
         internal bool Wait()
         {
             //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
             //--------------------------------
+            WaitingTerminated = false;//reset
             lock (_connLocker)
             {
                 int tryCount = 0;
@@ -315,6 +320,7 @@ namespace SharpConnect.MySql.Internal
                     if (tryCount > (lim_count))
                     {
                         _globalWaiting = 0;
+                        WaitingTerminated = true;
                         UnWait();
                         return false;
                     }
@@ -323,9 +329,6 @@ namespace SharpConnect.MySql.Internal
                 }
             }
             return true;
-            //--------------------------------
-            ////blocking***
-            ////wait ***  
         }
 
         internal void UnWait()
@@ -618,6 +621,12 @@ namespace SharpConnect.MySql.Internal
         /// <param name="nextAction"></param>
         public void Disconnect(Action nextAction = null)
         {
+            if (WaitingTerminated)
+            {
+                return;
+            }
+
+
             _writer.Reset();
             ComQuitPacket quitPacket = new ComQuitPacket(new PacketHeader());
             quitPacket.WritePacket(_writer);
@@ -796,8 +805,10 @@ namespace SharpConnect.MySql.Internal
         public string timezone;
         public string flags;
         public string queryFormat;
+
         public string pool;//unknowed type
         public string ssl;//string or bool
+
         public bool multipleStatements;
         public bool typeCast;
         public long maxPacketSize;
@@ -805,6 +816,7 @@ namespace SharpConnect.MySql.Internal
         public int defaultFlags;
         public int clientFlags;
 
+        //
         public int recvBufferSize = 265000; //TODO: review here
         public int sendBufferSize = (1 << 24) + 64;//TODO: review here
 
@@ -860,8 +872,7 @@ namespace SharpConnect.MySql.Internal
             //}
 
             maxPacketSize = 0;//this.maxPacketSize = 0;
-            charsetNumber = (int)CharSets.ASCII;
-
+            charsetNumber = (int)CharSets.ASCII; //default?
 
             //this.charsetNumber = (options.charset)
             //  ? ConnectionConfig.getCharsetNumber(options.charset)
