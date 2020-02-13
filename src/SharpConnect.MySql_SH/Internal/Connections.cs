@@ -75,6 +75,10 @@ namespace SharpConnect.MySql.Internal
         //after open connection
         bool _isProtocol41;
         public uint _threadId;
+        bool _isDisposed;
+
+        EventHandler<SocketAsyncEventArgs> _recvSendArgsCompleted;
+
 
         public Connection(ConnectionConfig userConfig)
         {
@@ -94,21 +98,29 @@ namespace SharpConnect.MySql.Internal
             _recvIO = new RecvIO(_recvSendArgs, _recvSendArgs.Offset, _recvBufferSize, HandleReceive);
             _sendIO = new SendIO(_recvSendArgs, _recvSendArgs.Offset + _recvBufferSize, _sendBufferSize, HandleSend);
             //------------------
+
             //common(shared) event listener***
-            _recvSendArgs.Completed += (object sender, SocketAsyncEventArgs e) =>
-            {
-                switch (e.LastOperation)
-                {
-                    case SocketAsyncOperation.Receive:
-                        _recvIO.ProcessReceivedData();
-                        break;
-                    case SocketAsyncOperation.Send:
-                        _sendIO.ProcessWaitingData();
-                        break;
-                    default:
-                        throw new ArgumentException("The last operation completed on the socket was not a receive or send");
-                }
-            };
+            _recvSendArgsCompleted = (object sender, SocketAsyncEventArgs e) =>
+             {
+                 if (_isDisposed)
+                 {
+                     //it should not occur
+                     return;
+                 }
+
+                 switch (e.LastOperation)
+                 {
+                     case SocketAsyncOperation.Receive:
+                         _recvIO.ProcessReceivedData();
+                         break;
+                     case SocketAsyncOperation.Send:
+                         _sendIO.ProcessWaitingData();
+                         break;
+                     default:
+                         throw new ArgumentException("The last operation completed on the socket was not a receive or send");
+                 }
+             };
+            _recvSendArgs.Completed += _recvSendArgsCompleted;
             //------------------
             _recvSendArgs.AcceptSocket = _socket;
             _mysqlParserMx = new MySqlParserMx(_config);
@@ -136,8 +148,16 @@ namespace SharpConnect.MySql.Internal
         }
         public void Dispose()
         {
+            _isDisposed = true;
             if (_recvSendArgs != null)
             {
+                if (_recvSendArgsCompleted != null)
+                {
+                    //unsubscibe
+                    _recvSendArgs.Completed -= _recvSendArgsCompleted;
+                }
+
+                _recvSendArgsCompleted = null;
                 _recvSendArgs.Dispose();
                 _recvSendArgs = null;
             }
