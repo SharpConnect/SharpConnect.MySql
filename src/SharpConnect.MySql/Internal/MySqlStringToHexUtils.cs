@@ -23,7 +23,14 @@ namespace SharpConnect.MySql.Internal
             //for mysql only !, 
             //we prefix with 0x
 
-            var lookup32 = s_lookup32;
+            if (bytes.Length == 0)
+            {
+                //empty
+                stbuilder.Append("''");
+                return;
+            }
+
+            uint[] lookup32 = s_lookup32;
             int j = bytes.Length;
             var result = new char[(j * 2) + 2];
             int m = 0;

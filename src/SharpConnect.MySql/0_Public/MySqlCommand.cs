@@ -137,11 +137,7 @@ namespace SharpConnect.MySql
             }
         }
 
-        public CommandParams Parameters
-        {
-            get;
-            private set;
-        }
+        public CommandParams Parameters { get; private set; }
         public string CommandText => _sqlStringTemplate.UserRawSql;
 
         MySqlConnection _conn;
