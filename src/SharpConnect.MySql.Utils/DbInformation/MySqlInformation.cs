@@ -1,4 +1,4 @@
-﻿//MIT, 2016-present, brezza92, EngineKit and contributors 
+﻿//MIT, 2016-present, brezza92, EngineKit and contributors
 
 using System;
 using System.Collections.Generic;
@@ -7,6 +7,7 @@ namespace SharpConnect.MySql.Information
 {
     public class MySqlDbServerInfo
     {
+        public MySqlDbServerInfo() { }
         public MySqlDbServerInfo(string name)
         {
             this.Name = name;
@@ -15,7 +16,7 @@ namespace SharpConnect.MySql.Information
         /// name of this server
         /// </summary>
         public string Name { get; private set; }
-        public Dictionary<string, MySqlDatabaseInfo> Databases { get; internal set; }
+        public Dictionary<string, MySqlDatabaseInfo> Databases { get; set; }
 #if DEBUG
         public override string ToString()
         {
@@ -26,15 +27,16 @@ namespace SharpConnect.MySql.Information
 
     public class MySqlDatabaseInfo
     {
+        public MySqlDatabaseInfo() { }
         public MySqlDatabaseInfo(string name)
         {
             this.Name = name;
         }
-        public string Name { get; private set; }
-        public List<MySqlTableInfo> Tables { get; internal set; }
-        public List<MySqlStoreProcInfo> StoreProcs { get; internal set; }
-        public List<MySqlStoreFuncInfo> StoreFuncs { get; internal set; }
-        public MySqlDbServerInfo OwnerDbServer { get; internal set; }
+        public string Name { get; set; }
+        public List<MySqlTableInfo> Tables { get; set; }
+        public List<MySqlStoreProcInfo> StoreProcs { get; set; }
+        public List<MySqlStoreFuncInfo> StoreFuncs { get; set; }
+        public MySqlDbServerInfo OwnerDbServer { get; set; }
         public string Sql { get; set; }
 #if DEBUG
         public override string ToString()
@@ -47,13 +49,14 @@ namespace SharpConnect.MySql.Information
 
     public class MySqlTableInfo
     {
+        public MySqlTableInfo() { }
         public MySqlTableInfo(string name)
         {
             this.Name = name;
         }
-        public string Name { get; private set; }
-        public List<MySqlColumnInfo> Columns { get; internal set; }
-        public MySqlDatabaseInfo OwnerDatabase { get; internal set; }
+        public string Name { get; set; }
+        public List<MySqlColumnInfo> Columns { get; set; }
+        public MySqlDatabaseInfo OwnerDatabase { get; set; }
         public string Sql { get; set; }
 #if DEBUG
         public override string ToString()
@@ -84,6 +87,7 @@ namespace SharpConnect.MySql.Information
 
     public class MySqlStoreProcInfo
     {
+        public MySqlStoreProcInfo() { }
         public MySqlStoreProcInfo(string name)
         {
             this.Name = name;
@@ -94,6 +98,7 @@ namespace SharpConnect.MySql.Information
     }
     public class MySqlStoreFuncInfo
     {
+        public MySqlStoreFuncInfo() { }
         public MySqlStoreFuncInfo(string name)
         {
             this.Name = name;

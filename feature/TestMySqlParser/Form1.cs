@@ -6,7 +6,6 @@ using System.Text;
 using System.Windows.Forms;
 using SharpConnect.MySql;
 using SharpConnect.MySql.SyncPatt;
-using SharpConnect.MySql.SqlLang;
 using SharpConnect.MySql.Information;
 
 namespace TestMySqlParser
@@ -77,56 +76,7 @@ namespace TestMySqlParser
 
         private void tlstrpGenCsCode_Click(object sender, EventArgs e)
         {
-            if (treeView1.SelectedNode == null) return;
-            //
-            MySqlTableInfo selectedTableInfo = treeView1.SelectedNode.Tag as MySqlTableInfo;
-            if (selectedTableInfo == null) return;
-            //---------------
 
-            //create data from selected tree node
-            //show create table
-            string db = selectedTableInfo.OwnerDatabase.Name;
-            string tb = selectedTableInfo.Name;
-
-            
-            MySqlConnection mySqlConn = new MySqlConnection(GetLocalConnString());
-            mySqlConn.Open();
-
-
-            string createSql = "";
-            string sql = "SHOW CREATE TABLE " + db + "." + tb;
-            var cmd = new MySqlCommand(sql, mySqlConn);
-            var reader = cmd.ExecuteReader();
-            if (reader.Read())
-            {
-                createSql = reader.GetString(1);
-            }
-            reader.Close();
-            //-----------------------
-            if (createSql == "")
-            {
-                return;
-            }
-            MySqlParser parser = new MySqlParser();
-            parser.ParseSql(createSql);
-
-            MySqlInfoToCsCodeGenerator tableInfoToCsCodeGen = new MySqlInfoToCsCodeGenerator();
-
-            StringBuilder result = new StringBuilder();
-            List<TablePart> tables = parser.ResultTables;
-            foreach (TablePart table in tables)
-            {
-                if (table.DatabaseName == null)
-                {
-                    table.DatabaseName = db;
-                }
-                //
-                tableInfoToCsCodeGen.GenerateCsCode(table, result);
-                //tableInfoToCsCodeGen.GenerateSqlAndSave(table, "code." + db + "." + table + ".cs");
-            }
-            mySqlConn.Close();
-            //
-            this.textBox1.Text = result.ToString();
         }
 
         private void button1_Click(object sender, EventArgs e)
