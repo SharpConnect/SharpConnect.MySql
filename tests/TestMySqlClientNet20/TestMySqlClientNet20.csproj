@@ -94,8 +94,6 @@
     <Compile Include="..\TestMySqlClient48_Part1\TestSuite\TestSuite.cs">
       <Link>TestSuite\TestSuite.cs</Link>
     </Compile>
-    <Compile Include="Test_TaskChain_Old\Test2Async.cs" />
-    <Compile Include="Test_TaskChain_Old\Test3_AsyncSocket.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\TestMySqlClient48_Part1\Form1.resx">
