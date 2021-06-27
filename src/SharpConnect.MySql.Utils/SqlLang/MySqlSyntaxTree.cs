@@ -45,7 +45,7 @@ namespace SharpConnect.MySql.SqlLang
         public abstract void ReplaceChild(CodeObject old, CodeObject newCodeObject);
         public abstract void WriteTo(CodeStringBuilder stbuilder);
 
-        public object OtherSemanticType { get; set; }
+        public object SemanticType { get; set; }
 #if DEBUG
         static int s_dbugTotalId;
         public readonly int dbugId = s_dbugTotalId++;
@@ -1788,8 +1788,30 @@ namespace SharpConnect.MySql.SqlLang
         }
     }
 
-
-
+    public class BindingParameter
+    {
+        public BindingParameter(string name)
+        {
+            Name = name;
+        }
+        public string Name { get; private set; }
+        public object SemanticType { get; set; }
+        public int Index { get; internal set; }
+    }
+    public class BindingParameterCollection
+    {
+        Dictionary<string, BindingParameter> _dic = new Dictionary<string, BindingParameter>();
+        List<BindingParameter> _list = new List<BindingParameter>();
+        public void Add(BindingParameter par)
+        {
+            par.Index = _list.Count;
+            _list.Add(par);
+            _dic.Add(par.Name, par);
+        }
+        public BindingParameter this[int index] => _list[index];
+        public BindingParameter this[string parName] => _dic[parName];
+        public int Count => _list.Count;
+    }
 
     public class LetStatement : Statement
     {
@@ -1799,9 +1821,9 @@ namespace SharpConnect.MySql.SqlLang
 
         public SelectStatement SelectStmt { get; set; }
 
-        //public Dictionary<string, SemanticType> BindingParameters { get; set; } = new Dictionary<string, SemanticType>();
-        //public List<SemanticType> BindingParameterList { get; set; } = new List<SemanticType>();
-        //public BraceObjectType BraceObjectType { get; set; }
+        public BindingParameterCollection BindingParameters { get; set; } = new BindingParameterCollection();
+
+        public object BraceObjectType { get; set; }
 
         public LetStatement()
         {

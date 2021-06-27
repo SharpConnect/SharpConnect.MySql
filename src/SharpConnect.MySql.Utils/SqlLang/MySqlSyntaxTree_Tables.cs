@@ -33,7 +33,7 @@ namespace SharpConnect.MySql.SqlLang
         public string TypeName { get; set; }
         public abstract void WriteTo(CodeStringBuilder stbuilder);
 
-        public object OtherSemanticType { get; set; }        
+        public object SemanticType { get; set; }        
 #if DEBUG
         public override string ToString()
         {
