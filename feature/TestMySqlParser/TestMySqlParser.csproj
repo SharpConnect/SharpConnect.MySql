@@ -33,7 +33,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
@@ -73,6 +72,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\SharpConnect.Data\src\SharpConnect.Data\SharpConnect.Data.csproj">
+      <Project>{9afb3f52-d37d-4fba-ac0d-76d95ae956b0}</Project>
+      <Name>SharpConnect.Data</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\src\SharpConnect.MySql.Net20\SharpConnect.MySql.csproj">
       <Project>{94d01ede-0499-422f-8081-90d94ad163fa}</Project>
       <Name>SharpConnect.MySql</Name>
