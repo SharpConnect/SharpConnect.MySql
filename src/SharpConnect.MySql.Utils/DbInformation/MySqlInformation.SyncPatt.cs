@@ -1,4 +1,4 @@
-﻿//MIT, 2016-present, brezza92, EngineKit and contributors 
+﻿//MIT, 2016-present, brezza92, EngineKit and contributors
 
 using System;
 using System.Collections.Generic;
@@ -13,18 +13,42 @@ namespace SharpConnect.MySql.SyncPatt
         /// </summary>
         /// <param name="dbServer"></param>
         /// <param name="conn"></param>
-        public static void ReloadDatabaseList(this MySqlDbServerInfo dbServer, MySqlConnection conn)
+        public static void ReloadDatabaseList(this MySqlDbServerInfo dbServer, MySqlConnection conn, string[] onlyDbs = null)
         {
             var cmd = new MySqlCommand("show databases", conn);
             var reader = cmd.ExecuteReader();
             Dictionary<string, MySqlDatabaseInfo> databaseList = new Dictionary<string, MySqlDatabaseInfo>();
-            while (reader.Read())
+            if (onlyDbs != null && onlyDbs.Length > 0)
             {
-                //read database name
-                string dbInfoName = reader.GetString(0);
-                databaseList.Add(dbInfoName.ToUpper(), new MySqlDatabaseInfo(dbInfoName) { OwnerDbServer = dbServer });
+                Dictionary<string, bool> filterDbs = new Dictionary<string, bool>();
+                foreach (string db in onlyDbs)
+                {
+                    filterDbs.Add(db.ToUpper(), true);
+                }
+
+                while (reader.Read())
+                {
+                    //read database name
+                    string dbInfoName = reader.GetString(0);
+                    if (filterDbs.ContainsKey(dbInfoName.ToUpper()))
+                    {
+                        databaseList.Add(dbInfoName.ToUpper(), new MySqlDatabaseInfo(dbInfoName) { OwnerDbServer = dbServer });
+                    }
+                }
+                reader.Close();
             }
-            reader.Close();
+            else
+            {
+                while (reader.Read())
+                {
+                    //read database name
+                    string dbInfoName = reader.GetString(0);
+                    databaseList.Add(dbInfoName.ToUpper(), new MySqlDatabaseInfo(dbInfoName) { OwnerDbServer = dbServer });
+                }
+                reader.Close();
+            }
+
+
             //----------
             dbServer.Databases = databaseList;
         }
@@ -70,7 +94,7 @@ namespace SharpConnect.MySql.SyncPatt
                 }
             }
         }
-        
+
         public static void ReloadStoreProcList(this MySqlDatabaseInfo db, MySqlConnection conn, bool readDetail = false)
         {
 
@@ -116,7 +140,7 @@ namespace SharpConnect.MySql.SyncPatt
             var cmd = new MySqlCommand("show function status where db=?db", conn);
             List<MySqlStoreFuncInfo> storeFuncList = new List<MySqlStoreFuncInfo>();
             cmd.Parameters.AddWithValue("?db", db.Name);
-            var reader = cmd.ExecuteReader(); 
+            var reader = cmd.ExecuteReader();
 
             int ord_name = reader.GetOrdinal("Name");
             int ord_type = reader.GetOrdinal("Type");
@@ -152,38 +176,45 @@ namespace SharpConnect.MySql.SyncPatt
         /// <param name="conn"></param>
         public static void ReloadColumnList(this MySqlTableInfo table, MySqlConnection conn)
         {
-            var cmd = new MySqlCommand("describe " + table.Name, conn);
-            var descReader = cmd.ExecuteReader();
-            //columns
-            //Field..
-            //Type
-            //Null
-            //Key
-            //Default,
-            //Extra 
-            int field_col = descReader.GetOrdinal("Field"),
-            type_col = descReader.GetOrdinal("Type"),
-            null_col = descReader.GetOrdinal("Null"),
-            key_col = descReader.GetOrdinal("Key"),
-            default_col = descReader.GetOrdinal("Default"),
-            extra_col = descReader.GetOrdinal("Extra");
-            //---------------------
-            List<MySqlColumnInfo> colInfoList = new List<MySqlColumnInfo>();
-            while (descReader.Read())
+            try
             {
-                //
-                MySqlColumnInfo colInfo = new MySqlColumnInfo();
-                colInfo.Name = descReader.GetString(field_col);
-                colInfo.FieldTypeName = descReader.GetString(type_col);
-                colInfo.Nullable = descReader.GetString(null_col) == "YES";
-                colInfo.Key = descReader.GetString(key_col);
-                colInfo.DefaultValue = descReader.GetString(default_col);
-                colInfo.ExtraInfo = descReader.GetString(extra_col);
-                //
-                colInfoList.Add(colInfo);
+                var cmd = new MySqlCommand("describe " + table.Name, conn);
+                var descReader = cmd.ExecuteReader();
+                //columns
+                //Field..
+                //Type
+                //Null
+                //Key
+                //Default,
+                //Extra 
+                int field_col = descReader.GetOrdinal("Field"),
+                type_col = descReader.GetOrdinal("Type"),
+                null_col = descReader.GetOrdinal("Null"),
+                key_col = descReader.GetOrdinal("Key"),
+                default_col = descReader.GetOrdinal("Default"),
+                extra_col = descReader.GetOrdinal("Extra");
+                //---------------------
+                List<MySqlColumnInfo> colInfoList = new List<MySqlColumnInfo>();
+                while (descReader.Read())
+                {
+                    //
+                    MySqlColumnInfo colInfo = new MySqlColumnInfo();
+                    colInfo.Name = descReader.GetString(field_col);
+                    colInfo.FieldTypeName = descReader.GetString(type_col);
+                    colInfo.Nullable = descReader.GetString(null_col) == "YES";
+                    colInfo.Key = descReader.GetString(key_col);
+                    colInfo.DefaultValue = descReader.GetString(default_col);
+                    colInfo.ExtraInfo = descReader.GetString(extra_col);
+                    //
+                    colInfoList.Add(colInfo);
+                }
+                descReader.Close();
+                table.Columns = colInfoList;
             }
-            descReader.Close();
-            table.Columns = colInfoList;
+            catch (Exception ex)
+            {
+
+            }
         }
 
         /// <summary>

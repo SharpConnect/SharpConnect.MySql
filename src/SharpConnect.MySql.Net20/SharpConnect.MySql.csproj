@@ -92,7 +92,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ForNet20\ForNet20.cs" />
-    <Compile Include="ForNet20\MySqlBasicAsyncTasks.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
