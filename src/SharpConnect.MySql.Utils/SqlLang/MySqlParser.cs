@@ -288,10 +288,7 @@ namespace SharpConnect.MySql.SqlLang
             //it start with iden, literal, some op,some punc
             _tkstream = tkstream;
             int state = 0;
-            //if (_tkstream.Count == 0)
-            //{
-            //    return;
-            //}
+            
             while (!_tkstream.IsEnd)
             {
                 _tkstream.Read();
@@ -310,6 +307,9 @@ namespace SharpConnect.MySql.SqlLang
                             {
                                 default:
                                     throw new NotSupportedException();
+                                case TokenName.BlockComment:
+                                    //temp ignore?
+                                    break;
                                 case TokenName.BANG:
                                 case TokenName.MySql_Not:
                                 case TokenName.Plus:

@@ -192,7 +192,7 @@ namespace SharpConnect.MySql.SqlLang
         public Token CurrentToken => _currentLine.CurrentToken;
         private TokenLine _currentLine;
 
-        public bool IsEnd => (CurrentLineIndex >= _tokenLines.Count - 1) && _currentLine.IsEnd();
+        public bool IsEnd => (_currentLine == null) ? true : (CurrentLineIndex >= _tokenLines.Count - 1) && _currentLine.IsEnd();
 
         public void Read()
         {
@@ -410,6 +410,7 @@ namespace SharpConnect.MySql.SqlLang
         Unknown, //default
         //
         LineComment,
+        BlockComment,// /**/
         Keyword,
         Iden,
         IdenWithEscape,
@@ -592,7 +593,7 @@ namespace SharpConnect.MySql.SqlLang
             }
             return tkName;
         }
-        static bool CheckNextTokenIs(char[] buffer, int curIndex, char expectChar)
+        static bool NextCharIs(char[] buffer, int curIndex, char expectChar)
         {
             if (curIndex < buffer.Length - 1)
             {
@@ -779,7 +780,7 @@ namespace SharpConnect.MySql.SqlLang
 
                                     case '!':
                                         {
-                                            if (CheckNextTokenIs(buffer, _currentIndex, '='))
+                                            if (NextCharIs(buffer, _currentIndex, '='))
                                             {
                                                 Token tk = new Token("!=", Loca());
                                                 AddToken(tk); //tokens.Add(tk);
@@ -799,19 +800,19 @@ namespace SharpConnect.MySql.SqlLang
                                         {
                                             //TODO: impl <=> operator
 
-                                            if (CheckNextTokenIs(buffer, _currentIndex, '='))
+                                            if (NextCharIs(buffer, _currentIndex, '='))
                                             {
                                                 Token tk = new Token("<=", Loca());
                                                 AddToken(tk); //tokens.Add(tk);
                                                 _currentIndex++;//consume next i
                                             }
-                                            else if (CheckNextTokenIs(buffer, _currentIndex, '>'))
+                                            else if (NextCharIs(buffer, _currentIndex, '>'))
                                             {
                                                 Token tk = new Token("<>", Loca()); //!=
                                                 AddToken(tk); //tokens.Add(tk);
                                                 _currentIndex++;//consume next i
                                             }
-                                            else if (CheckNextTokenIs(buffer, _currentIndex, '<'))
+                                            else if (NextCharIs(buffer, _currentIndex, '<'))
                                             {
                                                 Token tk = new Token("<<", Loca());
                                                 AddToken(tk); //tokens.Add(tk);
@@ -827,13 +828,13 @@ namespace SharpConnect.MySql.SqlLang
                                         break;
                                     case '>':
                                         {
-                                            if (CheckNextTokenIs(buffer, _currentIndex, '='))
+                                            if (NextCharIs(buffer, _currentIndex, '='))
                                             {
                                                 Token tk = new Token(">=", Loca());
                                                 AddToken(tk); //tokens.Add(tk);
                                                 _currentIndex++;//consume next i
                                             }
-                                            else if (CheckNextTokenIs(buffer, _currentIndex, '>'))
+                                            else if (NextCharIs(buffer, _currentIndex, '>'))
                                             {
                                                 Token tk = new Token(">>", Loca());
                                                 AddToken(tk); //tokens.Add(tk);
@@ -849,7 +850,7 @@ namespace SharpConnect.MySql.SqlLang
                                         break;
                                     case '|':
                                         {
-                                            if (CheckNextTokenIs(buffer, _currentIndex, '|'))
+                                            if (NextCharIs(buffer, _currentIndex, '|'))
                                             {
                                                 Token tk = new Token("||", Loca());
                                                 AddToken(tk); //tokens.Add(tk);
@@ -865,7 +866,7 @@ namespace SharpConnect.MySql.SqlLang
                                         break;
                                     case '&':
                                         {
-                                            if (CheckNextTokenIs(buffer, _currentIndex, '&'))
+                                            if (NextCharIs(buffer, _currentIndex, '&'))
                                             {
                                                 Token tk = new Token("&&", Loca());
                                                 AddToken(tk); //tokens.Add(tk);
@@ -890,12 +891,20 @@ namespace SharpConnect.MySql.SqlLang
                                         break;
                                     case '/':
                                         {
-                                            if (CheckNextTokenIs(buffer, _currentIndex, '/'))
+                                            if (NextCharIs(buffer, _currentIndex, '/'))
                                             {
                                                 //this is a line comment
                                                 //begin with single line comment
                                                 //single line comment 
                                                 currentState = 5;
+                                                //read until end of line
+                                                _startCollectPos = _currentIndex;
+                                            }
+                                            else if (NextCharIs(buffer, _currentIndex, '*'))
+                                            {
+                                                //this is in-line comment /* */
+                                                //collect string until */ 
+                                                currentState = 6;
                                                 //read until end of line
                                                 _startCollectPos = _currentIndex;
                                             }
@@ -1018,23 +1027,17 @@ namespace SharpConnect.MySql.SqlLang
 
                                             //flush
                                             Token tk = new Token(new string(buffer, _startCollectPos, _currentIndex - _startCollectPos), TokenName.LineComment, Loca());
-
-                                            AddToken(tk); //tokens.Add(tk);
+                                            AddToken(tk);
                                             currentState = 0;
-                                            _currentIndex++; //***='\n'
-                                            //_currentLineStartAt = _currentIndex;
-                                            //_startCollectPos = _currentIndex;
+                                            _currentIndex++;
                                             break;//break from while
                                         }
                                         else
                                         {
                                             //flush
                                             Token tk = new Token(new string(buffer, _startCollectPos, _currentIndex - _startCollectPos), TokenName.LineComment, Loca());
-                                            AddToken(tk); //tokens.Add(tk);
+                                            AddToken(tk);
                                             currentState = 0;
-                                            //_currentLineStartAt = _currentIndex;
-                                            //_startCollectPos = _currentIndex;
-                                            //no i++
                                             break;
                                         }
                                     }
@@ -1042,11 +1045,8 @@ namespace SharpConnect.MySql.SqlLang
                                     {
                                         //flush collecting string 
                                         Token tk = new Token(new string(buffer, _startCollectPos, _currentIndex - _startCollectPos), TokenName.LineComment, Loca());
-                                        AddToken(tk); //tokens.Add(tk);
+                                        AddToken(tk);
                                         currentState = 0;
-                                        //_currentLineStartAt = _currentIndex;
-                                        //_startCollectPos = _currentIndex;
-                                        //stop here
                                     }
                                     //enter new line                                   
                                 }
@@ -1091,6 +1091,25 @@ namespace SharpConnect.MySql.SqlLang
 
                             _currentLineNo++;
                         SKIP_NEWLINE: { }
+                        }
+                        break;
+                    case 6:
+                        {
+                            //collect /**/ comment
+                            if (c == '*')
+                            {
+                                if (NextCharIs(buffer, _currentIndex, '/'))
+                                {
+                                    //stop here
+                                    _currentIndex++;
+                                    Token tk = new Token(new string(buffer, _startCollectPos, _currentIndex + 1 - _startCollectPos), TokenName.BlockComment, Loca());
+                                    AddToken(tk);
+                                    _startCollectPos = _currentIndex + 1;//next char after newline
+                                    _currentLineStartAt = _currentIndex + 1;
+                                    currentState = 0;
+                                }
+                            }
+
                         }
                         break;
                 }
