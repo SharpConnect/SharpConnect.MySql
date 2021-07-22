@@ -37,7 +37,7 @@ namespace SharpConnect.MySql.Information
         public List<MySqlStoreProcInfo> StoreProcs { get; set; }
         public List<MySqlStoreFuncInfo> StoreFuncs { get; set; }
         public MySqlDbServerInfo OwnerDbServer { get; set; }
-        public string Sql { get; set; }
+        public string Sql { get; set; }//?
 #if DEBUG
         public override string ToString()
         {

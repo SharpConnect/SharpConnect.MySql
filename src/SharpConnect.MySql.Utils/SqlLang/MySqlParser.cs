@@ -288,7 +288,7 @@ namespace SharpConnect.MySql.SqlLang
             //it start with iden, literal, some op,some punc
             _tkstream = tkstream;
             int state = 0;
-            
+
             while (!_tkstream.IsEnd)
             {
                 _tkstream.Read();

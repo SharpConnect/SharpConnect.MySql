@@ -138,10 +138,8 @@ namespace SharpConnect.MySql.SqlLang
             }
         }
 
-        public TokenLine[] ToLineArray()
-        {
-            return _tokenLines.ToArray();
-        }
+        public TokenLine[] ToLineArray() => _tokenLines.ToArray();
+
 
         public List<TokenStream> SplitBlocks(string startLineWith)
         {
@@ -220,26 +218,24 @@ namespace SharpConnect.MySql.SqlLang
         {
             if (_currentLine.IsBegin())
             {
-                _currentLine = _tokenLines[--CurrentLineIndex];
-                _currentLine.MoveToEnd();
+                if (CurrentLineIndex > 0)
+                {
+                    _currentLine = _tokenLines[--CurrentLineIndex];
+                    _currentLine.MoveToEnd();
+                }
+                else
+                {
+                    _currentLine.BackOneStep();
+                }
             }
             else
+            {
                 _currentLine.BackOneStep();
+            }
         }
-        public int CurrentIndex
-        {
-            get;
-            private set;
-        }
-        public int CurrentLineIndex
-        {
-            get;
-            private set;
-        }
-        public int Count
-        {
-            get; private set;
-        }
+        public int CurrentIndex { get; private set; }
+        public int CurrentLineIndex { get; private set; }
+        public int Count { get; private set; }
         public void MoveToEnd() => _tokenLines[_lim].MoveToEnd();
 
         public override string ToString()
@@ -593,6 +589,17 @@ namespace SharpConnect.MySql.SqlLang
             }
             return tkName;
         }
+
+        static char PeekNextChar(char[] buffer, int curIndex)
+        {
+            if (curIndex < buffer.Length - 1)
+            {
+                //not the last one
+                //then look ahead
+                return buffer[curIndex + 1];
+            }
+            return '\0';
+        }
         static bool NextCharIs(char[] buffer, int curIndex, char expectChar)
         {
             if (curIndex < buffer.Length - 1)
@@ -799,20 +806,21 @@ namespace SharpConnect.MySql.SqlLang
                                     case '<':
                                         {
                                             //TODO: impl <=> operator
+                                            char next_c = PeekNextChar(buffer, _currentIndex);
 
-                                            if (NextCharIs(buffer, _currentIndex, '='))
+                                            if (next_c == '=')
                                             {
                                                 Token tk = new Token("<=", Loca());
                                                 AddToken(tk); //tokens.Add(tk);
                                                 _currentIndex++;//consume next i
                                             }
-                                            else if (NextCharIs(buffer, _currentIndex, '>'))
+                                            else if (next_c == '>')
                                             {
                                                 Token tk = new Token("<>", Loca()); //!=
                                                 AddToken(tk); //tokens.Add(tk);
                                                 _currentIndex++;//consume next i
                                             }
-                                            else if (NextCharIs(buffer, _currentIndex, '<'))
+                                            else if (next_c == '<')
                                             {
                                                 Token tk = new Token("<<", Loca());
                                                 AddToken(tk); //tokens.Add(tk);
@@ -828,13 +836,14 @@ namespace SharpConnect.MySql.SqlLang
                                         break;
                                     case '>':
                                         {
-                                            if (NextCharIs(buffer, _currentIndex, '='))
+                                            char next_c = PeekNextChar(buffer, _currentIndex);
+                                            if (next_c == '=')
                                             {
                                                 Token tk = new Token(">=", Loca());
                                                 AddToken(tk); //tokens.Add(tk);
                                                 _currentIndex++;//consume next i
                                             }
-                                            else if (NextCharIs(buffer, _currentIndex, '>'))
+                                            else if (next_c == '>')
                                             {
                                                 Token tk = new Token(">>", Loca());
                                                 AddToken(tk); //tokens.Add(tk);
@@ -850,6 +859,7 @@ namespace SharpConnect.MySql.SqlLang
                                         break;
                                     case '|':
                                         {
+
                                             if (NextCharIs(buffer, _currentIndex, '|'))
                                             {
                                                 Token tk = new Token("||", Loca());
@@ -891,7 +901,8 @@ namespace SharpConnect.MySql.SqlLang
                                         break;
                                     case '/':
                                         {
-                                            if (NextCharIs(buffer, _currentIndex, '/'))
+                                            char next_c = PeekNextChar(buffer, _currentIndex);
+                                            if (next_c == '/')
                                             {
                                                 //this is a line comment
                                                 //begin with single line comment
@@ -900,7 +911,7 @@ namespace SharpConnect.MySql.SqlLang
                                                 //read until end of line
                                                 _startCollectPos = _currentIndex;
                                             }
-                                            else if (NextCharIs(buffer, _currentIndex, '*'))
+                                            else if (next_c == '*')
                                             {
                                                 //this is in-line comment /* */
                                                 //collect string until */ 
