@@ -56,7 +56,7 @@ namespace SharpConnect.MySql
                         throw new NotSupportedException();
                     }
                 }
-
+                
                 return cmd.AffectedRows;
             }
         }

@@ -380,6 +380,7 @@ namespace SharpConnect.MySql
                     {
                         _conn.Dispose();
                         _conn = null;
+                        onComplete();
                     });
                 }
                 else
