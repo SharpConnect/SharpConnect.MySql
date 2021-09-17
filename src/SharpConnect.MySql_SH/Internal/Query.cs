@@ -69,8 +69,13 @@ namespace SharpConnect.MySql.Internal
         }
         internal Query(Connection conn, SqlStringTemplate sql, CommandParams cmdParams)
         {
-            //*** query use conn resource such as parser,writer
-            //so 1 query 1 connection      
+            //***a query uses conn resource such as parser,writer
+            //so 1 query=> 1 connection
+            if (sql == null)
+            {
+                throw new Exception("Sql command can not null.");
+            }
+
             Query bindingQuery = conn.BindingQuery;
             if (bindingQuery != null)
             {
@@ -83,11 +88,6 @@ namespace SharpConnect.MySql.Internal
             }
             //--------------------------------------------------------------
             conn.BindingQuery = this;
-            //--------------------------------------------------------------
-            if (sql == null)
-            {
-                throw new Exception("Sql command can not null.");
-            }
             //--------------------------------------------------------------
             _conn = conn;
             _cmdParams = cmdParams;
