@@ -113,7 +113,7 @@ namespace SharpConnect.MySql.Internal
             return false;
         }
 
-        public bool WaitingTerminated => _conn.WaitingTerminated;
+        public bool WaitingTerminated => (_conn == null) ? false : _conn.WaitingTerminated;
         public int LockWaitingMilliseconds => _conn.LockWaitingMilliseconds;
         public ErrPacket Error { get; private set; }
         public OkPacket OkPacket { get; private set; }

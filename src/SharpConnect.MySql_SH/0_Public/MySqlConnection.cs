@@ -52,25 +52,21 @@ namespace SharpConnect.MySql
         public static partial class MySqlAsyncPattExtension
         {
 
-            public static void Open(this MySqlConnection conn, Action onComplete, Action next = null)
+            public static void Open(this MySqlConnection conn, Action onComplete)
             {
                 conn.InternalOpen(onComplete);
-                next?.Invoke();
             }
-            public static void Ping(this MySqlConnection conn, Action onComplete, Action next = null)
+            public static void Ping(this MySqlConnection conn, Action onComplete)
             {
                 conn.InternalPing(onComplete);
-                next?.Invoke();
             }
-            public static void ChangeDB(this MySqlConnection conn, string newDbName, Action onComplete, Action next = null)
+            public static void ChangeDB(this MySqlConnection conn, string newDbName, Action onComplete)
             {
                 conn.InternalChangeDB(newDbName, onComplete);
-                next?.Invoke();
             }
-            public static void ResetConnection(this MySqlConnection conn, Action onComplete, Action next = null)
+            public static void ResetConnection(this MySqlConnection conn, Action onComplete)
             {
                 conn.InternalResetConnection(onComplete);
-                next?.Invoke();
             }
             public static void Close(this MySqlConnection conn, Action onComplete)
             {
@@ -149,7 +145,7 @@ namespace SharpConnect.MySql
             switch (charset)
             {
                 //TODO add more support here
-                default: return null; 
+                default: return null;
                 case MySqlCharacterSetName.Latin1: return "latin1";
                 case MySqlCharacterSetName.Latin2: return "latin2";
                 case MySqlCharacterSetName.Ascii: return "ascii";
