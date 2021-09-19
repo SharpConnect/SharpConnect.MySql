@@ -166,6 +166,9 @@ namespace SharpConnect.MySql.Internal
                 _socket = null;
             }
         }
+        /// <summary>
+        /// get low-level _socket.Connected state
+        /// </summary>
         public ConnectionState State => _socket.Connected ? ConnectionState.Connected : ConnectionState.Disconnected;
 
         public WorkingState WorkingState
@@ -468,21 +471,23 @@ namespace SharpConnect.MySql.Internal
         public void Ping(Action nextAction = null)
         {
             //ping server
-
-
             if (State == ConnectionState.Disconnected)
             {
-                throw new NotSupportedException("open connection first");
+                _latestCallIsOk = false;
+                return;
+                //throw new NotSupportedException("open connection first");
             }
 
 
             _writer.Reset();
+
             ComPingPacket pingPacket = new ComPingPacket(new PacketHeader());
             pingPacket.WritePacket(_writer);
             byte[] data = _writer.ToArray();
             InitWait();
 
             _latestCallIsOk = false;
+
             StartSend(data, 0, data.Length, () =>
             {
                 StartReceive(mysql_result2 =>
@@ -525,10 +530,11 @@ namespace SharpConnect.MySql.Internal
         /// <param name="nextAction"></param>
         public void ChangeDB(string newDbName, Action nextAction = null)
         {
-
             if (State == ConnectionState.Disconnected)
             {
-                throw new NotSupportedException("open connection first");
+                _latestCallIsOk = false;
+                return;
+                //throw new NotSupportedException("open connection first");
             }
 
             _writer.Reset();

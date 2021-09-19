@@ -12,6 +12,10 @@ namespace SharpConnect.MySql
             {
                 conn.InternalOpen();
             }
+            public static void Close(this MySqlConnection conn)
+            {
+                conn.InternalClose(null);
+            }
             public static bool Ping(this MySqlConnection conn)
             {
                 conn.InternalPing();
@@ -348,17 +352,10 @@ namespace SharpConnect.MySql
         {
             _conn.ResetConnection(onComplete);
         }
-
         internal void InternalChangeDB(string newDbName, Action onComplete = null)
         {
             _conn.ChangeDB(newDbName, onComplete);
         }
-        public void Close()
-        {
-            this.InternalClose();
-        }
-
-
         internal void InternalClose(Action onComplete = null)
         {
             if (UseConnectionPool)
@@ -389,11 +386,7 @@ namespace SharpConnect.MySql
             }
         }
         internal Connection Conn => _conn;
-
         public IStringConverter StringConv { get; set; }
-
-
-
 #if DEBUG
         public bool dbugPleaseBreak
         {
