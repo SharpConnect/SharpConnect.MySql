@@ -344,10 +344,18 @@ namespace SharpConnect.MySql
         }
 
         internal bool LatestPingResult => _conn.LatestCallIsOk;
+
         internal void InternalPing(Action onComplete = null)
         {
             _conn.Ping(onComplete);
         }
+#if DEBUG
+        internal void dbugSimulateSocketErr()
+        {
+            _conn.dbugMakeSocketClose();
+        }
+
+#endif
         internal void InternalResetConnection(Action onComplete = null)
         {
             _conn.ResetConnection(onComplete);
@@ -360,8 +368,11 @@ namespace SharpConnect.MySql
         {
             if (UseConnectionPool)
             {
-                _conn.ForceReleaseBindingQuery();
-                ConnectionPool.ReleaseConnection(_connStr, _conn);
+                if (!_conn.GetLatestSocketCheckError())
+                {
+                    _conn.ForceReleaseBindingQuery();
+                    ConnectionPool.ReleaseConnection(_connStr, _conn);                    
+                }
                 onComplete?.Invoke();
             }
             else
@@ -392,6 +403,10 @@ namespace SharpConnect.MySql
         {
             get { return _conn.dbugPleaseBreak; }
             set { _conn.dbugPleaseBreak = value; }
+        }
+        public void dbugMakeSocketError()
+        {
+            _conn.dbugMakeSocketClose();
         }
 #endif
     }
