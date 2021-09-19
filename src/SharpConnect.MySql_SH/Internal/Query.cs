@@ -227,7 +227,7 @@ namespace SharpConnect.MySql.Internal
                 }
                 else
                 {
-                    if (!execReader)
+                    if (!execReader && _prepareContext == null)
                     {
                         //execute non query
                         Close(null);

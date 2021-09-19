@@ -13,6 +13,10 @@ namespace SharpConnect.MySql
             {
                 cmd.InternalPrepare();
             }
+            public static void ClosePrepare(this MySqlCommand cmd)
+            {
+                cmd.InternalClosePrepare();
+            }
             public static MySqlDataReader ExecuteReader(this MySqlCommand cmd)
             {
                 return cmd.InternalExecuteReader();

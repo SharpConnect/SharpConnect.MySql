@@ -310,7 +310,7 @@ namespace SharpConnect.MySql.Internal
 
         //TODO: review here
         int _globalWaiting = 0;
-        object _connLocker = new object();
+        readonly object _connLocker = new object();
 
         public void InitWait()
         {
@@ -525,7 +525,7 @@ namespace SharpConnect.MySql.Internal
         /// <param name="nextAction"></param>
         public void ChangeDB(string newDbName, Action nextAction = null)
         {
-            //ping server
+
             if (State == ConnectionState.Disconnected)
             {
                 throw new NotSupportedException("open connection first");

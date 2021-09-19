@@ -261,6 +261,8 @@ namespace MySqlTest
                 cmd.Parameters.AddWithValue("?col2", "1000");
                 cmd.ExecuteNonQuery();
             }
+
+
             conn.Close();
             Report.WriteLine("ok");
         }
