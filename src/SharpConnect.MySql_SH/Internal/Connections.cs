@@ -315,6 +315,7 @@ namespace SharpConnect.MySql.Internal
         int _globalWaiting = 0;
         readonly object _connLocker = new object();
 
+        
         public void InitWait()
         {
             if (Interlocked.CompareExchange(ref _globalWaiting, 1, 0) == 1)
@@ -358,8 +359,8 @@ namespace SharpConnect.MySql.Internal
         {
 
             //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
-            lock (_connLocker)                 // Let's now wake up the thread by
-            {                              // setting _go=true and pulsing.
+            lock (_connLocker)                 // Let's now wake up the thread
+            {                             
                 Interlocked.Exchange(ref _globalWaiting, 0);//set to false
                 Monitor.Pulse(_connLocker);
             }
