@@ -279,6 +279,9 @@ namespace SharpConnect.MySql
                 case ProperDataType.Bool:
                     AddWithValue(key, (bool)value);
                     break;
+                case ProperDataType.Byte:
+                    AddWithValue(key, (byte)value);
+                    break;
                 case ProperDataType.Sbyte:
                     AddWithValue(key, (sbyte)value);
                     break;
